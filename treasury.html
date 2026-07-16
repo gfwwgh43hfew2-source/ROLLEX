@@ -378,6 +378,10 @@
         const SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
         const SHEET_NAME = 'الخزينة الرئيسية';
 
+        // متغيرات لتخزين البيانات الإضافية
+        let treasuryName = 'الخزينة الرئيسية';
+        let openingBalance = 0;
+
         async function fetchSheetData() {
             try {
                 const url =
@@ -420,6 +424,20 @@
             console.log('📊 عدد الصفوف:', data.length);
 
             // =============================================
+            // 🔥 استخراج اسم الخزنة والرصيد الافتتاحي
+            // =============================================
+            // الصف 2 (مؤشر 1) يحتوي على اسم الخزنة في العمود B (مؤشر 1)
+            // الصف 3 (مؤشر 2) يحتوي على الرصيد الافتتاحي في العمود B (مؤشر 1)
+            if (data.length > 1 && data[1] && data[1][1]) {
+                treasuryName = data[1][1] || 'الخزينة الرئيسية';
+                console.log('🏷️ اسم الخزنة:', treasuryName);
+            }
+            if (data.length > 2 && data[2] && data[2][1]) {
+                openingBalance = cleanNumber(data[2][1]);
+                console.log('💰 الرصيد الافتتاحي:', openingBalance);
+            }
+
+            // =============================================
             // 🔥 الرؤوس في الصف 4 (مؤشر 3)
             // 🔥 البيانات تبدأ من الصف 5 (مؤشر 4)
             // =============================================
@@ -427,8 +445,6 @@
             const DATA_START_INDEX = 4;
 
             // الأعمدة حسب التحليل:
-            // 0: التاريخ, 1: رقم السند, 2: نوع الحركة, 3: الطرف, 4: البيان,
-            // 5: وارد, 6: صادر, 7: ملاحظات, 8: الرصيد بعد الحركة, 9: التبويب العام, 10: التبويب الخاص
             const IDX_DATE = 0;
             const IDX_NUMBER = 1;
             const IDX_TYPE = 2;
@@ -449,8 +465,7 @@
             // =============================================
             // حساب الإحصائيات
             // =============================================
-            let totalBalance = 0,
-                totalIncoming = 0,
+            let totalIncoming = 0,
                 totalOutgoing = 0;
             let validRows = 0;
 
@@ -463,13 +478,15 @@
                 validRows++;
                 totalIncoming += incoming;
                 totalOutgoing += outgoing;
-
-                if (row[IDX_BALANCE]) {
-                    const balanceVal = cleanNumber(row[IDX_BALANCE]);
-                    if (balanceVal !== 0) totalBalance = balanceVal;
-                }
             });
 
+            // =============================================
+            // 🔥 حساب الرصيد الإجمالي = الرصيد الافتتاحي + (الوارد - الصادر)
+            // =============================================
+            const netMovement = totalIncoming - totalOutgoing;
+            const totalBalance = openingBalance + netMovement;
+
+            // تحديث KPI
             document.getElementById('totalBalance').textContent = totalBalance.toLocaleString() + ' ر.س';
             document.getElementById('totalIncoming').textContent = totalIncoming.toLocaleString() + ' ر.س';
             document.getElementById('totalOutgoing').textContent = totalOutgoing.toLocaleString() + ' ر.س';
