@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
+        /* ===== RESET & BASE ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; background: #0a0f1f; color: #eee; direction: rtl; overflow-x: hidden; scroll-behavior: smooth; }
         a { text-decoration: none; color: inherit; }
@@ -92,8 +93,6 @@
         tr:hover td { background: rgba(245, 200, 66, 0.02); }
         .badge { display: inline-block; padding: 2px 10px; border-radius: 50px; font-size: 0.6rem; font-weight: 600; }
         .badge-type { background: rgba(26, 47, 68, 0.25); color: rgba(255, 255, 255, 0.4); border: 1px solid rgba(255, 255, 255, 0.03); }
-        .badge-incoming { background: rgba(43, 138, 62, 0.15); color: #4caf50; border: 1px solid rgba(43, 138, 62, 0.1); }
-        .badge-outgoing { background: rgba(201, 42, 42, 0.12); color: #ef5350; border: 1px solid rgba(201, 42, 42, 0.08); }
 
         .cards-container { display: grid; grid-template-columns: 1fr; gap: 14px; }
         .booking-card { background: linear-gradient(145deg, #121a2e, #0e1525); border-radius: 16px; padding: 18px 16px; border: 1px solid rgba(255, 255, 255, 0.03); transition: 0.3s; }
@@ -443,6 +442,9 @@
                 console.log('⚠️ لم يتم العثور على الصف 6، استخدام الصف الأول:', headers);
             }
 
+            // =============================================
+            // 🔥 IMPORTANT: استخدام جميع الصفوف بعد الصف 6
+            // =============================================
             const rows = data.slice(HEADER_ROW_INDEX + 1);
             console.log('📋 عدد صفوف البيانات:', rows.length);
 
@@ -472,6 +474,7 @@
                     <div class="error">❌ لم يتم العثور على أعمدة "وارد" أو "صادر"
                         <small>الأعمدة الموجودة: ${headers.join(' | ')}</small>
                         <small style="display:block;margin-top:6px;">تم البحث في الصف رقم 6</small>
+                        <small style="display:block;margin-top:4px;">تأكد من أن أسماء الأعمدة مطابقة تماماً</small>
                     </div>
                 `;
                 return;
@@ -489,7 +492,9 @@
                 if (!row || row.length === 0) return;
                 const incoming = (idxIncoming !== -1 && row[idxIncoming]) ? cleanNumber(row[idxIncoming]) : 0;
                 const outgoing = (idxOutgoing !== -1 && row[idxOutgoing]) ? cleanNumber(row[idxOutgoing]) : 0;
-                if (incoming === 0 && outgoing === 0 && !row[idxDescription]) return;
+                // 🔥 تعديل: إزالة شرط التحقق من description
+                // حتى يتم عرض الصفوف التي بها أرقام فقط
+                if (incoming === 0 && outgoing === 0) return;
 
                 validRows++;
                 totalIncoming += incoming;
@@ -510,12 +515,12 @@
             // TABLE (Desktop)
             // =============================================
             let tableRows = '';
-            const displayRows = rows.slice(0, 30);
+            const displayRows = rows.slice(0, 50); // عرض 50 صف بدلاً من 30
             displayRows.forEach(row => {
                 if (!row || row.length === 0) return;
                 const incoming = (idxIncoming !== -1 && row[idxIncoming]) ? cleanNumber(row[idxIncoming]) : 0;
                 const outgoing = (idxOutgoing !== -1 && row[idxOutgoing]) ? cleanNumber(row[idxOutgoing]) : 0;
-                if (incoming === 0 && outgoing === 0 && !row[idxDescription]) return;
+                if (incoming === 0 && outgoing === 0) return;
 
                 const date = (idxDate !== -1 && row[idxDate]) ? row[idxDate] : '-';
                 const number = (idxNumber !== -1 && row[idxNumber]) ? row[idxNumber] : '-';
@@ -569,19 +574,19 @@
                         <tbody>${tableRows || '<tr><td colspan="10" style="text-align:center;color:rgba(255,255,255,0.15);padding:25px;">لا توجد حركات</td></tr>'}</tbody>
                     </table>
                 </div>
-                <div class="table-note">يعرض آخر 30 حركة</div>
+                <div class="table-note">يعرض آخر 50 حركة</div>
             `;
 
             // =============================================
             // CARDS (Mobile)
             // =============================================
             let cardsHTML = '<div class="cards-container">';
-            const cardRows = rows.slice(0, 30);
+            const cardRows = rows.slice(0, 50);
             cardRows.forEach(row => {
                 if (!row || row.length === 0) return;
                 const incoming = (idxIncoming !== -1 && row[idxIncoming]) ? cleanNumber(row[idxIncoming]) : 0;
                 const outgoing = (idxOutgoing !== -1 && row[idxOutgoing]) ? cleanNumber(row[idxOutgoing]) : 0;
-                if (incoming === 0 && outgoing === 0 && !row[idxDescription]) return;
+                if (incoming === 0 && outgoing === 0) return;
 
                 const date = (idxDate !== -1 && row[idxDate]) ? row[idxDate] : '-';
                 const number = (idxNumber !== -1 && row[idxNumber]) ? row[idxNumber] : '-';
