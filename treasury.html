@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
-        /* ===== نفس الـ CSS السابق (مختصر) ===== */
+        /* ===== نفس الـ CSS السابق ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; background: #0a0f1f; color: #eee; direction: rtl; overflow-x: hidden; scroll-behavior: smooth; }
         a { text-decoration: none; color: inherit; }
@@ -425,42 +425,44 @@
                 return;
             }
 
-            // =============================================
-            // 🔥 تحديد صف الرؤوس يدوياً - الصف 6 (مؤشر 5)
-            // =============================================
-            const HEADER_ROW_INDEX = 5; // الصف 6 في Excel = index 5 في المصفوفة
+            console.log('📊 جميع الصفوف:', data);
 
+            // =============================================
+            // 🔥 البحث عن صف الرؤوس تلقائياً
+            // =============================================
             let headers = [];
-            let headerRowFound = false;
+            let headerRowIndex = -1;
 
-            if (data.length > HEADER_ROW_INDEX) {
-                headers = data[HEADER_ROW_INDEX].map(h => String(h).trim());
-                headerRowFound = true;
-                console.log('✅ تم العثور على صف الرؤوس في الصف رقم 6:', headers);
-            }
+            // الكلمات المفتاحية للبحث عن صف الرؤوس
+            const keywords = ['التاريخ', 'وارد', 'صادر', 'البيان', 'رقم السند', 'نوع الحركة', 'الرصيد'];
 
-            // إذا لم يتم العثور على الصف 6، حاول البحث تلقائياً
-            if (!headerRowFound) {
-                for (let i = 0; i < Math.min(data.length, 15); i++) {
-                    const row = data[i];
-                    const rowString = row.join(' ');
-                    if (rowString.includes('التاريخ') && rowString.includes('وارد') && rowString.includes('صادر')) {
-                        headers = row.map(h => String(h).trim());
-                        headerRowFound = true;
-                        console.log('✅ تم العثور على صف الرؤوس تلقائياً في الصف رقم ' + (i + 1) + ':', headers);
-                        break;
-                    }
+            for (let i = 0; i < Math.min(data.length, 20); i++) {
+                const row = data[i];
+                if (!row || row.length === 0) continue;
+                const rowString = row.join(' ');
+                // التحقق من وجود كلمتين مفتاحيتين على الأقل
+                let matchCount = 0;
+                keywords.forEach(kw => {
+                    if (rowString.includes(kw)) matchCount++;
+                });
+                if (matchCount >= 2) {
+                    headers = row.map(h => String(h).trim());
+                    headerRowIndex = i;
+                    break;
                 }
             }
 
             // إذا لم يتم العثور على الرؤوس، استخدم الصف الأول
-            if (!headerRowFound) {
+            if (headerRowIndex === -1) {
                 headers = data[0].map(h => String(h).trim());
+                headerRowIndex = 0;
                 console.log('⚠️ لم يتم العثور على صف رؤوس، استخدام الصف الأول:', headers);
+            } else {
+                console.log('✅ تم العثور على صف الرؤوس في الصف رقم ' + (headerRowIndex + 1) + ':', headers);
             }
 
             // البيانات تبدأ بعد صف الرؤوس
-            const rows = data.slice(HEADER_ROW_INDEX + 1);
+            const rows = data.slice(headerRowIndex + 1);
 
             console.log('📋 عدد صفوف البيانات:', rows.length);
 
@@ -471,7 +473,7 @@
             const idxDescription = findColumnIndex(headers, 'البيان');
             const idxIncoming = findColumnIndex(headers, 'وارد');
             const idxOutgoing = findColumnIndex(headers, 'صادر');
-            const idxBalance = findColumnIndex(headers, 'الرصيد بعد الحركة');
+            const idxBalance = findColumnIndex(headers, 'الرصيد');
 
             console.log('📌 مؤشرات الأعمدة:', { idxDate, idxNumber, idxType, idxDescription, idxIncoming, idxOutgoing, idxBalance });
 
@@ -480,8 +482,8 @@
                 container.innerHTML = `
                     <div class="error">❌ لم يتم العثور على أعمدة "وارد" أو "صادر"
                         <small>الأعمدة الموجودة: ${headers.join(' | ')}</small>
-                        <small style="display:block;margin-top:6px;">تم البحث في الصف رقم 6 كرؤوس (كما في صورتك)</small>
-                        <small style="display:block;margin-top:4px;">إذا كان صف الرؤوس مختلفاً، أخبرني برقمه</small>
+                        <small style="display:block;margin-top:6px;">تم البحث في الصف رقم ${headerRowIndex + 1}</small>
+                        <small style="display:block;margin-top:4px;">تأكد من أن أسماء الأعمدة مطابقة: التاريخ، رقم السند، نوع الحركة، البيان، وارد، صادر، الرصيد</small>
                     </div>
                 `;
                 return;
@@ -564,7 +566,7 @@
                             <th>نوع الحركة</th>
                             <th>البيان</th>
                             <th style="text-align:center;">المبلغ</th>
-                            <th style="text-align:center;">الرصيد بعد الحركة</th>
+                            <th style="text-align:center;">الرصيد</th>
                         </tr></thead>
                         <tbody>${tableRows || '<tr><td colspan="6" style="text-align:center;color:rgba(255,255,255,0.15);padding:25px;">لا توجد حركات في الخزينة</td></tr>'}</tbody>
                     </table>
@@ -619,7 +621,7 @@
                             <span class="card-value" style="color:${amountColor};font-weight:700;">${amountDisplay}</span>
                         </div>
                         <div class="card-row" style="border-bottom: none; padding-top: 4px;">
-                            <span class="card-label">الرصيد بعد الحركة</span>
+                            <span class="card-label">الرصيد</span>
                             <span class="card-value gold">${balance} ر.س</span>
                         </div>
                     </div>
