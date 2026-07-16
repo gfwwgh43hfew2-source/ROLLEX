@@ -446,38 +446,46 @@
             console.log('📊 جميع الصفوف:', data);
 
             // =============================================
-            // 🔥 البحث عن صف الرؤوس تلقائياً
+            // 🔥 تحديد صف الرؤوس يدوياً - الصف 7 (مؤشر 6)
+            // بناءً على الصورة، صف الرؤوس هو الصف 7 في Excel
             // =============================================
+            const HEADER_ROW_INDEX = 6; // الصف 7 في Excel = index 6
+
             let headers = [];
-            let headerRowIndex = -1;
+            let headerRowFound = false;
 
-            // الكلمات المفتاحية للبحث عن صف الرؤوس (بأسماء الأعمدة الصحيحة)
-            const keywords = ['التاريخ', 'رقم السند', 'نوع الحركة', 'الطرف', 'البيان', 'وارد', 'صادر', 'الرصيد بعد الحركة'];
+            if (data.length > HEADER_ROW_INDEX) {
+                headers = data[HEADER_ROW_INDEX].map(h => String(h).trim());
+                headerRowFound = true;
+                console.log('✅ تم تحديد صف الرؤوس يدوياً في الصف رقم 7:', headers);
+            }
 
-            for (let i = 0; i < Math.min(data.length, 20); i++) {
-                const row = data[i];
-                if (!row || row.length === 0) continue;
-                const rowString = row.join(' ');
-                let matchCount = 0;
-                keywords.forEach(kw => {
-                    if (rowString.includes(kw)) matchCount++;
-                });
-                if (matchCount >= 3) {
-                    headers = row.map(h => String(h).trim());
-                    headerRowIndex = i;
-                    break;
+            // إذا لم يتم العثور على الصف 7، حاول البحث تلقائياً
+            if (!headerRowFound) {
+                const keywords = ['التاريخ', 'رقم السند', 'نوع الحركة', 'الطرف', 'البيان', 'وارد', 'صادر', 'الرصيد بعد الحركة'];
+                for (let i = 0; i < Math.min(data.length, 20); i++) {
+                    const row = data[i];
+                    if (!row || row.length === 0) continue;
+                    const rowString = row.join(' ');
+                    let matchCount = 0;
+                    keywords.forEach(kw => {
+                        if (rowString.includes(kw)) matchCount++;
+                    });
+                    if (matchCount >= 3) {
+                        headers = row.map(h => String(h).trim());
+                        headerRowFound = true;
+                        console.log('✅ تم العثور على صف الرؤوس تلقائياً في الصف رقم ' + (i + 1) + ':', headers);
+                        break;
+                    }
                 }
             }
 
-            if (headerRowIndex === -1) {
+            if (!headerRowFound) {
                 headers = data[0].map(h => String(h).trim());
-                headerRowIndex = 0;
                 console.log('⚠️ لم يتم العثور على صف رؤوس، استخدام الصف الأول:', headers);
-            } else {
-                console.log('✅ تم العثور على صف الرؤوس في الصف رقم ' + (headerRowIndex + 1) + ':', headers);
             }
 
-            const rows = data.slice(headerRowIndex + 1);
+            const rows = data.slice(HEADER_ROW_INDEX + 1);
             console.log('📋 عدد صفوف البيانات:', rows.length);
 
             // =============================================
@@ -506,7 +514,8 @@
                 container.innerHTML = `
                     <div class="error">❌ لم يتم العثور على أعمدة "وارد" أو "صادر"
                         <small>الأعمدة الموجودة: ${headers.join(' | ')}</small>
-                        <small style="display:block;margin-top:6px;">تم البحث في الصف رقم ${headerRowIndex + 1}</small>
+                        <small style="display:block;margin-top:6px;">تم البحث في الصف رقم 7 (كما في صورتك)</small>
+                        <small style="display:block;margin-top:4px;">إذا كان صف الرؤوس مختلفاً، أخبرني برقمه</small>
                     </div>
                 `;
                 return;
@@ -560,20 +569,15 @@
                 const description = (idxDescription !== -1 && row[idxDescription]) ? row[idxDescription] : '-';
                 const notes = (idxNotes !== -1 && row[idxNotes]) ? row[idxNotes] : '';
                 const balance = (idxBalance !== -1 && row[idxBalance]) ? cleanNumber(row[idxBalance]).toLocaleString() : '-';
-                const generalTab = (idxGeneralTab !== -1 && row[idxGeneralTab]) ? row[idxGeneralTab] : '-';
-                const privateTab = (idxPrivateTab !== -1 && row[idxPrivateTab]) ? row[idxPrivateTab] : '-';
 
                 let amountDisplay = '-';
                 let amountColor = 'rgba(255,255,255,0.6)';
-                let badgeType = '';
                 if (incoming > 0) {
                     amountDisplay = `+ ${incoming.toLocaleString()}`;
                     amountColor = '#4caf50';
-                    badgeType = `<span class="badge badge-incoming">وارد</span>`;
                 } else if (outgoing > 0) {
                     amountDisplay = `- ${outgoing.toLocaleString()}`;
                     amountColor = '#ef5350';
-                    badgeType = `<span class="badge badge-outgoing">صادر</span>`;
                 }
 
                 tableRows += `<tr>
@@ -585,8 +589,6 @@
                     <td style="color:${amountColor};font-weight:700;text-align:center;">${amountDisplay}</td>
                     <td style="font-size:0.65rem;color:rgba(255,255,255,0.3);">${notes}</td>
                     <td style="color:#f5c842;font-weight:700;text-align:center;">${balance} ر.س</td>
-                    <td style="font-size:0.6rem;color:rgba(255,255,255,0.2);">${generalTab}</td>
-                    <td style="font-size:0.6rem;color:rgba(255,255,255,0.2);">${privateTab}</td>
                 </tr>`;
             });
 
@@ -602,10 +604,8 @@
                             <th style="text-align:center;">المبلغ</th>
                             <th>ملاحظات</th>
                             <th style="text-align:center;">الرصيد بعد الحركة</th>
-                            <th>التبويب العام</th>
-                            <th>التبويب الخاص</th>
                         </tr></thead>
-                        <tbody>${tableRows || '<tr><td colspan="10" style="text-align:center;color:rgba(255,255,255,0.15);padding:25px;">لا توجد حركات في الخزينة</td></tr>'}</tbody>
+                        <tbody>${tableRows || '<tr><td colspan="8" style="text-align:center;color:rgba(255,255,255,0.15);padding:25px;">لا توجد حركات في الخزينة</td></tr>'}</tbody>
                     </table>
                 </div>
                 <div class="table-note">يعرض آخر 30 حركة</div>
@@ -632,15 +632,12 @@
 
                 let amountDisplay = '-';
                 let amountColor = 'rgba(255,255,255,0.8)';
-                let badgeType = '';
                 if (incoming > 0) {
                     amountDisplay = `+ ${incoming.toLocaleString()} ر.س`;
                     amountColor = '#4caf50';
-                    badgeType = `<span class="badge badge-incoming">وارد</span>`;
                 } else if (outgoing > 0) {
                     amountDisplay = `- ${outgoing.toLocaleString()} ر.س`;
                     amountColor = '#ef5350';
-                    badgeType = `<span class="badge badge-outgoing">صادر</span>`;
                 }
 
                 cardsHTML += `
@@ -669,14 +666,10 @@
                             <span class="card-label">الرصيد بعد الحركة</span>
                             <span class="card-value gold">${balance} ر.س</span>
                         </div>
-                        ${notes ? `<div class="card-row">
+                        ${notes ? `<div class="card-row" style="border-bottom: none; padding-top: 4px;">
                             <span class="card-label">ملاحظات</span>
                             <span class="card-value" style="font-size:0.65rem;color:rgba(255,255,255,0.3);">${notes}</span>
                         </div>` : ''}
-                        <div class="card-row" style="border-bottom: none; padding-top: 4px;">
-                            <span class="card-label">الحالة</span>
-                            <span class="card-value">${badgeType || '<span class="badge badge-type">-</span>'}</span>
-                        </div>
                     </div>
                 `;
             });
