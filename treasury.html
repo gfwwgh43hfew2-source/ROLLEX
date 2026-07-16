@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
-        /* ===== RESET & BASE ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; background: #0a0f1f; color: #eee; direction: rtl; overflow-x: hidden; scroll-behavior: smooth; }
         a { text-decoration: none; color: inherit; }
@@ -410,13 +409,6 @@
             return parseFloat(cleaned) || 0;
         }
 
-        function findColumnIndex(headers, target) {
-            const clean = s => String(s).trim().replace(/\s+/g, ' ');
-            let idx = headers.findIndex(h => clean(h) === clean(target));
-            if (idx !== -1) return idx;
-            return headers.findIndex(h => clean(h).includes(clean(target)));
-        }
-
         function displayData(data) {
             const container = document.getElementById('treasuryContainer');
 
@@ -435,50 +427,39 @@
             let headers = [];
 
             if (data.length > HEADER_ROW_INDEX) {
-                headers = data[HEADER_ROW_INDEX].map(h => String(h).trim());
+                headers = data[HEADER_ROW_INDEX];
                 console.log('✅ تم تحديد صف الرؤوس في الصف رقم 6:', headers);
             } else {
-                headers = data[0].map(h => String(h).trim());
+                headers = data[0];
                 console.log('⚠️ لم يتم العثور على الصف 6، استخدام الصف الأول:', headers);
             }
 
             // =============================================
-            // 🔥 IMPORTANT: استخدام جميع الصفوف بعد الصف 6
+            // 🔥 استخدام أرقام الأعمدة مباشرة (بدون البحث عن أسماء)
+            // =============================================
+            // الأعمدة حسب الترتيب في الصورة:
+            // 0: التاريخ, 1: رقم السند, 2: نوع الحركة, 3: الطرف, 4: البيان,
+            // 5: وارد, 6: صادر, 7: ملاحظات, 8: الرصيد بعد الحركة, 9: التبويب العام, 10: التبويب الخاص
+            // =============================================
+            const IDX_DATE = 0;
+            const IDX_NUMBER = 1;
+            const IDX_TYPE = 2;
+            const IDX_PARTY = 3;
+            const IDX_DESCRIPTION = 4;
+            const IDX_INCOMING = 5;
+            const IDX_OUTGOING = 6;
+            const IDX_NOTES = 7;
+            const IDX_BALANCE = 8;
+            const IDX_GENERAL_TAB = 9;
+            const IDX_PRIVATE_TAB = 10;
+
+            console.log('📌 استخدام أرقام الأعمدة مباشرة');
+
+            // =============================================
+            // استخدام جميع الصفوف بعد الصف 6
             // =============================================
             const rows = data.slice(HEADER_ROW_INDEX + 1);
             console.log('📋 عدد صفوف البيانات:', rows.length);
-
-            // =============================================
-            // البحث عن الأعمدة الـ 11
-            // =============================================
-            const idxDate = findColumnIndex(headers, 'التاريخ');
-            const idxNumber = findColumnIndex(headers, 'رقم السند');
-            const idxType = findColumnIndex(headers, 'نوع الحركة');
-            const idxParty = findColumnIndex(headers, 'الطرف');
-            const idxDescription = findColumnIndex(headers, 'البيان');
-            const idxIncoming = findColumnIndex(headers, 'وارد');
-            const idxOutgoing = findColumnIndex(headers, 'صادر');
-            const idxNotes = findColumnIndex(headers, 'ملاحظات');
-            const idxBalance = findColumnIndex(headers, 'الرصيد بعد الحركة');
-            const idxGeneralTab = findColumnIndex(headers, 'التبويب العام');
-            const idxPrivateTab = findColumnIndex(headers, 'التبويب الخاص');
-
-            console.log('📌 مؤشرات الأعمدة:', {
-                idxDate, idxNumber, idxType, idxParty, idxDescription,
-                idxIncoming, idxOutgoing, idxNotes, idxBalance,
-                idxGeneralTab, idxPrivateTab
-            });
-
-            if (idxIncoming === -1 && idxOutgoing === -1) {
-                container.innerHTML = `
-                    <div class="error">❌ لم يتم العثور على أعمدة "وارد" أو "صادر"
-                        <small>الأعمدة الموجودة: ${headers.join(' | ')}</small>
-                        <small style="display:block;margin-top:6px;">تم البحث في الصف رقم 6</small>
-                        <small style="display:block;margin-top:4px;">تأكد من أن أسماء الأعمدة مطابقة تماماً</small>
-                    </div>
-                `;
-                return;
-            }
 
             // =============================================
             // حساب الإحصائيات
@@ -490,18 +471,16 @@
 
             rows.forEach(row => {
                 if (!row || row.length === 0) return;
-                const incoming = (idxIncoming !== -1 && row[idxIncoming]) ? cleanNumber(row[idxIncoming]) : 0;
-                const outgoing = (idxOutgoing !== -1 && row[idxOutgoing]) ? cleanNumber(row[idxOutgoing]) : 0;
-                // 🔥 تعديل: إزالة شرط التحقق من description
-                // حتى يتم عرض الصفوف التي بها أرقام فقط
+                const incoming = (row[IDX_INCOMING]) ? cleanNumber(row[IDX_INCOMING]) : 0;
+                const outgoing = (row[IDX_OUTGOING]) ? cleanNumber(row[IDX_OUTGOING]) : 0;
                 if (incoming === 0 && outgoing === 0) return;
 
                 validRows++;
                 totalIncoming += incoming;
                 totalOutgoing += outgoing;
 
-                if (idxBalance !== -1 && row[idxBalance]) {
-                    const balanceVal = cleanNumber(row[idxBalance]);
+                if (row[IDX_BALANCE]) {
+                    const balanceVal = cleanNumber(row[IDX_BALANCE]);
                     if (balanceVal !== 0) totalBalance = balanceVal;
                 }
             });
@@ -515,22 +494,22 @@
             // TABLE (Desktop)
             // =============================================
             let tableRows = '';
-            const displayRows = rows.slice(0, 50); // عرض 50 صف بدلاً من 30
+            const displayRows = rows.slice(0, 50);
             displayRows.forEach(row => {
                 if (!row || row.length === 0) return;
-                const incoming = (idxIncoming !== -1 && row[idxIncoming]) ? cleanNumber(row[idxIncoming]) : 0;
-                const outgoing = (idxOutgoing !== -1 && row[idxOutgoing]) ? cleanNumber(row[idxOutgoing]) : 0;
+                const incoming = (row[IDX_INCOMING]) ? cleanNumber(row[IDX_INCOMING]) : 0;
+                const outgoing = (row[IDX_OUTGOING]) ? cleanNumber(row[IDX_OUTGOING]) : 0;
                 if (incoming === 0 && outgoing === 0) return;
 
-                const date = (idxDate !== -1 && row[idxDate]) ? row[idxDate] : '-';
-                const number = (idxNumber !== -1 && row[idxNumber]) ? row[idxNumber] : '-';
-                const type = (idxType !== -1 && row[idxType]) ? row[idxType] : '-';
-                const party = (idxParty !== -1 && row[idxParty]) ? row[idxParty] : '-';
-                const description = (idxDescription !== -1 && row[idxDescription]) ? row[idxDescription] : '-';
-                const notes = (idxNotes !== -1 && row[idxNotes]) ? row[idxNotes] : '';
-                const balance = (idxBalance !== -1 && row[idxBalance]) ? cleanNumber(row[idxBalance]).toLocaleString() : '-';
-                const generalTab = (idxGeneralTab !== -1 && row[idxGeneralTab]) ? row[idxGeneralTab] : '-';
-                const privateTab = (idxPrivateTab !== -1 && row[idxPrivateTab]) ? row[idxPrivateTab] : '-';
+                const date = row[IDX_DATE] || '-';
+                const number = row[IDX_NUMBER] || '-';
+                const type = row[IDX_TYPE] || '-';
+                const party = row[IDX_PARTY] || '-';
+                const description = row[IDX_DESCRIPTION] || '-';
+                const notes = row[IDX_NOTES] || '';
+                const balance = row[IDX_BALANCE] ? cleanNumber(row[IDX_BALANCE]).toLocaleString() : '-';
+                const generalTab = row[IDX_GENERAL_TAB] || '-';
+                const privateTab = row[IDX_PRIVATE_TAB] || '-';
 
                 let amountDisplay = '-';
                 let amountColor = 'rgba(255,255,255,0.6)';
@@ -584,19 +563,19 @@
             const cardRows = rows.slice(0, 50);
             cardRows.forEach(row => {
                 if (!row || row.length === 0) return;
-                const incoming = (idxIncoming !== -1 && row[idxIncoming]) ? cleanNumber(row[idxIncoming]) : 0;
-                const outgoing = (idxOutgoing !== -1 && row[idxOutgoing]) ? cleanNumber(row[idxOutgoing]) : 0;
+                const incoming = (row[IDX_INCOMING]) ? cleanNumber(row[IDX_INCOMING]) : 0;
+                const outgoing = (row[IDX_OUTGOING]) ? cleanNumber(row[IDX_OUTGOING]) : 0;
                 if (incoming === 0 && outgoing === 0) return;
 
-                const date = (idxDate !== -1 && row[idxDate]) ? row[idxDate] : '-';
-                const number = (idxNumber !== -1 && row[idxNumber]) ? row[idxNumber] : '-';
-                const type = (idxType !== -1 && row[idxType]) ? row[idxType] : '-';
-                const party = (idxParty !== -1 && row[idxParty]) ? row[idxParty] : '-';
-                const description = (idxDescription !== -1 && row[idxDescription]) ? row[idxDescription] : '-';
-                const notes = (idxNotes !== -1 && row[idxNotes]) ? row[idxNotes] : '';
-                const balance = (idxBalance !== -1 && row[idxBalance]) ? cleanNumber(row[idxBalance]).toLocaleString() : '-';
-                const generalTab = (idxGeneralTab !== -1 && row[idxGeneralTab]) ? row[idxGeneralTab] : '-';
-                const privateTab = (idxPrivateTab !== -1 && row[idxPrivateTab]) ? row[idxPrivateTab] : '-';
+                const date = row[IDX_DATE] || '-';
+                const number = row[IDX_NUMBER] || '-';
+                const type = row[IDX_TYPE] || '-';
+                const party = row[IDX_PARTY] || '-';
+                const description = row[IDX_DESCRIPTION] || '-';
+                const notes = row[IDX_NOTES] || '';
+                const balance = row[IDX_BALANCE] ? cleanNumber(row[IDX_BALANCE]).toLocaleString() : '-';
+                const generalTab = row[IDX_GENERAL_TAB] || '-';
+                const privateTab = row[IDX_PRIVATE_TAB] || '-';
 
                 let amountDisplay = '-';
                 let amountColor = 'rgba(255,255,255,0.8)';
