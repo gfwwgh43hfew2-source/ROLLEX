@@ -435,11 +435,7 @@
             }
 
             // =============================================
-            // 🔥 استخدام أرقام الأعمدة مباشرة (بدون البحث عن أسماء)
-            // =============================================
-            // الأعمدة حسب الترتيب في الصورة:
-            // 0: التاريخ, 1: رقم السند, 2: نوع الحركة, 3: الطرف, 4: البيان,
-            // 5: وارد, 6: صادر, 7: ملاحظات, 8: الرصيد بعد الحركة, 9: التبويب العام, 10: التبويب الخاص
+            // 🔥 استخدام أرقام الأعمدة مباشرة
             // =============================================
             const IDX_DATE = 0;
             const IDX_NUMBER = 1;
@@ -453,16 +449,16 @@
             const IDX_GENERAL_TAB = 9;
             const IDX_PRIVATE_TAB = 10;
 
-            console.log('📌 استخدام أرقام الأعمدة مباشرة');
+            // =============================================
+            // 🔥 البيانات تبدأ من الصف 7 (مؤشر 6)
+            // =============================================
+            const DATA_START_INDEX = 6; // الصف 7 في Excel
+
+            const rows = data.slice(DATA_START_INDEX);
+            console.log('📋 عدد صفوف البيانات (من الصف 7):', rows.length);
 
             // =============================================
-            // استخدام جميع الصفوف بعد الصف 6
-            // =============================================
-            const rows = data.slice(HEADER_ROW_INDEX + 1);
-            console.log('📋 عدد صفوف البيانات:', rows.length);
-
-            // =============================================
-            // حساب الإحصائيات
+            // حساب الإحصائيات - عرض جميع الصفوف
             // =============================================
             let totalBalance = 0,
                 totalIncoming = 0,
@@ -473,8 +469,7 @@
                 if (!row || row.length === 0) return;
                 const incoming = (row[IDX_INCOMING]) ? cleanNumber(row[IDX_INCOMING]) : 0;
                 const outgoing = (row[IDX_OUTGOING]) ? cleanNumber(row[IDX_OUTGOING]) : 0;
-                if (incoming === 0 && outgoing === 0) return;
-
+                // 🔥 إزالة الشرط: عرض جميع الصفوف حتى الفارغة
                 validRows++;
                 totalIncoming += incoming;
                 totalOutgoing += outgoing;
@@ -491,15 +486,16 @@
             document.getElementById('totalTransactions').textContent = validRows;
 
             // =============================================
-            // TABLE (Desktop)
+            // TABLE (Desktop) - عرض جميع الصفوف
             // =============================================
             let tableRows = '';
-            const displayRows = rows.slice(0, 50);
+            const displayRows = rows.slice(0, 100); // عرض حتى 100 صف
             displayRows.forEach(row => {
-                if (!row || row.length === 0) return;
-                const incoming = (row[IDX_INCOMING]) ? cleanNumber(row[IDX_INCOMING]) : 0;
-                const outgoing = (row[IDX_OUTGOING]) ? cleanNumber(row[IDX_OUTGOING]) : 0;
-                if (incoming === 0 && outgoing === 0) return;
+                if (!row || row.length === 0) {
+                    // عرض صف فارغ
+                    tableRows += `<tr><td colspan="10" style="text-align:center;color:rgba(255,255,255,0.1);">-</td></tr>`;
+                    return;
+                }
 
                 const date = row[IDX_DATE] || '-';
                 const number = row[IDX_NUMBER] || '-';
@@ -510,6 +506,9 @@
                 const balance = row[IDX_BALANCE] ? cleanNumber(row[IDX_BALANCE]).toLocaleString() : '-';
                 const generalTab = row[IDX_GENERAL_TAB] || '-';
                 const privateTab = row[IDX_PRIVATE_TAB] || '-';
+
+                const incoming = (row[IDX_INCOMING]) ? cleanNumber(row[IDX_INCOMING]) : 0;
+                const outgoing = (row[IDX_OUTGOING]) ? cleanNumber(row[IDX_OUTGOING]) : 0;
 
                 let amountDisplay = '-';
                 let amountColor = 'rgba(255,255,255,0.6)';
@@ -553,19 +552,30 @@
                         <tbody>${tableRows || '<tr><td colspan="10" style="text-align:center;color:rgba(255,255,255,0.15);padding:25px;">لا توجد حركات</td></tr>'}</tbody>
                     </table>
                 </div>
-                <div class="table-note">يعرض آخر 50 حركة</div>
+                <div class="table-note">يعرض جميع الصفوف من الصف 7 فما فوق</div>
             `;
 
             // =============================================
-            // CARDS (Mobile)
+            // CARDS (Mobile) - عرض جميع الصفوف
             // =============================================
             let cardsHTML = '<div class="cards-container">';
-            const cardRows = rows.slice(0, 50);
-            cardRows.forEach(row => {
-                if (!row || row.length === 0) return;
-                const incoming = (row[IDX_INCOMING]) ? cleanNumber(row[IDX_INCOMING]) : 0;
-                const outgoing = (row[IDX_OUTGOING]) ? cleanNumber(row[IDX_OUTGOING]) : 0;
-                if (incoming === 0 && outgoing === 0) return;
+            const cardRows = rows.slice(0, 100);
+            cardRows.forEach((row, index) => {
+                if (!row || row.length === 0) {
+                    cardsHTML += `
+                        <div class="booking-card" style="opacity:0.3;">
+                            <div class="card-header">
+                                <span class="name">صف فارغ</span>
+                                <span class="number">#${index + 7}</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="card-label">لا توجد بيانات</span>
+                                <span class="card-value">-</span>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
 
                 const date = row[IDX_DATE] || '-';
                 const number = row[IDX_NUMBER] || '-';
@@ -576,6 +586,9 @@
                 const balance = row[IDX_BALANCE] ? cleanNumber(row[IDX_BALANCE]).toLocaleString() : '-';
                 const generalTab = row[IDX_GENERAL_TAB] || '-';
                 const privateTab = row[IDX_PRIVATE_TAB] || '-';
+
+                const incoming = (row[IDX_INCOMING]) ? cleanNumber(row[IDX_INCOMING]) : 0;
+                const outgoing = (row[IDX_OUTGOING]) ? cleanNumber(row[IDX_OUTGOING]) : 0;
 
                 let amountDisplay = '-';
                 let amountColor = 'rgba(255,255,255,0.8)';
