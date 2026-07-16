@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
-        /* ===== نفس الـ CSS السابق ===== */
+        /* ===== نفس الـ CSS السابق (مختصر) ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; background: #0a0f1f; color: #eee; direction: rtl; overflow-x: hidden; scroll-behavior: smooth; }
         a { text-decoration: none; color: inherit; }
@@ -414,6 +414,7 @@
             const clean = s => String(s).trim().replace(/\s+/g, ' ');
             let idx = headers.findIndex(h => clean(h) === clean(target));
             if (idx !== -1) return idx;
+            // حاول البحث عن العمود الذي يحتوي على الكلمة المفتاحية
             return headers.findIndex(h => clean(h).includes(clean(target)));
         }
 
@@ -433,8 +434,8 @@
             let headers = [];
             let headerRowIndex = -1;
 
-            // الكلمات المفتاحية للبحث عن صف الرؤوس
-            const keywords = ['التاريخ', 'وارد', 'صادر', 'البيان', 'رقم السند', 'نوع الحركة', 'الرصيد'];
+            // الكلمات المفتاحية للبحث عن صف الرؤوس (بأسماء الأعمدة الصحيحة)
+            const keywords = ['التاريخ', 'وارد', 'صادر', 'البيان', 'رقم السند', 'نوع الحركة', 'الرصيد بعد الحركة'];
 
             for (let i = 0; i < Math.min(data.length, 20); i++) {
                 const row = data[i];
@@ -466,16 +467,22 @@
 
             console.log('📋 عدد صفوف البيانات:', rows.length);
 
-            // البحث عن الأعمدة حسب أسماء شيتك
+            // =============================================
+            // البحث عن الأعمدة بأسمائها الصحيحة
+            // =============================================
             const idxDate = findColumnIndex(headers, 'التاريخ');
             const idxNumber = findColumnIndex(headers, 'رقم السند');
             const idxType = findColumnIndex(headers, 'نوع الحركة');
             const idxDescription = findColumnIndex(headers, 'البيان');
             const idxIncoming = findColumnIndex(headers, 'وارد');
             const idxOutgoing = findColumnIndex(headers, 'صادر');
-            const idxBalance = findColumnIndex(headers, 'الرصيد');
+            const idxBalance = findColumnIndex(headers, 'الرصيد بعد الحركة');
+            const idxNotes = findColumnIndex(headers, 'ملاحظات');
 
-            console.log('📌 مؤشرات الأعمدة:', { idxDate, idxNumber, idxType, idxDescription, idxIncoming, idxOutgoing, idxBalance });
+            console.log('📌 مؤشرات الأعمدة:', { 
+                idxDate, idxNumber, idxType, idxDescription, 
+                idxIncoming, idxOutgoing, idxBalance, idxNotes 
+            });
 
             // التأكد من وجود الأعمدة الأساسية
             if (idxIncoming === -1 && idxOutgoing === -1) {
@@ -483,7 +490,7 @@
                     <div class="error">❌ لم يتم العثور على أعمدة "وارد" أو "صادر"
                         <small>الأعمدة الموجودة: ${headers.join(' | ')}</small>
                         <small style="display:block;margin-top:6px;">تم البحث في الصف رقم ${headerRowIndex + 1}</small>
-                        <small style="display:block;margin-top:4px;">تأكد من أن أسماء الأعمدة مطابقة: التاريخ، رقم السند، نوع الحركة، البيان، وارد، صادر، الرصيد</small>
+                        <small style="display:block;margin-top:4px;">الأسماء المطلوبة: التاريخ، رقم السند، نوع الحركة، البيان، وارد، صادر، الرصيد بعد الحركة</small>
                     </div>
                 `;
                 return;
@@ -534,8 +541,8 @@
                 const number = (idxNumber !== -1 && row[idxNumber]) ? row[idxNumber] : '-';
                 const type = (idxType !== -1 && row[idxType]) ? row[idxType] : '-';
                 const description = (idxDescription !== -1 && row[idxDescription]) ? row[idxDescription] : '-';
-                const balance = (idxBalance !== -1 && row[idxBalance]) ? cleanNumber(row[idxBalance]).toLocaleString() :
-                    '-';
+                const balance = (idxBalance !== -1 && row[idxBalance]) ? cleanNumber(row[idxBalance]).toLocaleString() : '-';
+                const notes = (idxNotes !== -1 && row[idxNotes]) ? row[idxNotes] : '';
 
                 let amountDisplay = '-';
                 let amountColor = 'rgba(255,255,255,0.6)';
@@ -554,6 +561,7 @@
                     <td>${description}</td>
                     <td style="color:${amountColor};font-weight:700;text-align:center;">${amountDisplay}</td>
                     <td style="color:#f5c842;font-weight:700;text-align:center;">${balance} ر.س</td>
+                    <td style="font-size:0.65rem;color:rgba(255,255,255,0.3);">${notes}</td>
                 </tr>`;
             });
 
@@ -566,9 +574,10 @@
                             <th>نوع الحركة</th>
                             <th>البيان</th>
                             <th style="text-align:center;">المبلغ</th>
-                            <th style="text-align:center;">الرصيد</th>
+                            <th style="text-align:center;">الرصيد بعد الحركة</th>
+                            <th>ملاحظات</th>
                         </tr></thead>
-                        <tbody>${tableRows || '<tr><td colspan="6" style="text-align:center;color:rgba(255,255,255,0.15);padding:25px;">لا توجد حركات في الخزينة</td></tr>'}</tbody>
+                        <tbody>${tableRows || '<tr><td colspan="7" style="text-align:center;color:rgba(255,255,255,0.15);padding:25px;">لا توجد حركات في الخزينة</td></tr>'}</tbody>
                     </table>
                 </div>
                 <div class="table-note">يعرض آخر 30 حركة</div>
@@ -589,8 +598,8 @@
                 const number = (idxNumber !== -1 && row[idxNumber]) ? row[idxNumber] : '-';
                 const type = (idxType !== -1 && row[idxType]) ? row[idxType] : '-';
                 const description = (idxDescription !== -1 && row[idxDescription]) ? row[idxDescription] : '-';
-                const balance = (idxBalance !== -1 && row[idxBalance]) ? cleanNumber(row[idxBalance]).toLocaleString() :
-                    '-';
+                const balance = (idxBalance !== -1 && row[idxBalance]) ? cleanNumber(row[idxBalance]).toLocaleString() : '-';
+                const notes = (idxNotes !== -1 && row[idxNotes]) ? row[idxNotes] : '';
 
                 let amountDisplay = '-';
                 let amountColor = 'rgba(255,255,255,0.8)';
@@ -620,10 +629,14 @@
                             <span class="card-label">المبلغ</span>
                             <span class="card-value" style="color:${amountColor};font-weight:700;">${amountDisplay}</span>
                         </div>
-                        <div class="card-row" style="border-bottom: none; padding-top: 4px;">
-                            <span class="card-label">الرصيد</span>
+                        <div class="card-row">
+                            <span class="card-label">الرصيد بعد الحركة</span>
                             <span class="card-value gold">${balance} ر.س</span>
                         </div>
+                        ${notes ? `<div class="card-row" style="border-bottom: none; padding-top: 4px;">
+                            <span class="card-label">ملاحظات</span>
+                            <span class="card-value" style="font-size:0.65rem;color:rgba(255,255,255,0.3);">${notes}</span>
+                        </div>` : ''}
                     </div>
                 `;
             });
