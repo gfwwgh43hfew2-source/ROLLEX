@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
-        /* ===== CSS (نفس الكود السابق مع تعديلات بسيطة) ===== */
+        /* ===== CSS (نفس الكود السابق) ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; background: #0a0f1f; color: #eee; direction: rtl; overflow-x: hidden; scroll-behavior: smooth; }
         a { text-decoration: none; color: inherit; }
@@ -547,11 +547,12 @@
                     });
                     // تحديث الرصيد بعد الإجمالي
                     runningBalance = runningBalance + dayTotalIncoming - dayTotalOutgoing;
-                    // إضافة صف رصيد نهاية اليوم (منفصل)
+                    // إضافة صف رصيد نهاية اليوم (منفصل) - مع دمج الخلايا
                     groupedRows.push({
                         isDayEnd: true,
                         date: currentDate,
-                        runningBalance: runningBalance
+                        runningBalance: runningBalance,
+                        colspan: 9 // عدد الأعمدة الكلي
                     });
                     // إعادة تعيين إجماليات اليوم الجديد
                     dayTotalIncoming = 0;
@@ -560,7 +561,8 @@
                     groupedRows.push({
                         isDayStart: true,
                         date: date,
-                        runningBalance: runningBalance
+                        runningBalance: runningBalance,
+                        colspan: 9
                     });
                 }
 
@@ -568,7 +570,8 @@
                     groupedRows.push({
                         isDayStart: true,
                         date: date,
-                        runningBalance: runningBalance
+                        runningBalance: runningBalance,
+                        colspan: 9
                     });
                 }
 
@@ -599,7 +602,8 @@
                 groupedRows.push({
                     isDayEnd: true,
                     date: currentDate,
-                    runningBalance: runningBalance
+                    runningBalance: runningBalance,
+                    colspan: 9
                 });
             }
 
@@ -631,18 +635,17 @@
             groupedRows.forEach(item => {
                 if (item.isDayStart) {
                     tableRows += `<tr style="background: rgba(43, 138, 62, 0.08); border-top: 2px solid #4caf50;">
-                        <td colspan="8" style="text-align:center; font-weight:700; color:#4caf50;">📌 رصيد بداية يوم ${item.date}</td>
-                        <td colspan="2" style="text-align:center; font-weight:700; color:#f5c842;">${item.runningBalance.toLocaleString()} ج.م</td>
+                        <td colspan="${item.colspan || 9}" style="text-align:center; font-weight:700; color:#4caf50;">📌 رصيد بداية يوم ${item.date} : ${item.runningBalance.toLocaleString()} ج.م</td>
                     </tr>`;
                 } else if (item.isTotal) {
                     tableRows += `<tr style="background: rgba(245, 200, 66, 0.08); border-top: 1px solid #f5c842;">
-                        <td colspan="8" style="text-align:center; font-weight:700; color:#f5c842;">📊 إجمالي يوم ${item.date}</td>
+                        <td colspan="7" style="text-align:center; font-weight:700; color:#f5c842;">📊 إجمالي يوم ${item.date}</td>
                         <td style="text-align:center; font-weight:700; color:#4caf50;">${item.totalIncoming.toLocaleString()}</td>
                         <td style="text-align:center; font-weight:700; color:#ef5350;">${item.totalOutgoing.toLocaleString()}</td>
                     </tr>`;
                 } else if (item.isDayEnd) {
                     tableRows += `<tr style="background: rgba(43, 138, 62, 0.08); border-bottom: 2px solid #4caf50;">
-                        <td colspan="10" style="text-align:center; font-weight:700; color:#4caf50;">🏁 رصيد نهاية يوم ${item.date} : ${item.runningBalance.toLocaleString()} ج.م</td>
+                        <td colspan="${item.colspan || 9}" style="text-align:center; font-weight:700; color:#4caf50;">🏁 رصيد نهاية يوم ${item.date} : ${item.runningBalance.toLocaleString()} ج.م</td>
                     </tr>`;
                 } else if (item.isTransaction) {
                     const row = item.row;
