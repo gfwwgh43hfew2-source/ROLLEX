@@ -121,7 +121,7 @@
         .table-section { padding: 50px 0; }
         .section-title { font-size: 1.4rem; font-weight: 800; color: #f5c842; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; border-bottom: 2px solid rgba(245, 200, 66, 0.05); padding-bottom: 14px; }
         .table-wrapper { display: none; background: linear-gradient(145deg, #121a2e, #0e1525); border-radius: 16px; overflow-x: auto; border: 1px solid rgba(255, 255, 255, 0.03); }
-        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; min-width: 900px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; min-width: 750px; }
         th { background: rgba(26, 47, 68, 0.4); color: #f5c842; padding: 10px 6px; text-align: right; font-weight: 700; white-space: nowrap; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.3px; }
         td { padding: 8px 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); color: rgba(255, 255, 255, 0.6); font-size: 0.7rem; }
         tr:hover td { background: rgba(245, 200, 66, 0.02); }
@@ -479,9 +479,7 @@
 
             console.log('📊 عدد الصفوف:', data.length);
 
-            // =============================================
-            // 🔥 استخراج اسم الخزنة والرصيد الافتتاحي
-            // =============================================
+            // استخراج اسم الخزنة والرصيد الافتتاحي
             if (data.length > 0 && data[0] && data[0][1]) {
                 treasuryName = data[0][1] || 'الخزينة الرئيسية';
             }
@@ -490,33 +488,25 @@
             }
 
             document.getElementById('treasuryNameDisplay').textContent = treasuryName;
-            document.getElementById('openingBalanceDisplay').textContent = openingBalance.toLocaleString() + ' ر.س';
+            document.getElementById('openingBalanceDisplay').textContent = openingBalance.toLocaleString() + ' ج.م';
 
-            // =============================================
-            // 🔥 الرؤوس في الصف 4 (مؤشر 3)
-            // 🔥 البيانات تبدأ من الصف 5 (مؤشر 4)
-            // =============================================
+            // الرؤوس في الصف 4 (مؤشر 3) - البيانات تبدأ من الصف 5 (مؤشر 4)
             const HEADER_ROW_INDEX = 3;
             const DATA_START_INDEX = 4;
 
             const IDX_DATE = 0;
             const IDX_NUMBER = 1;
             const IDX_TYPE = 2;
-            const IDX_PARTY = 3;
-            const IDX_DESCRIPTION = 4;
+            const IDX_DESCRIPTION = 4; // عمود البيان (بدون الطرف)
             const IDX_INCOMING = 5;
             const IDX_OUTGOING = 6;
             const IDX_NOTES = 7;
-            const IDX_BALANCE = 8;
             const IDX_GENERAL_TAB = 9;
             const IDX_PRIVATE_TAB = 10;
 
-            const headers = data[HEADER_ROW_INDEX] || [];
             const rows = data.slice(DATA_START_INDEX);
 
-            // =============================================
-            // 🔥 فرز البيانات
-            // =============================================
+            // فرز البيانات
             const sortedRows = rows.slice().sort((a, b) => {
                 const dateA = a[IDX_DATE] || '';
                 const dateB = b[IDX_DATE] || '';
@@ -531,9 +521,7 @@
                 return indexB - indexA;
             });
 
-            // =============================================
-            // 🔥 حساب الإجماليات اليومية
-            // =============================================
+            // حساب الإجماليات اليومية
             let runningBalance = openingBalance;
             let currentDate = '';
             let dayTotalIncoming = 0;
@@ -547,9 +535,7 @@
                 const outgoing = (row[IDX_OUTGOING]) ? cleanNumber(row[IDX_OUTGOING]) : 0;
                 if (incoming === 0 && outgoing === 0 && !row[IDX_DESCRIPTION]) return;
 
-                // إذا تغير اليوم
                 if (date !== currentDate && currentDate !== '') {
-                    // إضافة صف الإجمالي
                     groupedRows.push({
                         isTotal: true,
                         date: currentDate,
@@ -557,18 +543,14 @@
                         totalOutgoing: dayTotalOutgoing,
                         runningBalance: runningBalance
                     });
-                    // تحديث الرصيد بعد الإجمالي
                     runningBalance = runningBalance + dayTotalIncoming - dayTotalOutgoing;
-                    // إضافة صف رصيد نهاية اليوم
                     groupedRows.push({
                         isDayEnd: true,
                         date: currentDate,
                         runningBalance: runningBalance
                     });
-                    // إعادة تعيين إجماليات اليوم الجديد
                     dayTotalIncoming = 0;
                     dayTotalOutgoing = 0;
-                    // إضافة صف رصيد بداية اليوم الجديد
                     groupedRows.push({
                         isDayStart: true,
                         date: date,
@@ -576,9 +558,7 @@
                     });
                 }
 
-                // إذا كان أول يوم
                 if (currentDate === '') {
-                    // إضافة صف رصيد بداية اليوم (اليوم الأول)
                     groupedRows.push({
                         isDayStart: true,
                         date: date,
@@ -586,23 +566,19 @@
                     });
                 }
 
-                // إضافة الحركة نفسها
                 groupedRows.push({
                     isTransaction: true,
                     row: row,
                     date: date,
                     incoming: incoming,
-                    outgoing: outgoing,
-                    runningBalance: runningBalance + (currentDate === '' ? 0 : 0)
+                    outgoing: outgoing
                 });
 
-                // تحديث إجماليات اليوم
                 dayTotalIncoming += incoming;
                 dayTotalOutgoing += outgoing;
                 currentDate = date;
             });
 
-            // إضافة إجمالي آخر يوم
             if (currentDate !== '') {
                 groupedRows.push({
                     isTotal: true,
@@ -619,9 +595,7 @@
                 });
             }
 
-            // =============================================
-            // 🔥 حساب الإحصائيات العامة
-            // =============================================
+            // حساب الإحصائيات العامة
             let totalIncomingAll = 0,
                 totalOutgoingAll = 0;
             let validRows = 0;
@@ -638,40 +612,36 @@
 
             const totalBalance = openingBalance + totalIncomingAll - totalOutgoingAll;
 
-            document.getElementById('totalBalance').textContent = totalBalance.toLocaleString() + ' ر.س';
-            document.getElementById('totalIncoming').textContent = totalIncomingAll.toLocaleString() + ' ر.س';
-            document.getElementById('totalOutgoing').textContent = totalOutgoingAll.toLocaleString() + ' ر.س';
+            document.getElementById('totalBalance').textContent = totalBalance.toLocaleString() + ' ج.م';
+            document.getElementById('totalIncoming').textContent = totalIncomingAll.toLocaleString() + ' ج.م';
+            document.getElementById('totalOutgoing').textContent = totalOutgoingAll.toLocaleString() + ' ج.م';
             document.getElementById('totalTransactions').textContent = validRows;
 
-            // =============================================
-            // 🔥 بناء الجدول
-            // =============================================
+            // بناء الجدول
             let tableRows = '';
-            let transactionCounter = 0;
 
             groupedRows.forEach(item => {
                 if (item.isDayStart) {
                     tableRows += `<tr style="background: rgba(43, 138, 62, 0.08); border-top: 2px solid #4caf50;">
-                        <td colspan="4" style="text-align:center; font-weight:700; color:#4caf50;">📌 رصيد بداية يوم ${item.date}</td>
-                        <td colspan="6" style="text-align:center; font-weight:700; color:#f5c842;">${item.runningBalance.toLocaleString()} ر.س</td>
+                        <td colspan="8" style="text-align:center; font-weight:700; color:#4caf50;">📌 رصيد بداية يوم ${item.date}</td>
+                        <td colspan="3" style="text-align:center; font-weight:700; color:#f5c842;">${item.runningBalance.toLocaleString()} ج.م</td>
                     </tr>`;
                 } else if (item.isTotal) {
                     tableRows += `<tr style="background: rgba(245, 200, 66, 0.08); border-top: 1px solid #f5c842;">
-                        <td colspan="4" style="text-align:center; font-weight:700; color:#f5c842;">📊 إجمالي يوم ${item.date}</td>
+                        <td colspan="8" style="text-align:center; font-weight:700; color:#f5c842;">📊 إجمالي يوم ${item.date}</td>
                         <td style="text-align:center; font-weight:700; color:#4caf50;">${item.totalIncoming.toLocaleString()}</td>
                         <td style="text-align:center; font-weight:700; color:#ef5350;">${item.totalOutgoing.toLocaleString()}</td>
-                        <td colspan="4" style="text-align:center; font-weight:700; color:#f5c842;">${item.runningBalance.toLocaleString()} ر.س</td>
+                        <td style="text-align:center; font-weight:700; color:#f5c842;">${item.runningBalance.toLocaleString()} ج.م</td>
                     </tr>`;
                 } else if (item.isDayEnd) {
                     tableRows += `<tr style="background: rgba(43, 138, 62, 0.05); border-bottom: 2px solid #4caf50;">
-                        <td colspan="10" style="text-align:center; font-weight:700; color:#4caf50;">🏁 رصيد نهاية يوم ${item.date}: ${item.runningBalance.toLocaleString()} ر.س</td>
+                        <td colspan="11" style="text-align:center; font-weight:700; color:#4caf50;">🏁 رصيد نهاية يوم ${item.date} : ${item.runningBalance.toLocaleString()} ج.م</td>
                     </tr>`;
                 } else if (item.isTransaction) {
                     const row = item.row;
                     const date = row[IDX_DATE] || '-';
                     const number = row[IDX_NUMBER] || '-';
                     const type = row[IDX_TYPE] || '-';
-                    const party = row[IDX_PARTY] || '-';
                     const description = row[IDX_DESCRIPTION] || '-';
                     const notes = row[IDX_NOTES] || '';
                     const generalTab = row[IDX_GENERAL_TAB] || '-';
@@ -689,12 +659,10 @@
                         amountColor = '#ef5350';
                     }
 
-                    transactionCounter++;
                     tableRows += `<tr>
                         <td>${date}</td>
                         <td>${number}</td>
                         <td><span class="badge badge-type">${type}</span></td>
-                        <td>${party}</td>
                         <td>${description}</td>
                         <td style="color:${amountColor};font-weight:700;text-align:center;">${incoming > 0 ? amountDisplay : '-'}</td>
                         <td style="color:${amountColor};font-weight:700;text-align:center;">${outgoing > 0 ? amountDisplay : '-'}</td>
@@ -712,7 +680,6 @@
                             <th>التاريخ</th>
                             <th>رقم السند</th>
                             <th>نوع الحركة</th>
-                            <th>الطرف</th>
                             <th>البيان</th>
                             <th style="text-align:center;">وارد</th>
                             <th style="text-align:center;">صادر</th>
@@ -720,17 +687,14 @@
                             <th>التبويب العام</th>
                             <th>التبويب الخاص</th>
                         </tr></thead>
-                        <tbody>${tableRows || '<tr><td colspan="10" style="text-align:center;color:rgba(255,255,255,0.15);padding:25px;">لا توجد حركات</td></tr>'}</tbody>
+                        <tbody>${tableRows || '<tr><td colspan="9" style="text-align:center;color:rgba(255,255,255,0.15);padding:25px;">لا توجد حركات</td></tr>'}</tbody>
                     </table>
                 </div>
                 <div class="table-note">📌 رصيد بداية اليوم · 📊 إجمالي اليوم · 🏁 رصيد نهاية اليوم</div>
             `;
 
-            // =============================================
-            // 🔥 CARDS (Mobile) - نسخة مبسطة
-            // =============================================
+            // CARDS (Mobile)
             let cardsHTML = '<div class="cards-container">';
-            let cardCounter = 0;
             groupedRows.forEach(item => {
                 if (item.isDayStart) {
                     cardsHTML += `
@@ -740,7 +704,7 @@
                             </div>
                             <div class="card-row">
                                 <span class="card-label">الرصيد</span>
-                                <span class="card-value gold">${item.runningBalance.toLocaleString()} ر.س</span>
+                                <span class="card-value gold">${item.runningBalance.toLocaleString()} ج.م</span>
                             </div>
                         </div>
                     `;
@@ -752,15 +716,15 @@
                             </div>
                             <div class="card-row">
                                 <span class="card-label">الوارد</span>
-                                <span class="card-value" style="color:#4caf50;">${item.totalIncoming.toLocaleString()} ر.س</span>
+                                <span class="card-value" style="color:#4caf50;">${item.totalIncoming.toLocaleString()} ج.م</span>
                             </div>
                             <div class="card-row">
                                 <span class="card-label">الصادر</span>
-                                <span class="card-value" style="color:#ef5350;">${item.totalOutgoing.toLocaleString()} ر.س</span>
+                                <span class="card-value" style="color:#ef5350;">${item.totalOutgoing.toLocaleString()} ج.م</span>
                             </div>
                             <div class="card-row" style="border-bottom:none;">
                                 <span class="card-label">الرصيد</span>
-                                <span class="card-value gold">${item.runningBalance.toLocaleString()} ر.س</span>
+                                <span class="card-value gold">${item.runningBalance.toLocaleString()} ج.م</span>
                             </div>
                         </div>
                     `;
@@ -772,7 +736,7 @@
                             </div>
                             <div class="card-row" style="border-bottom:none;">
                                 <span class="card-label">الرصيد</span>
-                                <span class="card-value gold">${item.runningBalance.toLocaleString()} ر.س</span>
+                                <span class="card-value gold">${item.runningBalance.toLocaleString()} ج.م</span>
                             </div>
                         </div>
                     `;
@@ -781,7 +745,6 @@
                     const date = row[IDX_DATE] || '-';
                     const number = row[IDX_NUMBER] || '-';
                     const type = row[IDX_TYPE] || '-';
-                    const party = row[IDX_PARTY] || '-';
                     const description = row[IDX_DESCRIPTION] || '-';
                     const notes = row[IDX_NOTES] || '';
                     const incoming = item.incoming;
@@ -790,10 +753,10 @@
                     let amountDisplay = '-';
                     let amountColor = 'rgba(255,255,255,0.8)';
                     if (incoming > 0) {
-                        amountDisplay = `+ ${incoming.toLocaleString()} ر.س`;
+                        amountDisplay = `+ ${incoming.toLocaleString()} ج.م`;
                         amountColor = '#4caf50';
                     } else if (outgoing > 0) {
-                        amountDisplay = `- ${outgoing.toLocaleString()} ر.س`;
+                        amountDisplay = `- ${outgoing.toLocaleString()} ج.م`;
                         amountColor = '#ef5350';
                     }
 
@@ -810,10 +773,6 @@
                             <div class="card-row">
                                 <span class="card-label">نوع الحركة</span>
                                 <span class="card-value"><span class="badge badge-type">${type}</span></span>
-                            </div>
-                            <div class="card-row">
-                                <span class="card-label">الطرف</span>
-                                <span class="card-value">${party}</span>
                             </div>
                             <div class="card-row">
                                 <span class="card-label">المبلغ</span>
