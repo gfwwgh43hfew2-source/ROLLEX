@@ -73,7 +73,6 @@
         .hero-card .badge-row { display: flex; justify-content: center; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
         .hero-card .badge-row span { background: rgba(245, 200, 66, 0.06); border: 1px solid rgba(245, 200, 66, 0.05); padding: 3px 12px; border-radius: 50px; font-size: 0.65rem; color: rgba(255, 255, 255, 0.5); }
 
-        /* ===== INFO CARDS ===== */
         .info-cards {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -166,6 +165,31 @@
         .error { color: #ef5350; }
         .error small { display: block; margin-top: 8px; color: rgba(255, 255, 255, 0.2); font-size: 0.75rem; }
         .table-note { text-align: center; color: rgba(255, 255, 255, 0.15); font-size: 0.65rem; padding: 12px 0 4px; }
+
+        /* ===== DEBUG BOX ===== */
+        .debug-box {
+            background: #121a2e;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(245,200,66,0.1);
+            overflow-x: auto;
+        }
+        .debug-box .label {
+            color: #f5c842;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .debug-box pre {
+            color: #8a9ab0;
+            font-size: 11px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            direction: ltr;
+            text-align: left;
+            margin: 0;
+        }
 
         @media (min-width: 769px) { .table-wrapper { display: block !important; } .cards-container { display: none !important; } }
         @media (max-width: 1200px) { footer .container { grid-template-columns: 1fr 1fr 1fr; } }
@@ -278,12 +302,12 @@
                 <div class="info-card animate-fade-up delay-1">
                     <div class="icon"><i class="fas fa-university"></i></div>
                     <div class="label">اسم الخزنة</div>
-                    <div class="value" id="treasuryNameDisplay">الخزينة الرئيسية</div>
+                    <div class="value" id="treasuryNameDisplay">جاري التحميل...</div>
                 </div>
                 <div class="info-card animate-fade-up delay-2">
                     <div class="icon"><i class="fas fa-coins"></i></div>
                     <div class="label">الرصيد الافتتاحي</div>
-                    <div class="value" id="openingBalanceDisplay">0 ر.س</div>
+                    <div class="value" id="openingBalanceDisplay">جاري التحميل...</div>
                 </div>
             </div>
         </div>
@@ -327,6 +351,13 @@
             <div id="treasuryContainer">
                 <div class="loading"><i class="fas fa-spinner"></i> جاري تحميل بيانات الخزينة...</div>
             </div>
+        </div>
+    </section>
+
+    <!-- ===== DEBUG ===== -->
+    <section>
+        <div class="container">
+            <div id="debugContainer"></div>
         </div>
     </section>
 
@@ -434,7 +465,6 @@
         const SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
         const SHEET_NAME = 'الخزينة الرئيسية';
 
-        // متغيرات لتخزين البيانات الإضافية
         let treasuryName = 'الخزينة الرئيسية';
         let openingBalance = 0;
 
@@ -471,6 +501,7 @@
 
         function displayData(data) {
             const container = document.getElementById('treasuryContainer');
+            const debugContainer = document.getElementById('debugContainer');
 
             if (!data || data.length < 2) {
                 container.innerHTML = `<div class="error">❌ لا توجد بيانات في شيت "الخزينة الرئيسية"</div>`;
@@ -480,17 +511,27 @@
             console.log('📊 عدد الصفوف:', data.length);
 
             // =============================================
+            // 🔥 DEBUG: عرض كل الصفوف
+            // =============================================
+            let debugHTML = `
+                <div class="debug-box">
+                    <span class="label">🔍 DEBUG: جميع الصفوف (${data.length} صف)</span>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+
+            // =============================================
             // 🔥 استخراج اسم الخزنة والرصيد الافتتاحي
             // =============================================
-            // الصف 2 (مؤشر 1) يحتوي على اسم الخزنة في العمود B (مؤشر 1)
-            // الصف 3 (مؤشر 2) يحتوي على الرصيد الافتتاحي في العمود B (مؤشر 1)
+            // الصف 2 (مؤشر 1) - العمود B (مؤشر 1)
             if (data.length > 1 && data[1] && data[1][1]) {
                 treasuryName = data[1][1] || 'الخزينة الرئيسية';
-                console.log('🏷️ اسم الخزنة:', treasuryName);
+                console.log('🏷️ اسم الخزنة (من الصف 2, العمود B):', treasuryName);
             }
+            // الصف 3 (مؤشر 2) - العمود B (مؤشر 1)
             if (data.length > 2 && data[2] && data[2][1]) {
                 openingBalance = cleanNumber(data[2][1]);
-                console.log('💰 الرصيد الافتتاحي:', openingBalance);
+                console.log('💰 الرصيد الافتتاحي (من الصف 3, العمود B):', openingBalance);
             }
 
             // =============================================
@@ -506,7 +547,6 @@
             const HEADER_ROW_INDEX = 3;
             const DATA_START_INDEX = 4;
 
-            // الأعمدة حسب التحليل:
             const IDX_DATE = 0;
             const IDX_NUMBER = 1;
             const IDX_TYPE = 2;
@@ -542,13 +582,9 @@
                 totalOutgoing += outgoing;
             });
 
-            // =============================================
-            // 🔥 حساب الرصيد الإجمالي = الرصيد الافتتاحي + (الوارد - الصادر)
-            // =============================================
             const netMovement = totalIncoming - totalOutgoing;
             const totalBalance = openingBalance + netMovement;
 
-            // تحديث KPI
             document.getElementById('totalBalance').textContent = totalBalance.toLocaleString() + ' ر.س';
             document.getElementById('totalIncoming').textContent = totalIncoming.toLocaleString() + ' ر.س';
             document.getElementById('totalOutgoing').textContent = totalOutgoing.toLocaleString() + ' ر.س';
@@ -695,6 +731,7 @@
             cardsHTML += '</div>';
 
             container.innerHTML = tableHTML + cardsHTML;
+            debugContainer.innerHTML = debugHTML;
         }
 
         async function loadData() {
