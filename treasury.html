@@ -494,31 +494,33 @@
 
             const rows = data.slice(DATA_START_INDEX);
 
-            // فرز البيانات (الأحدث أولاً)
-            const sortedRows = rows.slice().sort((a, b) => {
+            // =============================================
+            // 🔥 فرز البيانات (من الأقدم إلى الأحدث لحساب الرصيد)
+            // =============================================
+            const sortedRowsAsc = rows.slice().sort((a, b) => {
                 const dateA = a[IDX_DATE] || '';
                 const dateB = b[IDX_DATE] || '';
-                if (dateA > dateB) return -1;
-                if (dateA < dateB) return 1;
+                if (dateA < dateB) return -1;
+                if (dateA > dateB) return 1;
                 const typeA = a[IDX_TYPE] || '';
                 const typeB = b[IDX_TYPE] || '';
                 if (typeA === 'وارد' && typeB !== 'وارد') return -1;
                 if (typeA !== 'وارد' && typeB === 'وارد') return 1;
                 const indexA = rows.indexOf(a);
                 const indexB = rows.indexOf(b);
-                return indexB - indexA;
+                return indexA - indexB;
             });
 
             // =============================================
-            // 🔥 حساب الإجماليات اليومية مع الرصيد الصحيح
+            // 🔥 حساب الإجماليات اليومية مع الرصيد الصحيح (تصاعدي)
             // =============================================
-            let runningBalance = openingBalance; // يبدأ بالرصيد الافتتاحي
+            let runningBalance = openingBalance;
             let currentDate = '';
             let dayTotalIncoming = 0;
             let dayTotalOutgoing = 0;
             let groupedRows = [];
 
-            sortedRows.forEach(row => {
+            sortedRowsAsc.forEach(row => {
                 if (!row || row.length === 0) return;
                 const date = row[IDX_DATE] || '';
                 const incoming = (row[IDX_INCOMING]) ? cleanNumber(row[IDX_INCOMING]) : 0;
@@ -534,25 +536,14 @@
                         totalOutgoing: dayTotalOutgoing,
                         runningBalance: runningBalance
                     });
-                    // تحديث الرصيد بعد إجمالي اليوم
                     runningBalance = runningBalance + dayTotalIncoming - dayTotalOutgoing;
                     groupedRows.push({
                         isDayEnd: true,
                         date: currentDate,
                         runningBalance: runningBalance
                     });
-                    // بداية اليوم الجديد - الرصيد الجديد هو رصيد نهاية اليوم السابق
                     dayTotalIncoming = 0;
                     dayTotalOutgoing = 0;
-                    groupedRows.push({
-                        isDayStart: true,
-                        date: date,
-                        runningBalance: runningBalance // ← الرصيد الصحيح!
-                    });
-                }
-
-                if (currentDate === '') {
-                    // اليوم الأول: يبدأ بالرصيد الافتتاحي
                     groupedRows.push({
                         isDayStart: true,
                         date: date,
@@ -560,7 +551,14 @@
                     });
                 }
 
-                // إضافة الحركة
+                if (currentDate === '') {
+                    groupedRows.push({
+                        isDayStart: true,
+                        date: date,
+                        runningBalance: runningBalance
+                    });
+                }
+
                 groupedRows.push({
                     isTransaction: true,
                     row: row,
@@ -574,7 +572,6 @@
                 currentDate = date;
             });
 
-            // إضافة إجمالي آخر يوم
             if (currentDate !== '') {
                 groupedRows.push({
                     isTotal: true,
@@ -591,12 +588,17 @@
                 });
             }
 
+            // =============================================
+            // 🔥 عكس الترتيب (الأحدث أولاً للعرض)
+            // =============================================
+            groupedRows.reverse();
+
             // حساب الإحصائيات العامة
             let totalIncomingAll = 0,
                 totalOutgoingAll = 0;
             let validRows = 0;
 
-            sortedRows.forEach(row => {
+            rows.forEach(row => {
                 if (!row || row.length === 0) return;
                 const incoming = (row[IDX_INCOMING]) ? cleanNumber(row[IDX_INCOMING]) : 0;
                 const outgoing = (row[IDX_OUTGOING]) ? cleanNumber(row[IDX_OUTGOING]) : 0;
