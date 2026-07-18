@@ -121,12 +121,14 @@
         .table-section { padding: 50px 0; }
         .section-title { font-size: 1.4rem; font-weight: 800; color: #f5c842; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; border-bottom: 2px solid rgba(245, 200, 66, 0.05); padding-bottom: 14px; }
         .table-wrapper { display: none; background: linear-gradient(145deg, #121a2e, #0e1525); border-radius: 16px; overflow-x: auto; border: 1px solid rgba(255, 255, 255, 0.03); }
-        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; min-width: 1100px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; min-width: 900px; }
         th { background: rgba(26, 47, 68, 0.4); color: #f5c842; padding: 10px 6px; text-align: right; font-weight: 700; white-space: nowrap; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.3px; }
         td { padding: 8px 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); color: rgba(255, 255, 255, 0.6); font-size: 0.7rem; }
         tr:hover td { background: rgba(245, 200, 66, 0.02); }
         .badge { display: inline-block; padding: 2px 10px; border-radius: 50px; font-size: 0.6rem; font-weight: 600; }
         .badge-type { background: rgba(26, 47, 68, 0.25); color: rgba(255, 255, 255, 0.4); border: 1px solid rgba(255, 255, 255, 0.03); }
+        .badge-total { background: rgba(245, 200, 66, 0.15); color: #f5c842; border: 1px solid rgba(245, 200, 66, 0.1); font-weight: 700; }
+        .badge-balance { background: rgba(43, 138, 62, 0.15); color: #4caf50; border: 1px solid rgba(43, 138, 62, 0.1); font-weight: 700; }
 
         .cards-container { display: grid; grid-template-columns: 1fr; gap: 14px; }
         .booking-card { background: linear-gradient(145deg, #121a2e, #0e1525); border-radius: 16px; padding: 18px 16px; border: 1px solid rgba(255, 255, 255, 0.03); transition: 0.3s; }
@@ -478,16 +480,13 @@
             console.log('📊 عدد الصفوف:', data.length);
 
             // =============================================
-            // 🔥 اسم الخزنة في الصف 1 (مؤشر 0) - العمود B (مؤشر 1)
-            // 🔥 الرصيد الافتتاحي في الصف 2 (مؤشر 1) - العمود B (مؤشر 1)
+            // 🔥 استخراج اسم الخزنة والرصيد الافتتاحي
             // =============================================
             if (data.length > 0 && data[0] && data[0][1]) {
                 treasuryName = data[0][1] || 'الخزينة الرئيسية';
-                console.log('🏷️ اسم الخزنة (من الصف 1, العمود B):', treasuryName);
             }
             if (data.length > 1 && data[1] && data[1][1]) {
                 openingBalance = cleanNumber(data[1][1]);
-                console.log('💰 الرصيد الافتتاحي (من الصف 2, العمود B):', openingBalance);
             }
 
             document.getElementById('treasuryNameDisplay').textContent = treasuryName;
@@ -515,102 +514,195 @@
             const headers = data[HEADER_ROW_INDEX] || [];
             const rows = data.slice(DATA_START_INDEX);
 
-            console.log('📋 عدد صفوف البيانات قبل الفرز:', rows.length);
-
             // =============================================
-            // 🔥 ترتيب البيانات:
-            // 1. الأحدث في التاريخ أولاً (تنازلي)
-            // 2. في نفس اليوم: وارد قبل صادر
-            // 3. نفس اليوم ونفس النوع: الأحدث في الإدخال أولاً
+            // 🔥 فرز البيانات
             // =============================================
             const sortedRows = rows.slice().sort((a, b) => {
                 const dateA = a[IDX_DATE] || '';
                 const dateB = b[IDX_DATE] || '';
-                
                 if (dateA > dateB) return -1;
                 if (dateA < dateB) return 1;
-                
                 const typeA = a[IDX_TYPE] || '';
                 const typeB = b[IDX_TYPE] || '';
                 if (typeA === 'وارد' && typeB !== 'وارد') return -1;
                 if (typeA !== 'وارد' && typeB === 'وارد') return 1;
-                
                 const indexA = rows.indexOf(a);
                 const indexB = rows.indexOf(b);
                 return indexB - indexA;
             });
 
-            console.log('📋 عدد صفوف البيانات بعد الفرز:', sortedRows.length);
+            // =============================================
+            // 🔥 حساب الإجماليات اليومية
+            // =============================================
+            let runningBalance = openingBalance;
+            let currentDate = '';
+            let dayTotalIncoming = 0;
+            let dayTotalOutgoing = 0;
+            let groupedRows = [];
+
+            sortedRows.forEach(row => {
+                if (!row || row.length === 0) return;
+                const date = row[IDX_DATE] || '';
+                const incoming = (row[IDX_INCOMING]) ? cleanNumber(row[IDX_INCOMING]) : 0;
+                const outgoing = (row[IDX_OUTGOING]) ? cleanNumber(row[IDX_OUTGOING]) : 0;
+                if (incoming === 0 && outgoing === 0 && !row[IDX_DESCRIPTION]) return;
+
+                // إذا تغير اليوم
+                if (date !== currentDate && currentDate !== '') {
+                    // إضافة صف الإجمالي
+                    groupedRows.push({
+                        isTotal: true,
+                        date: currentDate,
+                        totalIncoming: dayTotalIncoming,
+                        totalOutgoing: dayTotalOutgoing,
+                        runningBalance: runningBalance
+                    });
+                    // تحديث الرصيد بعد الإجمالي
+                    runningBalance = runningBalance + dayTotalIncoming - dayTotalOutgoing;
+                    // إضافة صف رصيد نهاية اليوم
+                    groupedRows.push({
+                        isDayEnd: true,
+                        date: currentDate,
+                        runningBalance: runningBalance
+                    });
+                    // إعادة تعيين إجماليات اليوم الجديد
+                    dayTotalIncoming = 0;
+                    dayTotalOutgoing = 0;
+                    // إضافة صف رصيد بداية اليوم الجديد
+                    groupedRows.push({
+                        isDayStart: true,
+                        date: date,
+                        runningBalance: runningBalance
+                    });
+                }
+
+                // إذا كان أول يوم
+                if (currentDate === '') {
+                    // إضافة صف رصيد بداية اليوم (اليوم الأول)
+                    groupedRows.push({
+                        isDayStart: true,
+                        date: date,
+                        runningBalance: runningBalance
+                    });
+                }
+
+                // إضافة الحركة نفسها
+                groupedRows.push({
+                    isTransaction: true,
+                    row: row,
+                    date: date,
+                    incoming: incoming,
+                    outgoing: outgoing,
+                    runningBalance: runningBalance + (currentDate === '' ? 0 : 0)
+                });
+
+                // تحديث إجماليات اليوم
+                dayTotalIncoming += incoming;
+                dayTotalOutgoing += outgoing;
+                currentDate = date;
+            });
+
+            // إضافة إجمالي آخر يوم
+            if (currentDate !== '') {
+                groupedRows.push({
+                    isTotal: true,
+                    date: currentDate,
+                    totalIncoming: dayTotalIncoming,
+                    totalOutgoing: dayTotalOutgoing,
+                    runningBalance: runningBalance
+                });
+                runningBalance = runningBalance + dayTotalIncoming - dayTotalOutgoing;
+                groupedRows.push({
+                    isDayEnd: true,
+                    date: currentDate,
+                    runningBalance: runningBalance
+                });
+            }
 
             // =============================================
-            // حساب الإحصائيات
+            // 🔥 حساب الإحصائيات العامة
             // =============================================
-            let totalIncoming = 0,
-                totalOutgoing = 0;
+            let totalIncomingAll = 0,
+                totalOutgoingAll = 0;
             let validRows = 0;
 
-            rows.forEach(row => {
+            sortedRows.forEach(row => {
                 if (!row || row.length === 0) return;
                 const incoming = (row[IDX_INCOMING]) ? cleanNumber(row[IDX_INCOMING]) : 0;
                 const outgoing = (row[IDX_OUTGOING]) ? cleanNumber(row[IDX_OUTGOING]) : 0;
                 if (incoming === 0 && outgoing === 0) return;
-
                 validRows++;
-                totalIncoming += incoming;
-                totalOutgoing += outgoing;
+                totalIncomingAll += incoming;
+                totalOutgoingAll += outgoing;
             });
 
-            const netMovement = totalIncoming - totalOutgoing;
-            const totalBalance = openingBalance + netMovement;
+            const totalBalance = openingBalance + totalIncomingAll - totalOutgoingAll;
 
             document.getElementById('totalBalance').textContent = totalBalance.toLocaleString() + ' ر.س';
-            document.getElementById('totalIncoming').textContent = totalIncoming.toLocaleString() + ' ر.س';
-            document.getElementById('totalOutgoing').textContent = totalOutgoing.toLocaleString() + ' ر.س';
+            document.getElementById('totalIncoming').textContent = totalIncomingAll.toLocaleString() + ' ر.س';
+            document.getElementById('totalOutgoing').textContent = totalOutgoingAll.toLocaleString() + ' ر.س';
             document.getElementById('totalTransactions').textContent = validRows;
 
             // =============================================
-            // TABLE (Desktop)
+            // 🔥 بناء الجدول
             // =============================================
             let tableRows = '';
-            const displayRows = sortedRows.slice(0, 100);
-            displayRows.forEach(row => {
-                if (!row || row.length === 0) return;
-                const incoming = (row[IDX_INCOMING]) ? cleanNumber(row[IDX_INCOMING]) : 0;
-                const outgoing = (row[IDX_OUTGOING]) ? cleanNumber(row[IDX_OUTGOING]) : 0;
-                if (incoming === 0 && outgoing === 0) return;
+            let transactionCounter = 0;
 
-                const date = row[IDX_DATE] || '-';
-                const number = row[IDX_NUMBER] || '-';
-                const type = row[IDX_TYPE] || '-';
-                const party = row[IDX_PARTY] || '-';
-                const description = row[IDX_DESCRIPTION] || '-';
-                const notes = row[IDX_NOTES] || '';
-                const balance = row[IDX_BALANCE] ? cleanNumber(row[IDX_BALANCE]).toLocaleString() : '-';
-                const generalTab = row[IDX_GENERAL_TAB] || '-';
-                const privateTab = row[IDX_PRIVATE_TAB] || '-';
+            groupedRows.forEach(item => {
+                if (item.isDayStart) {
+                    tableRows += `<tr style="background: rgba(43, 138, 62, 0.08); border-top: 2px solid #4caf50;">
+                        <td colspan="4" style="text-align:center; font-weight:700; color:#4caf50;">📌 رصيد بداية يوم ${item.date}</td>
+                        <td colspan="6" style="text-align:center; font-weight:700; color:#f5c842;">${item.runningBalance.toLocaleString()} ر.س</td>
+                    </tr>`;
+                } else if (item.isTotal) {
+                    tableRows += `<tr style="background: rgba(245, 200, 66, 0.08); border-top: 1px solid #f5c842;">
+                        <td colspan="4" style="text-align:center; font-weight:700; color:#f5c842;">📊 إجمالي يوم ${item.date}</td>
+                        <td style="text-align:center; font-weight:700; color:#4caf50;">${item.totalIncoming.toLocaleString()}</td>
+                        <td style="text-align:center; font-weight:700; color:#ef5350;">${item.totalOutgoing.toLocaleString()}</td>
+                        <td colspan="4" style="text-align:center; font-weight:700; color:#f5c842;">${item.runningBalance.toLocaleString()} ر.س</td>
+                    </tr>`;
+                } else if (item.isDayEnd) {
+                    tableRows += `<tr style="background: rgba(43, 138, 62, 0.05); border-bottom: 2px solid #4caf50;">
+                        <td colspan="10" style="text-align:center; font-weight:700; color:#4caf50;">🏁 رصيد نهاية يوم ${item.date}: ${item.runningBalance.toLocaleString()} ر.س</td>
+                    </tr>`;
+                } else if (item.isTransaction) {
+                    const row = item.row;
+                    const date = row[IDX_DATE] || '-';
+                    const number = row[IDX_NUMBER] || '-';
+                    const type = row[IDX_TYPE] || '-';
+                    const party = row[IDX_PARTY] || '-';
+                    const description = row[IDX_DESCRIPTION] || '-';
+                    const notes = row[IDX_NOTES] || '';
+                    const generalTab = row[IDX_GENERAL_TAB] || '-';
+                    const privateTab = row[IDX_PRIVATE_TAB] || '-';
+                    const incoming = item.incoming;
+                    const outgoing = item.outgoing;
 
-                let amountDisplay = '-';
-                let amountColor = 'rgba(255,255,255,0.6)';
-                if (incoming > 0) {
-                    amountDisplay = `+ ${incoming.toLocaleString()}`;
-                    amountColor = '#4caf50';
-                } else if (outgoing > 0) {
-                    amountDisplay = `- ${outgoing.toLocaleString()}`;
-                    amountColor = '#ef5350';
+                    let amountDisplay = '-';
+                    let amountColor = 'rgba(255,255,255,0.6)';
+                    if (incoming > 0) {
+                        amountDisplay = incoming.toLocaleString();
+                        amountColor = '#4caf50';
+                    } else if (outgoing > 0) {
+                        amountDisplay = outgoing.toLocaleString();
+                        amountColor = '#ef5350';
+                    }
+
+                    transactionCounter++;
+                    tableRows += `<tr>
+                        <td>${date}</td>
+                        <td>${number}</td>
+                        <td><span class="badge badge-type">${type}</span></td>
+                        <td>${party}</td>
+                        <td>${description}</td>
+                        <td style="color:${amountColor};font-weight:700;text-align:center;">${incoming > 0 ? amountDisplay : '-'}</td>
+                        <td style="color:${amountColor};font-weight:700;text-align:center;">${outgoing > 0 ? amountDisplay : '-'}</td>
+                        <td style="font-size:0.6rem;color:rgba(255,255,255,0.3);">${notes}</td>
+                        <td style="font-size:0.6rem;color:rgba(255,255,255,0.2);">${generalTab}</td>
+                        <td style="font-size:0.6rem;color:rgba(255,255,255,0.2);">${privateTab}</td>
+                    </tr>`;
                 }
-
-                tableRows += `<tr>
-                    <td>${date}</td>
-                    <td>${number}</td>
-                    <td><span class="badge badge-type">${type}</span></td>
-                    <td>${party}</td>
-                    <td>${description}</td>
-                    <td style="color:${amountColor};font-weight:700;text-align:center;">${amountDisplay}</td>
-                    <td style="font-size:0.6rem;color:rgba(255,255,255,0.3);">${notes}</td>
-                    <td style="color:#f5c842;font-weight:700;text-align:center;">${balance} ر.س</td>
-                    <td style="font-size:0.6rem;color:rgba(255,255,255,0.2);">${generalTab}</td>
-                    <td style="font-size:0.6rem;color:rgba(255,255,255,0.2);">${privateTab}</td>
-                </tr>`;
             });
 
             const tableHTML = `
@@ -622,89 +714,118 @@
                             <th>نوع الحركة</th>
                             <th>الطرف</th>
                             <th>البيان</th>
-                            <th style="text-align:center;">المبلغ</th>
+                            <th style="text-align:center;">وارد</th>
+                            <th style="text-align:center;">صادر</th>
                             <th>ملاحظات</th>
-                            <th style="text-align:center;">الرصيد بعد الحركة</th>
                             <th>التبويب العام</th>
                             <th>التبويب الخاص</th>
                         </tr></thead>
                         <tbody>${tableRows || '<tr><td colspan="10" style="text-align:center;color:rgba(255,255,255,0.15);padding:25px;">لا توجد حركات</td></tr>'}</tbody>
                     </table>
                 </div>
-                <div class="table-note">⬇️ الأحدث أولاً · وارد قبل صادر · الأحدث إدخالاً أولاً</div>
+                <div class="table-note">📌 رصيد بداية اليوم · 📊 إجمالي اليوم · 🏁 رصيد نهاية اليوم</div>
             `;
 
             // =============================================
-            // CARDS (Mobile)
+            // 🔥 CARDS (Mobile) - نسخة مبسطة
             // =============================================
             let cardsHTML = '<div class="cards-container">';
-            const cardRows = sortedRows.slice(0, 100);
-            cardRows.forEach(row => {
-                if (!row || row.length === 0) return;
-                const incoming = (row[IDX_INCOMING]) ? cleanNumber(row[IDX_INCOMING]) : 0;
-                const outgoing = (row[IDX_OUTGOING]) ? cleanNumber(row[IDX_OUTGOING]) : 0;
-                if (incoming === 0 && outgoing === 0) return;
+            let cardCounter = 0;
+            groupedRows.forEach(item => {
+                if (item.isDayStart) {
+                    cardsHTML += `
+                        <div class="booking-card" style="border-color:#4caf50;background:rgba(43,138,62,0.05);">
+                            <div class="card-header" style="border-bottom-color:#4caf50;">
+                                <span class="name" style="color:#4caf50;">📌 رصيد بداية يوم ${item.date}</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="card-label">الرصيد</span>
+                                <span class="card-value gold">${item.runningBalance.toLocaleString()} ر.س</span>
+                            </div>
+                        </div>
+                    `;
+                } else if (item.isTotal) {
+                    cardsHTML += `
+                        <div class="booking-card" style="border-color:#f5c842;background:rgba(245,200,66,0.05);">
+                            <div class="card-header" style="border-bottom-color:#f5c842;">
+                                <span class="name" style="color:#f5c842;">📊 إجمالي يوم ${item.date}</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="card-label">الوارد</span>
+                                <span class="card-value" style="color:#4caf50;">${item.totalIncoming.toLocaleString()} ر.س</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="card-label">الصادر</span>
+                                <span class="card-value" style="color:#ef5350;">${item.totalOutgoing.toLocaleString()} ر.س</span>
+                            </div>
+                            <div class="card-row" style="border-bottom:none;">
+                                <span class="card-label">الرصيد</span>
+                                <span class="card-value gold">${item.runningBalance.toLocaleString()} ر.س</span>
+                            </div>
+                        </div>
+                    `;
+                } else if (item.isDayEnd) {
+                    cardsHTML += `
+                        <div class="booking-card" style="border-color:#4caf50;background:rgba(43,138,62,0.05);">
+                            <div class="card-header" style="border-bottom-color:#4caf50;">
+                                <span class="name" style="color:#4caf50;">🏁 رصيد نهاية يوم ${item.date}</span>
+                            </div>
+                            <div class="card-row" style="border-bottom:none;">
+                                <span class="card-label">الرصيد</span>
+                                <span class="card-value gold">${item.runningBalance.toLocaleString()} ر.س</span>
+                            </div>
+                        </div>
+                    `;
+                } else if (item.isTransaction) {
+                    const row = item.row;
+                    const date = row[IDX_DATE] || '-';
+                    const number = row[IDX_NUMBER] || '-';
+                    const type = row[IDX_TYPE] || '-';
+                    const party = row[IDX_PARTY] || '-';
+                    const description = row[IDX_DESCRIPTION] || '-';
+                    const notes = row[IDX_NOTES] || '';
+                    const incoming = item.incoming;
+                    const outgoing = item.outgoing;
 
-                const date = row[IDX_DATE] || '-';
-                const number = row[IDX_NUMBER] || '-';
-                const type = row[IDX_TYPE] || '-';
-                const party = row[IDX_PARTY] || '-';
-                const description = row[IDX_DESCRIPTION] || '-';
-                const notes = row[IDX_NOTES] || '';
-                const balance = row[IDX_BALANCE] ? cleanNumber(row[IDX_BALANCE]).toLocaleString() : '-';
-                const generalTab = row[IDX_GENERAL_TAB] || '-';
-                const privateTab = row[IDX_PRIVATE_TAB] || '-';
+                    let amountDisplay = '-';
+                    let amountColor = 'rgba(255,255,255,0.8)';
+                    if (incoming > 0) {
+                        amountDisplay = `+ ${incoming.toLocaleString()} ر.س`;
+                        amountColor = '#4caf50';
+                    } else if (outgoing > 0) {
+                        amountDisplay = `- ${outgoing.toLocaleString()} ر.س`;
+                        amountColor = '#ef5350';
+                    }
 
-                let amountDisplay = '-';
-                let amountColor = 'rgba(255,255,255,0.8)';
-                if (incoming > 0) {
-                    amountDisplay = `+ ${incoming.toLocaleString()} ر.س`;
-                    amountColor = '#4caf50';
-                } else if (outgoing > 0) {
-                    amountDisplay = `- ${outgoing.toLocaleString()} ر.س`;
-                    amountColor = '#ef5350';
+                    cardsHTML += `
+                        <div class="booking-card">
+                            <div class="card-header">
+                                <span class="name">${description}</span>
+                                <span class="number">#${number}</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="card-label">التاريخ</span>
+                                <span class="card-value">${date}</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="card-label">نوع الحركة</span>
+                                <span class="card-value"><span class="badge badge-type">${type}</span></span>
+                            </div>
+                            <div class="card-row">
+                                <span class="card-label">الطرف</span>
+                                <span class="card-value">${party}</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="card-label">المبلغ</span>
+                                <span class="card-value" style="color:${amountColor};font-weight:700;">${amountDisplay}</span>
+                            </div>
+                            ${notes ? `<div class="card-row">
+                                <span class="card-label">ملاحظات</span>
+                                <span class="card-value" style="font-size:0.6rem;color:rgba(255,255,255,0.3);">${notes}</span>
+                            </div>` : ''}
+                        </div>
+                    `;
                 }
-
-                cardsHTML += `
-                    <div class="booking-card">
-                        <div class="card-header">
-                            <span class="name">${description}</span>
-                            <span class="number">#${number}</span>
-                        </div>
-                        <div class="card-row">
-                            <span class="card-label">التاريخ</span>
-                            <span class="card-value">${date}</span>
-                        </div>
-                        <div class="card-row">
-                            <span class="card-label">نوع الحركة</span>
-                            <span class="card-value"><span class="badge badge-type">${type}</span></span>
-                        </div>
-                        <div class="card-row">
-                            <span class="card-label">الطرف</span>
-                            <span class="card-value">${party}</span>
-                        </div>
-                        <div class="card-row">
-                            <span class="card-label">المبلغ</span>
-                            <span class="card-value" style="color:${amountColor};font-weight:700;">${amountDisplay}</span>
-                        </div>
-                        <div class="card-row">
-                            <span class="card-label">الرصيد بعد الحركة</span>
-                            <span class="card-value gold">${balance} ر.س</span>
-                        </div>
-                        ${notes ? `<div class="card-row">
-                            <span class="card-label">ملاحظات</span>
-                            <span class="card-value" style="font-size:0.6rem;color:rgba(255,255,255,0.3);">${notes}</span>
-                        </div>` : ''}
-                        ${generalTab !== '-' ? `<div class="card-row">
-                            <span class="card-label">التبويب العام</span>
-                            <span class="card-value" style="font-size:0.6rem;color:rgba(255,255,255,0.2);">${generalTab}</span>
-                        </div>` : ''}
-                        ${privateTab !== '-' ? `<div class="card-row" style="border-bottom: none; padding-top: 4px;">
-                            <span class="card-label">التبويب الخاص</span>
-                            <span class="card-value" style="font-size:0.6rem;color:rgba(255,255,255,0.2);">${privateTab}</span>
-                        </div>` : ''}
-                    </div>
-                `;
             });
             cardsHTML += '</div>';
 
