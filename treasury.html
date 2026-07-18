@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
-        /* ===== CSS (نفس الكود السابق) ===== */
+        /* ===== CSS ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; background: #0a0f1f; color: #eee; direction: rtl; overflow-x: hidden; scroll-behavior: smooth; }
         a { text-decoration: none; color: inherit; }
@@ -495,24 +495,20 @@
             const rows = data.slice(DATA_START_INDEX);
 
             // =============================================
-            // 🔥 فرز البيانات (من الأقدم إلى الأحدث لحساب الرصيد)
+            // 🔥 1. ترتيب البيانات من الأقدم إلى الأحدث لحساب الرصيد
             // =============================================
             const sortedRowsAsc = rows.slice().sort((a, b) => {
                 const dateA = a[IDX_DATE] || '';
                 const dateB = b[IDX_DATE] || '';
                 if (dateA < dateB) return -1;
                 if (dateA > dateB) return 1;
-                const typeA = a[IDX_TYPE] || '';
-                const typeB = b[IDX_TYPE] || '';
-                if (typeA === 'وارد' && typeB !== 'وارد') return -1;
-                if (typeA !== 'وارد' && typeB === 'وارد') return 1;
                 const indexA = rows.indexOf(a);
                 const indexB = rows.indexOf(b);
                 return indexA - indexB;
             });
 
             // =============================================
-            // 🔥 حساب الإجماليات اليومية مع الرصيد الصحيح (تصاعدي)
+            // 🔥 2. حساب الإجماليات اليومية والرصيد التراكمي
             // =============================================
             let runningBalance = openingBalance;
             let currentDate = '';
@@ -542,6 +538,7 @@
                         date: currentDate,
                         runningBalance: runningBalance
                     });
+                    // بداية اليوم الجديد
                     dayTotalIncoming = 0;
                     dayTotalOutgoing = 0;
                     groupedRows.push({
@@ -552,6 +549,7 @@
                 }
 
                 if (currentDate === '') {
+                    // اليوم الأول
                     groupedRows.push({
                         isDayStart: true,
                         date: date,
@@ -559,6 +557,7 @@
                     });
                 }
 
+                // إضافة الحركة
                 groupedRows.push({
                     isTransaction: true,
                     row: row,
@@ -572,6 +571,7 @@
                 currentDate = date;
             });
 
+            // إضافة إجمالي آخر يوم
             if (currentDate !== '') {
                 groupedRows.push({
                     isTotal: true,
@@ -589,9 +589,33 @@
             }
 
             // =============================================
-            // 🔥 عكس الترتيب (الأحدث أولاً للعرض)
+            // 🔥 3. عكس الترتيب للأحدث أولاً (مع الحفاظ على ترتيب الحركات داخل اليوم)
             // =============================================
-            groupedRows.reverse();
+            const reversedGrouped = [];
+            let i = groupedRows.length - 1;
+            while (i >= 0) {
+                // إذا كان العنصر هو بداية يوم، نأخذ الكتلة كاملة
+                if (groupedRows[i].isDayStart) {
+                    const dayStartIndex = i;
+                    // نجمع كل العناصر من هذا اليوم
+                    const dayItems = [];
+                    let j = i;
+                    while (j >= 0 && !groupedRows[j].isDayStart) {
+                        dayItems.push(groupedRows[j]);
+                        j--;
+                    }
+                    // نضيف بداية اليوم
+                    dayItems.push(groupedRows[j]);
+                    // نعكس ترتيب العناصر داخل اليوم (لتصبح وارد قبل صادر)
+                    dayItems.reverse();
+                    // نضيفها بالترتيب الصحيح
+                    dayItems.forEach(item => reversedGrouped.push(item));
+                    i = j - 1;
+                } else {
+                    reversedGrouped.push(groupedRows[i]);
+                    i--;
+                }
+            }
 
             // حساب الإحصائيات العامة
             let totalIncomingAll = 0,
@@ -619,7 +643,7 @@
             let tableRows = '';
             const TOTAL_COLS = 9;
 
-            groupedRows.forEach(item => {
+            reversedGrouped.forEach(item => {
                 if (item.isDayStart) {
                     tableRows += `<tr class="row-day-start">
                         <td colspan="${TOTAL_COLS}" style="text-align:center;">📌 رصيد بداية يوم ${item.date} : ${item.runningBalance.toLocaleString()} ج.م</td>
@@ -693,7 +717,7 @@
 
             // CARDS (Mobile)
             let cardsHTML = '<div class="cards-container">';
-            groupedRows.forEach(item => {
+            reversedGrouped.forEach(item => {
                 if (item.isDayStart) {
                     cardsHTML += `
                         <div class="booking-card" style="border-color:#4caf50;background:rgba(43,138,62,0.08);">
