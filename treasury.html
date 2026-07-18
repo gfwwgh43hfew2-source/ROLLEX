@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
-        /* ===== CSS (نفس الكود السابق) ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; background: #0a0f1f; color: #eee; direction: rtl; overflow-x: hidden; scroll-behavior: smooth; }
         a { text-decoration: none; color: inherit; }
@@ -479,16 +478,16 @@
             console.log('📊 عدد الصفوف:', data.length);
 
             // =============================================
-            // 🔥 اسم الخزنة في الصف 1 (مؤشر 0)
-            // 🔥 الرصيد الافتتاحي في الصف 3 (مؤشر 2)
+            // 🔥 اسم الخزنة في الصف 1 (مؤشر 0) - العمود B (مؤشر 1)
+            // 🔥 الرصيد الافتتاحي في الصف 2 (مؤشر 1) - العمود B (مؤشر 1)
             // =============================================
             if (data.length > 0 && data[0] && data[0][1]) {
                 treasuryName = data[0][1] || 'الخزينة الرئيسية';
-                console.log('🏷️ اسم الخزنة:', treasuryName);
+                console.log('🏷️ اسم الخزنة (من الصف 1, العمود B):', treasuryName);
             }
-            if (data.length > 2 && data[2] && data[2][1]) {
-                openingBalance = cleanNumber(data[2][1]);
-                console.log('💰 الرصيد الافتتاحي:', openingBalance);
+            if (data.length > 1 && data[1] && data[1][1]) {
+                openingBalance = cleanNumber(data[1][1]);
+                console.log('💰 الرصيد الافتتاحي (من الصف 2, العمود B):', openingBalance);
             }
 
             document.getElementById('treasuryNameDisplay').textContent = treasuryName;
@@ -522,27 +521,23 @@
             // 🔥 ترتيب البيانات:
             // 1. الأحدث في التاريخ أولاً (تنازلي)
             // 2. في نفس اليوم: وارد قبل صادر
-            // 3. نفس اليوم ونفس النوع: الأحدث في الإدخال أولاً (باستخدام index)
+            // 3. نفس اليوم ونفس النوع: الأحدث في الإدخال أولاً
             // =============================================
             const sortedRows = rows.slice().sort((a, b) => {
                 const dateA = a[IDX_DATE] || '';
                 const dateB = b[IDX_DATE] || '';
                 
-                // 1. الأحدث في التاريخ أولاً
                 if (dateA > dateB) return -1;
                 if (dateA < dateB) return 1;
                 
-                // 2. نفس التاريخ: وارد قبل صادر
                 const typeA = a[IDX_TYPE] || '';
                 const typeB = b[IDX_TYPE] || '';
                 if (typeA === 'وارد' && typeB !== 'وارد') return -1;
                 if (typeA !== 'وارد' && typeB === 'وارد') return 1;
                 
-                // 3. نفس اليوم ونفس النوع: الأحدث في الإدخال أولاً
-                //    (نستخدم indexOf لأن الصف الأحدث يكون في نهاية المصفوفة)
                 const indexA = rows.indexOf(a);
                 const indexB = rows.indexOf(b);
-                return indexB - indexA; // الأحدث (الأكبر index) أولاً
+                return indexB - indexA;
             });
 
             console.log('📋 عدد صفوف البيانات بعد الفرز:', sortedRows.length);
