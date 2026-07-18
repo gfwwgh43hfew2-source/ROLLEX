@@ -240,7 +240,7 @@
         .badge { display: inline-block; padding: 2px 8px; border-radius: 50px; font-size: 0.55rem; font-weight: 600; }
         .badge-type { background: rgba(26, 47, 68, 0.25); color: rgba(255, 255, 255, 0.4); border: 1px solid rgba(255, 255, 255, 0.03); }
 
-        /* ===== SPECIAL ROWS (with spacing and highlight) ===== */
+        /* ===== SPECIAL ROWS ===== */
         .row-day-start {
             background: rgba(43, 138, 62, 0.12) !important;
             border-top: 2px solid #4caf50 !important;
@@ -670,6 +670,27 @@
         });
 
         // =============================================
+        // HELPER: Get Arabic day name
+        // =============================================
+        function getArabicDay(dateStr) {
+            if (!dateStr) return '';
+            try {
+                // تنسيق التاريخ: 2026-01-05
+                const parts = dateStr.split('-');
+                if (parts.length !== 3) return '';
+                const year = parseInt(parts[0]);
+                const month = parseInt(parts[1]) - 1;
+                const day = parseInt(parts[2]);
+                const date = new Date(year, month, day);
+                if (isNaN(date.getTime())) return '';
+                const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+                return days[date.getDay()];
+            } catch (e) {
+                return '';
+            }
+        }
+
+        // =============================================
         // DATA FETCH
         // =============================================
         const SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
@@ -888,9 +909,11 @@
             reversedDays.forEach(dayItems => {
                 dayItems.forEach(item => {
                     if (item.isDayStart) {
+                        const dayName = getArabicDay(item.date);
+                        const dayLabel = dayName ? ` ${dayName} ` : ' ';
                         cardsHTML += `
                             <div style="background:rgba(43,138,62,0.08);border-radius:12px;padding:8px 12px;border:1px solid #4caf50;text-align:center;margin:4px 0;">
-                                <span style="color:#4caf50;font-weight:700;font-size:0.8rem;">📌 رصيد بداية يوم ${item.date} : <span style="background:rgba(76,175,80,0.15);padding:2px 10px;border-radius:4px;border:1px solid rgba(76,175,80,0.2);margin-right:6px;display:inline-block;">${item.runningBalance.toLocaleString()} ج.م</span></span>
+                                <span style="color:#4caf50;font-weight:700;font-size:0.8rem;">📌 رصيد بداية يوم${dayLabel}${item.date} : <span style="background:rgba(76,175,80,0.15);padding:2px 10px;border-radius:4px;border:1px solid rgba(76,175,80,0.2);margin-right:6px;display:inline-block;">${item.runningBalance.toLocaleString()} ج.م</span></span>
                             </div>
                         `;
                     } else if (item.isTotal) {
@@ -904,9 +927,11 @@
                             </div>
                         `;
                     } else if (item.isDayEnd) {
+                        const dayName = getArabicDay(item.date);
+                        const dayLabel = dayName ? ` ${dayName} ` : ' ';
                         cardsHTML += `
                             <div style="background:rgba(33,150,243,0.08);border-radius:12px;padding:8px 12px;border:1px solid #2196f3;text-align:center;margin:4px 0;">
-                                <span style="color:#2196f3;font-weight:700;font-size:0.8rem;">🏁 رصيد نهاية يوم ${item.date} : <span style="background:rgba(33,150,243,0.15);padding:2px 10px;border-radius:4px;border:1px solid rgba(33,150,243,0.2);margin-right:6px;display:inline-block;">${item.runningBalance.toLocaleString()} ج.م</span></span>
+                                <span style="color:#2196f3;font-weight:700;font-size:0.8rem;">🏁 رصيد نهاية يوم${dayLabel}${item.date} : <span style="background:rgba(33,150,243,0.15);padding:2px 10px;border-radius:4px;border:1px solid rgba(33,150,243,0.2);margin-right:6px;display:inline-block;">${item.runningBalance.toLocaleString()} ج.م</span></span>
                             </div>
                         `;
                     } else if (item.isTransaction) {
@@ -969,7 +994,7 @@
             cardsHTML += '</div>';
 
             // =============================================
-            // TABLE (Desktop) - مع تحسين عرض الرصيد
+            // TABLE (Desktop)
             // =============================================
             let tableRows = '';
             const TOTAL_COLS = 9;
@@ -977,8 +1002,10 @@
             reversedDays.forEach(dayItems => {
                 dayItems.forEach(item => {
                     if (item.isDayStart) {
+                        const dayName = getArabicDay(item.date);
+                        const dayLabel = dayName ? ` ${dayName} ` : ' ';
                         tableRows += `<tr class="row-day-start">
-                            <td colspan="${TOTAL_COLS}" style="text-align:center;">📌 رصيد بداية يوم ${item.date} : <span class="balance-amount">${item.runningBalance.toLocaleString()} ج.م</span></td>
+                            <td colspan="${TOTAL_COLS}" style="text-align:center;">📌 رصيد بداية يوم${dayLabel}${item.date} : <span class="balance-amount">${item.runningBalance.toLocaleString()} ج.م</span></td>
                         </tr>`;
                     } else if (item.isTotal) {
                         tableRows += `<tr class="row-total">
@@ -988,8 +1015,10 @@
                             <td colspan="3"></td>
                         </tr>`;
                     } else if (item.isDayEnd) {
+                        const dayName = getArabicDay(item.date);
+                        const dayLabel = dayName ? ` ${dayName} ` : ' ';
                         tableRows += `<tr class="row-day-end">
-                            <td colspan="${TOTAL_COLS}" style="text-align:center;">🏁 رصيد نهاية يوم ${item.date} : <span class="balance-amount">${item.runningBalance.toLocaleString()} ج.م</span></td>
+                            <td colspan="${TOTAL_COLS}" style="text-align:center;">🏁 رصيد نهاية يوم${dayLabel}${item.date} : <span class="balance-amount">${item.runningBalance.toLocaleString()} ج.م</span></td>
                         </tr>`;
                     } else if (item.isTransaction) {
                         const row = item.row;
