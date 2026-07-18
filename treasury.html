@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
+        /* ===== CSS مختصر (نفس الكود السابق) ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; background: #0a0f1f; color: #eee; direction: rtl; overflow-x: hidden; scroll-behavior: smooth; }
         a { text-decoration: none; color: inherit; }
@@ -166,7 +167,6 @@
         .error small { display: block; margin-top: 8px; color: rgba(255, 255, 255, 0.2); font-size: 0.75rem; }
         .table-note { text-align: center; color: rgba(255, 255, 255, 0.15); font-size: 0.65rem; padding: 12px 0 4px; }
 
-        /* ===== DEBUG BOX ===== */
         .debug-box {
             background: #121a2e;
             border-radius: 12px;
@@ -354,13 +354,6 @@
         </div>
     </section>
 
-    <!-- ===== DEBUG ===== -->
-    <section>
-        <div class="container">
-            <div id="debugContainer"></div>
-        </div>
-    </section>
-
     <!-- ===== FOOTER ===== -->
     <footer>
         <div class="container">
@@ -501,7 +494,6 @@
 
         function displayData(data) {
             const container = document.getElementById('treasuryContainer');
-            const debugContainer = document.getElementById('debugContainer');
 
             if (!data || data.length < 2) {
                 container.innerHTML = `<div class="error">❌ لا توجد بيانات في شيت "الخزينة الرئيسية"</div>`;
@@ -511,24 +503,15 @@
             console.log('📊 عدد الصفوف:', data.length);
 
             // =============================================
-            // 🔥 DEBUG: عرض كل الصفوف
+            // 🔥 تصحيح: اسم الخزنة في الصف 1 (مؤشر 0)
+            // 🔥 الرصيد الافتتاحي في الصف 3 (مؤشر 2)
             // =============================================
-            let debugHTML = `
-                <div class="debug-box">
-                    <span class="label">🔍 DEBUG: جميع الصفوف (${data.length} صف)</span>
-                    <pre>${JSON.stringify(data, null, 2)}</pre>
-                </div>
-            `;
-
-            // =============================================
-            // 🔥 استخراج اسم الخزنة والرصيد الافتتاحي
-            // =============================================
-            // الصف 2 (مؤشر 1) - العمود B (مؤشر 1)
-            if (data.length > 1 && data[1] && data[1][1]) {
-                treasuryName = data[1][1] || 'الخزينة الرئيسية';
-                console.log('🏷️ اسم الخزنة (من الصف 2, العمود B):', treasuryName);
+            // اسم الخزنة: الصف 1 (مؤشر 0) - العمود B (مؤشر 1)
+            if (data.length > 0 && data[0] && data[0][1]) {
+                treasuryName = data[0][1] || 'الخزينة الرئيسية';
+                console.log('🏷️ اسم الخزنة (من الصف 1, العمود B):', treasuryName);
             }
-            // الصف 3 (مؤشر 2) - العمود B (مؤشر 1)
+            // الرصيد الافتتاحي: الصف 3 (مؤشر 2) - العمود B (مؤشر 1)
             if (data.length > 2 && data[2] && data[2][1]) {
                 openingBalance = cleanNumber(data[2][1]);
                 console.log('💰 الرصيد الافتتاحي (من الصف 3, العمود B):', openingBalance);
@@ -731,7 +714,6 @@
             cardsHTML += '</div>';
 
             container.innerHTML = tableHTML + cardsHTML;
-            debugContainer.innerHTML = debugHTML;
         }
 
         async function loadData() {
