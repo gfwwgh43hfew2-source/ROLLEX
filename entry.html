@@ -169,7 +169,7 @@
 
         <div class="page-header">
             <h1>📝 إدخال حركات الخزينة</h1>
-            <p>تسجيل حركات وارد / صادر / تحويل - يتم الحفظ في LocalStorage و Google Sheets</p>
+            <p>تسجيل حركات وارد / صادر / تحويل - يتم الحفظ في Google Sheets و LocalStorage</p>
         </div>
 
         <div class="form-section" id="formSection">
@@ -252,9 +252,9 @@
 
     <script>
         // =============================================
-        // 🔑 الرابط الجديد - الإصدار 8
+        // 🔑 WEB APP URL - الإصدار 9
         // =============================================
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzHF7CeUfhDs_eqtNfAJMwLTksPUvofr-RkwbELmfbZynKO9esUqsIgh-qVwCaNZg_Ilg/exec';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyQmxanFxW2fqzIHc-0fvVMavA-LUKMuPC66WXSPSqzoFY3GA8cFuM_MaJqSxHMckPE/exec';
 
         const STORAGE_KEY = 'rollex_treasury_entries';
 
@@ -438,7 +438,7 @@
         }
 
         // =============================================
-        // SUBMIT - الحل النهائي (no-cors + تفريغ فوري)
+        // SUBMIT - حفظ في Google Sheets و LocalStorage
         // =============================================
         submitBtn.addEventListener('click', async () => {
             // 1. تعطيل الزر
@@ -479,25 +479,44 @@
                 // 5. تفريغ الحقول فوراً
                 clearForm();
 
-                // 6. إرسال إلى Google Sheets (no-cors - لا نستنى رد)
+                // 6. إرسال إلى Google Sheets
+                let googleSuccess = false;
+                let rowNumber = '-';
+
                 try {
-                    await fetch(WEB_APP_URL, {
+                    const response = await fetch(WEB_APP_URL, {
                         method: 'POST',
-                        mode: 'no-cors',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(entry)
                     });
-                    // بما أننا نستخدم no-cors، لا يمكن قراءة الرد، لكن نعتبر أنها وصلت
-                    showToast('✅ تم الحفظ في Google Sheets');
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            googleSuccess = true;
+                            rowNumber = result.row || '-';
+                            showToast('✅ تم الحفظ في Google Sheets (الصف ' + rowNumber + ')');
+                        } else {
+                            showToast('⚠️ خطأ: ' + (result.error || 'غير معروف'), true);
+                        }
+                    } else {
+                        showToast('⚠️ فشل الاتصال بالخادم (كود: ' + response.status + ')', true);
+                    }
                 } catch (error) {
                     showToast('💾 تم الحفظ محلياً (Google Sheets غير متصل)', true);
                     console.error('Google Sheets Error:', error);
+                }
+
+                // 7. رسالة إضافية لو محلي بس
+                if (!googleSuccess && !document.querySelector('.toast.show')) {
+                    showToast('💾 تم الحفظ محلياً (سيتم المزامنة لاحقاً)');
                 }
 
             } catch (error) {
                 showToast('❌ حدث خطأ غير متوقع', true);
                 console.error(error);
             } finally {
+                // 8. إعادة تفعيل الزر
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الحركة';
             }
