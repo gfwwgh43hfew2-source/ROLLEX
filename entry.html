@@ -3,1938 +3,412 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
-    <title>إدخال البيانات - الخزينة الرئيسية | شركة رولكس</title>
+    <title>إدخال البيانات - الخزينة الرئيسية</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
-        /* ============================================================
-           RESET & BASE - أعلى مستوى من التأسيس
-           ============================================================ */
-        *,
-        *::before,
-        *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        /* ===== RESET & BASE ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; background: #0a0f1f; color: #eee; direction: rtl; overflow-x: hidden; scroll-behavior: smooth; }
+        a { text-decoration: none; color: inherit; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 0 16px; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #0a0f1f; }
+        ::-webkit-scrollbar-thumb { background: #f5c842; border-radius: 10px; }
 
-        :root {
-            --gold-primary: #f5c842;
-            --gold-dark: #d4a020;
-            --gold-light: #fae08a;
-            --gold-glow: rgba(245, 200, 66, 0.3);
-            --bg-deep: #0a0f1f;
-            --bg-card: rgba(18, 26, 46, 0.85);
-            --bg-card-hover: rgba(26, 38, 66, 0.95);
-            --border-subtle: rgba(255, 255, 255, 0.06);
-            --border-gold: rgba(245, 200, 66, 0.2);
-            --text-primary: #ffffff;
-            --text-secondary: rgba(255, 255, 255, 0.7);
-            --text-muted: rgba(255, 255, 255, 0.35);
-            --shadow-gold: 0 8px 40px rgba(245, 200, 66, 0.15);
-            --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.5);
-            --radius-lg: 24px;
-            --radius-md: 16px;
-            --radius-sm: 12px;
-            --transition-smooth: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-            --transition-bounce: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        /* ===== HEADER ===== */
+        header { 
+            position: sticky; 
+            top: 0; 
+            z-index: 1000; 
+            padding: 10px 0; 
+            background: rgba(10, 15, 31, 0.95); 
+            backdrop-filter: blur(20px); 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
         }
+        header .container { display: flex; align-items: center; justify-content: space-between; }
+        .logo { display: flex; align-items: center; gap: 8px; }
+        .logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, #f5c842, #d4a020); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 900; color: #0a0f1f; }
+        .logo-text h1 { font-size: 1rem; font-weight: 900; background: linear-gradient(135deg, #f5c842, #d4a020); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.2; }
+        .logo-text span { font-size: 0.5rem; color: rgba(255, 255, 255, 0.3); display: block; -webkit-text-fill-color: rgba(255, 255, 255, 0.3); }
 
-        html {
-            scroll-behavior: smooth;
-        }
+        nav { display: flex; align-items: center; gap: 20px; }
+        nav a { color: rgba(255, 255, 255, 0.6); font-weight: 600; font-size: 0.85rem; transition: 0.3s; position: relative; padding: 4px 8px; border-radius: 6px; }
+        nav a::after { content: ''; position: absolute; bottom: -2px; right: 0; width: 0; height: 2px; background: linear-gradient(90deg, #f5c842, #d4a020); transition: 0.3s; border-radius: 10px; }
+        nav a:hover { color: #fff; }
+        nav a:hover::after { width: 100%; }
+        nav a.active { color: #f5c842; }
 
-        body {
-            font-family: 'Cairo', 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: var(--bg-deep);
-            color: var(--text-primary);
-            direction: rtl;
-            min-height: 100vh;
-            overflow-x: hidden;
-            line-height: 1.6;
-            background-image:
-                radial-gradient(ellipse at 10% 20%, rgba(245, 200, 66, 0.03) 0%, transparent 50%),
-                radial-gradient(ellipse at 90% 80%, rgba(245, 200, 66, 0.02) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 50%, rgba(10, 15, 31, 0.95) 0%, #0a0f1f 100%);
-        }
+        .nav-toggle { display: none; font-size: 1.4rem; color: #fff; cursor: pointer; padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.06); background: rgba(255, 255, 255, 0.03); transition: 0.3s; z-index: 1001; }
+        .nav-toggle:hover { background: rgba(245, 200, 66, 0.08); border-color: rgba(245, 200, 66, 0.15); }
+        .nav-toggle.open { background: rgba(245, 200, 66, 0.12); border-color: rgba(245, 200, 66, 0.2); }
 
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--bg-deep);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--gold-primary);
-            border-radius: 10px;
-            box-shadow: 0 0 20px var(--gold-glow);
-        }
+        .mobile-nav-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 999; backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s ease; }
+        .mobile-nav-overlay.active { opacity: 1; }
 
-        /* ============================================================
-           GLASS MORPHISM - أساس الزجاج المتقدم
-           ============================================================ */
-        .glass {
-            background: var(--bg-card);
-            backdrop-filter: blur(24px) saturate(1.4);
-            -webkit-backdrop-filter: blur(24px) saturate(1.4);
-            border: 1px solid var(--border-subtle);
-            box-shadow: var(--shadow-card);
-        }
+        .mobile-nav-menu { display: none; position: fixed; top: 0; right: -280px; width: 280px; height: 100vh; background: rgba(10, 15, 31, 0.98); backdrop-filter: blur(20px); border-left: 1px solid rgba(255, 255, 255, 0.05); z-index: 1000; padding: 80px 24px 30px; transition: right 0.35s cubic-bezier(0.23, 1, 0.32, 1); overflow-y: auto; box-shadow: -10px 0 40px rgba(0, 0, 0, 0.4); }
+        .mobile-nav-menu.open { right: 0; }
+        .mobile-nav-menu .close-btn { position: absolute; top: 16px; left: 16px; font-size: 1.6rem; color: rgba(255, 255, 255, 0.4); cursor: pointer; padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.05); background: rgba(255, 255, 255, 0.02); transition: 0.3s; }
+        .mobile-nav-menu .close-btn:hover { background: rgba(245, 200, 66, 0.08); border-color: rgba(245, 200, 66, 0.15); color: #f5c842; }
+        .mobile-nav-menu .menu-header { margin-bottom: 30px; padding-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .mobile-nav-menu .menu-items { display: flex; flex-direction: column; gap: 6px; }
+        .mobile-nav-menu .menu-items a { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; color: rgba(255, 255, 255, 0.6); font-weight: 600; font-size: 0.95rem; transition: 0.3s; }
+        .mobile-nav-menu .menu-items a i { width: 20px; color: rgba(255, 255, 255, 0.3); font-size: 1rem; }
+        .mobile-nav-menu .menu-items a:hover { background: rgba(245, 200, 66, 0.06); color: #f5c842; }
+        .mobile-nav-menu .menu-items a.active { background: rgba(245, 200, 66, 0.08); color: #f5c842; }
 
-        .glass-light {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(12px) saturate(1.2);
-            -webkit-backdrop-filter: blur(12px) saturate(1.2);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-        }
+        .mobile-nav-bottom { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 998; background: rgba(10, 15, 31, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255, 255, 255, 0.05); padding: 6px 0 calc(6px + env(safe-area-inset-bottom)); }
+        .mobile-nav-bottom ul { display: flex; justify-content: space-around; list-style: none; }
+        .mobile-nav-bottom ul li { display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: 0.5rem; color: rgba(255, 255, 255, 0.4); transition: 0.3s; padding: 4px 12px; border-radius: 8px; }
+        .mobile-nav-bottom ul li i { font-size: 1rem; }
+        .mobile-nav-bottom ul li:hover, .mobile-nav-bottom ul li.active { color: #f5c842; }
+        .mobile-nav-bottom ul li a { color: inherit; display: flex; flex-direction: column; align-items: center; gap: 1px; }
 
-        /* ============================================================
-           ANIMATIONS - حركات احترافية
-           ============================================================ */
-        @keyframes floatIn {
-            0% {
-                opacity: 0;
-                transform: translateY(60px) scale(0.96);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
+        /* ===== PAGE HEADER ===== */
+        .page-header { padding: 20px 0 10px; }
+        .page-header h1 { font-size: 1.8rem; font-weight: 900; background: linear-gradient(135deg, #f5c842, #d4a020); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .page-header p { color: rgba(255, 255, 255, 0.5); font-size: 0.9rem; margin-top: 4px; }
 
-        @keyframes glowPulse {
-            0%,
-            100% {
-                box-shadow: 0 0 20px rgba(245, 200, 66, 0.1), 0 0 60px rgba(245, 200, 66, 0.02);
-            }
-            50% {
-                box-shadow: 0 0 40px rgba(245, 200, 66, 0.2), 0 0 80px rgba(245, 200, 66, 0.05);
-            }
-        }
-
-        @keyframes shimmer {
-            0% {
-                background-position: -200% center;
-            }
-            100% {
-                background-position: 200% center;
-            }
-        }
-
-        @keyframes slideDown {
-            0% {
-                opacity: 0;
-                transform: translateY(-20px) scale(0.95);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        @keyframes breathe {
-            0%,
-            100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.02);
-            }
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        @keyframes fadeUp {
-            from {
-                opacity: 0;
-                transform: translateY(40px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes float {
-            0%,
-            100% {
-                transform: translateY(0px);
-            }
-            50% {
-                transform: translateY(-15px);
-            }
-        }
-
-        @keyframes pulse {
-            0%,
-            100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.05);
-            }
-        }
-
-        .animate-float-in {
-            animation: floatIn 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-        }
-
-        .animate-glow {
-            animation: glowPulse 3s ease-in-out infinite;
-        }
-
-        .animate-shimmer {
-            background: linear-gradient(90deg, transparent, rgba(245, 200, 66, 0.05), transparent);
-            background-size: 200% 100%;
-            animation: shimmer 3s ease-in-out infinite;
-        }
-
-        .animate-float {
-            animation: float 6s ease-in-out infinite;
-        }
-
-        .animate-pulse {
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        .delay-1 {
-            animation-delay: 0.05s;
-        }
-        .delay-2 {
-            animation-delay: 0.1s;
-        }
-        .delay-3 {
-            animation-delay: 0.15s;
-        }
-        .delay-4 {
-            animation-delay: 0.2s;
-        }
-        .delay-5 {
-            animation-delay: 0.25s;
-        }
-        .delay-6 {
-            animation-delay: 0.3s;
-        }
-
-        /* ============================================================
-           CONTAINER - الهيكل الرئيسي
-           ============================================================ */
-        .app-wrapper {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px 24px 40px;
-        }
-
-        /* ============================================================
-           HEADER - التاج الذهبي
-           ============================================================ */
-        .app-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 0 24px;
-            border-bottom: 1px solid var(--border-subtle);
-            margin-bottom: 32px;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .app-header .brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .app-header .brand-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, var(--gold-primary), var(--gold-dark));
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: 900;
-            color: var(--bg-deep);
-            box-shadow: 0 4px 24px var(--gold-glow);
-            transition: var(--transition-smooth);
-        }
-
-        .app-header .brand-icon:hover {
-            transform: rotate(-8deg) scale(1.05);
-        }
-
-        .app-header .brand-text h1 {
-            font-size: 1.4rem;
-            font-weight: 900;
-            background: linear-gradient(135deg, var(--gold-primary), var(--gold-dark));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            line-height: 1.2;
-        }
-
-        .app-header .brand-text span {
-            font-size: 0.6rem;
-            color: var(--text-muted);
-            display: block;
-            -webkit-text-fill-color: var(--text-muted);
-        }
-
-        .app-header .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .app-header .header-actions .btn-back {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            border-radius: 50px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--border-subtle);
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 0.8rem;
-            transition: var(--transition-smooth);
-            cursor: pointer;
-            text-decoration: none;
-        }
-
-        .app-header .header-actions .btn-back:hover {
-            background: rgba(245, 200, 66, 0.08);
-            border-color: var(--border-gold);
-            color: var(--gold-primary);
-            transform: translateX(-4px);
-        }
-
-        .app-header .header-actions .btn-back i {
-            font-size: 0.9rem;
-        }
-
-        /* ============================================================
-           PAGE TITLE - عنوان الصفحة
-           ============================================================ */
-        .page-title-section {
-            margin-bottom: 32px;
-            position: relative;
-        }
-
-        .page-title-section .title-main {
-            font-size: 2rem;
-            font-weight: 900;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .page-title-section .title-main .gold-text {
-            background: linear-gradient(135deg, var(--gold-primary), var(--gold-dark));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .page-title-section .title-main .emoji-deco {
-            font-size: 2rem;
-            -webkit-text-fill-color: initial;
-        }
-
-        .page-title-section .title-sub {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            margin-top: 4px;
-            padding-right: 4px;
-        }
-
-        .page-title-section .title-decoration {
-            position: absolute;
-            bottom: -8px;
-            right: 0;
-            width: 80px;
-            height: 3px;
-            background: linear-gradient(90deg, var(--gold-primary), transparent);
-            border-radius: 10px;
-        }
-
-        /* ============================================================
-           FORM - الهيكل الذهبي
-           ============================================================ */
-        .form-master {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 28px;
-            animation: floatIn 0.7s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-        }
-
-        /* ===== FORM CARD - البطاقة الرئيسية ===== */
-        .form-card {
-            background: var(--bg-card);
-            backdrop-filter: blur(24px) saturate(1.4);
-            -webkit-backdrop-filter: blur(24px) saturate(1.4);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-lg);
-            padding: 32px 28px;
-            box-shadow: var(--shadow-card);
-            transition: var(--transition-smooth);
-            position: relative;
-            overflow: hidden;
-            grid-column: 1 / 2;
-        }
-
-        .form-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, rgba(245, 200, 66, 0.03), transparent 70%);
-            pointer-events: none;
-        }
-
-        .form-card:hover {
-            border-color: var(--border-gold);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(245, 200, 66, 0.03);
-        }
-
-        .form-card .card-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 28px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border-subtle);
-        }
-
-        .form-card .card-header .header-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, rgba(245, 200, 66, 0.12), rgba(212, 160, 32, 0.06));
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--gold-primary);
-            font-size: 1.2rem;
-        }
-
-        .form-card .card-header h3 {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: var(--text-primary);
-        }
-
-        .form-card .card-header h3 span {
-            color: var(--text-muted);
-            font-weight: 400;
-            font-size: 0.7rem;
-            display: block;
-        }
-
-        /* ===== FORM GROUP - مجموعات الحقول ===== */
-        .form-group {
-            margin-bottom: 20px;
-            position: relative;
-        }
-
-        .form-group .field-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
-            transition: var(--transition-smooth);
-        }
-
-        .form-group .field-label .label-icon {
-            color: var(--gold-primary);
-            font-size: 0.8rem;
-            width: 18px;
-            text-align: center;
-        }
-
-        .form-group .field-label .required-star {
-            color: #ef5350;
-            font-size: 0.6rem;
-        }
-
-        .form-group .field-wrapper {
-            position: relative;
-        }
-
-        .form-group .field-wrapper .field-icon {
-            position: absolute;
-            right: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            transition: var(--transition-smooth);
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        .form-group .field-wrapper .field-icon.active {
-            color: var(--gold-primary);
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px 44px 12px 14px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1.5px solid var(--border-subtle);
-            border-radius: var(--radius-sm);
-            color: var(--text-primary);
-            font-size: 0.9rem;
+        /* ===== FORM ===== */
+        .form-section { background: linear-gradient(145deg, #121a2e, #0e1525); border-radius: 14px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 20px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group label { font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); font-weight: 600; }
+        .form-group input, .form-group textarea { 
+            background: rgba(255, 255, 255, 0.04); 
+            border: 1px solid rgba(255, 255, 255, 0.06); 
+            border-radius: 8px; 
+            padding: 8px 12px; 
+            color: #eee; 
+            font-size: 0.85rem; 
             font-family: inherit;
-            transition: var(--transition-smooth);
-            outline: none;
-            position: relative;
-            z-index: 1;
+            transition: 0.3s;
         }
-
-        .form-group input::placeholder,
-        .form-group textarea::placeholder {
-            color: var(--text-muted);
-            font-weight: 300;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            border-color: var(--gold-primary);
-            background: rgba(245, 200, 66, 0.04);
-            box-shadow: 0 0 0 4px rgba(245, 200, 66, 0.06), 0 8px 24px rgba(0, 0, 0, 0.2);
-        }
-
-        .form-group input:focus+.field-icon,
-        .form-group textarea:focus+.field-icon {
-            color: var(--gold-primary);
-        }
-
-        .form-group input.field-error,
-        .form-group select.field-error,
-        .form-group textarea.field-error {
-            border-color: #ef5350;
-            background: rgba(239, 83, 80, 0.04);
-            box-shadow: 0 0 0 4px rgba(239, 83, 80, 0.06);
-        }
-
-        .form-group input.field-success,
-        .form-group select.field-success,
-        .form-group textarea.field-success {
-            border-color: #4caf50;
-            background: rgba(76, 175, 80, 0.04);
-            box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.06);
-        }
-
-        .form-group textarea {
-            min-height: 80px;
-            resize: vertical;
-            padding-top: 12px;
-        }
-
-        /* ===== SELECT CUSTOM ===== */
-        .form-group select {
+        /* ===== تحسين الـ Select ===== */
+        .form-group select { 
+            background: rgba(255, 255, 255, 0.04); 
+            border: 1px solid rgba(255, 255, 255, 0.06); 
+            border-radius: 8px; 
+            padding: 8px 12px; 
+            color: #0a0f1f; /* لون النص أسود غامق */
+            font-size: 0.85rem; 
+            font-family: inherit;
+            font-weight: 700;
+            transition: 0.3s;
             appearance: none;
             -webkit-appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5c842' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5c842' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
             background-repeat: no-repeat;
-            background-position: left 14px center;
+            background-position: left 12px center;
             background-size: 16px;
             cursor: pointer;
-            color: var(--text-primary);
         }
-
+        .form-group select:focus { 
+            outline: none; 
+            border-color: #f5c842; 
+            background-color: rgba(245, 200, 66, 0.15);
+            color: #0a0f1f;
+        }
         .form-group select option {
             background: #121a2e;
-            color: var(--text-primary);
+            color: #eee;
             padding: 8px;
         }
-
-        .form-group select:focus {
-            color: var(--text-primary);
-        }
-
-        /* ===== VALIDATION MESSAGES ===== */
-        .form-group .validation-message {
-            font-size: 0.65rem;
-            font-weight: 600;
-            margin-top: 4px;
-            padding-right: 12px;
-            opacity: 0;
-            transform: translateY(-8px);
-            transition: var(--transition-smooth);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            min-height: 20px;
-        }
-
-        .form-group .validation-message.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .form-group .validation-message.error {
-            color: #ef5350;
-        }
-
-        .form-group .validation-message.success {
-            color: #4caf50;
-        }
-
-        .form-group .validation-message i {
-            font-size: 0.7rem;
-        }
-
-        /* ===== CHARACTER COUNTER ===== */
-        .form-group .char-counter {
-            position: absolute;
-            bottom: 8px;
-            left: 12px;
-            font-size: 0.55rem;
-            color: var(--text-muted);
-            z-index: 2;
-            background: rgba(10, 15, 31, 0.6);
-            padding: 2px 8px;
-            border-radius: 50px;
-            backdrop-filter: blur(4px);
-        }
-
-        .form-group .char-counter.warning {
-            color: #f5c842;
-        }
-        .form-group .char-counter.danger {
-            color: #ef5350;
-        }
-
-        /* ===== FORM ACTIONS ===== */
-        .form-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 28px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border-subtle);
-            flex-wrap: wrap;
-        }
-
-        .form-actions .btn-submit {
-            flex: 1;
-            min-width: 160px;
-            padding: 14px 32px;
-            background: linear-gradient(135deg, var(--gold-primary), var(--gold-dark));
-            border: none;
-            border-radius: 50px;
-            color: var(--bg-deep);
-            font-weight: 800;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: var(--transition-smooth);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 24px var(--gold-glow);
-        }
-
-        .form-actions .btn-submit::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transform: rotate(45deg) translateX(-100%);
-            transition: 0.6s;
-        }
-
-        .form-actions .btn-submit:hover::after {
-            transform: rotate(45deg) translateX(100%);
-        }
-
-        .form-actions .btn-submit:hover {
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 8px 40px rgba(245, 200, 66, 0.4);
-        }
-
-        .form-actions .btn-submit:active {
-            transform: scale(0.97);
-        }
-
-        .form-actions .btn-submit:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .form-actions .btn-submit i {
-            font-size: 1.1rem;
-        }
-
-        .form-actions .btn-submit .spinner {
-            display: none;
-            animation: spin 0.8s linear infinite;
-        }
-
-        .form-actions .btn-submit.loading .spinner {
-            display: inline-block;
-        }
-        .form-actions .btn-submit.loading .btn-text {
-            display: none;
-        }
-        .form-actions .btn-submit.loading .btn-icon {
-            display: none;
-        }
-
-        .form-actions .btn-reset {
-            padding: 14px 28px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--border-subtle);
-            border-radius: 50px;
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: var(--transition-smooth);
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .form-actions .btn-reset:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: var(--text-primary);
-            border-color: rgba(255, 255, 255, 0.1);
-        }
-
-        /* ============================================================
-           SIDEBAR - الشريط الجانبي
-           ============================================================ */
-        .form-sidebar {
-            grid-column: 2 / 3;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        /* ===== SIDEBAR CARD ===== */
-        .sidebar-card {
-            background: var(--bg-card);
-            backdrop-filter: blur(24px) saturate(1.4);
-            -webkit-backdrop-filter: blur(24px) saturate(1.4);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-lg);
-            padding: 24px 22px;
-            box-shadow: var(--shadow-card);
-            transition: var(--transition-smooth);
-        }
-
-        .sidebar-card:hover {
-            border-color: var(--border-gold);
-        }
-
-        .sidebar-card .sidebar-title {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .sidebar-card .sidebar-title i {
-            color: var(--gold-primary);
-        }
-
-        /* ===== STATS ===== */
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border-subtle);
-        }
-
-        .stat-item:last-child {
-            border-bottom: none;
-        }
-
-        .stat-item .stat-label {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .stat-item .stat-label i {
-            color: var(--gold-primary);
-            font-size: 0.8rem;
-            width: 18px;
-            text-align: center;
-        }
-
-        .stat-item .stat-value {
-            font-size: 0.9rem;
-            font-weight: 800;
-            color: var(--text-primary);
-        }
-
-        .stat-item .stat-value.gold {
-            color: var(--gold-primary);
-        }
-        .stat-item .stat-value.green {
-            color: #4caf50;
-        }
-        .stat-item .stat-value.red {
-            color: #ef5350;
-        }
-
-        /* ===== QUICK TIPS ===== */
-        .tip-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--border-subtle);
-        }
-
-        .tip-item:last-child {
-            border-bottom: none;
-        }
-
-        .tip-item .tip-icon {
-            width: 28px;
-            height: 28px;
-            min-width: 28px;
-            background: rgba(245, 200, 66, 0.08);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--gold-primary);
-            font-size: 0.7rem;
-            margin-top: 2px;
-        }
-
-        .tip-item .tip-text {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        .tip-item .tip-text strong {
-            color: var(--text-primary);
-            font-weight: 700;
-        }
-
-        /* ============================================================
-           TABLE - جدول الحركات المسجلة
-           ============================================================ */
-        .entries-section {
-            margin-top: 40px;
-            animation: floatIn 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-            animation-delay: 0.2s;
-            opacity: 0;
-        }
-
-        .entries-section .section-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .entries-section .section-header h2 {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .entries-section .section-header h2 i {
-            color: var(--gold-primary);
-        }
-
-        .entries-section .section-header .entries-count {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            background: rgba(255, 255, 255, 0.04);
-            padding: 4px 14px;
-            border-radius: 50px;
-            border: 1px solid var(--border-subtle);
-        }
-
-        .entries-table-wrapper {
-            background: var(--bg-card);
-            backdrop-filter: blur(24px) saturate(1.4);
-            -webkit-backdrop-filter: blur(24px) saturate(1.4);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            box-shadow: var(--shadow-card);
-        }
-
-        .entries-table-wrapper .table-scroll {
-            overflow-x: auto;
-            padding: 0 4px;
-        }
-
-        .entries-table-wrapper table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.7rem;
-            min-width: 700px;
-        }
-
-        .entries-table-wrapper table thead th {
-            padding: 12px 10px;
-            text-align: right;
-            font-weight: 700;
-            color: var(--text-muted);
-            font-size: 0.6rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid var(--border-subtle);
-            background: rgba(255, 255, 255, 0.02);
-            white-space: nowrap;
-        }
-
-        .entries-table-wrapper table tbody td {
-            padding: 10px 10px;
-            border-bottom: 1px solid var(--border-subtle);
-            color: var(--text-secondary);
-            font-size: 0.65rem;
-            vertical-align: middle;
-        }
-
-        .entries-table-wrapper table tbody tr:hover {
-            background: rgba(245, 200, 66, 0.03);
-        }
-
-        .entries-table-wrapper table tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        .entries-table-wrapper table tbody td .badge-type {
-            display: inline-block;
-            padding: 2px 10px;
-            border-radius: 50px;
-            font-size: 0.55rem;
-            font-weight: 600;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--border-subtle);
-            color: var(--text-secondary);
-        }
-
-        .entries-table-wrapper table tbody td .badge-type.incoming {
-            background: rgba(76, 175, 80, 0.12);
-            border-color: rgba(76, 175, 80, 0.15);
-            color: #4caf50;
-        }
-
-        .entries-table-wrapper table tbody td .badge-type.outgoing {
-            background: rgba(239, 83, 80, 0.12);
-            border-color: rgba(239, 83, 80, 0.15);
-            color: #ef5350;
-        }
-
-        .entries-table-wrapper table tbody td .badge-type.transfer {
-            background: rgba(33, 150, 243, 0.12);
-            border-color: rgba(33, 150, 243, 0.15);
-            color: #2196f3;
-        }
-
-        .entries-table-wrapper table tbody td .action-btns {
-            display: flex;
-            gap: 4px;
-            flex-wrap: wrap;
-        }
-
-        .entries-table-wrapper table tbody td .action-btns .btn-sm {
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.55rem;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            transition: var(--transition-smooth);
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .entries-table-wrapper table tbody td .action-btns .btn-sm.edit {
-            background: rgba(245, 200, 66, 0.1);
-            color: var(--gold-primary);
-        }
-
-        .entries-table-wrapper table tbody td .action-btns .btn-sm.edit:hover {
-            background: rgba(245, 200, 66, 0.2);
-        }
-
-        .entries-table-wrapper table tbody td .action-btns .btn-sm.delete {
-            background: rgba(239, 83, 80, 0.1);
-            color: #ef5350;
-        }
-
-        .entries-table-wrapper table tbody td .action-btns .btn-sm.delete:hover {
-            background: rgba(239, 83, 80, 0.2);
-        }
-
-        .entries-table-wrapper .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-muted);
-        }
-
-        .entries-table-wrapper .empty-state i {
-            font-size: 2.5rem;
-            color: var(--text-muted);
-            opacity: 0.2;
-            margin-bottom: 12px;
-            display: block;
-        }
-
-        .entries-table-wrapper .empty-state p {
-            font-size: 0.85rem;
-        }
-
-        /* ============================================================
-           TOAST - الإشعارات
-           ============================================================ */
-        .toast-container {
-            position: fixed;
-            bottom: 30px;
-            left: 30px;
-            z-index: 99999;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-width: 420px;
-            width: 100%;
-            pointer-events: none;
-        }
-
-        .toast {
-            background: var(--bg-card);
-            backdrop-filter: blur(24px) saturate(1.4);
-            -webkit-backdrop-filter: blur(24px) saturate(1.4);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-sm);
-            padding: 16px 20px;
-            box-shadow: var(--shadow-card);
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            transform: translateX(120%);
-            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
-            opacity: 0;
-            pointer-events: auto;
-            border-right: 4px solid var(--gold-primary);
-        }
-
-        .toast.show {
-            transform: translateX(0);
-            opacity: 1;
+        .form-group select option:hover {
+            background: #f5c842;
+            color: #0a0f1f;
+        }
+        .form-group input:focus, .form-group textarea:focus { 
+            outline: none; 
+            border-color: #f5c842; 
+            background: rgba(245, 200, 66, 0.04); 
+        }
+        .form-group input::placeholder { color: rgba(255, 255, 255, 0.2); }
+        .form-group textarea { resize: vertical; min-height: 40px; }
+
+        .form-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+        .btn-submit { background: linear-gradient(135deg, #f5c842, #d4a020); color: #0a0f1f; padding: 10px 24px; border-radius: 50px; font-weight: 700; font-size: 0.85rem; border: none; cursor: pointer; transition: 0.3s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 30px rgba(245, 200, 66, 0.3); }
+        .btn-cancel { background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.6); padding: 10px 24px; border-radius: 50px; font-weight: 700; font-size: 0.85rem; border: 1px solid rgba(255, 255, 255, 0.06); cursor: pointer; transition: 0.3s; }
+        .btn-cancel:hover { background: rgba(255, 255, 255, 0.08); }
+        .btn-delete { background: rgba(239, 83, 80, 0.15); color: #ef5350; padding: 8px 16px; border-radius: 50px; font-weight: 700; font-size: 0.75rem; border: 1px solid rgba(239, 83, 80, 0.15); cursor: pointer; transition: 0.3s; }
+        .btn-delete:hover { background: rgba(239, 83, 80, 0.25); }
+
+        /* ===== TABLE ===== */
+        .table-wrapper { background: linear-gradient(145deg, #121a2e, #0e1525); border-radius: 14px; overflow-x: auto; border: 1px solid rgba(255, 255, 255, 0.03); padding: 0 4px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; min-width: 700px; }
+        th { background: rgba(26, 47, 68, 0.4); color: #f5c842; padding: 8px 4px; text-align: right; font-weight: 700; white-space: nowrap; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.3px; }
+        td { padding: 6px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); color: rgba(255, 255, 255, 0.6); font-size: 0.65rem; }
+        .actions-cell { display: flex; gap: 4px; flex-wrap: wrap; }
+
+        .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(10, 15, 31, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(245, 200, 66, 0.15); border-radius: 12px; padding: 12px 24px; color: #f5c842; font-weight: 600; font-size: 0.9rem; z-index: 9999; opacity: 0; transition: opacity 0.4s ease; pointer-events: none; }
+        .toast.show { opacity: 1; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (min-width: 769px) {
+            .mobile-nav-bottom { display: none !important; }
+            .mobile-nav-overlay { display: none !important; }
+            .mobile-nav-menu { display: none !important; }
+            .nav-toggle { display: none !important; }
+            nav { display: flex !important; }
+            .container { padding: 0 24px; }
         }
-
-        .toast .toast-icon {
-            font-size: 1.2rem;
-            width: 36px;
-            height: 36px;
-            min-width: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(245, 200, 66, 0.08);
-        }
-
-        .toast .toast-icon.success {
-            color: #4caf50;
-            background: rgba(76, 175, 80, 0.1);
-        }
-        .toast .toast-icon.error {
-            color: #ef5350;
-            background: rgba(239, 83, 80, 0.1);
-        }
-        .toast .toast-icon.warning {
-            color: #f5c842;
-            background: rgba(245, 200, 66, 0.1);
-        }
-
-        .toast .toast-content {
-            flex: 1;
-        }
-        .toast .toast-content .toast-title {
-            font-weight: 700;
-            font-size: 0.85rem;
-            color: var(--text-primary);
-        }
-        .toast .toast-content .toast-message {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin-top: 2px;
-        }
-
-        .toast .toast-close {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: var(--transition-smooth);
-            padding: 4px;
-        }
-
-        .toast .toast-close:hover {
-            color: var(--text-primary);
-        }
-
-        /* ============================================================
-           RESPONSIVE - استجابة مثالية
-           ============================================================ */
-        @media (min-width: 1025px) {
-            .form-master {
-                grid-template-columns: 1.3fr 0.9fr;
-            }
-        }
-
-        @media (max-width: 1024px) {
-            .form-master {
-                grid-template-columns: 1fr 1fr;
-                gap: 20px;
-            }
-            .app-wrapper {
-                padding: 16px 20px 32px;
-            }
-        }
-
         @media (max-width: 768px) {
-            .form-master {
-                grid-template-columns: 1fr;
-                gap: 24px;
-            }
-            .form-card {
-                grid-column: 1 / 2;
-                padding: 24px 18px;
-            }
-            .form-sidebar {
-                grid-column: 1 / 2;
-            }
-            .app-header .brand-text h1 {
-                font-size: 1.1rem;
-            }
-            .app-header .brand-icon {
-                width: 40px;
-                height: 40px;
-                font-size: 1.2rem;
-            }
-            .page-title-section .title-main {
-                font-size: 1.5rem;
-            }
-            .form-actions {
-                flex-direction: column;
-            }
-            .form-actions .btn-submit {
-                width: 100%;
-                min-width: unset;
-            }
-            .form-actions .btn-reset {
-                width: 100%;
-                justify-content: center;
-            }
-            .toast-container {
-                left: 16px;
-                right: 16px;
-                max-width: unset;
-                bottom: 20px;
-            }
-            .app-header .header-actions .btn-back span {
-                display: none;
-            }
+            nav { display: none !important; }
+            .nav-toggle { display: flex !important; }
+            .mobile-nav-bottom { display: flex !important; }
+            .mobile-nav-menu { display: block; }
+            .mobile-nav-overlay { display: block; }
+            .mobile-nav-menu.open { right: 0; }
+            .mobile-nav-overlay.active { opacity: 1; pointer-events: auto; }
+            .form-row { grid-template-columns: 1fr; }
+            .page-header h1 { font-size: 1.4rem; }
         }
-
         @media (max-width: 480px) {
-            .app-wrapper {
-                padding: 12px 12px 24px;
-            }
-            .form-card {
-                padding: 18px 14px;
-                border-radius: var(--radius-md);
-            }
-            .form-card .card-header h3 {
-                font-size: 0.95rem;
-            }
-            .form-group input,
-            .form-group select,
-            .form-group textarea {
-                font-size: 0.8rem;
-                padding: 10px 38px 10px 12px;
-            }
-            .page-title-section .title-main {
-                font-size: 1.2rem;
-            }
-            .page-title-section .title-sub {
-                font-size: 0.75rem;
-            }
-            .sidebar-card {
-                padding: 18px 14px;
-            }
-            .entries-table-wrapper table {
-                font-size: 0.6rem;
-                min-width: 500px;
-            }
-            .entries-table-wrapper table thead th,
-            .entries-table-wrapper table tbody td {
-                padding: 6px 6px;
-            }
-            .toast {
-                padding: 12px 16px;
-                font-size: 0.8rem;
-            }
-        }
-
-        @media (max-width: 380px) {
-            .app-header .brand-text h1 {
-                font-size: 0.9rem;
-            }
-            .app-header .brand-icon {
-                width: 34px;
-                height: 34px;
-                font-size: 1rem;
-            }
-            .page-title-section .title-main {
-                font-size: 1rem;
-            }
-            .form-card .card-header {
-                flex-wrap: wrap;
-            }
+            .form-section { padding: 14px; }
+            .btn-submit { width: 100%; justify-content: center; }
         }
     </style>
 </head>
 <body>
 
-    <!-- ============================================================
-    TOAST CONTAINER
-    ============================================================ -->
-    <div class="toast-container" id="toastContainer"></div>
-
-    <!-- ============================================================
-    APP WRAPPER
-    ============================================================ -->
-    <div class="app-wrapper">
-
-        <!-- ============================================================
-        HEADER
-        ============================================================ -->
-        <header class="app-header animate-float-in">
-            <div class="brand">
-                <div class="brand-icon">💰</div>
-                <div class="brand-text">
+    <!-- ===== HEADER ===== -->
+    <header id="header">
+        <div class="container">
+            <div class="logo">
+                <div class="logo-icon">💰</div>
+                <div class="logo-text">
                     <h1>الخزينة الرئيسية</h1>
-                    <span>شركة رولكس للدهانات والمنتجات الكيماوية</span>
+                    <span>شركة رولكس</span>
                 </div>
             </div>
-            <div class="header-actions">
-                <a href="treasury.html" class="btn-back">
-                    <i class="fas fa-arrow-right"></i>
-                    <span>العودة للخزينة</span>
-                </a>
+            <nav>
+                <a href="index.html">الرئيسية</a>
+                <a href="#">الطلبات</a>
+                <a href="treasury.html">الخزينة</a>
+                <a href="entry.html" class="active">إدخال</a>
+                <a href="#">التقارير</a>
+                <a href="#">تواصل</a>
+            </nav>
+            <div class="nav-toggle" id="navToggle" aria-label="فتح القائمة">
+                <i class="fas fa-bars"></i>
             </div>
-        </header>
+        </div>
+    </header>
 
-        <!-- ============================================================
-        PAGE TITLE
-        ============================================================ -->
-        <section class="page-title-section animate-float-in delay-1">
-            <div class="title-main">
-                <span class="emoji-deco">📝</span>
-                <span class="gold-text">إدخال حركات الخزينة</span>
+    <!-- ===== MOBILE NAV ===== -->
+    <div class="mobile-nav-overlay" id="mobileOverlay"></div>
+    <div class="mobile-nav-menu" id="mobileMenu">
+        <div class="close-btn" id="closeMenu"><i class="fas fa-times"></i></div>
+        <div class="menu-header">
+            <div class="logo-text">
+                <h1 style="font-size:1.2rem; background: linear-gradient(135deg, #f5c842, #d4a020); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">الخزينة الرئيسية</h1>
+                <span style="font-size:0.6rem; color:rgba(255,255,255,0.3); display:block;">شركة رولكس</span>
             </div>
-            <p class="title-sub">سجل حركات وارد / صادر / تحويل في الخزينة الرئيسية</p>
-            <div class="title-decoration"></div>
-        </section>
+        </div>
+        <div class="menu-items">
+            <a href="index.html"><i class="fas fa-home"></i> الرئيسية</a>
+            <a href="#"><i class="fas fa-box"></i> الطلبات</a>
+            <a href="treasury.html"><i class="fas fa-coins"></i> الخزينة</a>
+            <a href="entry.html" class="active"><i class="fas fa-pen"></i> إدخال</a>
+            <a href="#"><i class="fas fa-chart-pie"></i> التقارير</a>
+            <a href="#"><i class="fas fa-phone"></i> تواصل</a>
+        </div>
+    </div>
 
-        <!-- ============================================================
-        FORM MASTER
-        ============================================================ -->
-        <div class="form-master">
+    <nav class="mobile-nav-bottom" id="mobileNavBottom">
+        <ul>
+            <li><a href="index.html"><i class="fas fa-home"></i><span>الرئيسية</span></a></li>
+            <li><a href="#"><i class="fas fa-box"></i><span>الطلبات</span></a></li>
+            <li><a href="treasury.html"><i class="fas fa-coins"></i><span>الخزينة</span></a></li>
+            <li class="active"><a href="entry.html"><i class="fas fa-pen"></i><span>إدخال</span></a></li>
+            <li><a href="#"><i class="fas fa-phone"></i><span>تواصل</span></a></li>
+        </ul>
+    </nav>
 
-            <!-- ===== FORM CARD ===== -->
-            <div class="form-card animate-float-in delay-2" id="formCard">
-                <div class="card-header">
-                    <div class="header-icon"><i class="fas fa-pen-fancy"></i></div>
-                    <h3>
-                        نموذج إدخال الحركة
-                        <span>أدخل بيانات الحركة الجديدة بدقة</span>
-                    </h3>
+    <!-- ===== TOAST ===== -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ===== PAGE CONTENT ===== -->
+    <div class="container">
+
+        <!-- ===== PAGE HEADER ===== -->
+        <div class="page-header">
+            <h1>📝 إدخال حركات الخزينة</h1>
+            <p>تسجيل حركات وارد / صادر / تحويل - يتم الحفظ في Google Sheets و LocalStorage</p>
+        </div>
+
+        <!-- ===== FORM ===== -->
+        <div class="form-section" id="formSection">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>📅 التاريخ</label>
+                    <input type="date" id="entryDate" />
                 </div>
-
-                <form id="entryForm" novalidate>
-
-                    <!-- ===== ROW 1: التاريخ + رقم السند ===== -->
-                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                        <div class="form-group animate-float-in delay-3">
-                            <label class="field-label" for="entryDate">
-                                <span class="label-icon"><i class="fas fa-calendar-alt"></i></span>
-                                التاريخ
-                                <span class="required-star">*</span>
-                            </label>
-                            <div class="field-wrapper">
-                                <input type="date" id="entryDate" required />
-                                <span class="field-icon"><i class="fas fa-calendar-day"></i></span>
-                            </div>
-                            <div class="validation-message" id="dateValidation"></div>
-                        </div>
-
-                        <div class="form-group animate-float-in delay-4">
-                            <label class="field-label" for="entryNumber">
-                                <span class="label-icon"><i class="fas fa-hashtag"></i></span>
-                                رقم السند
-                            </label>
-                            <div class="field-wrapper">
-                                <input type="text" id="entryNumber" placeholder="مثال: 1" />
-                                <span class="field-icon"><i class="fas fa-file-invoice"></i></span>
-                            </div>
-                            <div class="validation-message" id="numberValidation"></div>
-                        </div>
-                    </div>
-
-                    <!-- ===== ROW 2: نوع الحركة + التبويب العام ===== -->
-                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                        <div class="form-group animate-float-in delay-5">
-                            <label class="field-label" for="entryType">
-                                <span class="label-icon"><i class="fas fa-tag"></i></span>
-                                نوع الحركة
-                                <span class="required-star">*</span>
-                            </label>
-                            <div class="field-wrapper">
-                                <select id="entryType" required>
-                                    <option value="وارد">وارد</option>
-                                    <option value="صادر">صادر</option>
-                                    <option value="تحويل">تحويل</option>
-                                </select>
-                                <span class="field-icon"><i class="fas fa-exchange-alt"></i></span>
-                            </div>
-                            <div class="validation-message" id="typeValidation"></div>
-                        </div>
-
-                        <div class="form-group animate-float-in delay-6">
-                            <label class="field-label" for="entryGeneralTab">
-                                <span class="label-icon"><i class="fas fa-folder-open"></i></span>
-                                التبويب العام
-                            </label>
-                            <div class="field-wrapper">
-                                <input type="text" id="entryGeneralTab" list="generalTabs" placeholder="اكتب للبحث..." autocomplete="off" />
-                                <datalist id="generalTabs"></datalist>
-                                <span class="field-icon"><i class="fas fa-list-ul"></i></span>
-                            </div>
-                            <div class="validation-message" id="generalTabValidation"></div>
-                        </div>
-                    </div>
-
-                    <!-- ===== ROW 3: البيان ===== -->
-                    <div class="form-group animate-float-in delay-3">
-                        <label class="field-label" for="entryDescription">
-                            <span class="label-icon"><i class="fas fa-align-right"></i></span>
-                            البيان
-                            <span class="required-star">*</span>
-                        </label>
-                        <div class="field-wrapper">
-                            <textarea id="entryDescription" placeholder="وصف الحركة..." required maxlength="200"></textarea>
-                            <span class="field-icon" style="top:14px;transform:none;"><i class="fas fa-pencil-alt"></i></span>
-                            <span class="char-counter" id="descCounter">0 / 200</span>
-                        </div>
-                        <div class="validation-message" id="descriptionValidation"></div>
-                    </div>
-
-                    <!-- ===== ROW 4: المبلغ + التبويب الخاص ===== -->
-                    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                        <div class="form-group animate-float-in delay-4">
-                            <label class="field-label" for="entryAmount">
-                                <span class="label-icon"><i class="fas fa-money-bill-wave"></i></span>
-                                المبلغ
-                                <span class="required-star">*</span>
-                            </label>
-                            <div class="field-wrapper">
-                                <input type="number" id="entryAmount" placeholder="0" required min="0.01" step="0.01" />
-                                <span class="field-icon"><i class="fas fa-coins"></i></span>
-                            </div>
-                            <div class="validation-message" id="amountValidation"></div>
-                        </div>
-
-                        <div class="form-group animate-float-in delay-5">
-                            <label class="field-label" for="entryPrivateTab">
-                                <span class="label-icon"><i class="fas fa-folder"></i></span>
-                                التبويب الخاص
-                            </label>
-                            <div class="field-wrapper">
-                                <input type="text" id="entryPrivateTab" list="privateTabs" placeholder="اكتب للبحث..." autocomplete="off" />
-                                <datalist id="privateTabs"></datalist>
-                                <span class="field-icon"><i class="fas fa-list"></i></span>
-                            </div>
-                            <div class="validation-message" id="privateTabValidation"></div>
-                        </div>
-                    </div>
-
-                    <!-- ===== ROW 5: ملاحظات ===== -->
-                    <div class="form-group animate-float-in delay-6">
-                        <label class="field-label" for="entryNotes">
-                            <span class="label-icon"><i class="fas fa-sticky-note"></i></span>
-                            ملاحظات
-                        </label>
-                        <div class="field-wrapper">
-                            <textarea id="entryNotes" placeholder="أي ملاحظات إضافية..." maxlength="300"></textarea>
-                            <span class="field-icon" style="top:14px;transform:none;"><i class="fas fa-comment-alt"></i></span>
-                            <span class="char-counter" id="notesCounter">0 / 300</span>
-                        </div>
-                        <div class="validation-message" id="notesValidation"></div>
-                    </div>
-
-                    <!-- ===== HIDDEN ===== -->
-                    <input type="hidden" id="editIndex" value="-1" />
-
-                    <!-- ===== FORM ACTIONS ===== -->
-                    <div class="form-actions">
-                        <button type="submit" class="btn-submit" id="submitBtn">
-                            <span class="btn-icon"><i class="fas fa-save"></i></span>
-                            <span class="btn-text">حفظ الحركة</span>
-                            <span class="spinner"><i class="fas fa-spinner"></i></span>
-                        </button>
-                        <button type="reset" class="btn-reset" id="resetBtn">
-                            <i class="fas fa-undo-alt"></i>
-                            إلغاء / تفريغ
-                        </button>
-                    </div>
-
-                </form>
+                <div class="form-group">
+                    <label>🔢 رقم السند</label>
+                    <input type="text" id="entryNumber" placeholder="مثال: 1" />
+                </div>
             </div>
-
-            <!-- ===== SIDEBAR ===== -->
-            <div class="form-sidebar">
-
-                <!-- ===== STATS CARD ===== -->
-                <div class="sidebar-card animate-float-in delay-3">
-                    <div class="sidebar-title"><i class="fas fa-chart-simple"></i> إحصائيات سريعة</div>
-
-                    <div class="stat-item">
-                        <span class="stat-label"><i class="fas fa-coins"></i> الرصيد الافتتاحي</span>
-                        <span class="stat-value gold" id="sidebarOpeningBalance">0 ج.م</span>
-                    </div>
-
-                    <div class="stat-item">
-                        <span class="stat-label"><i class="fas fa-arrow-up" style="color:#4caf50;"></i> إجمالي الوارد</span>
-                        <span class="stat-value green" id="sidebarTotalIncoming">0 ج.م</span>
-                    </div>
-
-                    <div class="stat-item">
-                        <span class="stat-label"><i class="fas fa-arrow-down" style="color:#ef5350;"></i> إجمالي الصادر</span>
-                        <span class="stat-value red" id="sidebarTotalOutgoing">0 ج.م</span>
-                    </div>
-
-                    <div class="stat-item" style="border-bottom:none;padding-bottom:0;">
-                        <span class="stat-label"><i class="fas fa-wallet" style="color:#f5c842;"></i> الرصيد الحالي</span>
-                        <span class="stat-value gold" id="sidebarCurrentBalance">0 ج.م</span>
-                    </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>📌 نوع الحركة</label>
+                    <select id="entryType">
+                        <option value="وارد">وارد</option>
+                        <option value="صادر">صادر</option>
+                        <option value="تحويل">تحويل</option>
+                    </select>
                 </div>
-
-                <!-- ===== TIPS CARD ===== -->
-                <div class="sidebar-card animate-float-in delay-4">
-                    <div class="sidebar-title"><i class="fas fa-lightbulb"></i> نصائح سريعة</div>
-
-                    <div class="tip-item">
-                        <div class="tip-icon"><i class="fas fa-check"></i></div>
-                        <div class="tip-text"><strong>التاريخ:</strong> يتم تعيينه تلقائياً لليوم الحالي</div>
-                    </div>
-
-                    <div class="tip-item">
-                        <div class="tip-icon"><i class="fas fa-check"></i></div>
-                        <div class="tip-text"><strong>رقم السند:</strong> اختياري، يمكنك تركه فارغاً</div>
-                    </div>
-
-                    <div class="tip-item">
-                        <div class="tip-icon"><i class="fas fa-check"></i></div>
-                        <div class="tip-text"><strong>التبويبات:</strong> تظهر اقتراحات أثناء الكتابة</div>
-                    </div>
-
-                    <div class="tip-item" style="border-bottom:none;padding-bottom:0;">
-                        <div class="tip-icon"><i class="fas fa-check"></i></div>
-                        <div class="tip-text"><strong>المبلغ:</strong> يجب أن يكون أكبر من صفر</div>
-                    </div>
+                <div class="form-group">
+                    <label>🏷️ التبويب العام</label>
+                    <input type="text" id="entryGeneralTab" placeholder="مثال: تحصيلات العملاء" />
                 </div>
-
-                <!-- ===== SHORTCUTS CARD ===== -->
-                <div class="sidebar-card animate-float-in delay-5">
-                    <div class="sidebar-title"><i class="fas fa-keyboard"></i> اختصارات لوحة المفاتيح</div>
-
-                    <div class="tip-item">
-                        <div class="tip-icon"><i class="fas fa-key"></i></div>
-                        <div class="tip-text"><strong>Ctrl + Enter</strong> حفظ الحركة</div>
-                    </div>
-
-                    <div class="tip-item" style="border-bottom:none;padding-bottom:0;">
-                        <div class="tip-icon"><i class="fas fa-key"></i></div>
-                        <div class="tip-text"><strong>Escape</strong> إلغاء / تفريغ الحقول</div>
-                    </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>📝 البيان</label>
+                    <textarea id="entryDescription" placeholder="وصف الحركة..."></textarea>
                 </div>
-
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>💰 المبلغ</label>
+                    <input type="number" id="entryAmount" placeholder="0" />
+                </div>
+                <div class="form-group">
+                    <label>🏷️ التبويب الخاص</label>
+                    <input type="text" id="entryPrivateTab" placeholder="مثال: مؤمن مرسي" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>📝 ملاحظات</label>
+                    <textarea id="entryNotes" placeholder="أي ملاحظات إضافية..."></textarea>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn-submit" id="submitBtn"><i class="fas fa-save"></i> حفظ الحركة</button>
+                <button class="btn-cancel" id="cancelBtn"><i class="fas fa-times"></i> إلغاء</button>
+                <input type="hidden" id="editIndex" value="-1" />
             </div>
         </div>
 
-        <!-- ============================================================
-        ENTRIES TABLE
-        ============================================================ -->
-        <section class="entries-section animate-float-in delay-4">
-            <div class="section-header">
-                <h2><i class="fas fa-list-ul"></i> الحركات المسجلة</h2>
-                <span class="entries-count" id="entriesCount">0 حركة</span>
-            </div>
-
-            <div class="entries-table-wrapper">
-                <div class="table-scroll">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>التاريخ</th>
-                                <th>رقم السند</th>
-                                <th>نوع الحركة</th>
-                                <th>البيان</th>
-                                <th style="text-align:center;">وارد</th>
-                                <th style="text-align:center;">صادر</th>
-                                <th>التبويب العام</th>
-                                <th>التبويب الخاص</th>
-                                <th>إجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody id="entriesBody">
-                            <tr>
-                                <td colspan="9">
-                                    <div class="empty-state">
-                                        <i class="fas fa-inbox"></i>
-                                        <p>لا توجد حركات مسجلة</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
+        <!-- ===== TABLE ===== -->
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>رقم السند</th>
+                        <th>نوع الحركة</th>
+                        <th>البيان</th>
+                        <th>وارد</th>
+                        <th>صادر</th>
+                        <th>التبويب العام</th>
+                        <th>التبويب الخاص</th>
+                        <th>ملاحظات</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="entriesBody">
+                    <tr><td colspan="10" style="text-align:center;color:rgba(255,255,255,0.2);padding:30px;">لا توجد حركات مسجلة</td></tr>
+                </tbody>
+            </table>
+        </div>
 
     </div>
 
-    <!-- ============================================================
-    JAVASCRIPT - البرمجة المتقدمة
-    ============================================================ -->
     <script>
-        // ============================================================
-        // CONFIGURATION - الإعدادات العامة
-        // ============================================================
-        var WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz_VTqzqZtZZ52hSX19Ha1MU_8mzLjtlby2n3aMCBaaJ3cle9spdbVTnzlTGUlgKzSFdA/exec';
-        var STORAGE_KEY = 'rollex_treasury_entries';
-        var TABS_KEY = 'rollex_tabs_data';
+        // =============================================
+        // 🔑 WEB APP URL (ضع رابط الـ Web App هنا)
+        // =============================================
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzmfO4qwRmjgi8c5PvugQ1VzWWODLpCzRk12l39VAXV_MLi27LkD-_IVeBg90O3SSDO/exec';
 
-        var SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
-        var SHEET_NAME = 'الخزينة الرئيسية';
+        // =============================================
+        // STORAGE KEYS
+        // =============================================
+        const STORAGE_KEY = 'rollex_treasury_entries';
 
-        // ============================================================
-        // DOM REFS - مراجع عناصر الصفحة
-        // ============================================================
-        var form = document.getElementById('entryForm');
-        var dateInput = document.getElementById('entryDate');
-        var numberInput = document.getElementById('entryNumber');
-        var typeSelect = document.getElementById('entryType');
-        var descriptionInput = document.getElementById('entryDescription');
-        var amountInput = document.getElementById('entryAmount');
-        var generalTabInput = document.getElementById('entryGeneralTab');
-        var privateTabInput = document.getElementById('entryPrivateTab');
-        var notesInput = document.getElementById('entryNotes');
-        var editIndexInput = document.getElementById('editIndex');
-        var submitBtn = document.getElementById('submitBtn');
-        var resetBtn = document.getElementById('resetBtn');
-        var entriesBody = document.getElementById('entriesBody');
-        var entriesCount = document.getElementById('entriesCount');
-        var generalDatalist = document.getElementById('generalTabs');
-        var privateDatalist = document.getElementById('privateTabs');
+        // =============================================
+        // DOM REFS
+        // =============================================
+        const dateInput = document.getElementById('entryDate');
+        const numberInput = document.getElementById('entryNumber');
+        const typeSelect = document.getElementById('entryType');
+        const descriptionInput = document.getElementById('entryDescription');
+        const amountInput = document.getElementById('entryAmount');
+        const generalTabInput = document.getElementById('entryGeneralTab');
+        const privateTabInput = document.getElementById('entryPrivateTab');
+        const notesInput = document.getElementById('entryNotes');
+        const submitBtn = document.getElementById('submitBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const editIndexInput = document.getElementById('editIndex');
+        const entriesBody = document.getElementById('entriesBody');
+        const toast = document.getElementById('toast');
 
-        // Sidebar elements
-        var sidebarOpeningBalance = document.getElementById('sidebarOpeningBalance');
-        var sidebarTotalIncoming = document.getElementById('sidebarTotalIncoming');
-        var sidebarTotalOutgoing = document.getElementById('sidebarTotalOutgoing');
-        var sidebarCurrentBalance = document.getElementById('sidebarCurrentBalance');
+        // =============================================
+        // MOBILE NAV
+        // =============================================
+        const navToggle = document.getElementById('navToggle');
+        const mobileMenu = document.getElementById('mobileMenu');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        const closeMenu = document.getElementById('closeMenu');
 
-        // Validation messages
-        var dateValidation = document.getElementById('dateValidation');
-        var numberValidation = document.getElementById('numberValidation');
-        var typeValidation = document.getElementById('typeValidation');
-        var descriptionValidation = document.getElementById('descriptionValidation');
-        var amountValidation = document.getElementById('amountValidation');
-        var generalTabValidation = document.getElementById('generalTabValidation');
-        var privateTabValidation = document.getElementById('privateTabValidation');
-        var notesValidation = document.getElementById('notesValidation');
-
-        // Char counters
-        var descCounter = document.getElementById('descCounter');
-        var notesCounter = document.getElementById('notesCounter');
-
-        // ============================================================
-        // STATE - الحالة العامة
-        // ============================================================
-        var openingBalance = 0;
-        var totalIncomingAll = 0;
-        var totalOutgoingAll = 0;
-        var currentBalance = 0;
-
-        // ============================================================
-        // TOAST SYSTEM - نظام الإشعارات
-        // ============================================================
-        function showToast(title, message, type) {
-            var container = document.getElementById('toastContainer');
-            var toast = document.createElement('div');
-            toast.className = 'toast';
-
-            var iconClass = 'warning';
-            if (type === 'success') iconClass = 'success';
-            else if (type === 'error') iconClass = 'error';
-
-            var iconMap = {
-                'success': 'fa-check-circle',
-                'error': 'fa-times-circle',
-                'warning': 'fa-exclamation-triangle'
-            };
-
-            toast.innerHTML = '' +
-                '<div class="toast-icon ' + iconClass + '"><i class="fas ' + (iconMap[type] || 'fa-info-circle') +
-                '"></i></div>' +
-                '<div class="toast-content">' +
-                '<div class="toast-title">' + title + '</div>' +
-                '<div class="toast-message">' + message + '</div>' +
-                '</div>' +
-                '<button class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>';
-
-            container.appendChild(toast);
-
-            // Trigger animation
-            setTimeout(function() {
-                toast.classList.add('show');
-            }, 10);
-
-            // Auto remove after 5 seconds
-            setTimeout(function() {
-                if (toast.parentElement) {
-                    toast.classList.remove('show');
-                    setTimeout(function() {
-                        if (toast.parentElement) toast.remove();
-                    }, 500);
-                }
-            }, 5000);
-
-            // Click to dismiss
-            toast.addEventListener('click', function(e) {
-                if (e.target.closest('.toast-close') || e.target.closest('.toast-icon')) {
-                    toast.classList.remove('show');
-                    setTimeout(function() {
-                        if (toast.parentElement) toast.remove();
-                    }, 500);
-                }
-            });
+        function openMenu() {
+            mobileMenu.classList.add('open');
+            mobileOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            navToggle.innerHTML = '<i class="fas fa-times"></i>';
+            navToggle.classList.add('open');
         }
 
-        // ============================================================
-        // VALIDATION HELPERS - مساعدات التحقق
-        // ============================================================
-        function setValidation(element, message, type) {
-            var msgEl = element;
-            if (typeof element === 'string') {
-                msgEl = document.getElementById(element);
-            }
-            if (!msgEl) return;
-
-            msgEl.textContent = message;
-            msgEl.className = 'validation-message show ' + type;
-
-            // Find parent form-group and update input status
-            var group = msgEl.closest('.form-group');
-            if (group) {
-                var input = group.querySelector('input, select, textarea');
-                if (input) {
-                    input.classList.remove('field-error', 'field-success');
-                    if (type === 'error') input.classList.add('field-error');
-                    else if (type === 'success') input.classList.add('field-success');
-                }
-            }
+        function closeMenuFn() {
+            mobileMenu.classList.remove('open');
+            mobileOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+            navToggle.innerHTML = '<i class="fas fa-bars"></i>';
+            navToggle.classList.remove('open');
         }
 
-        function clearValidation(element) {
-            var msgEl = element;
-            if (typeof element === 'string') {
-                msgEl = document.getElementById(element);
-            }
-            if (!msgEl) return;
-            msgEl.className = 'validation-message';
-            msgEl.textContent = '';
-
-            var group = msgEl.closest('.form-group');
-            if (group) {
-                var input = group.querySelector('input, select, textarea');
-                if (input) {
-                    input.classList.remove('field-error', 'field-success');
-                }
-            }
-        }
-
-        function clearAllValidations() {
-            var msgs = document.querySelectorAll('.validation-message');
-            msgs.forEach(function(msg) {
-                msg.className = 'validation-message';
-                msg.textContent = '';
-            });
-            var inputs = document.querySelectorAll('.field-error, .field-success');
-            inputs.forEach(function(input) {
-                input.classList.remove('field-error', 'field-success');
-            });
-        }
-
-        // ============================================================
-        // FIELD VALIDATION - التحقق من الحقول
-        // ============================================================
-        function validateDate() {
-            var value = dateInput.value;
-            if (!value) {
-                setValidation(dateValidation, '⚠️ التاريخ مطلوب', 'error');
-                return false;
-            }
-            setValidation(dateValidation, '✅ تاريخ صحيح', 'success');
-            return true;
-        }
-
-        function validateDescription() {
-            var value = descriptionInput.value.trim();
-            if (!value) {
-                setValidation(descriptionValidation, '⚠️ البيان مطلوب', 'error');
-                return false;
-            }
-            if (value.length < 3) {
-                setValidation(descriptionValidation, '⚠️ البيان قصير جداً (الحد الأدنى 3 أحرف)', 'error');
-                return false;
-            }
-            setValidation(descriptionValidation, '✅ بيان صحيح', 'success');
-            return true;
-        }
-
-        function validateAmount() {
-            var value = parseFloat(amountInput.value);
-            if (!value || value <= 0) {
-                setValidation(amountValidation, '⚠️ يرجى إدخال مبلغ صحيح أكبر من صفر', 'error');
-                return false;
-            }
-            if (value > 999999999) {
-                setValidation(amountValidation, '⚠️ المبلغ كبير جداً', 'error');
-                return false;
-            }
-            setValidation(amountValidation, '✅ مبلغ صحيح', 'success');
-            return true;
-        }
-
-        function validateNumber() {
-            var value = numberInput.value.trim();
-            if (value && isNaN(value)) {
-                setValidation(numberValidation, '⚠️ رقم السند يجب أن يكون رقماً', 'error');
-                return false;
-            }
-            clearValidation(numberValidation);
-            return true;
-        }
-
-        function validateGeneralTab() {
-            var value = generalTabInput.value.trim();
-            if (value && value.length > 100) {
-                setValidation(generalTabValidation, '⚠️ التبويب طويل جداً (الحد الأقصى 100 حرف)', 'error');
-                return false;
-            }
-            clearValidation(generalTabValidation);
-            return true;
-        }
-
-        function validatePrivateTab() {
-            var value = privateTabInput.value.trim();
-            if (value && value.length > 100) {
-                setValidation(privateTabValidation, '⚠️ التبويب طويل جداً (الحد الأقصى 100 حرف)', 'error');
-                return false;
-            }
-            clearValidation(privateTabValidation);
-            return true;
-        }
-
-        function validateNotes() {
-            var value = notesInput.value.trim();
-            if (value && value.length > 300) {
-                setValidation(notesValidation, '⚠️ الملاحظات طويلة جداً (الحد الأقصى 300 حرف)', 'error');
-                return false;
-            }
-            clearValidation(notesValidation);
-            return true;
-        }
-
-        function validateForm() {
-            var isValid = true;
-            if (!validateDate()) isValid = false;
-            if (!validateDescription()) isValid = false;
-            if (!validateAmount()) isValid = false;
-            if (!validateNumber()) isValid = false;
-            if (!validateGeneralTab()) isValid = false;
-            if (!validatePrivateTab()) isValid = false;
-            if (!validateNotes()) isValid = false;
-            return isValid;
-        }
-
-        // ============================================================
-        // REAL-TIME VALIDATION EVENTS - التحقق الفوري
-        // ============================================================
-        dateInput.addEventListener('blur', validateDate);
-        dateInput.addEventListener('input', validateDate);
-
-        descriptionInput.addEventListener('blur', validateDescription);
-        descriptionInput.addEventListener('input', function() {
-            if (descriptionInput.value.trim()) {
-                validateDescription();
+        navToggle.addEventListener('click', () => {
+            if (mobileMenu.classList.contains('open')) {
+                closeMenuFn();
             } else {
-                clearValidation(descriptionValidation);
-            }
-            // Update counter
-            var len = descriptionInput.value.length;
-            descCounter.textContent = len + ' / 200';
-            descCounter.className = 'char-counter' + (len > 180 ? (len > 195 ? ' danger' : ' warning') : '');
-        });
-
-        amountInput.addEventListener('blur', validateAmount);
-        amountInput.addEventListener('input', function() {
-            if (amountInput.value && parseFloat(amountInput.value) > 0) {
-                validateAmount();
-            } else {
-                clearValidation(amountValidation);
+                openMenu();
             }
         });
 
-        numberInput.addEventListener('blur', validateNumber);
-        numberInput.addEventListener('input', function() {
-            if (numberInput.value.trim()) {
-                validateNumber();
+        closeMenu.addEventListener('click', closeMenuFn);
+        mobileOverlay.addEventListener('click', closeMenuFn);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('open')) closeMenuFn();
+        });
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768 && mobileMenu.classList.contains('open')) closeMenuFn();
+        });
+
+        // =============================================
+        // HEADER SCROLL
+        // =============================================
+        const header = document.getElementById('header');
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 10) {
+                header.style.background = 'rgba(10, 15, 31, 0.98)';
+                header.style.borderBottom = '1px solid rgba(255,255,255,0.08)';
             } else {
-                clearValidation(numberValidation);
+                header.style.background = 'rgba(10, 15, 31, 0.95)';
+                header.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
             }
         });
 
-        generalTabInput.addEventListener('blur', validateGeneralTab);
-        generalTabInput.addEventListener('input', function() {
-            if (generalTabInput.value.trim()) {
-                validateGeneralTab();
-            } else {
-                clearValidation(generalTabValidation);
-            }
-        });
-
-        privateTabInput.addEventListener('blur', validatePrivateTab);
-        privateTabInput.addEventListener('input', function() {
-            if (privateTabInput.value.trim()) {
-                validatePrivateTab();
-            } else {
-                clearValidation(privateTabValidation);
-            }
-        });
-
-        notesInput.addEventListener('input', function() {
-            var len = notesInput.value.length;
-            notesCounter.textContent = len + ' / 300';
-            notesCounter.className = 'char-counter' + (len > 270 ? (len > 290 ? ' danger' : ' warning') : '');
-            if (len > 300) {
-                setValidation(notesValidation, '⚠️ الملاحظات طويلة جداً (الحد الأقصى 300 حرف)', 'error');
-            } else {
-                clearValidation(notesValidation);
-            }
-        });
-
-        // ============================================================
-        // LOAD TABS FROM GOOGLE SHEETS - تحميل التبويبات
-        // ============================================================
-        var TABS_SHEET_URL =
-            'https://script.google.com/macros/s/AKfycbz_VTqzqZtZZ52hSX19Ha1MU_8mzLjtlby2n3aMCBaaJ3cle9spdbVTnzlTGUlgKzSFdA/exec?action=getTabs';
-
-        function loadTabs() {
-            fetch(TABS_SHEET_URL)
-                .then(function(response) {
-                    if (response.ok) return response.json();
-                    throw new Error('Network response was not ok');
-                })
-                .then(function(data) {
-                    if (data.success) {
-                        updateDatalist(generalDatalist, data.generalTabs || []);
-                        updateDatalist(privateDatalist, data.privateTabs || []);
-                        localStorage.setItem(TABS_KEY, JSON.stringify(data));
-                    } else {
-                        loadTabsFromLocalStorage();
-                    }
-                })
-                .catch(function() {
-                    loadTabsFromLocalStorage();
-                });
-        }
-
-        function loadTabsFromLocalStorage() {
-            try {
-                var data = localStorage.getItem(TABS_KEY);
-                if (data) {
-                    var parsed = JSON.parse(data);
-                    updateDatalist(generalDatalist, parsed.generalTabs || []);
-                    updateDatalist(privateDatalist, parsed.privateTabs || []);
-                }
-            } catch (e) {
-                console.error('Error loading tabs from localStorage:', e);
-            }
-        }
-
-        function updateDatalist(datalist, items) {
-            datalist.innerHTML = '';
-            items.forEach(function(item) {
-                var option = document.createElement('option');
-                option.value = item;
-                datalist.appendChild(option);
-            });
-        }
-
-        // ============================================================
-        // CRUD OPERATIONS (LocalStorage) - عمليات التخزين المحلي
-        // ============================================================
+        // =============================================
+        // CRUD OPERATIONS (LocalStorage)
+        // =============================================
         function getEntries() {
             try {
-                var data = localStorage.getItem(STORAGE_KEY);
+                const data = localStorage.getItem(STORAGE_KEY);
                 return data ? JSON.parse(data) : [];
-            } catch (e) {
-                return [];
-            }
+            } catch { return []; }
         }
 
         function saveEntries(entries) {
@@ -1942,95 +416,54 @@
         }
 
         function renderEntries() {
-            var entries = getEntries();
-
+            const entries = getEntries();
             if (entries.length === 0) {
-                entriesBody.innerHTML =
-                    '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد حركات مسجلة</p></div></td></tr>';
-                entriesCount.textContent = '0 حركة';
+                entriesBody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:rgba(255,255,255,0.2);padding:30px;">لا توجد حركات مسجلة</td></tr>`;
                 return;
             }
 
-            var html = '';
-            var sorted = entries.slice().reverse();
-            sorted.forEach(function(entry, index) {
-                var realIndex = entries.length - 1 - index;
-                var incoming = entry.type === 'وارد' ? entry.amount : 0;
-                var outgoing = (entry.type === 'صادر' || entry.type === 'تحويل') ? entry.amount : 0;
-                var badgeClass = 'badge-type';
-                if (entry.type === 'وارد') badgeClass += ' incoming';
-                else if (entry.type === 'صادر') badgeClass += ' outgoing';
-                else if (entry.type === 'تحويل') badgeClass += ' transfer';
-
-                html += '<tr>' +
-                    '<td>' + (entry.date || '-') + '</td>' +
-                    '<td>' + (entry.number || '-') + '</td>' +
-                    '<td><span class="' + badgeClass + '">' + (entry.type || '-') + '</span></td>' +
-                    '<td>' + (entry.description || '-') + '</td>' +
-                    '<td style="text-align:center;color:#4caf50;font-weight:700;">' + (incoming > 0 ? incoming
-                        .toLocaleString() : '-') + '</td>' +
-                    '<td style="text-align:center;color:#ef5350;font-weight:700;">' + (outgoing > 0 ? outgoing
-                        .toLocaleString() : '-') + '</td>' +
-                    '<td style="opacity:0.7;">' + (entry.generalTab || '-') + '</td>' +
-                    '<td style="opacity:0.7;">' + (entry.privateTab || '-') + '</td>' +
-                    '<td>' +
-                    '<div class="action-btns">' +
-                    '<button class="btn-sm edit" data-index="' + realIndex + '"><i class="fas fa-edit"></i></button>' +
-                    '<button class="btn-sm delete" data-index="' + realIndex +
-                    '"><i class="fas fa-trash-alt"></i></button>' +
-                    '</div>' +
-                    '</td>' +
-                    '</tr>';
+            let html = '';
+            const sorted = [...entries].reverse();
+            sorted.forEach((entry, index) => {
+                const realIndex = entries.length - 1 - index;
+                html += `
+                    <tr>
+                        <td>${entry.date || '-'}</td>
+                        <td>${entry.number || '-'}</td>
+                        <td><span class="badge badge-type">${entry.type || '-'}</span></td>
+                        <td>${entry.description || '-'}</td>
+                        <td style="color:#4caf50;font-weight:700;text-align:center;">${entry.type === 'وارد' ? entry.amount.toLocaleString() : '-'}</td>
+                        <td style="color:#ef5350;font-weight:700;text-align:center;">${entry.type === 'صادر' || entry.type === 'تحويل' ? entry.amount.toLocaleString() : '-'}</td>
+                        <td style="color:#ffffff;opacity:0.7;">${entry.generalTab || '-'}</td>
+                        <td style="color:#ffffff;opacity:0.7;">${entry.privateTab || '-'}</td>
+                        <td style="font-size:0.6rem;color:rgba(255,255,255,0.3);">${entry.notes || '-'}</td>
+                        <td>
+                            <div class="actions-cell">
+                                <button class="btn-edit" data-index="${realIndex}" style="background:rgba(245,200,66,0.1);color:#f5c842;border:1px solid rgba(245,200,66,0.1);border-radius:6px;padding:4px 10px;font-size:0.6rem;cursor:pointer;transition:0.3s;">✏️</button>
+                                <button class="btn-delete" data-index="${realIndex}" style="background:rgba(239,83,80,0.1);color:#ef5350;border:1px solid rgba(239,83,80,0.1);border-radius:6px;padding:4px 10px;font-size:0.6rem;cursor:pointer;transition:0.3s;">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
             });
-
             entriesBody.innerHTML = html;
-            entriesCount.textContent = entries.length + ' حركة';
 
-            // Attach event listeners
-            document.querySelectorAll('.btn-sm.edit').forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    editEntry(parseInt(this.dataset.index));
-                });
+            document.querySelectorAll('.btn-edit').forEach(btn => {
+                btn.addEventListener('click', () => editEntry(parseInt(btn.dataset.index)));
             });
-
-            document.querySelectorAll('.btn-sm.delete').forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    deleteEntry(parseInt(this.dataset.index));
-                });
+            document.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.addEventListener('click', () => deleteEntry(parseInt(btn.dataset.index)));
             });
-
-            // Update sidebar stats
-            updateSidebarStats();
         }
 
-        // ============================================================
-        // SIDEBAR STATS - إحصائيات الشريط الجانبي
-        // ============================================================
-        function updateSidebarStats() {
-            var entries = getEntries();
-            var totalIn = 0;
-            var totalOut = 0;
-
-            entries.forEach(function(entry) {
-                if (entry.type === 'وارد') totalIn += entry.amount || 0;
-                else if (entry.type === 'صادر' || entry.type === 'تحويل') totalOut += entry.amount || 0;
-            });
-
-            var balance = openingBalance + totalIn - totalOut;
-
-            sidebarOpeningBalance.textContent = openingBalance.toLocaleString() + ' ج.م';
-            sidebarTotalIncoming.textContent = totalIn.toLocaleString() + ' ج.م';
-            sidebarTotalOutgoing.textContent = totalOut.toLocaleString() + ' ج.م';
-            sidebarCurrentBalance.textContent = balance.toLocaleString() + ' ج.م';
-
-            totalIncomingAll = totalIn;
-            totalOutgoingAll = totalOut;
-            currentBalance = balance;
+        function showToast(message, isError = false) {
+            toast.textContent = message;
+            toast.style.borderColor = isError ? '#ef5350' : 'rgba(245,200,66,0.15)';
+            toast.style.color = isError ? '#ef5350' : '#f5c842';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // ============================================================
-        // FORM OPERATIONS - عمليات النموذج
-        // ============================================================
         function clearForm() {
             dateInput.value = '';
             numberInput.value = '';
@@ -2041,26 +474,14 @@
             privateTabInput.value = '';
             notesInput.value = '';
             editIndexInput.value = '-1';
-            submitBtn.innerHTML = '<span class="btn-icon"><i class="fas fa-save"></i></span><span class="btn-text">حفظ الحركة</span>';
-            submitBtn.className = 'btn-submit';
-            clearAllValidations();
-
-            // Reset char counters
-            descCounter.textContent = '0 / 200';
-            descCounter.className = 'char-counter';
-            notesCounter.textContent = '0 / 300';
-            notesCounter.className = 'char-counter';
-
-            // Set default date to today
-            var today = new Date().toISOString().split('T')[0];
-            dateInput.value = today;
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الحركة';
+            cancelBtn.style.display = 'inline-flex';
         }
 
         function loadEntryForEdit(index) {
-            var entries = getEntries();
+            const entries = getEntries();
             if (index < 0 || index >= entries.length) return;
-            var entry = entries[index];
-
+            const entry = entries[index];
             dateInput.value = entry.date || '';
             numberInput.value = entry.number || '';
             typeSelect.value = entry.type || 'وارد';
@@ -2070,19 +491,9 @@
             privateTabInput.value = entry.privateTab || '';
             notesInput.value = entry.notes || '';
             editIndexInput.value = index;
-
-            submitBtn.innerHTML =
-                '<span class="btn-icon"><i class="fas fa-edit"></i></span><span class="btn-text">تحديث الحركة</span>';
-            submitBtn.className = 'btn-submit';
-
-            // Update char counters
-            descCounter.textContent = (entry.description || '').length + ' / 200';
-            notesCounter.textContent = (entry.notes || '').length + ' / 300';
-
-            // Scroll to top
+            submitBtn.innerHTML = '<i class="fas fa-edit"></i> تحديث الحركة';
+            cancelBtn.style.display = 'inline-flex';
             window.scrollTo({ top: 0, behavior: 'smooth' });
-
-            showToast('✏️ تعديل', 'جاري تعديل الحركة رقم ' + (index + 1), 'warning');
         }
 
         function editEntry(index) {
@@ -2091,203 +502,81 @@
 
         function deleteEntry(index) {
             if (!confirm('هل أنت متأكد من حذف هذه الحركة؟')) return;
-            var entries = getEntries();
-            var deleted = entries[index];
+            const entries = getEntries();
             entries.splice(index, 1);
             saveEntries(entries);
             renderEntries();
-            showToast('🗑️ حذف', 'تم حذف الحركة "' + (deleted.description || '') + '" بنجاح', 'success');
+            showToast('✅ تم حذف الحركة بنجاح');
         }
 
-        // ============================================================
-        // SUBMIT - حفظ في Google Sheets و LocalStorage (الحل النهائي)
-        // ============================================================
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
+        // =============================================
+        // SUBMIT - Save to Google Sheets + LocalStorage
+        // =============================================
+        submitBtn.addEventListener('click', async () => {
+            const date = dateInput.value;
+            const number = numberInput.value.trim();
+            const type = typeSelect.value;
+            const description = descriptionInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+            const generalTab = generalTabInput.value.trim();
+            const privateTab = privateTabInput.value.trim();
+            const notes = notesInput.value.trim();
+            const editIndex = parseInt(editIndexInput.value);
 
-            // Validate form
-            if (!validateForm()) {
-                showToast('⚠️ تحقق من البيانات', 'يرجى تصحيح الأخطاء في النموذج', 'error');
-                var firstError = document.querySelector('.field-error');
-                if (firstError) firstError.focus();
-                return;
-            }
+            // Validation
+            if (!date) { showToast('⚠️ يرجى إدخال التاريخ', true); return; }
+            if (!description) { showToast('⚠️ يرجى إدخال البيان', true); return; }
+            if (!amount || amount <= 0) { showToast('⚠️ يرجى إدخال مبلغ صحيح', true); return; }
 
-            // Collect data
-            var date = dateInput.value;
-            var number = numberInput.value.trim();
-            var type = typeSelect.value;
-            var description = descriptionInput.value.trim();
-            var amount = parseFloat(amountInput.value);
-            var generalTab = generalTabInput.value.trim();
-            var privateTab = privateTabInput.value.trim();
-            var notes = notesInput.value.trim();
-            var editIndex = parseInt(editIndexInput.value);
+            const entry = { date, number, type, description, amount, generalTab, privateTab, notes };
 
-            var entry = {
-                date: date,
-                number: number,
-                type: type,
-                description: description,
-                amount: amount,
-                generalTab: generalTab,
-                privateTab: privateTab,
-                notes: notes
-            };
-
-            // Disable submit button
-            submitBtn.disabled = true;
-            submitBtn.className = 'btn-submit loading';
-
-            // ============================================================
-            // 1. Save to LocalStorage (فوراً)
-            // ============================================================
-            var entries = getEntries();
-            var isEdit = (editIndex >= 0 && editIndex < entries.length);
-
-            if (isEdit) {
-                entries[editIndex] = entry;
-            } else {
-                entries.push(entry);
-            }
-            saveEntries(entries);
-            renderEntries();
-
-            // ============================================================
-            // 2. Clear form (فوراً - بدون انتظار)
-            // ============================================================
-            clearForm();
-
-            // ============================================================
-            // 3. Show success message (فوراً)
-            // ============================================================
-            showToast('✅ ' + (isEdit ? 'تحديث' : 'حفظ'), 'تم ' + (isEdit ? 'تحديث' : 'حفظ') + ' الحركة بنجاح', 'success');
-
-            // ============================================================
-            // 4. Send to Google Sheets (باستخدام XMLHttpRequest - نفس الطريقة القديمة)
-            // ============================================================
+            // =============================================
+            // 1. إرسال إلى Google Sheets
+            // =============================================
             try {
-                var xhr = new XMLHttpRequest();
-                xhr.open('POST', WEB_APP_URL, true);
-                xhr.setRequestHeader('Content-Type', 'application/json');
-                xhr.send(JSON.stringify(entry));
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entry)
+                });
+
+                // بما أننا نستخدم no-cors، لا يمكن قراءة الرد
+                showToast('✅ تم إرسال البيانات إلى Google Sheets');
             } catch (error) {
+                showToast('⚠️ تم الحفظ محلياً ولكن حدث خطأ في الإرسال إلى Google Sheets', true);
                 console.error('Google Sheets Error:', error);
             }
 
-            // ============================================================
-            // 5. Enable submit button
-            // ============================================================
-            submitBtn.disabled = false;
-            submitBtn.className = 'btn-submit';
-        });
-
-        // ============================================================
-        // RESET / CANCEL - إلغاء وتفريغ
-        // ============================================================
-        resetBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            if (editIndexInput.value !== '-1') {
-                if (!confirm('هل أنت متأكد من إلغاء التعديل؟')) return;
+            // =============================================
+            // 2. حفظ في LocalStorage (للنسخ الاحتياطي)
+            // =============================================
+            let entries = getEntries();
+            if (editIndex >= 0 && editIndex < entries.length) {
+                entries[editIndex] = entry;
+                showToast('✅ تم تحديث الحركة بنجاح (محلياً)');
+            } else {
+                entries.push(entry);
+                showToast('✅ تم إضافة الحركة بنجاح (محلياً)');
             }
-            clearForm();
-            showToast('🔄 إلغاء', 'تم تفريغ النموذج', 'warning');
-        });
 
-        // ============================================================
-        // KEYBOARD SHORTCUTS - اختصارات لوحة المفاتيح
-        // ============================================================
-        document.addEventListener('keydown', function(e) {
-            // Ctrl + Enter = Submit
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
-                form.dispatchEvent(new Event('submit'));
-            }
-            // Escape = Reset
-            if (e.key === 'Escape') {
-                if (editIndexInput.value !== '-1') {
-                    if (!confirm('هل أنت متأكد من إلغاء التعديل؟')) return;
-                }
-                clearForm();
-                showToast('🔄 إلغاء', 'تم تفريغ النموذج', 'warning');
-            }
-        });
-
-        // ============================================================
-        // INIT - التهيئة
-        // ============================================================
-        (function init() {
-            // Set default date to today
-            var today = new Date().toISOString().split('T')[0];
-            dateInput.value = today;
-
-            // Load tabs from Google Sheets
-            loadTabs();
-
-            // Load opening balance from sheet
-            fetchOpeningBalance();
-
-            // Render entries
+            saveEntries(entries);
             renderEntries();
+            clearForm();
+        });
 
-            // Update sidebar stats
-            updateSidebarStats();
+        // =============================================
+        // CANCEL
+        // =============================================
+        cancelBtn.addEventListener('click', clearForm);
 
-            console.log('🚀 تطبيق إدخال الخزينة - الإصدار المتقدم');
-            console.log('📊 عدد الحركات:', getEntries().length);
-            console.log('💾 التخزين: LocalStorage + Google Sheets');
-        })();
+        // =============================================
+        // INIT - تعيين التاريخ الحالي
+        // =============================================
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
 
-        // ============================================================
-        // FETCH OPENING BALANCE - جلب الرصيد الافتتاحي
-        // ============================================================
-        function fetchOpeningBalance() {
-            var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + SHEET_NAME;
-
-            fetch(url)
-                .then(function(response) {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.text();
-                })
-                .then(function(csvText) {
-                    var lines = csvText.split('\n').filter(function(line) { return line.trim() !== ''; });
-                    var data = lines.map(function(line) {
-                        var row = [];
-                        var current = '';
-                        var insideQuotes = false;
-                        for (var i = 0; i < line.length; i++) {
-                            var char = line[i];
-                            if (char === '"') insideQuotes = !insideQuotes;
-                            else if (char === ',' && !insideQuotes) {
-                                row.push(current.trim());
-                                current = '';
-                            } else current += char;
-                        }
-                        row.push(current.trim());
-                        return row;
-                    });
-
-                    if (data && data.length > 1 && data[1] && data[1][1]) {
-                        openingBalance = cleanNumber(data[1][1]);
-                        updateSidebarStats();
-                    }
-                })
-                .catch(function(error) {
-                    console.error('Error fetching opening balance:', error);
-                });
-        }
-
-        function cleanNumber(value) {
-            if (!value) return 0;
-            if (typeof value === 'number') return value;
-            var cleaned = String(value).replace(/[^0-9.]/g, '');
-            return parseFloat(cleaned) || 0;
-        }
-
-        console.log('✨ تم تحميل نموذج إدخال الخزينة بنجاح');
-        console.log('📌 استخدم Ctrl+Enter للحفظ السريع');
-        console.log('📌 استخدم Escape لإلغاء التعديل');
+        renderEntries();
     </script>
-
 </body>
 </html>
