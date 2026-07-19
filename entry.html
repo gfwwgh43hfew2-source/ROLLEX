@@ -252,7 +252,7 @@
 
     <script>
         // =============================================
-        // 🔑 WEB APP URL (الإصدار 5 - كان شغال)
+        // 🔑 الرابط ده هو الإصدار 5 اللي كان شغال
         // =============================================
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxRZowoHnTNyt4bw6FixC-IxbFqo6zxQ2BOcfiFv3zKnUCS_orW1GiJE2USuVERzNm9hQ/exec';
 
@@ -441,11 +441,12 @@
         // SUBMIT - Save to Google Sheets + LocalStorage
         // =============================================
         submitBtn.addEventListener('click', async () => {
-            // تعطيل الزر
+            // 1. تعطيل الزر
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
             try {
+                // 2. قراءة البيانات
                 const date = dateInput.value;
                 const number = numberInput.value.trim();
                 const type = typeSelect.value;
@@ -456,6 +457,7 @@
                 const notes = notesInput.value.trim();
                 const editIndex = parseInt(editIndexInput.value);
 
+                // 3. التحقق
                 if (!date) { showToast('⚠️ يرجى إدخال التاريخ', true); submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الحركة'; return; }
                 if (!description) { showToast('⚠️ يرجى إدخال البيان', true); submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الحركة'; return; }
                 if (!amount || amount <= 0) { showToast('⚠️ يرجى إدخال مبلغ صحيح', true); submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الحركة'; return; }
@@ -463,9 +465,11 @@
                 const entry = { date, number, type, description, amount, generalTab, privateTab, notes };
 
                 // =============================================
-                // 1. إرسال إلى Google Sheets
+                // 4. إرسال إلى Google Sheets
                 // =============================================
                 let googleSuccess = false;
+                let rowNumber = '-';
+
                 try {
                     const response = await fetch(WEB_APP_URL, {
                         method: 'POST',
@@ -477,7 +481,8 @@
                         const result = await response.json();
                         if (result.success) {
                             googleSuccess = true;
-                            showToast('✅ تم الحفظ في Google Sheets (الصف ' + result.row + ')');
+                            rowNumber = result.row || '-';
+                            showToast('✅ تم الحفظ في Google Sheets (الصف ' + rowNumber + ')');
                         } else {
                             showToast('⚠️ خطأ في Google Sheets: ' + (result.error || 'غير معروف'), true);
                         }
@@ -490,7 +495,7 @@
                 }
 
                 // =============================================
-                // 2. حفظ في LocalStorage
+                // 5. حفظ في LocalStorage (دايماً)
                 // =============================================
                 let entries = getEntries();
                 if (editIndex >= 0 && editIndex < entries.length) {
@@ -501,16 +506,20 @@
 
                 saveEntries(entries);
                 renderEntries();
+
+                // 6. تفريغ الحقول
                 clearForm();
 
+                // 7. رسالة إضافية لو محلي بس
                 if (!googleSuccess) {
-                    showToast('✅ تم الحفظ محلياً (Google Sheets غير متصل)');
+                    showToast('✅ تم الحفظ محلياً (سيتم المزامنة لاحقاً)');
                 }
 
             } catch (error) {
                 showToast('❌ حدث خطأ غير متوقع', true);
                 console.error(error);
             } finally {
+                // 8. إعادة تفعيل الزر
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الحركة';
             }
