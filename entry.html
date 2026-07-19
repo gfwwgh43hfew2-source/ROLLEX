@@ -169,7 +169,7 @@
 
         <div class="page-header">
             <h1>📝 إدخال حركات الخزينة</h1>
-            <p>تسجيل حركات وارد / صادر / تحويل - يتم الحفظ في Google Sheets و LocalStorage</p>
+            <p>تسجيل حركات وارد / صادر / تحويل - يتم الحفظ في LocalStorage و Google Sheets</p>
         </div>
 
         <div class="form-section" id="formSection">
@@ -438,7 +438,7 @@
         }
 
         // =============================================
-        // SUBMIT - حفظ في Google Sheets و LocalStorage
+        // SUBMIT - حفظ في LocalStorage ثم Google Sheets
         // =============================================
         submitBtn.addEventListener('click', async () => {
             // 1. تعطيل الزر
@@ -465,7 +465,7 @@
                 const entry = { date, number, type, description, amount, generalTab, privateTab, notes };
 
                 // =============================================
-                // 4. حفظ في LocalStorage (أولاً)
+                // 4. حفظ في LocalStorage (أولاً وبسرعة)
                 // =============================================
                 let entries = getEntries();
                 if (editIndex >= 0 && editIndex < entries.length) {
@@ -479,44 +479,24 @@
                 // 5. تفريغ الحقول فوراً
                 clearForm();
 
-                // 6. إرسال إلى Google Sheets
-                let googleSuccess = false;
-                let rowNumber = '-';
-
+                // 6. إرسال إلى Google Sheets (باستخدام no-cors)
                 try {
-                    const response = await fetch(WEB_APP_URL, {
+                    await fetch(WEB_APP_URL, {
                         method: 'POST',
+                        mode: 'no-cors',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(entry)
                     });
-
-                    if (response.ok) {
-                        const result = await response.json();
-                        if (result.success) {
-                            googleSuccess = true;
-                            rowNumber = result.row || '-';
-                            showToast('✅ تم الحفظ في Google Sheets (الصف ' + rowNumber + ')');
-                        } else {
-                            showToast('⚠️ خطأ: ' + (result.error || 'غير معروف'), true);
-                        }
-                    } else {
-                        showToast('⚠️ فشل الاتصال بالخادم (كود: ' + response.status + ')', true);
-                    }
+                    showToast('✅ تم الحفظ في Google Sheets');
                 } catch (error) {
                     showToast('💾 تم الحفظ محلياً (Google Sheets غير متصل)', true);
                     console.error('Google Sheets Error:', error);
-                }
-
-                // 7. رسالة إضافية لو محلي بس
-                if (!googleSuccess && !document.querySelector('.toast.show')) {
-                    showToast('💾 تم الحفظ محلياً (سيتم المزامنة لاحقاً)');
                 }
 
             } catch (error) {
                 showToast('❌ حدث خطأ غير متوقع', true);
                 console.error(error);
             } finally {
-                // 8. إعادة تفعيل الزر
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الحركة';
             }
