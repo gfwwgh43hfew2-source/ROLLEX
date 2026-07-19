@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>إدخال البيانات - الخزينة الرئيسية</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <style>
+        /* ===== RESET & BASE ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; background: #0a0f1f; color: #eee; direction: rtl; overflow-x: hidden; scroll-behavior: smooth; }
+        a { text-decoration: none; color: inherit; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 0 16px; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #0a0f1f; }
+        ::-webkit-scrollbar-thumb { background: #f5c842; border-radius: 10px; }
+
+        /* ===== HEADER ===== */
+        header { 
+            position: sticky; 
+            top: 0; 
+            z-index: 1000; 
+            padding: 10px 0; 
+            background: rgba(10, 15, 31, 0.95); 
+            backdrop-filter: blur(20px); 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
+        }
+        header .container { display: flex; align-items: center; justify-content: space-between; }
+        .logo { display: flex; align-items: center; gap: 8px; }
+        .logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, #f5c842, #d4a020); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 900; color: #0a0f1f; }
+        .logo-text h1 { font-size: 1rem; font-weight: 900; background: linear-gradient(135deg, #f5c842, #d4a020); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.2; }
+        .logo-text span { font-size: 0.5rem; color: rgba(255, 255, 255, 0.3); display: block; -webkit-text-fill-color: rgba(255, 255, 255, 0.3); }
+
+        nav { display: flex; align-items: center; gap: 20px; }
+        nav a { color: rgba(255, 255, 255, 0.6); font-weight: 600; font-size: 0.85rem; transition: 0.3s; position: relative; padding: 4px 8px; border-radius: 6px; }
+        nav a::after { content: ''; position: absolute; bottom: -2px; right: 0; width: 0; height: 2px; background: linear-gradient(90deg, #f5c842, #d4a020); transition: 0.3s; border-radius: 10px; }
+        nav a:hover { color: #fff; }
+        nav a:hover::after { width: 100%; }
+        nav a.active { color: #f5c842; }
+
+        .nav-toggle { display: none; font-size: 1.4rem; color: #fff; cursor: pointer; padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.06); background: rgba(255, 255, 255, 0.03); transition: 0.3s; z-index: 1001; }
+        .nav-toggle:hover { background: rgba(245, 200, 66, 0.08); border-color: rgba(245, 200, 66, 0.15); }
+        .nav-toggle.open { background: rgba(245, 200, 66, 0.12); border-color: rgba(245, 200, 66, 0.2); }
+
+        .mobile-nav-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 999; backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s ease; }
+        .mobile-nav-overlay.active { opacity: 1; }
+
+        .mobile-nav-menu { display: none; position: fixed; top: 0; right: -280px; width: 280px; height: 100vh; background: rgba(10, 15, 31, 0.98); backdrop-filter: blur(20px); border-left: 1px solid rgba(255, 255, 255, 0.05); z-index: 1000; padding: 80px 24px 30px; transition: right 0.35s cubic-bezier(0.23, 1, 0.32, 1); overflow-y: auto; box-shadow: -10px 0 40px rgba(0, 0, 0, 0.4); }
+        .mobile-nav-menu.open { right: 0; }
+        .mobile-nav-menu .close-btn { position: absolute; top: 16px; left: 16px; font-size: 1.6rem; color: rgba(255, 255, 255, 0.4); cursor: pointer; padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.05); background: rgba(255, 255, 255, 0.02); transition: 0.3s; }
+        .mobile-nav-menu .close-btn:hover { background: rgba(245, 200, 66, 0.08); border-color: rgba(245, 200, 66, 0.15); color: #f5c842; }
+        .mobile-nav-menu .menu-header { margin-bottom: 30px; padding-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .mobile-nav-menu .menu-items { display: flex; flex-direction: column; gap: 6px; }
+        .mobile-nav-menu .menu-items a { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; color: rgba(255, 255, 255, 0.6); font-weight: 600; font-size: 0.95rem; transition: 0.3s; }
+        .mobile-nav-menu .menu-items a i { width: 20px; color: rgba(255, 255, 255, 0.3); font-size: 1rem; }
+        .mobile-nav-menu .menu-items a:hover { background: rgba(245, 200, 66, 0.06); color: #f5c842; }
+        .mobile-nav-menu .menu-items a.active { background: rgba(245, 200, 66, 0.08); color: #f5c842; }
+
+        .mobile-nav-bottom { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 998; background: rgba(10, 15, 31, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255, 255, 255, 0.05); padding: 6px 0 calc(6px + env(safe-area-inset-bottom)); }
+        .mobile-nav-bottom ul { display: flex; justify-content: space-around; list-style: none; }
+        .mobile-nav-bottom ul li { display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: 0.5rem; color: rgba(255, 255, 255, 0.4); transition: 0.3s; padding: 4px 12px; border-radius: 8px; }
+        .mobile-nav-bottom ul li i { font-size: 1rem; }
+        .mobile-nav-bottom ul li:hover, .mobile-nav-bottom ul li.active { color: #f5c842; }
+        .mobile-nav-bottom ul li a { color: inherit; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header { padding: 20px 0 10px; }
+        .page-header h1 { font-size: 1.8rem; font-weight: 900; background: linear-gradient(135deg, #f5c842, #d4a020); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .page-header p { color: rgba(255, 255, 255, 0.5); font-size: 0.9rem; margin-top: 4px; }
+
+        /* ===== FORM ===== */
+        .form-section { background: linear-gradient(145deg, #121a2e, #0e1525); border-radius: 14px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 20px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group label { font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); font-weight: 600; }
+        .form-group input, .form-group select, .form-group textarea { 
+            background: rgba(255, 255, 255, 0.04); 
+            border: 1px solid rgba(255, 255, 255, 0.06); 
+            border-radius: 8px; 
+            padding: 8px 12px; 
+            color: #eee; 
+            font-size: 0.85rem; 
+            font-family: inherit;
+            transition: 0.3s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { 
+            outline: none; 
+            border-color: #f5c842; 
+            background: rgba(245, 200, 66, 0.04); 
+        }
+        .form-group input::placeholder { color: rgba(255, 255, 255, 0.2); }
+        .form-group textarea { resize: vertical; min-height: 40px; }
+
+        .form-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+        .btn-submit { background: linear-gradient(135deg, #f5c842, #d4a020); color: #0a0f1f; padding: 10px 24px; border-radius: 50px; font-weight: 700; font-size: 0.85rem; border: none; cursor: pointer; transition: 0.3s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 30px rgba(245, 200, 66, 0.3); }
+        .btn-cancel { background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.6); padding: 10px 24px; border-radius: 50px; font-weight: 700; font-size: 0.85rem; border: 1px solid rgba(255, 255, 255, 0.06); cursor: pointer; transition: 0.3s; }
+        .btn-cancel:hover { background: rgba(255, 255, 255, 0.08); }
+        .btn-delete { background: rgba(239, 83, 80, 0.15); color: #ef5350; padding: 8px 16px; border-radius: 50px; font-weight: 700; font-size: 0.75rem; border: 1px solid rgba(239, 83, 80, 0.15); cursor: pointer; transition: 0.3s; }
+        .btn-delete:hover { background: rgba(239, 83, 80, 0.25); }
+
+        /* ===== TABLE ===== */
+        .table-wrapper { background: linear-gradient(145deg, #121a2e, #0e1525); border-radius: 14px; overflow-x: auto; border: 1px solid rgba(255, 255, 255, 0.03); padding: 0 4px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; min-width: 700px; }
+        th { background: rgba(26, 47, 68, 0.4); color: #f5c842; padding: 8px 4px; text-align: right; font-weight: 700; white-space: nowrap; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.3px; }
+        td { padding: 6px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); color: rgba(255, 255, 255, 0.6); font-size: 0.65rem; }
+        .actions-cell { display: flex; gap: 4px; flex-wrap: wrap; }
+
+        .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(10, 15, 31, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(245, 200, 66, 0.15); border-radius: 12px; padding: 12px 24px; color: #f5c842; font-weight: 600; font-size: 0.9rem; z-index: 9999; opacity: 0; transition: opacity 0.4s ease; pointer-events: none; }
+        .toast.show { opacity: 1; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (min-width: 769px) {
+            .mobile-nav-bottom { display: none !important; }
+            .mobile-nav-overlay { display: none !important; }
+            .mobile-nav-menu { display: none !important; }
+            .nav-toggle { display: none !important; }
+            nav { display: flex !important; }
+            .container { padding: 0 24px; }
+        }
+        @media (max-width: 768px) {
+            nav { display: none !important; }
+            .nav-toggle { display: flex !important; }
+            .mobile-nav-bottom { display: flex !important; }
+            .mobile-nav-menu { display: block; }
+            .mobile-nav-overlay { display: block; }
+            .mobile-nav-menu.open { right: 0; }
+            .mobile-nav-overlay.active { opacity: 1; pointer-events: auto; }
+            .form-row { grid-template-columns: 1fr; }
+            .page-header h1 { font-size: 1.4rem; }
+        }
+        @media (max-width: 480px) {
+            .form-section { padding: 14px; }
+            .btn-submit { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <header id="header">
+        <div class="container">
+            <div class="logo">
+                <div class="logo-icon">💰</div>
+                <div class="logo-text">
+                    <h1>الخزينة الرئيسية</h1>
+                    <span>شركة رولكس</span>
+                </div>
+            </div>
+            <nav>
+                <a href="index.html">الرئيسية</a>
+                <a href="#">الطلبات</a>
+                <a href="treasury.html">الخزينة</a>
+                <a href="entry.html" class="active">إدخال</a>
+                <a href="#">التقارير</a>
+                <a href="#">تواصل</a>
+            </nav>
+            <div class="nav-toggle" id="navToggle" aria-label="فتح القائمة">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== MOBILE NAV ===== -->
+    <div class="mobile-nav-overlay" id="mobileOverlay"></div>
+    <div class="mobile-nav-menu" id="mobileMenu">
+        <div class="close-btn" id="closeMenu"><i class="fas fa-times"></i></div>
+        <div class="menu-header">
+            <div class="logo-text">
+                <h1 style="font-size:1.2rem; background: linear-gradient(135deg, #f5c842, #d4a020); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">الخزينة الرئيسية</h1>
+                <span style="font-size:0.6rem; color:rgba(255,255,255,0.3); display:block;">شركة رولكس</span>
+            </div>
+        </div>
+        <div class="menu-items">
+            <a href="index.html"><i class="fas fa-home"></i> الرئيسية</a>
+            <a href="#"><i class="fas fa-box"></i> الطلبات</a>
+            <a href="treasury.html"><i class="fas fa-coins"></i> الخزينة</a>
+            <a href="entry.html" class="active"><i class="fas fa-pen"></i> إدخال</a>
+            <a href="#"><i class="fas fa-chart-pie"></i> التقارير</a>
+            <a href="#"><i class="fas fa-phone"></i> تواصل</a>
+        </div>
+    </div>
+
+    <nav class="mobile-nav-bottom" id="mobileNavBottom">
+        <ul>
+            <li><a href="index.html"><i class="fas fa-home"></i><span>الرئيسية</span></a></li>
+            <li><a href="#"><i class="fas fa-box"></i><span>الطلبات</span></a></li>
+            <li><a href="treasury.html"><i class="fas fa-coins"></i><span>الخزينة</span></a></li>
+            <li class="active"><a href="entry.html"><i class="fas fa-pen"></i><span>إدخال</span></a></li>
+            <li><a href="#"><i class="fas fa-phone"></i><span>تواصل</span></a></li>
+        </ul>
+    </nav>
+
+    <!-- ===== TOAST ===== -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ===== PAGE CONTENT ===== -->
+    <div class="container">
+
+        <!-- ===== PAGE HEADER ===== -->
+        <div class="page-header">
+            <h1>📝 إدخال حركات الخزينة</h1>
+            <p>تسجيل حركات وارد / صادر / تحويل - يتم الحفظ في Google Sheets و LocalStorage</p>
+        </div>
+
+        <!-- ===== FORM ===== -->
+        <div class="form-section" id="formSection">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>📅 التاريخ</label>
+                    <input type="date" id="entryDate" />
+                </div>
+                <div class="form-group">
+                    <label>🔢 رقم السند</label>
+                    <input type="text" id="entryNumber" placeholder="مثال: 1" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>📌 نوع الحركة</label>
+                    <select id="entryType">
+                        <option value="وارد">وارد</option>
+                        <option value="صادر">صادر</option>
+                        <option value="تحويل">تحويل</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>🏷️ التبويب العام</label>
+                    <input type="text" id="entryGeneralTab" placeholder="مثال: تحصيلات العملاء" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>📝 البيان</label>
+                    <textarea id="entryDescription" placeholder="وصف الحركة..."></textarea>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>💰 المبلغ</label>
+                    <input type="number" id="entryAmount" placeholder="0" />
+                </div>
+                <div class="form-group">
+                    <label>🏷️ التبويب الخاص</label>
+                    <input type="text" id="entryPrivateTab" placeholder="مثال: مؤمن مرسي" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>📝 ملاحظات</label>
+                    <textarea id="entryNotes" placeholder="أي ملاحظات إضافية..."></textarea>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn-submit" id="submitBtn"><i class="fas fa-save"></i> حفظ الحركة</button>
+                <button class="btn-cancel" id="cancelBtn"><i class="fas fa-times"></i> إلغاء</button>
+                <input type="hidden" id="editIndex" value="-1" />
+            </div>
+        </div>
+
+        <!-- ===== TABLE ===== -->
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>رقم السند</th>
+                        <th>نوع الحركة</th>
+                        <th>البيان</th>
+                        <th>وارد</th>
+                        <th>صادر</th>
+                        <th>التبويب العام</th>
+                        <th>التبويب الخاص</th>
+                        <th>ملاحظات</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="entriesBody">
+                    <tr><td colspan="10" style="text-align:center;color:rgba(255,255,255,0.2);padding:30px;">لا توجد حركات مسجلة</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        // =============================================
+        // 🔑 WEB APP URL (ضع رابط الـ Web App هنا)
+        // =============================================
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzmfO4qwRmjgi8c5PvugQ1VzWWODLpCzRk12l39VAXV_MLi27LkD-_IVeBg90O3SSDO/exec';
+
+        // =============================================
+        // STORAGE KEYS
+        // =============================================
+        const STORAGE_KEY = 'rollex_treasury_entries';
+
+        // =============================================
+        // DOM REFS
+        // =============================================
+        const dateInput = document.getElementById('entryDate');
+        const numberInput = document.getElementById('entryNumber');
+        const typeSelect = document.getElementById('entryType');
+        const descriptionInput = document.getElementById('entryDescription');
+        const amountInput = document.getElementById('entryAmount');
+        const generalTabInput = document.getElementById('entryGeneralTab');
+        const privateTabInput = document.getElementById('entryPrivateTab');
+        const notesInput = document.getElementById('entryNotes');
+        const submitBtn = document.getElementById('submitBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const editIndexInput = document.getElementById('editIndex');
+        const entriesBody = document.getElementById('entriesBody');
+        const toast = document.getElementById('toast');
+
+        // =============================================
+        // MOBILE NAV
+        // =============================================
+        const navToggle = document.getElementById('navToggle');
+        const mobileMenu = document.getElementById('mobileMenu');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        const closeMenu = document.getElementById('closeMenu');
+
+        function openMenu() {
+            mobileMenu.classList.add('open');
+            mobileOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            navToggle.innerHTML = '<i class="fas fa-times"></i>';
+            navToggle.classList.add('open');
+        }
+
+        function closeMenuFn() {
+            mobileMenu.classList.remove('open');
+            mobileOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+            navToggle.innerHTML = '<i class="fas fa-bars"></i>';
+            navToggle.classList.remove('open');
+        }
+
+        navToggle.addEventListener('click', () => {
+            if (mobileMenu.classList.contains('open')) {
+                closeMenuFn();
+            } else {
+                openMenu();
+            }
+        });
+
+        closeMenu.addEventListener('click', closeMenuFn);
+        mobileOverlay.addEventListener('click', closeMenuFn);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('open')) closeMenuFn();
+        });
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768 && mobileMenu.classList.contains('open')) closeMenuFn();
+        });
+
+        // =============================================
+        // HEADER SCROLL
+        // =============================================
+        const header = document.getElementById('header');
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 10) {
+                header.style.background = 'rgba(10, 15, 31, 0.98)';
+                header.style.borderBottom = '1px solid rgba(255,255,255,0.08)';
+            } else {
+                header.style.background = 'rgba(10, 15, 31, 0.95)';
+                header.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+            }
+        });
+
+        // =============================================
+        // CRUD OPERATIONS (LocalStorage)
+        // =============================================
+        function getEntries() {
+            try {
+                const data = localStorage.getItem(STORAGE_KEY);
+                return data ? JSON.parse(data) : [];
+            } catch { return []; }
+        }
+
+        function saveEntries(entries) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+        }
+
+        function renderEntries() {
+            const entries = getEntries();
+            if (entries.length === 0) {
+                entriesBody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:rgba(255,255,255,0.2);padding:30px;">لا توجد حركات مسجلة</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            const sorted = [...entries].reverse();
+            sorted.forEach((entry, index) => {
+                const realIndex = entries.length - 1 - index;
+                html += `
+                    <tr>
+                        <td>${entry.date || '-'}</td>
+                        <td>${entry.number || '-'}</td>
+                        <td><span class="badge badge-type">${entry.type || '-'}</span></td>
+                        <td>${entry.description || '-'}</td>
+                        <td style="color:#4caf50;font-weight:700;text-align:center;">${entry.type === 'وارد' ? entry.amount.toLocaleString() : '-'}</td>
+                        <td style="color:#ef5350;font-weight:700;text-align:center;">${entry.type === 'صادر' || entry.type === 'تحويل' ? entry.amount.toLocaleString() : '-'}</td>
+                        <td style="color:#ffffff;opacity:0.7;">${entry.generalTab || '-'}</td>
+                        <td style="color:#ffffff;opacity:0.7;">${entry.privateTab || '-'}</td>
+                        <td style="font-size:0.6rem;color:rgba(255,255,255,0.3);">${entry.notes || '-'}</td>
+                        <td>
+                            <div class="actions-cell">
+                                <button class="btn-edit" data-index="${realIndex}" style="background:rgba(245,200,66,0.1);color:#f5c842;border:1px solid rgba(245,200,66,0.1);border-radius:6px;padding:4px 10px;font-size:0.6rem;cursor:pointer;transition:0.3s;">✏️</button>
+                                <button class="btn-delete" data-index="${realIndex}" style="background:rgba(239,83,80,0.1);color:#ef5350;border:1px solid rgba(239,83,80,0.1);border-radius:6px;padding:4px 10px;font-size:0.6rem;cursor:pointer;transition:0.3s;">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            entriesBody.innerHTML = html;
+
+            document.querySelectorAll('.btn-edit').forEach(btn => {
+                btn.addEventListener('click', () => editEntry(parseInt(btn.dataset.index)));
+            });
+            document.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.addEventListener('click', () => deleteEntry(parseInt(btn.dataset.index)));
+            });
+        }
+
+        function showToast(message, isError = false) {
+            toast.textContent = message;
+            toast.style.borderColor = isError ? '#ef5350' : 'rgba(245,200,66,0.15)';
+            toast.style.color = isError ? '#ef5350' : '#f5c842';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function clearForm() {
+            dateInput.value = '';
+            numberInput.value = '';
+            typeSelect.value = 'وارد';
+            descriptionInput.value = '';
+            amountInput.value = '';
+            generalTabInput.value = '';
+            privateTabInput.value = '';
+            notesInput.value = '';
+            editIndexInput.value = '-1';
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الحركة';
+            cancelBtn.style.display = 'inline-flex';
+        }
+
+        function loadEntryForEdit(index) {
+            const entries = getEntries();
+            if (index < 0 || index >= entries.length) return;
+            const entry = entries[index];
+            dateInput.value = entry.date || '';
+            numberInput.value = entry.number || '';
+            typeSelect.value = entry.type || 'وارد';
+            descriptionInput.value = entry.description || '';
+            amountInput.value = entry.amount || '';
+            generalTabInput.value = entry.generalTab || '';
+            privateTabInput.value = entry.privateTab || '';
+            notesInput.value = entry.notes || '';
+            editIndexInput.value = index;
+            submitBtn.innerHTML = '<i class="fas fa-edit"></i> تحديث الحركة';
+            cancelBtn.style.display = 'inline-flex';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function editEntry(index) {
+            loadEntryForEdit(index);
+        }
+
+        function deleteEntry(index) {
+            if (!confirm('هل أنت متأكد من حذف هذه الحركة؟')) return;
+            const entries = getEntries();
+            entries.splice(index, 1);
+            saveEntries(entries);
+            renderEntries();
+            showToast('✅ تم حذف الحركة بنجاح');
+        }
+
+        // =============================================
+        // SUBMIT - Save to Google Sheets + LocalStorage
+        // =============================================
+        submitBtn.addEventListener('click', async () => {
+            const date = dateInput.value;
+            const number = numberInput.value.trim();
+            const type = typeSelect.value;
+            const description = descriptionInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+            const generalTab = generalTabInput.value.trim();
+            const privateTab = privateTabInput.value.trim();
+            const notes = notesInput.value.trim();
+            const editIndex = parseInt(editIndexInput.value);
+
+            // Validation
+            if (!date) { showToast('⚠️ يرجى إدخال التاريخ', true); return; }
+            if (!description) { showToast('⚠️ يرجى إدخال البيان', true); return; }
+            if (!amount || amount <= 0) { showToast('⚠️ يرجى إدخال مبلغ صحيح', true); return; }
+
+            const entry = { date, number, type, description, amount, generalTab, privateTab, notes };
+
+            // =============================================
+            // 1. إرسال إلى Google Sheets
+            // =============================================
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entry)
+                });
+
+                // بما أننا نستخدم no-cors، لا يمكن قراءة الرد
+                showToast('✅ تم إرسال البيانات إلى Google Sheets');
+            } catch (error) {
+                showToast('⚠️ تم الحفظ محلياً ولكن حدث خطأ في الإرسال إلى Google Sheets', true);
+                console.error('Google Sheets Error:', error);
+            }
+
+            // =============================================
+            // 2. حفظ في LocalStorage (للنسخ الاحتياطي)
+            // =============================================
+            let entries = getEntries();
+            if (editIndex >= 0 && editIndex < entries.length) {
+                entries[editIndex] = entry;
+                showToast('✅ تم تحديث الحركة بنجاح (محلياً)');
+            } else {
+                entries.push(entry);
+                showToast('✅ تم إضافة الحركة بنجاح (محلياً)');
+            }
+
+            saveEntries(entries);
+            renderEntries();
+            clearForm();
+        });
+
+        // =============================================
+        // CANCEL
+        // =============================================
+        cancelBtn.addEventListener('click', clearForm);
+
+        // =============================================
+        // INIT
+        // =============================================
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+
+        renderEntries();
+    </script>
+</body>
+</html>
