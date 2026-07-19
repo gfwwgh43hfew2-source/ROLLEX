@@ -72,7 +72,7 @@
         /* ===== FORM ===== */
         .form-section { background: linear-gradient(145deg, #121a2e, #0e1525); border-radius: 14px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 20px; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group { display: flex; flex-direction: column; gap: 4px; position: relative; }
         .form-group label { font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); font-weight: 600; }
         .form-group input, .form-group textarea { 
             background: rgba(255, 255, 255, 0.04); 
@@ -84,13 +84,12 @@
             font-family: inherit;
             transition: 0.3s;
         }
-        /* ===== تحسين الـ Select ===== */
         .form-group select { 
             background: rgba(255, 255, 255, 0.04); 
             border: 1px solid rgba(255, 255, 255, 0.06); 
             border-radius: 8px; 
             padding: 8px 12px; 
-            color: #0a0f1f; /* لون النص أسود غامق */
+            color: #0a0f1f;
             font-size: 0.85rem; 
             font-family: inherit;
             font-weight: 700;
@@ -125,6 +124,16 @@
         }
         .form-group input::placeholder { color: rgba(255, 255, 255, 0.2); }
         .form-group textarea { resize: vertical; min-height: 40px; }
+
+        /* ===== Datalist Styling ===== */
+        .form-group input[list]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            opacity: 0.5;
+            cursor: pointer;
+        }
+        .form-group input[list]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
 
         .form-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
         .btn-submit { background: linear-gradient(135deg, #f5c842, #d4a020); color: #0a0f1f; padding: 10px 24px; border-radius: 50px; font-weight: 700; font-size: 0.85rem; border: none; cursor: pointer; transition: 0.3s; display: inline-flex; align-items: center; gap: 6px; }
@@ -261,7 +270,8 @@
                 </div>
                 <div class="form-group">
                     <label>🏷️ التبويب العام</label>
-                    <input type="text" id="entryGeneralTab" placeholder="مثال: تحصيلات العملاء" />
+                    <input type="text" id="entryGeneralTab" list="generalTabs" placeholder="اكتب للبحث..." autocomplete="off" />
+                    <datalist id="generalTabs"></datalist>
                 </div>
             </div>
             <div class="form-row">
@@ -277,7 +287,8 @@
                 </div>
                 <div class="form-group">
                     <label>🏷️ التبويب الخاص</label>
-                    <input type="text" id="entryPrivateTab" placeholder="مثال: مؤمن مرسي" />
+                    <input type="text" id="entryPrivateTab" list="privateTabs" placeholder="اكتب للبحث..." autocomplete="off" />
+                    <datalist id="privateTabs"></datalist>
                 </div>
             </div>
             <div class="form-row">
@@ -320,7 +331,7 @@
 
     <script>
         // =============================================
-        // 🔑 WEB APP URL (ضع رابط الـ Web App هنا)
+        // 🔑 WEB APP URL
         // =============================================
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzmfO4qwRmjgi8c5PvugQ1VzWWODLpCzRk12l39VAXV_MLi27LkD-_IVeBg90O3SSDO/exec';
 
@@ -328,6 +339,7 @@
         // STORAGE KEYS
         // =============================================
         const STORAGE_KEY = 'rollex_treasury_entries';
+        const TABS_KEY = 'rollex_tabs_data';
 
         // =============================================
         // DOM REFS
@@ -345,6 +357,8 @@
         const editIndexInput = document.getElementById('editIndex');
         const entriesBody = document.getElementById('entriesBody');
         const toast = document.getElementById('toast');
+        const generalDatalist = document.getElementById('generalTabs');
+        const privateDatalist = document.getElementById('privateTabs');
 
         // =============================================
         // MOBILE NAV
@@ -400,6 +414,55 @@
                 header.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
             }
         });
+
+        // =============================================
+        // LOAD TABS FROM GOOGLE SHEETS
+        // =============================================
+        const TABS_SHEET_URL = 'https://script.google.com/macros/s/AKfycbzmfO4qwRmjgi8c5PvugQ1VzWWODLpCzRk12l39VAXV_MLi27LkD-_IVeBg90O3SSDO/exec?action=getTabs';
+
+        async function loadTabs() {
+            try {
+                const response = await fetch(TABS_SHEET_URL);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        // تحديث القوائم
+                        updateDatalist(generalDatalist, data.generalTabs || []);
+                        updateDatalist(privateDatalist, data.privateTabs || []);
+                        // حفظ في localStorage كنسخة احتياطية
+                        localStorage.setItem(TABS_KEY, JSON.stringify(data));
+                        return;
+                    }
+                }
+                // لو فشل، جرب localStorage
+                loadTabsFromLocalStorage();
+            } catch (error) {
+                console.error('Error loading tabs:', error);
+                loadTabsFromLocalStorage();
+            }
+        }
+
+        function loadTabsFromLocalStorage() {
+            try {
+                const data = localStorage.getItem(TABS_KEY);
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    updateDatalist(generalDatalist, parsed.generalTabs || []);
+                    updateDatalist(privateDatalist, parsed.privateTabs || []);
+                }
+            } catch (error) {
+                console.error('Error loading tabs from localStorage:', error);
+            }
+        }
+
+        function updateDatalist(datalist, items) {
+            datalist.innerHTML = '';
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item;
+                datalist.appendChild(option);
+            });
+        }
 
         // =============================================
         // CRUD OPERATIONS (LocalStorage)
@@ -476,6 +539,9 @@
             editIndexInput.value = '-1';
             submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الحركة';
             cancelBtn.style.display = 'inline-flex';
+            // إعادة تعيين التاريخ إلى اليوم
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
         }
 
         function loadEntryForEdit(index) {
@@ -540,8 +606,6 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(entry)
                 });
-
-                // بما أننا نستخدم no-cors، لا يمكن قراءة الرد
                 showToast('✅ تم إرسال البيانات إلى Google Sheets');
             } catch (error) {
                 showToast('⚠️ تم الحفظ محلياً ولكن حدث خطأ في الإرسال إلى Google Sheets', true);
@@ -571,10 +635,13 @@
         cancelBtn.addEventListener('click', clearForm);
 
         // =============================================
-        // INIT - تعيين التاريخ الحالي
+        // INIT
         // =============================================
         const today = new Date().toISOString().split('T')[0];
         dateInput.value = today;
+
+        // تحميل بيانات التبويبات
+        loadTabs();
 
         renderEntries();
     </script>
