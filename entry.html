@@ -2069,89 +2069,86 @@
         // SUBMIT - Save to Google Sheets + LocalStorage
         // ============================================================
         form.addEventListener('submit', function(e) {
-            e.preventDefault();
+    e.preventDefault();
 
-            // Validate form
-            if (!validateForm()) {
-                showToast('⚠️ تحقق من البيانات', 'يرجى تصحيح الأخطاء في النموذج', 'error');
-                // Focus first invalid field
-                var firstError = document.querySelector('.field-error');
-                if (firstError) firstError.focus();
-                return;
-            }
+    // Validate form
+    if (!validateForm()) {
+        showToast('⚠️ تحقق من البيانات', 'يرجى تصحيح الأخطاء في النموذج', 'error');
+        var firstError = document.querySelector('.field-error');
+        if (firstError) firstError.focus();
+        return;
+    }
 
-            // Collect data
-            var date = dateInput.value;
-            var number = numberInput.value.trim();
-            var type = typeSelect.value;
-            var description = descriptionInput.value.trim();
-            var amount = parseFloat(amountInput.value);
-            var generalTab = generalTabInput.value.trim();
-            var privateTab = privateTabInput.value.trim();
-            var notes = notesInput.value.trim();
-            var editIndex = parseInt(editIndexInput.value);
+    // Collect data
+    var date = dateInput.value;
+    var number = numberInput.value.trim();
+    var type = typeSelect.value;
+    var description = descriptionInput.value.trim();
+    var amount = parseFloat(amountInput.value);
+    var generalTab = generalTabInput.value.trim();
+    var privateTab = privateTabInput.value.trim();
+    var notes = notesInput.value.trim();
+    var editIndex = parseInt(editIndexInput.value);
 
-            var entry = {
-                date: date,
-                number: number,
-                type: type,
-                description: description,
-                amount: amount,
-                generalTab: generalTab,
-                privateTab: privateTab,
-                notes: notes
-            };
+    var entry = {
+        date: date,
+        number: number,
+        type: type,
+        description: description,
+        amount: amount,
+        generalTab: generalTab,
+        privateTab: privateTab,
+        notes: notes
+    };
 
-            // Disable submit button
-            submitBtn.disabled = true;
-            submitBtn.className = 'btn-submit loading';
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.className = 'btn-submit loading';
 
-            // ============================================================
-            // Save to LocalStorage (always)
-            // ============================================================
-            var entries = getEntries();
-            var isEdit = (editIndex >= 0 && editIndex < entries.length);
+    // ============================================================
+    // 1. Save to LocalStorage (فوراً)
+    // ============================================================
+    var entries = getEntries();
+    var isEdit = (editIndex >= 0 && editIndex < entries.length);
 
-            if (isEdit) {
-                entries[editIndex] = entry;
-            } else {
-                entries.push(entry);
-            }
-            saveEntries(entries);
-            renderEntries();
+    if (isEdit) {
+        entries[editIndex] = entry;
+    } else {
+        entries.push(entry);
+    }
+    saveEntries(entries);
+    renderEntries();
 
-            // ============================================================
-            // Send to Google Sheets
-            // ============================================================
-            fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(entry)
-                })
-                .then(function() {
-                    // With no-cors, we can't read the response, but we assume it worked
-                    showToast('✅ ' + (isEdit ? 'تحديث' : 'حفظ'), 'تم ' + (isEdit ? 'تحديث' : 'حفظ') +
-                        ' الحركة في Google Sheets بنجاح', 'success');
-                })
-                .catch(function(error) {
-                    showToast('💾 حفظ محلي', 'تم الحفظ محلياً (Google Sheets غير متصل)', 'warning');
-                    console.error('Google Sheets Error:', error);
-                })
-                .finally(function() {
-                    // Clear form
-                    clearForm();
-                    // Enable submit button
-                    submitBtn.disabled = false;
-                    submitBtn.className = 'btn-submit';
+    // ============================================================
+    // 2. Clear form (فوراً - بدون انتظار)
+    // ============================================================
+    clearForm();
 
-                    if (!isEdit) {
-                        showToast('✅ حفظ', 'تم إضافة الحركة بنجاح', 'success');
-                    } else {
-                        showToast('✅ تحديث', 'تم تحديث الحركة بنجاح', 'success');
-                    }
-                });
+    // ============================================================
+    // 3. Show success message (فوراً)
+    // ============================================================
+    showToast('✅ ' + (isEdit ? 'تحديث' : 'حفظ'), 'تم ' + (isEdit ? 'تحديث' : 'حفظ') + ' الحركة بنجاح', 'success');
+
+    // ============================================================
+    // 4. Send to Google Sheets (في الخلفية - بدون انتظار)
+    // ============================================================
+    try {
+        fetch(WEB_APP_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(entry)
         });
+    } catch (error) {
+        console.error('Google Sheets Error:', error);
+    }
+
+    // ============================================================
+    // 5. Enable submit button
+    // ============================================================
+    submitBtn.disabled = false;
+    submitBtn.className = 'btn-submit';
+});
 
         // ============================================================
         // RESET / CANCEL
