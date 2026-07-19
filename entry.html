@@ -286,9 +286,9 @@
 
     <script>
         // =============================================
-        // 🔑 WEB APP URL - تم التحديث إلى الإصدار 6
+        // 🔑 WEB APP URL (تم التحديث بالرابط الجديد - الإصدار 4)
         // =============================================
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxbLKV1Se4S1oMm7L3QLJQ5jOJbez6DbDH_CxztqP6_Y2Wbv9DaIytYYjgkec4e83P-PA/exec';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxyDDQblAY7ZR1yBhcVfXmUu9803fQx9BHjD9pow04Zrkc4iXSbwie1Ar1yG4bH9arkSA/exec';
 
         // =============================================
         // STORAGE KEYS
@@ -442,9 +442,6 @@
             editIndexInput.value = '-1';
             submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الحركة';
             cancelBtn.style.display = 'inline-flex';
-            // إعادة تعيين التاريخ إلى اليوم
-            const today = new Date().toISOString().split('T')[0];
-            dateInput.value = today;
         }
 
         function loadEntryForEdit(index) {
@@ -482,79 +479,56 @@
         // SUBMIT - Save to Google Sheets + LocalStorage
         // =============================================
         submitBtn.addEventListener('click', async () => {
-            // تعطيل الزر لمنع الضغط المتكرر
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+            const date = dateInput.value;
+            const number = numberInput.value.trim();
+            const type = typeSelect.value;
+            const description = descriptionInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+            const generalTab = generalTabInput.value.trim();
+            const privateTab = privateTabInput.value.trim();
+            const notes = notesInput.value.trim();
+            const editIndex = parseInt(editIndexInput.value);
 
+            // Validation
+            if (!date) { showToast('⚠️ يرجى إدخال التاريخ', true); return; }
+            if (!description) { showToast('⚠️ يرجى إدخال البيان', true); return; }
+            if (!amount || amount <= 0) { showToast('⚠️ يرجى إدخال مبلغ صحيح', true); return; }
+
+            const entry = { date, number, type, description, amount, generalTab, privateTab, notes };
+
+            // =============================================
+            // 1. إرسال إلى Google Sheets عبر Web App
+            // =============================================
             try {
-                const date = dateInput.value;
-                const number = numberInput.value.trim();
-                const type = typeSelect.value;
-                const description = descriptionInput.value.trim();
-                const amount = parseFloat(amountInput.value);
-                const generalTab = generalTabInput.value.trim();
-                const privateTab = privateTabInput.value.trim();
-                const notes = notesInput.value.trim();
-                const editIndex = parseInt(editIndexInput.value);
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entry)
+                });
 
-                // Validation
-                if (!date) { showToast('⚠️ يرجى إدخال التاريخ', true); submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الحركة'; return; }
-                if (!description) { showToast('⚠️ يرجى إدخال البيان', true); submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الحركة'; return; }
-                if (!amount || amount <= 0) { showToast('⚠️ يرجى إدخال مبلغ صحيح', true); submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الحركة'; return; }
-
-                const entry = { date, number, type, description, amount, generalTab, privateTab, notes };
-
-                // =============================================
-                // 1. إرسال إلى Google Sheets عبر Web App
-                // =============================================
-                let googleSuccess = false;
-                try {
-                    const response = await fetch(WEB_APP_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(entry)
-                    });
-
-                    if (response.ok) {
-                        const result = await response.json();
-                        if (result.success) {
-                            googleSuccess = true;
-                            showToast('✅ تم الحفظ في Google Sheets (الصف ' + result.row + ')');
-                        } else {
-                            showToast('⚠️ خطأ في Google Sheets: ' + (result.error || 'غير معروف'), true);
-                        }
-                    } else {
-                        showToast('⚠️ فشل الاتصال بـ Google Sheets (حفظ محلي فقط)', true);
-                    }
-                } catch (error) {
-                    showToast('⚠️ فشل الاتصال بـ Google Sheets (حفظ محلي فقط)', true);
-                    console.error('Google Sheets Error:', error);
-                }
-
-                // =============================================
-                // 2. حفظ في LocalStorage (للنسخ الاحتياطي)
-                // =============================================
-                let entries = getEntries();
-                if (editIndex >= 0 && editIndex < entries.length) {
-                    entries[editIndex] = entry;
-                    if (!googleSuccess) showToast('✅ تم تحديث الحركة محلياً');
-                } else {
-                    entries.push(entry);
-                    if (!googleSuccess) showToast('✅ تم إضافة الحركة محلياً');
-                }
-
-                saveEntries(entries);
-                renderEntries();
-                clearForm();
-
+                // بما أننا نستخدم no-cors، لا يمكن قراءة الرد
+                showToast('✅ تم إرسال البيانات إلى Google Sheets');
             } catch (error) {
-                showToast('❌ حدث خطأ غير متوقع', true);
-                console.error(error);
-            } finally {
-                // إعادة تفعيل الزر
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الحركة';
+                showToast('⚠️ تم الحفظ محلياً ولكن حدث خطأ في الإرسال إلى Google Sheets', true);
+                console.error('Google Sheets Error:', error);
             }
+
+            // =============================================
+            // 2. حفظ في LocalStorage (للنسخ الاحتياطي)
+            // =============================================
+            let entries = getEntries();
+            if (editIndex >= 0 && editIndex < entries.length) {
+                entries[editIndex] = entry;
+                showToast('✅ تم تحديث الحركة بنجاح (محلياً)');
+            } else {
+                entries.push(entry);
+                showToast('✅ تم إضافة الحركة بنجاح (محلياً)');
+            }
+
+            saveEntries(entries);
+            renderEntries();
+            clearForm();
         });
 
         // =============================================
