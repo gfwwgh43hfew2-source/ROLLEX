@@ -252,7 +252,7 @@
 
     <script>
         // =============================================
-        // 🔑 الرابط ده هو الإصدار 5 اللي كان شغال
+        // 🔑 الرابط اللي شغال (ظهرت رسالة API is running)
         // =============================================
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxRZowoHnTNyt4bw6FixC-IxbFqo6zxQ2BOcfiFv3zKnUCS_orW1GiJE2USuVERzNm9hQ/exec';
 
@@ -438,7 +438,7 @@
         }
 
         // =============================================
-        // SUBMIT - Save to Google Sheets + LocalStorage
+        // SUBMIT - الحل النهائي
         // =============================================
         submitBtn.addEventListener('click', async () => {
             // 1. تعطيل الزر
@@ -446,7 +446,7 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
             try {
-                // 2. قراءة البيانات
+                // 2. جمع البيانات
                 const date = dateInput.value;
                 const number = numberInput.value.trim();
                 const type = typeSelect.value;
@@ -465,7 +465,7 @@
                 const entry = { date, number, type, description, amount, generalTab, privateTab, notes };
 
                 // =============================================
-                // 4. إرسال إلى Google Sheets
+                // 4. إرسال إلى Google Sheets (cors)
                 // =============================================
                 let googleSuccess = false;
                 let rowNumber = '-';
@@ -484,14 +484,14 @@
                             rowNumber = result.row || '-';
                             showToast('✅ تم الحفظ في Google Sheets (الصف ' + rowNumber + ')');
                         } else {
-                            showToast('⚠️ خطأ في Google Sheets: ' + (result.error || 'غير معروف'), true);
+                            showToast('⚠️ خطأ: ' + (result.error || 'غير معروف'), true);
                         }
                     } else {
-                        showToast('⚠️ فشل الاتصال بـ Google Sheets (حفظ محلي فقط)', true);
+                        showToast('⚠️ فشل الاتصال بالخادم', true);
                     }
                 } catch (error) {
-                    showToast('⚠️ فشل الاتصال بـ Google Sheets (حفظ محلي فقط)', true);
-                    console.error('Google Sheets Error:', error);
+                    showToast('⚠️ فشل الاتصال بالإنترنت', true);
+                    console.error(error);
                 }
 
                 // =============================================
@@ -503,7 +503,6 @@
                 } else {
                     entries.push(entry);
                 }
-
                 saveEntries(entries);
                 renderEntries();
 
@@ -512,7 +511,7 @@
 
                 // 7. رسالة إضافية لو محلي بس
                 if (!googleSuccess) {
-                    showToast('✅ تم الحفظ محلياً (سيتم المزامنة لاحقاً)');
+                    showToast('💾 تم الحفظ محلياً (راجع الاتصال بالإنترنت)');
                 }
 
             } catch (error) {
