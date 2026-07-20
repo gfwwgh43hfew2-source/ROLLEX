@@ -63,21 +63,14 @@
                 transform: translateY(-15px);
             }
         }
-        @keyframes shimmer {
+        @keyframes slideDown {
             0% {
-                background-position: -200% center;
+                opacity: 0;
+                transform: translateY(-10px) scale(0.95);
             }
             100% {
-                background-position: 200% center;
-            }
-        }
-        @keyframes pulse {
-            0%,
-            100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.05);
+                opacity: 1;
+                transform: translateY(0) scale(1);
             }
         }
         .animate-fade-up {
@@ -86,9 +79,6 @@
         }
         .animate-float {
             animation: float 6s ease-in-out infinite;
-        }
-        .animate-pulse {
-            animation: pulse 2s ease-in-out infinite;
         }
         .delay-1 {
             animation-delay: 0.1s;
@@ -157,19 +147,29 @@
             display: block;
             -webkit-text-fill-color: rgba(255, 255, 255, 0.3);
         }
+
+        /* ===== NAVIGATION WITH DROPDOWN ===== */
         nav {
             display: flex;
             align-items: center;
             gap: 28px;
         }
-        nav a {
+        nav .nav-item {
+            position: relative;
+            padding: 6px 0;
+        }
+        nav .nav-item > a {
             color: rgba(255, 255, 255, 0.5);
             font-weight: 600;
             font-size: 0.85rem;
             transition: 0.3s;
             position: relative;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
         }
-        nav a::after {
+        nav .nav-item > a::after {
             content: '';
             position: absolute;
             bottom: -4px;
@@ -180,18 +180,99 @@
             transition: 0.3s;
             border-radius: 10px;
         }
-        nav a:hover {
+        nav .nav-item > a:hover {
             color: #fff;
         }
-        nav a:hover::after {
+        nav .nav-item > a:hover::after {
             width: 100%;
         }
-        nav a.active {
+        nav .nav-item > a.active {
             color: #f5c842;
         }
-        nav a.active::after {
+        nav .nav-item > a.active::after {
             width: 100%;
         }
+        nav .nav-item > a .arrow {
+            font-size: 0.6rem;
+            transition: 0.3s;
+            color: rgba(255, 255, 255, 0.3);
+        }
+        nav .nav-item:hover > a .arrow {
+            transform: rotate(180deg);
+            color: #f5c842;
+        }
+
+        /* ===== DROPDOWN MENU ===== */
+        nav .dropdown {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: -10px;
+            min-width: 220px;
+            background: rgba(18, 26, 46, 0.98);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            padding: 8px 0;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+            pointer-events: none;
+            z-index: 1001;
+        }
+        nav .dropdown::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            background: rgba(18, 26, 46, 0.98);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+            transform: rotate(-45deg);
+            border-radius: 2px;
+        }
+        nav .nav-item:hover .dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+        nav .dropdown a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: 0.3s;
+            border-right: 2px solid transparent;
+        }
+        nav .dropdown a:hover {
+            background: rgba(245, 200, 66, 0.05);
+            color: #f5c842;
+            border-right-color: #f5c842;
+        }
+        nav .dropdown a .icon {
+            font-size: 1rem;
+            width: 24px;
+            text-align: center;
+        }
+        nav .dropdown a .badge {
+            margin-right: auto;
+            font-size: 0.55rem;
+            padding: 2px 10px;
+            border-radius: 50px;
+            background: rgba(245, 200, 66, 0.08);
+            border: 1px solid rgba(245, 200, 66, 0.05);
+            color: #f5c842;
+        }
+
+        /* ===== HEADER ACTIONS ===== */
         .header-actions {
             display: flex;
             align-items: center;
@@ -264,7 +345,7 @@
             color: #f5c842;
         }
 
-        /* ===== HERO ===== */
+        /* ===== REST OF STYLES (Hero, KPI, etc.) ===== */
         .hero {
             min-height: 100vh;
             display: flex;
@@ -776,15 +857,6 @@
             padding: 2px 10px;
             border-radius: 50px;
         }
-        .booking-card .future-badge {
-            display: inline-block;
-            font-size: 0.55rem;
-            color: #f5c842;
-            background: rgba(245, 200, 66, 0.08);
-            padding: 2px 10px;
-            border-radius: 50px;
-            border: 1px solid rgba(245, 200, 66, 0.05);
-        }
 
         /* ===== COMPANY ===== */
         .company-box {
@@ -968,7 +1040,7 @@
                 grid-template-columns: repeat(3, 1fr);
             }
             nav {
-                display: none;
+                display: none !important;
             }
             .hamburger {
                 display: block;
@@ -1147,11 +1219,40 @@
                 </div>
             </div>
             <nav>
-                <a href="#" class="active">الرئيسية</a>
-                <a href="#">الطلبات</a>
-                <a href="treasury.html">الخزينة</a>
-                <a href="#">التقارير</a>
-                <a href="#">تواصل</a>
+                <div class="nav-item">
+                    <a href="#" class="active">الرئيسية</a>
+                </div>
+                <div class="nav-item">
+                    <a href="#">الطلبات</a>
+                </div>
+                <div class="nav-item">
+                    <a href="treasury.html">
+                        الخزينة
+                        <span class="arrow"><i class="fas fa-chevron-down"></i></span>
+                    </a>
+                    <!-- ===== DROPDOWN ===== -->
+                    <div class="dropdown">
+                        <a href="treasury.html">
+                            <span class="icon">💰</span>
+                            الخزنة الرئيسية
+                        </a>
+                        <a href="treasury-accounts.html">
+                            <span class="icon">📊</span>
+                            خزينة الحسابات
+                            <span class="badge">جديد</span>
+                        </a>
+                        <a href="treasury-driver.html">
+                            <span class="icon">🚛</span>
+                            خزينة السائق
+                        </a>
+                    </div>
+                </div>
+                <div class="nav-item">
+                    <a href="#">التقارير</a>
+                </div>
+                <div class="nav-item">
+                    <a href="#">تواصل</a>
+                </div>
             </nav>
             <div class="header-actions">
                 <button aria-label="بحث"><i class="fas fa-search"></i></button>
@@ -1512,10 +1613,9 @@
         }
 
         // =============================================
-        // بيانات الخزائن (مؤقتة - سيتم جلبها من شيتات منفصلة لاحقاً)
+        // بيانات الخزائن (مؤقتة)
         // =============================================
         function updateTreasuryCards() {
-            // هذه بيانات مؤقتة، سيتم جلبها من Google Sheets لاحقاً
             document.getElementById('mainBalance').textContent = '12,500 ج.م';
             document.getElementById('mainIncoming').textContent = '8,200';
             document.getElementById('mainOutgoing').textContent = '3,100';
@@ -1587,20 +1687,16 @@
             const totalExpenses = 3046;
             const netProfit = totalRevenue - totalExpenses;
 
-            // Update Hero Stats
             animateNumber('statOrders', validRows);
             animateNumber('statRevenue', totalRevenue);
             animateNumber('statPending', pendingOrders);
 
-            // Update KPI
             document.getElementById('kpiRevenue').textContent = totalRevenue.toLocaleString() + ' ر.س';
             document.getElementById('kpiProfit').textContent = netProfit.toLocaleString() + ' ر.س';
             document.getElementById('kpiExpenses').textContent = totalExpenses.toLocaleString() + ' ر.س';
             document.getElementById('kpiPending').textContent = pendingOrders;
 
-            // =============================================
-            // TABLE (Desktop)
-            // =============================================
+            // TABLE
             let tableRows = '';
             const displayRows = rows.slice(0, 30);
             displayRows.forEach(row => {
@@ -1661,9 +1757,7 @@
                 <div class="table-note">⏳ طلبات قيد التنفيذ · يعرض آخر 30 طلب</div>
             `;
 
-            // =============================================
-            // CARDS (Mobile)
-            // =============================================
+            // CARDS
             let cardsHTML = '<div class="cards-container">';
             const cardRows = rows.slice(0, 30);
             cardRows.forEach(row => {
@@ -1743,9 +1837,6 @@
             });
             cardsHTML += '</div>';
 
-            // =============================================
-            // Combine
-            // =============================================
             container.innerHTML = tableHTML + cardsHTML;
         }
 
@@ -1787,9 +1878,6 @@
             }
         }
 
-        // =============================================
-        // INIT
-        // =============================================
         updateTreasuryCards();
         loadData();
         setInterval(loadData, 300000);
