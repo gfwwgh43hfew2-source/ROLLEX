@@ -326,6 +326,7 @@
             border: 1px solid rgba(255, 255, 255, 0.06);
             background: rgba(255, 255, 255, 0.03);
             transition: 0.3s;
+            z-index: 1001;
         }
         .hamburger:hover {
             background: rgba(245, 200, 66, 0.06);
@@ -333,43 +334,142 @@
         }
 
         /* ============================================================
-           MOBILE NAV
+           MOBILE NAV - القائمة المنزلقة
            ============================================================ */
-        .mobile-nav {
+        .mobile-nav-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 999;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .mobile-nav-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .mobile-nav-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 280px;
+            height: 100vh;
+            background: rgba(10, 15, 31, 0.98);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            z-index: 1000;
+            padding: 80px 24px 30px;
+            transition: right 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+            overflow-y: auto;
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.4);
+        }
+        .mobile-nav-menu.open {
+            right: 0;
+        }
+        .mobile-nav-menu .close-btn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            font-size: 1.6rem;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.02);
+            transition: 0.3s;
+        }
+        .mobile-nav-menu .close-btn:hover {
+            background: rgba(245, 200, 66, 0.08);
+            border-color: rgba(245, 200, 66, 0.15);
+            color: #f5c842;
+        }
+        .mobile-nav-menu .menu-header {
+            margin-bottom: 30px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .mobile-nav-menu .menu-items {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .mobile-nav-menu .menu-items a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: 0.3s;
+        }
+        .mobile-nav-menu .menu-items a i {
+            width: 20px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 1rem;
+        }
+        .mobile-nav-menu .menu-items a:hover {
+            background: rgba(245, 200, 66, 0.06);
+            color: #f5c842;
+        }
+        .mobile-nav-menu .menu-items a.active {
+            background: rgba(245, 200, 66, 0.08);
+            color: #f5c842;
+        }
+
+        /* ===== شريط سفلي للموبايل ===== */
+        .mobile-nav-bottom {
             display: none;
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            z-index: 999;
+            z-index: 998;
             background: rgba(10, 15, 31, 0.95);
             backdrop-filter: blur(20px);
             border-top: 1px solid rgba(255, 255, 255, 0.05);
             padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
         }
-        .mobile-nav ul {
+        .mobile-nav-bottom ul {
             display: flex;
             justify-content: space-around;
             list-style: none;
         }
-        .mobile-nav ul li {
+        .mobile-nav-bottom ul li {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
-            font-size: 0.55rem;
-            color: rgba(255, 255, 255, 0.35);
-            cursor: pointer;
+            gap: 1px;
+            font-size: 0.5rem;
+            color: rgba(255, 255, 255, 0.4);
             transition: 0.3s;
             padding: 4px 12px;
-            border-radius: 10px;
+            border-radius: 8px;
         }
-        .mobile-nav ul li i {
-            font-size: 1.1rem;
+        .mobile-nav-bottom ul li i {
+            font-size: 1rem;
         }
-        .mobile-nav ul li:hover,
-        .mobile-nav ul li.active {
+        .mobile-nav-bottom ul li:hover,
+        .mobile-nav-bottom ul li.active {
             color: #f5c842;
+        }
+        .mobile-nav-bottom ul li a {
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
         }
 
         /* ============================================================
@@ -1058,6 +1158,15 @@
             .cards-container {
                 display: none !important;
             }
+            .mobile-nav-menu {
+                display: none !important;
+            }
+            .mobile-nav-overlay {
+                display: none !important;
+            }
+            .mobile-nav-bottom {
+                display: none !important;
+            }
         }
 
         @media (max-width: 1200px) {
@@ -1086,7 +1195,7 @@
                 display: none !important;
             }
             .hamburger {
-                display: block;
+                display: flex !important;
             }
             .hero h1 {
                 font-size: 2.8rem;
@@ -1094,8 +1203,14 @@
             .hero-card {
                 max-width: 100%;
             }
-            .mobile-nav {
-                display: block;
+            .mobile-nav-menu {
+                display: block !important;
+            }
+            .mobile-nav-overlay {
+                display: block !important;
+            }
+            .mobile-nav-bottom {
+                display: flex !important;
             }
             footer .container {
                 grid-template-columns: 1fr 1fr;
@@ -1195,11 +1310,11 @@
                 height: 32px;
                 font-size: 0.75rem;
             }
-            .mobile-nav ul li {
+            .mobile-nav-bottom ul li {
                 padding: 3px 8px;
                 font-size: 0.5rem;
             }
-            .mobile-nav ul li i {
+            .mobile-nav-bottom ul li i {
                 font-size: 0.95rem;
             }
             .table-wrapper {
@@ -1308,15 +1423,36 @@
     </header>
 
     <!-- ============================================================
-    MOBILE NAV
+    MOBILE NAV - القائمة المنزلقة
     ============================================================ -->
-    <nav class="mobile-nav" id="mobileNav">
+    <div class="mobile-nav-overlay" id="mobileOverlay"></div>
+    <div class="mobile-nav-menu" id="mobileMenu">
+        <div class="close-btn" id="closeMenu"><i class="fas fa-times"></i></div>
+        <div class="menu-header">
+            <div class="logo-text">
+                <h1 style="font-size:1.2rem; background: linear-gradient(135deg, #f5c842, #d4a020); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">مصنع الدهانات</h1>
+                <span style="font-size:0.6rem; color:rgba(255,255,255,0.3); display:block;">النظام الإداري المتكامل</span>
+            </div>
+        </div>
+        <div class="menu-items">
+            <a href="#" class="active"><i class="fas fa-home"></i> الرئيسية</a>
+            <a href="#"><i class="fas fa-box"></i> الطلبات</a>
+            <a href="#"><i class="fas fa-coins"></i> الخزينة</a>
+            <a href="#"><i class="fas fa-chart-pie"></i> التقارير</a>
+            <a href="#"><i class="fas fa-phone"></i> تواصل</a>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    MOBILE BOTTOM NAV
+    ============================================================ -->
+    <nav class="mobile-nav-bottom" id="mobileNavBottom">
         <ul>
-            <li class="active"><i class="fas fa-home"></i><span>الرئيسية</span></li>
-            <li><i class="fas fa-box"></i><span>الطلبات</span></li>
-            <li><i class="fas fa-coins"></i><span>الخزينة</span></li>
-            <li><i class="fas fa-chart-pie"></i><span>التقارير</span></li>
-            <li><i class="fas fa-phone"></i><span>تواصل</span></li>
+            <li class="active"><a href="#"><i class="fas fa-home"></i><span>الرئيسية</span></a></li>
+            <li><a href="#"><i class="fas fa-box"></i><span>الطلبات</span></a></li>
+            <li><a href="treasury.html"><i class="fas fa-coins"></i><span>الخزينة</span></a></li>
+            <li><a href="#"><i class="fas fa-chart-pie"></i><span>التقارير</span></a></li>
+            <li><a href="#"><i class="fas fa-phone"></i><span>تواصل</span></a></li>
         </ul>
     </nav>
 
@@ -1569,39 +1705,49 @@
         });
 
         // ============================================================
-        // HAMBURGER
+        // HAMBURGER - فتح وإغلاق القائمة المنزلقة
         // ============================================================
         const hamburger = document.getElementById('hamburger');
-        const nav = document.querySelector('nav');
-        hamburger?.addEventListener('click', () => {
-            if (nav.style.display === 'flex') {
-                nav.style.display = 'none';
+        const mobileMenu = document.getElementById('mobileMenu');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        const closeMenu = document.getElementById('closeMenu');
+
+        function openMenu() {
+            mobileMenu.classList.add('open');
+            mobileOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            hamburger.innerHTML = '<i class="fas fa-times"></i>';
+            hamburger.classList.add('open');
+        }
+
+        function closeMenuFn() {
+            mobileMenu.classList.remove('open');
+            mobileOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+            hamburger.innerHTML = '<i class="fas fa-bars"></i>';
+            hamburger.classList.remove('open');
+        }
+
+        hamburger.addEventListener('click', () => {
+            if (mobileMenu.classList.contains('open')) {
+                closeMenuFn();
             } else {
-                nav.style.display = 'flex';
-                nav.style.flexDirection = 'column';
-                nav.style.position = 'absolute';
-                nav.style.top = '66px';
-                nav.style.left = '0';
-                nav.style.width = '100%';
-                nav.style.background = 'rgba(10, 15, 31, 0.98)';
-                nav.style.padding = '20px';
-                nav.style.borderBottom = '1px solid rgba(245, 200, 66, 0.06)';
-                nav.style.gap = '14px';
-                nav.style.zIndex = '999';
-                nav.style.backdropFilter = 'blur(20px)';
+                openMenu();
             }
         });
+
+        closeMenu.addEventListener('click', closeMenuFn);
+        mobileOverlay.addEventListener('click', closeMenuFn);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('open')) {
+                closeMenuFn();
+            }
+        });
+
         window.addEventListener('resize', () => {
-            if (window.innerWidth > 992) {
-                const nav = document.querySelector('nav');
-                nav.style.display = 'flex';
-                nav.style.flexDirection = 'row';
-                nav.style.position = 'static';
-                nav.style.background = 'transparent';
-                nav.style.padding = '0';
-                nav.style.border = 'none';
-                nav.style.gap = '28px';
-                nav.style.backdropFilter = 'none';
+            if (window.innerWidth > 992 && mobileMenu.classList.contains('open')) {
+                closeMenuFn();
             }
         });
 
