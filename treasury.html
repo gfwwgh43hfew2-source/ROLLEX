@@ -4,10 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
     <title>الخزينة الرئيسية - شركة رولكس</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
-        /* ===== RESET & BASE ===== */
+        /* ============================================================
+           RESET & BASE
+           ============================================================ */
         * {
             margin: 0;
             padding: 0;
@@ -31,11 +33,14 @@
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 0 16px;
+            padding: 0 24px;
         }
 
+        /* ============================================================
+           SCROLLBAR
+           ============================================================ */
         ::-webkit-scrollbar {
-            width: 4px;
+            width: 6px;
         }
         ::-webkit-scrollbar-track {
             background: #0a0f1f;
@@ -45,7 +50,9 @@
             border-radius: 10px;
         }
 
-        /* ===== KEYFRAMES ===== */
+        /* ============================================================
+           ANIMATIONS
+           ============================================================ */
         @keyframes fadeUp {
             from {
                 opacity: 0;
@@ -67,19 +74,24 @@
             }
         }
 
-        @keyframes pulse {
-            0%,
-            100% {
-                transform: scale(1);
+        @keyframes slideDown {
+            0% {
+                opacity: 0;
+                transform: translateY(-10px) scale(0.95);
             }
-            50% {
-                transform: scale(1.05);
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
             }
         }
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
+        @keyframes glowPulse {
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(245, 200, 66, 0.08);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(245, 200, 66, 0.15);
             }
         }
 
@@ -92,8 +104,8 @@
             animation: float 6s ease-in-out infinite;
         }
 
-        .animate-pulse {
-            animation: pulse 2s ease-in-out infinite;
+        .animate-glow {
+            animation: glowPulse 3s ease-in-out infinite;
         }
 
         .delay-1 {
@@ -109,16 +121,26 @@
             animation-delay: 0.4s;
         }
 
-        /* ===== HEADER ===== */
+        /* ============================================================
+           HEADER
+           ============================================================ */
         header {
-            position: sticky;
+            position: fixed;
             top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
-            padding: 10px 0;
-            background: rgba(10, 15, 31, 0.95);
+            padding: 14px 0;
+            transition: all 0.4s ease;
+            background: transparent;
+        }
+
+        header.scrolled {
+            background: rgba(10, 15, 31, 0.92);
             backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.3s ease;
+            border-bottom: 1px solid rgba(245, 200, 66, 0.08);
+            padding: 10px 0;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
         }
 
         header .container {
@@ -130,24 +152,30 @@
         .logo {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
         .logo-icon {
-            width: 34px;
-            height: 34px;
+            width: 38px;
+            height: 38px;
             background: linear-gradient(135deg, #f5c842, #d4a020);
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1rem;
+            font-size: 1.2rem;
             font-weight: 900;
             color: #0a0f1f;
+            transition: all 0.3s ease;
+        }
+
+        .logo-icon:hover {
+            transform: rotate(-6deg) scale(1.05);
+            box-shadow: 0 0 30px rgba(245, 200, 66, 0.2);
         }
 
         .logo-text h1 {
-            font-size: 1rem;
+            font-size: 1.3rem;
             font-weight: 900;
             background: linear-gradient(135deg, #f5c842, #d4a020);
             -webkit-background-clip: text;
@@ -156,58 +184,179 @@
         }
 
         .logo-text span {
-            font-size: 0.5rem;
+            font-size: 0.6rem;
             color: rgba(255, 255, 255, 0.3);
             display: block;
             -webkit-text-fill-color: rgba(255, 255, 255, 0.3);
         }
 
-        /* ===== Desktop Navigation ===== */
+        /* ============================================================
+           DESKTOP NAVIGATION
+           ============================================================ */
         nav {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 28px;
         }
 
-        nav a {
-            color: rgba(255, 255, 255, 0.6);
+        nav .nav-item {
+            position: relative;
+            padding: 6px 0;
+        }
+
+        nav .nav-item > a {
+            color: rgba(255, 255, 255, 0.5);
             font-weight: 600;
             font-size: 0.85rem;
             transition: 0.3s;
             position: relative;
-            padding: 4px 8px;
-            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
         }
 
-        nav a::after {
+        nav .nav-item > a::after {
             content: '';
             position: absolute;
-            bottom: -2px;
+            bottom: -12px;
             right: 0;
-            width: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #f5c842, #d4a020);
-            transition: 0.3s;
-            border-radius: 10px;
+            left: 0;
+            height: 15px;
+            background: transparent;
+            z-index: 1002;
         }
 
-        nav a:hover {
+        nav .nav-item > a:hover {
             color: #fff;
         }
-        nav a:hover::after {
-            width: 100%;
-        }
-        nav a.active {
+
+        nav .nav-item > a.active {
             color: #f5c842;
         }
 
-        /* ===== Mobile Navigation ===== */
-        .nav-toggle {
+        nav .nav-item > a .arrow {
+            font-size: 0.6rem;
+            transition: 0.3s;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        nav .nav-item:hover > a .arrow {
+            transform: rotate(180deg);
+            color: #f5c842;
+        }
+
+        nav .dropdown {
+            position: absolute;
+            top: calc(100% + 5px);
+            right: -10px;
+            min-width: 220px;
+            background: rgba(18, 26, 46, 0.98);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(245, 200, 66, 0.06);
+            border-radius: 14px;
+            padding: 8px 0;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px) scale(0.95);
+            transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+            pointer-events: none;
+            z-index: 1001;
+        }
+
+        nav .nav-item:hover .dropdown,
+        nav .dropdown:hover {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        nav .dropdown::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            background: rgba(18, 26, 46, 0.98);
+            border-top: 1px solid rgba(245, 200, 66, 0.06);
+            border-right: 1px solid rgba(245, 200, 66, 0.06);
+            transform: rotate(-45deg);
+            border-radius: 2px;
+        }
+
+        nav .dropdown a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: 0.3s;
+            border-right: 2px solid transparent;
+        }
+
+        nav .dropdown a:hover {
+            background: rgba(245, 200, 66, 0.05);
+            color: #f5c842;
+            border-right-color: #f5c842;
+        }
+
+        nav .dropdown a .icon {
+            font-size: 1rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        nav .dropdown a .badge {
+            margin-right: auto;
+            font-size: 0.55rem;
+            padding: 2px 10px;
+            border-radius: 50px;
+            background: rgba(245, 200, 66, 0.08);
+            border: 1px solid rgba(245, 200, 66, 0.05);
+            color: #f5c842;
+        }
+
+        /* ============================================================
+           HEADER ACTIONS
+           ============================================================ */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-actions button {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.03);
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-actions button:hover {
+            background: rgba(245, 200, 66, 0.1);
+            border-color: rgba(245, 200, 66, 0.2);
+            color: #f5c842;
+        }
+
+        .hamburger {
             display: none;
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             color: #fff;
             cursor: pointer;
-            padding: 6px 10px;
+            padding: 8px 12px;
             border-radius: 10px;
             border: 1px solid rgba(255, 255, 255, 0.06);
             background: rgba(255, 255, 255, 0.03);
@@ -215,16 +364,14 @@
             z-index: 1001;
         }
 
-        .nav-toggle:hover {
-            background: rgba(245, 200, 66, 0.08);
-            border-color: rgba(245, 200, 66, 0.15);
+        .hamburger:hover {
+            background: rgba(245, 200, 66, 0.06);
+            border-color: rgba(245, 200, 66, 0.1);
         }
 
-        .nav-toggle.open {
-            background: rgba(245, 200, 66, 0.12);
-            border-color: rgba(245, 200, 66, 0.2);
-        }
-
+        /* ============================================================
+           MOBILE NAV - القائمة المنزلقة
+           ============================================================ */
         .mobile-nav-overlay {
             display: none;
             position: fixed;
@@ -232,27 +379,30 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.6);
             z-index: 999;
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             opacity: 0;
             transition: opacity 0.3s ease;
         }
 
         .mobile-nav-overlay.active {
             opacity: 1;
+            pointer-events: auto;
         }
 
         .mobile-nav-menu {
             display: none;
             position: fixed;
             top: 0;
-            right: -280px;
+            right: -300px;
             width: 280px;
             height: 100vh;
             background: rgba(10, 15, 31, 0.98);
-            backdrop-filter: blur(20px);
-            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-left: 1px solid rgba(245, 200, 66, 0.05);
             z-index: 1000;
             padding: 80px 24px 30px;
             transition: right 0.35s cubic-bezier(0.23, 1, 0.32, 1);
@@ -324,6 +474,76 @@
             color: #f5c842;
         }
 
+        /* ===== Mobile Dropdown داخل القائمة المنزلقة ===== */
+        .mobile-dropdown {
+            position: relative;
+        }
+
+        .mobile-dropdown-trigger {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            padding: 12px 14px !important;
+            border-radius: 10px !important;
+            color: rgba(255, 255, 255, 0.6) !important;
+            font-weight: 600 !important;
+            font-size: 0.95rem !important;
+            transition: 0.3s !important;
+            cursor: pointer !important;
+            width: 100% !important;
+            background: transparent !important;
+            border: none !important;
+            font-family: inherit !important;
+        }
+
+        .mobile-dropdown-trigger:hover {
+            background: rgba(245, 200, 66, 0.06) !important;
+            color: #f5c842 !important;
+        }
+
+        .mobile-dropdown-trigger .arrow {
+            transition: 0.3s;
+        }
+
+        .mobile-dropdown-trigger.open .arrow {
+            transform: rotate(180deg);
+        }
+
+        .mobile-dropdown-menu {
+            display: none;
+            padding-right: 30px;
+            margin-top: 4px;
+        }
+
+        .mobile-dropdown-menu.open {
+            display: block;
+        }
+
+        .mobile-dropdown-menu a {
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            padding: 10px 14px !important;
+            border-radius: 8px !important;
+            color: rgba(255, 255, 255, 0.5) !important;
+            font-weight: 500 !important;
+            font-size: 0.85rem !important;
+            transition: 0.3s !important;
+        }
+
+        .mobile-dropdown-menu a:hover {
+            background: rgba(245, 200, 66, 0.04) !important;
+            color: #f5c842 !important;
+        }
+
+        .mobile-dropdown-menu a i {
+            width: 20px !important;
+            text-align: center !important;
+        }
+
+        /* ============================================================
+           MOBILE BOTTOM NAV
+           ============================================================ */
         .mobile-nav-bottom {
             display: none;
             position: fixed;
@@ -333,7 +553,7 @@
             z-index: 998;
             background: rgba(10, 15, 31, 0.95);
             backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-top: 1px solid rgba(245, 200, 66, 0.05);
             padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
         }
 
@@ -372,78 +592,101 @@
             gap: 1px;
         }
 
-        /* ===== HERO ===== */
+        /* ============================================================
+           HERO
+           ============================================================ */
         .hero {
-            padding: 20px 0 10px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 90px 0 50px;
+            position: relative;
+            overflow: hidden;
             background: radial-gradient(ellipse at 20% 50%, rgba(245, 200, 66, 0.05) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(245, 200, 66, 0.03) 0%, transparent 50%),
                 linear-gradient(145deg, #000214, #010832, #040e4e, #010960);
         }
 
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: linear-gradient(rgba(245, 200, 66, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(245, 200, 66, 0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
         .hero .container {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 50px;
         }
 
         .hero-content h1 {
-            font-size: 1.8rem;
+            font-size: 3.5rem;
             font-weight: 900;
-            line-height: 1.2;
-            margin-bottom: 6px;
+            line-height: 1.1;
+            margin-bottom: 18px;
         }
 
         .hero-content h1 .gold {
             background: linear-gradient(135deg, #f5c842, #d4a020);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            display: inline-block;
         }
 
         .hero-content p {
             color: rgba(255, 255, 255, 0.5);
-            font-size: 0.85rem;
-            line-height: 1.6;
-            max-width: 100%;
-            margin-bottom: 12px;
+            font-size: 1.05rem;
+            line-height: 1.8;
+            max-width: 460px;
+            margin-bottom: 28px;
         }
 
         .hero-buttons {
             display: flex;
-            gap: 10px;
+            gap: 14px;
             flex-wrap: wrap;
+            margin-bottom: 45px;
         }
 
         .btn-primary {
             background: linear-gradient(135deg, #f5c842, #d4a020);
             color: #0a0f1f;
-            padding: 10px 20px;
+            padding: 14px 32px;
             border-radius: 50px;
             font-weight: 700;
-            font-size: 0.8rem;
+            font-size: 0.95rem;
             transition: 0.3s;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             border: none;
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(245, 200, 66, 0.2);
+            box-shadow: 0 4px 25px rgba(245, 200, 66, 0.2);
         }
 
         .btn-primary:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 6px 30px rgba(245, 200, 66, 0.3);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 35px rgba(245, 200, 66, 0.35);
         }
 
         .btn-secondary {
             border: 2px solid rgba(245, 200, 66, 0.3);
             color: #f5c842;
-            padding: 10px 20px;
+            padding: 14px 32px;
             border-radius: 50px;
             font-weight: 700;
-            font-size: 0.8rem;
+            font-size: 0.95rem;
             transition: 0.3s;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             background: transparent;
             cursor: pointer;
         }
@@ -451,52 +694,72 @@
         .btn-secondary:hover {
             background: #f5c842;
             color: #0a0f1f;
+            transform: translateY(-3px);
             border-color: #f5c842;
         }
 
-        /* ===== FLOATING ADD BUTTON ===== */
-        .btn-add-floating {
-            position: fixed;
-            bottom: 40px;
-            left: 40px;
-            z-index: 9999;
-            background: linear-gradient(135deg, #f5c842, #d4a020);
-            color: #0a0f1f;
-            padding: 16px 28px;
-            border-radius: 60px;
-            font-weight: 800;
-            font-size: 1rem;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
+        .hero-image {
             display: flex;
+            justify-content: center;
             align-items: center;
-            gap: 12px;
-            box-shadow: 0 8px 35px rgba(245, 200, 66, 0.5);
-            animation: float 3s ease-in-out infinite;
-            text-decoration: none;
         }
 
-        .btn-add-floating:hover {
-            transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 15px 50px rgba(245, 200, 66, 0.6);
+        .hero-card {
+            background: linear-gradient(145deg, rgba(18, 26, 46, 0.8), rgba(14, 21, 37, 0.8));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(245, 200, 66, 0.06);
+            border-radius: 20px;
+            padding: 35px;
+            width: 100%;
+            max-width: 380px;
+            text-align: center;
+            transition: 0.3s;
+            animation: float 6s ease-in-out infinite;
         }
 
-        .btn-add-floating i {
-            font-size: 1.4rem;
+        .hero-card:hover {
+            border-color: rgba(245, 200, 66, 0.15);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
         }
 
-        .btn-add-floating .badge-new {
-            background: #ef5350;
-            color: #ffffff;
-            font-size: 0.55rem;
-            padding: 3px 10px;
-            border-radius: 50px;
-            animation: pulse 1.5s ease-in-out infinite;
+        .hero-card .icon {
+            font-size: 3.8rem;
+            color: #f5c842;
+            margin-bottom: 14px;
+        }
+
+        .hero-card h3 {
+            font-size: 1.2rem;
             font-weight: 700;
+            margin-bottom: 6px;
         }
 
-        /* ===== INFO CARDS ===== */
+        .hero-card p {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.35);
+            line-height: 1.6;
+        }
+
+        .hero-card .badge-row {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+
+        .hero-card .badge-row span {
+            background: rgba(245, 200, 66, 0.06);
+            border: 1px solid rgba(245, 200, 66, 0.05);
+            padding: 3px 12px;
+            border-radius: 50px;
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* ============================================================
+           INFO CARDS
+           ============================================================ */
         .info-cards {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -531,9 +794,11 @@
             margin-top: 2px;
         }
 
-        /* ===== KPI ===== */
+        /* ============================================================
+           KPI
+           ============================================================ */
         .kpi-section {
-            padding: 20px 0;
+            padding: 60px 0;
             background: #0a0f1f;
             border-top: 1px solid rgba(255, 255, 255, 0.02);
             border-bottom: 1px solid rgba(255, 255, 255, 0.02);
@@ -541,40 +806,67 @@
 
         .kpi-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
         }
 
         .kpi-card {
             background: linear-gradient(145deg, #121a2e, #0e1525);
-            padding: 14px;
-            border-radius: 14px;
+            padding: 24px 20px;
+            border-radius: 16px;
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.03);
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #f5c842, transparent);
+            opacity: 0;
+            transition: 0.4s;
+        }
+
+        .kpi-card:hover::before {
+            opacity: 1;
+        }
+
+        .kpi-card:hover {
+            border-color: rgba(245, 200, 66, 0.1);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
         }
 
         .kpi-card .icon {
-            font-size: 1.3rem;
+            font-size: 1.8rem;
             color: #f5c842;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
         }
 
         .kpi-card .number {
-            font-size: 1.2rem;
+            font-size: 2rem;
             font-weight: 900;
             color: #f5c842;
         }
 
         .kpi-card .label {
-            font-size: 0.6rem;
+            font-size: 0.75rem;
             color: rgba(255, 255, 255, 0.35);
-            margin-top: 2px;
+            margin-top: 3px;
             font-weight: 600;
         }
 
-        /* ===== TABLE ===== */
+        /* ============================================================
+           TABLE
+           ============================================================ */
         .table-section {
-            padding: 20px 0;
+            padding: 50px 0;
         }
 
         .section-title {
@@ -585,22 +877,24 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            border-bottom: 2px solid rgba(245, 200, 66, 0.05);
+            border-bottom: 2px solid rgba(245, 200, 66, 0.08);
             padding-bottom: 10px;
             flex-wrap: wrap;
         }
 
-        /* ===== CARDS (Mobile) ===== */
+        /* ============================================================
+           CARDS (Mobile)
+           ============================================================ */
         .cards-container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
         }
 
         .booking-card {
             background: linear-gradient(145deg, #121a2e, #0e1525);
-            border-radius: 14px;
-            padding: 14px;
+            border-radius: 16px;
+            padding: 18px 16px;
             border: 1px solid rgba(255, 255, 255, 0.03);
             transition: 0.3s;
         }
@@ -609,34 +903,11 @@
             border-color: rgba(245, 200, 66, 0.08);
         }
 
-        .booking-card .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 8px;
-            margin-bottom: 6px;
-            border-bottom: 2px solid rgba(245, 200, 66, 0.05);
-        }
-
-        .booking-card .card-header .name {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #fff;
-        }
-
-        .booking-card .card-header .number {
-            font-size: 0.55rem;
-            color: rgba(255, 255, 255, 0.3);
-            background: rgba(255, 255, 255, 0.03);
-            padding: 2px 8px;
-            border-radius: 50px;
-        }
-
         .booking-card .card-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 3px 0;
+            padding: 4px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.02);
         }
 
@@ -645,13 +916,13 @@
         }
 
         .booking-card .card-label {
-            font-size: 0.55rem;
+            font-size: 0.65rem;
             color: rgba(255, 255, 255, 0.3);
             font-weight: 600;
         }
 
         .booking-card .card-value {
-            font-size: 0.7rem;
+            font-size: 0.8rem;
             color: rgba(255, 255, 255, 0.8);
             font-weight: 500;
             text-align: left;
@@ -659,6 +930,29 @@
 
         .booking-card .card-value.tab-cell {
             color: #ffffff !important;
+        }
+
+        .booking-card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            margin-bottom: 8px;
+            border-bottom: 2px solid rgba(245, 200, 66, 0.05);
+        }
+
+        .booking-card .card-header .name {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .booking-card .card-header .number {
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.03);
+            padding: 2px 10px;
+            border-radius: 50px;
         }
 
         .badge {
@@ -675,7 +969,9 @@
             border: 1px solid rgba(255, 255, 255, 0.03);
         }
 
-        /* ===== SPECIAL ROWS ===== */
+        /* ============================================================
+           SPECIAL ROWS - Gold Theme
+           ============================================================ */
         .row-day-start {
             background: rgba(43, 138, 62, 0.12) !important;
             border-top: 2px solid #4caf50 !important;
@@ -785,7 +1081,9 @@
             opacity: 0.9;
         }
 
-        /* ===== COMPANY INFO ===== */
+        /* ============================================================
+           COMPANY INFO
+           ============================================================ */
         .company-info {
             background: linear-gradient(145deg, #121a2e, #0e1525);
             border-radius: 14px;
@@ -814,32 +1112,35 @@
             margin-top: 4px;
         }
 
-        /* ===== FOOTER ===== */
+        /* ============================================================
+           FOOTER
+           ============================================================ */
         footer {
             background: #060a16;
-            padding: 30px 0 20px;
+            padding: 40px 0 25px;
             border-top: 1px solid rgba(255, 255, 255, 0.02);
-            margin-top: 20px;
+            margin-top: 30px;
         }
 
         footer .container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            grid-template-columns: 2fr 1fr 1fr 1.5fr;
+            gap: 30px;
         }
 
         footer .brand p {
             color: rgba(255, 255, 255, 0.25);
-            font-size: 0.7rem;
-            line-height: 1.6;
-            margin-top: 6px;
+            font-size: 0.8rem;
+            line-height: 1.7;
+            margin-top: 10px;
+            max-width: 280px;
         }
 
         footer h4 {
             color: #f5c842;
-            font-size: 0.75rem;
+            font-size: 0.85rem;
             font-weight: 700;
-            margin-bottom: 8px;
+            margin-bottom: 14px;
         }
 
         footer ul {
@@ -847,36 +1148,37 @@
         }
 
         footer ul li {
-            margin-bottom: 4px;
+            margin-bottom: 8px;
         }
 
         footer ul a {
             color: rgba(255, 255, 255, 0.25);
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             transition: 0.3s;
         }
 
         footer ul a:hover {
             color: #f5c842;
+            padding-right: 4px;
         }
 
         footer .socials {
             display: flex;
-            gap: 8px;
-            margin-top: 8px;
+            gap: 10px;
+            margin-top: 14px;
         }
 
         footer .socials a {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
             border: 1px solid rgba(255, 255, 255, 0.04);
             background: rgba(255, 255, 255, 0.02);
             display: flex;
             align-items: center;
             justify-content: center;
             color: rgba(255, 255, 255, 0.25);
-            font-size: 0.8rem;
+            font-size: 1rem;
             transition: 0.3s;
         }
 
@@ -884,24 +1186,27 @@
             background: rgba(245, 200, 66, 0.06);
             border-color: rgba(245, 200, 66, 0.1);
             color: #f5c842;
+            transform: translateY(-3px);
         }
 
         footer .copyright {
             grid-column: 1 / -1;
             text-align: center;
             color: rgba(255, 255, 255, 0.12);
-            font-size: 0.6rem;
-            padding-top: 12px;
+            font-size: 0.7rem;
+            padding-top: 20px;
             border-top: 1px solid rgba(255, 255, 255, 0.02);
-            margin-top: 12px;
+            margin-top: 25px;
         }
 
-        /* ===== LOADING & ERROR ===== */
+        /* ============================================================
+           LOADING & ERROR
+           ============================================================ */
         .loading,
         .error {
             text-align: center;
-            padding: 30px 16px;
-            font-size: 0.85rem;
+            padding: 40px 20px;
+            font-size: 0.95rem;
         }
 
         .loading {
@@ -912,25 +1217,87 @@
             animation: spin 1s linear infinite;
         }
 
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         .error {
             color: #ef5350;
         }
 
         .error small {
             display: block;
-            margin-top: 6px;
+            margin-top: 8px;
             color: rgba(255, 255, 255, 0.2);
-            font-size: 0.7rem;
+            font-size: 0.75rem;
         }
 
         .table-note {
             text-align: center;
-            color: rgba(255, 255, 255, 0.12);
-            font-size: 0.55rem;
-            padding: 8px 0;
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 0.65rem;
+            padding: 12px 0 4px;
         }
 
-        /* ===== RESPONSIVE ===== */
+        /* ============================================================
+           FLOATING ADD BUTTON
+           ============================================================ */
+        .btn-add-floating {
+            position: fixed;
+            bottom: 40px;
+            left: 40px;
+            z-index: 9999;
+            background: linear-gradient(135deg, #f5c842, #d4a020);
+            color: #0a0f1f;
+            padding: 16px 28px;
+            border-radius: 60px;
+            font-weight: 800;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 8px 35px rgba(245, 200, 66, 0.5);
+            animation: float 3s ease-in-out infinite;
+            text-decoration: none;
+        }
+
+        .btn-add-floating:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 15px 50px rgba(245, 200, 66, 0.6);
+        }
+
+        .btn-add-floating i {
+            font-size: 1.4rem;
+        }
+
+        .btn-add-floating .badge-new {
+            background: #ef5350;
+            color: #ffffff;
+            font-size: 0.55rem;
+            padding: 3px 10px;
+            border-radius: 50px;
+            animation: pulse 1.5s ease-in-out infinite;
+            font-weight: 700;
+        }
+
+        @keyframes pulse {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
         @media (min-width: 769px) {
             .table-wrapper {
                 display: block !important;
@@ -938,90 +1305,143 @@
             .cards-container {
                 display: none !important;
             }
-            .mobile-nav-bottom {
+            .mobile-nav-menu {
                 display: none !important;
             }
             .mobile-nav-overlay {
                 display: none !important;
             }
-            .mobile-nav-menu {
+            .mobile-nav-bottom {
                 display: none !important;
             }
-            .nav-toggle {
-                display: none !important;
+        }
+
+        @media (max-width: 1200px) {
+            footer .container {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .hero .container {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 35px;
+            }
+            .hero-content p {
+                margin: 0 auto 25px;
+                max-width: 100%;
+            }
+            .hero-buttons {
+                justify-content: center;
             }
             nav {
+                display: none !important;
+            }
+            .hamburger {
                 display: flex !important;
             }
-            .hero .container {
-                flex-direction: row;
+            .hero h1 {
+                font-size: 2.8rem;
             }
-            .hero-content {
-                flex: 1;
+            .hero-card {
+                max-width: 100%;
             }
-            .hero-image {
-                flex: 1;
+            .mobile-nav-menu {
+                display: block !important;
             }
-            .kpi-grid {
-                grid-template-columns: repeat(4, 1fr);
+            .mobile-nav-overlay {
+                display: block !important;
             }
-            .info-cards {
-                grid-template-columns: 1fr 1fr;
+            .mobile-nav-bottom {
+                display: flex !important;
             }
             footer .container {
-                grid-template-columns: 2fr 1fr 1fr 1.5fr;
-            }
-            .container {
-                padding: 0 24px;
-            }
-            .company-info {
-                padding: 24px;
+                grid-template-columns: 1fr 1fr;
+                gap: 25px;
             }
         }
 
         @media (max-width: 768px) {
-            nav {
-                display: none !important;
+            .container {
+                padding: 0 14px;
             }
-            .nav-toggle {
-                display: flex !important;
+            header {
+                padding: 10px 0;
             }
-            .mobile-nav-bottom {
-                display: flex !important;
+            .logo-text h1 {
+                font-size: 1.1rem;
             }
-            .mobile-nav-menu {
-                display: block;
-            }
-            .mobile-nav-overlay {
-                display: block;
-            }
-            .mobile-nav-menu.open {
-                right: 0;
-            }
-            .mobile-nav-overlay.active {
-                opacity: 1;
-                pointer-events: auto;
-            }
-
-            .hero-content h1 {
-                font-size: 1.5rem;
-            }
-            .kpi-card .number {
+            .logo-icon {
+                width: 32px;
+                height: 32px;
                 font-size: 1rem;
             }
-            .info-card .value {
-                font-size: 0.95rem;
+            .hero {
+                padding: 70px 0 30px;
+                min-height: auto;
             }
-            .booking-card .card-header .name {
-                font-size: 0.75rem;
+            .hero h1 {
+                font-size: 2rem;
             }
-            .booking-card .card-value {
-                font-size: 0.65rem;
-            }
-            .company-info .company-name {
+            .hero-content p {
                 font-size: 0.9rem;
             }
-
+            .hero-card {
+                padding: 24px 16px;
+            }
+            .hero-card .icon {
+                font-size: 3rem;
+            }
+            .kpi-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+            .kpi-card {
+                padding: 18px 14px;
+            }
+            .kpi-card .number {
+                font-size: 1.5rem;
+            }
+            .section-title {
+                font-size: 1.1rem;
+            }
+            .company-info {
+                padding: 16px 14px;
+            }
+            footer .container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            .btn-primary,
+            .btn-secondary {
+                padding: 12px 24px;
+                font-size: 0.85rem;
+                width: 100%;
+                justify-content: center;
+            }
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            .header-actions button {
+                width: 32px;
+                height: 32px;
+                font-size: 0.75rem;
+            }
+            .mobile-nav-bottom ul li {
+                padding: 3px 8px;
+                font-size: 0.5rem;
+            }
+            .mobile-nav-bottom ul li i {
+                font-size: 0.95rem;
+            }
+            .table-wrapper {
+                display: none !important;
+            }
+            .cards-container {
+                display: grid !important;
+            }
             .btn-add-floating {
                 bottom: 90px;
                 left: 16px;
@@ -1039,27 +1459,21 @@
         }
 
         @media (max-width: 480px) {
-            .hero-content h1 {
-                font-size: 1.3rem;
-            }
-            .hero-buttons .btn-primary,
-            .hero-buttons .btn-secondary {
-                font-size: 0.7rem;
-                padding: 8px 14px;
-            }
-            .info-cards {
-                gap: 8px;
+            .hero h1 {
+                font-size: 1.6rem;
             }
             .kpi-grid {
-                gap: 6px;
+                grid-template-columns: 1fr;
             }
-            .kpi-card {
-                padding: 10px;
+            .booking-card {
+                padding: 14px 12px;
             }
-            .section-title {
-                font-size: 0.95rem;
+            .booking-card .card-header .name {
+                font-size: 0.8rem;
             }
-
+            .booking-card .card-value {
+                font-size: 0.7rem;
+            }
             .btn-add-floating {
                 bottom: 80px;
                 left: 12px;
@@ -1079,7 +1493,9 @@
 </head>
 <body>
 
-    <!-- ===== HEADER ===== -->
+    <!-- ============================================================
+    HEADER
+    ============================================================ -->
     <header id="header">
         <div class="container">
             <div class="logo">
@@ -1090,19 +1506,51 @@
                 </div>
             </div>
             <nav>
-                <a href="index.html">الرئيسية</a>
-                <a href="#">الطلبات</a>
-                <a href="treasury.html" class="active">الخزينة</a>
-                <a href="#">التقارير</a>
-                <a href="#">تواصل</a>
+                <div class="nav-item">
+                    <a href="index.html">الرئيسية</a>
+                </div>
+                <div class="nav-item">
+                    <a href="#">الطلبات</a>
+                </div>
+                <div class="nav-item">
+                    <a href="#" onclick="return false;" class="active">
+                        الخزينة
+                        <span class="arrow"><i class="fas fa-chevron-down"></i></span>
+                    </a>
+                    <div class="dropdown">
+                        <a href="treasury.html" style="border-right-color:#f5c842; color:#f5c842;">
+                            <span class="icon">💰</span>
+                            الخزنة الرئيسية
+                        </a>
+                        <a href="treasury-accounts.html">
+                            <span class="icon">📊</span>
+                            خزينة الحسابات
+                            <span class="badge">جديد</span>
+                        </a>
+                        <a href="treasury-driver.html">
+                            <span class="icon">🚛</span>
+                            خزينة السائق
+                        </a>
+                    </div>
+                </div>
+                <div class="nav-item">
+                    <a href="#">التقارير</a>
+                </div>
+                <div class="nav-item">
+                    <a href="#">تواصل</a>
+                </div>
             </nav>
-            <div class="nav-toggle" id="navToggle" aria-label="فتح القائمة">
-                <i class="fas fa-bars"></i>
+            <div class="header-actions">
+                <button aria-label="بحث"><i class="fas fa-search"></i></button>
+                <button aria-label="إشعارات"><i class="fas fa-bell"></i></button>
+                <div class="hamburger" id="hamburger"><i class="fas fa-bars"></i></div>
             </div>
         </div>
     </header>
 
-    <!-- ===== MOBILE NAV ===== -->
+    <!-- ============================================================
+    MOBILE NAV - القائمة المنزلقة
+    ============================================================ -->
     <div class="mobile-nav-overlay" id="mobileOverlay"></div>
     <div class="mobile-nav-menu" id="mobileMenu">
         <div class="close-btn" id="closeMenu"><i class="fas fa-times"></i></div>
@@ -1115,12 +1563,28 @@
         <div class="menu-items">
             <a href="index.html"><i class="fas fa-home"></i> الرئيسية</a>
             <a href="#"><i class="fas fa-box"></i> الطلبات</a>
-            <a href="treasury.html" class="active"><i class="fas fa-coins"></i> الخزينة</a>
+
+            <!-- ===== Mobile Dropdown ===== -->
+            <div class="mobile-dropdown">
+                <button class="mobile-dropdown-trigger open" id="mobileDropdownTrigger">
+                    <span><i class="fas fa-coins"></i> الخزينة</span>
+                    <span class="arrow"><i class="fas fa-chevron-down"></i></span>
+                </button>
+                <div class="mobile-dropdown-menu open" id="mobileDropdownMenu">
+                    <a href="treasury.html" style="color:#f5c842;"><i class="fas fa-circle" style="font-size:0.4rem;color:#f5c842;"></i> الخزنة الرئيسية</a>
+                    <a href="treasury-accounts.html"><i class="fas fa-circle" style="font-size:0.4rem;color:#f5c842;"></i> خزينة الحسابات</a>
+                    <a href="treasury-driver.html"><i class="fas fa-circle" style="font-size:0.4rem;color:#f5c842;"></i> خزينة السائق</a>
+                </div>
+            </div>
+
             <a href="#"><i class="fas fa-chart-pie"></i> التقارير</a>
             <a href="#"><i class="fas fa-phone"></i> تواصل</a>
         </div>
     </div>
 
+    <!-- ============================================================
+    MOBILE BOTTOM NAV
+    ============================================================ -->
     <nav class="mobile-nav-bottom" id="mobileNavBottom">
         <ul>
             <li><a href="index.html"><i class="fas fa-home"></i><span>الرئيسية</span></a></li>
@@ -1131,8 +1595,10 @@
         </ul>
     </nav>
 
-    <!-- ===== HERO ===== -->
-    <section class="hero">
+    <!-- ============================================================
+    HERO
+    ============================================================ -->
+    <section class="hero" id="hero">
         <div class="container">
             <div class="hero-content">
                 <h1 class="animate-fade-up">
@@ -1147,20 +1613,23 @@
                 </div>
             </div>
             <div class="hero-image animate-fade-up delay-4">
-                <div class="hero-card animate-float" style="background:linear-gradient(145deg,rgba(18,26,46,0.8),rgba(14,21,37,0.8));backdrop-filter:blur(20px);border:1px solid rgba(245,200,66,0.06);border-radius:16px;padding:20px;width:100%;max-width:320px;text-align:center;margin:0 auto;">
-                    <div class="icon" style="font-size:2.5rem;color:#f5c842;margin-bottom:8px;"><i class="fas fa-industry"></i></div>
-                    <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px;">شركة رولكس</h3>
-                    <p style="font-size:0.7rem;color:rgba(255,255,255,0.35);line-height:1.5;">للدهانات والمنتجات الكيماوية</p>
-                    <div class="badge-row" style="display:flex;justify-content:center;gap:4px;margin-top:8px;flex-wrap:wrap;">
-                        <span style="background:rgba(245,200,66,0.06);border:1px solid rgba(245,200,66,0.05);padding:2px 10px;border-radius:50px;font-size:0.55rem;color:rgba(255,255,255,0.5);"><i class="fas fa-check-circle" style="color:#f5c842;"></i> تحديث تلقائي</span>
-                        <span style="background:rgba(245,200,66,0.06);border:1px solid rgba(245,200,66,0.05);padding:2px 10px;border-radius:50px;font-size:0.55rem;color:rgba(255,255,255,0.5);"><i class="fas fa-check-circle" style="color:#f5c842;"></i> متابعة لحظية</span>
+                <div class="hero-card animate-float">
+                    <div class="icon">💰</div>
+                    <h3>الخزينة الرئيسية</h3>
+                    <p>إدارة متكاملة لحركات الخزينة اليومية</p>
+                    <div class="badge-row">
+                        <span><i class="fas fa-check-circle" style="color:#f5c842;"></i> تحديث تلقائي</span>
+                        <span><i class="fas fa-check-circle" style="color:#f5c842;"></i> متابعة لحظية</span>
+                        <span><i class="fas fa-check-circle" style="color:#f5c842;"></i> تقارير فورية</span>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- ===== INFO CARDS ===== -->
+    <!-- ============================================================
+    INFO CARDS
+    ============================================================ -->
     <section>
         <div class="container">
             <div class="info-cards" id="infoCards">
@@ -1178,7 +1647,9 @@
         </div>
     </section>
 
-    <!-- ===== COMPANY INFO ===== -->
+    <!-- ============================================================
+    COMPANY INFO
+    ============================================================ -->
     <section>
         <div class="container">
             <div class="company-info animate-fade-up">
@@ -1189,7 +1660,9 @@
         </div>
     </section>
 
-    <!-- ===== KPI ===== -->
+    <!-- ============================================================
+    KPI
+    ============================================================ -->
     <section class="kpi-section">
         <div class="container">
             <div class="kpi-grid" id="treasuryKpi">
@@ -1217,7 +1690,9 @@
         </div>
     </section>
 
-    <!-- ===== TABLE / CARDS ===== -->
+    <!-- ============================================================
+    TABLE / CARDS
+    ============================================================ -->
     <section class="table-section" id="table">
         <div class="container">
             <div class="section-title">
@@ -1229,21 +1704,25 @@
         </div>
     </section>
 
-    <!-- ===== FLOATING ADD BUTTON ===== -->
+    <!-- ============================================================
+    FLOATING ADD BUTTON
+    ============================================================ -->
     <a href="entry.html" class="btn-add-floating animate-pulse">
         <i class="fas fa-plus-circle"></i>
         إضافة حركة
         <span class="badge-new">جديد</span>
     </a>
 
-    <!-- ===== FOOTER ===== -->
+    <!-- ============================================================
+    FOOTER
+    ============================================================ -->
     <footer>
         <div class="container">
             <div class="brand">
-                <div class="logo" style="margin-bottom:4px;">
+                <div class="logo" style="margin-bottom:6px;">
                     <div class="logo-icon">💰</div>
                     <div class="logo-text">
-                        <h1 style="font-size:1rem;">الخزينة الرئيسية</h1>
+                        <h1 style="font-size:1.2rem;">الخزينة الرئيسية</h1>
                     </div>
                 </div>
                 <p>نظام إدارة حركة الخزينة - شركة رولكس</p>
@@ -1274,8 +1753,8 @@
             <div>
                 <h4>تواصل معنا</h4>
                 <ul>
-                    <li><a href="#"><i class="fas fa-phone" style="margin-left:4px;color:rgba(255,255,255,0.15);"></i> +201010422057</a></li>
-                    <li><a href="#"><i class="fas fa-envelope" style="margin-left:4px;color:rgba(255,255,255,0.15);"></i> info@rollex.com</a></li>
+                    <li><a href="#"><i class="fas fa-phone" style="margin-left:6px;color:rgba(255,255,255,0.15);"></i> +201010422057</a></li>
+                    <li><a href="#"><i class="fas fa-envelope" style="margin-left:6px;color:rgba(255,255,255,0.15);"></i> info@rollex.com</a></li>
                 </ul>
             </div>
             <div class="copyright">
@@ -1284,46 +1763,47 @@
         </div>
     </footer>
 
+    <!-- ============================================================
+    JAVASCRIPT
+    ============================================================ -->
     <script>
-        // =============================================
+        // ============================================================
         // HEADER SCROLL
-        // =============================================
-        const header = document.getElementById('header');
+        // ============================================================
+        var header = document.getElementById('header');
         window.addEventListener('scroll', function() {
-            if (window.pageYOffset > 10) {
-                header.style.background = 'rgba(10, 15, 31, 0.98)';
-                header.style.borderBottom = '1px solid rgba(255,255,255,0.08)';
+            if (window.pageYOffset > 50) {
+                header.classList.add('scrolled');
             } else {
-                header.style.background = 'rgba(10, 15, 31, 0.95)';
-                header.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                header.classList.remove('scrolled');
             }
         });
 
-        // =============================================
-        // MOBILE NAV TOGGLE
-        // =============================================
-        const navToggle = document.getElementById('navToggle');
-        const mobileMenu = document.getElementById('mobileMenu');
-        const mobileOverlay = document.getElementById('mobileOverlay');
-        const closeMenu = document.getElementById('closeMenu');
+        // ============================================================
+        // HAMBURGER - فتح وإغلاق القائمة المنزلقة
+        // ============================================================
+        var hamburger = document.getElementById('hamburger');
+        var mobileMenu = document.getElementById('mobileMenu');
+        var mobileOverlay = document.getElementById('mobileOverlay');
+        var closeMenu = document.getElementById('closeMenu');
 
         function openMenu() {
             mobileMenu.classList.add('open');
             mobileOverlay.classList.add('active');
             document.body.style.overflow = 'hidden';
-            navToggle.innerHTML = '<i class="fas fa-times"></i>';
-            navToggle.classList.add('open');
+            hamburger.innerHTML = '<i class="fas fa-times"></i>';
+            hamburger.classList.add('open');
         }
 
         function closeMenuFn() {
             mobileMenu.classList.remove('open');
             mobileOverlay.classList.remove('active');
             document.body.style.overflow = '';
-            navToggle.innerHTML = '<i class="fas fa-bars"></i>';
-            navToggle.classList.remove('open');
+            hamburger.innerHTML = '<i class="fas fa-bars"></i>';
+            hamburger.classList.remove('open');
         }
 
-        navToggle.addEventListener('click', function() {
+        hamburger.addEventListener('click', function() {
             if (mobileMenu.classList.contains('open')) {
                 closeMenuFn();
             } else {
@@ -1341,14 +1821,28 @@
         });
 
         window.addEventListener('resize', function() {
-            if (window.innerWidth > 768 && mobileMenu.classList.contains('open')) {
+            if (window.innerWidth > 992 && mobileMenu.classList.contains('open')) {
                 closeMenuFn();
             }
         });
 
-        // =============================================
+        // ============================================================
+        // MOBILE DROPDOWN TOGGLE - تشغيل القائمة المنسدلة في الموبايل
+        // ============================================================
+        var mobileDropdownTrigger = document.getElementById('mobileDropdownTrigger');
+        var mobileDropdownMenu = document.getElementById('mobileDropdownMenu');
+
+        if (mobileDropdownTrigger && mobileDropdownMenu) {
+            mobileDropdownTrigger.addEventListener('click', function(e) {
+                e.preventDefault();
+                this.classList.toggle('open');
+                mobileDropdownMenu.classList.toggle('open');
+            });
+        }
+
+        // ============================================================
         // HELPER: Get Arabic day name
-        // =============================================
+        // ============================================================
         function getArabicDay(dateStr) {
             if (!dateStr) return '';
             try {
@@ -1366,9 +1860,9 @@
             }
         }
 
-        // =============================================
-        // DATA FETCH
-        // =============================================
+        // ============================================================
+        // DATA FETCH - الخزينة الرئيسية
+        // ============================================================
         var SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
         var SHEET_NAME = 'الخزينة الرئيسية';
 
@@ -1424,7 +1918,6 @@
                 return;
             }
 
-            // استخراج اسم الخزنة والرصيد الافتتاحي
             if (data.length > 0 && data[0] && data[0][1]) {
                 treasuryName = data[0][1] || 'الخزينة الرئيسية';
             }
@@ -1435,7 +1928,6 @@
             document.getElementById('treasuryNameDisplay').textContent = treasuryName;
             document.getElementById('openingBalanceDisplay').textContent = openingBalance.toLocaleString() + ' ج.م';
 
-            // الرؤوس في الصف 4 - البيانات تبدأ من الصف 5
             var DATA_START_INDEX = 4;
 
             var IDX_DATE = 0;
@@ -1450,9 +1942,6 @@
 
             var rows = data.slice(DATA_START_INDEX);
 
-            // =============================================
-            // ترتيب البيانات من الأقدم إلى الأحدث لحساب الرصيد
-            // =============================================
             var sortedRowsAsc = rows.slice().sort(function(a, b) {
                 var dateA = a[IDX_DATE] || '';
                 var dateB = b[IDX_DATE] || '';
@@ -1463,9 +1952,6 @@
                 return indexA - indexB;
             });
 
-            // =============================================
-            // حساب الإجماليات اليومية والرصيد التراكمي
-            // =============================================
             var runningBalance = openingBalance;
             var currentDate = '';
             var dayTotalIncoming = 0;
@@ -1539,9 +2025,6 @@
                 });
             }
 
-            // =============================================
-            // عكس الأيام (الأحدث أولاً) مع الحفاظ على الترتيب الصحيح لكل يوم
-            // =============================================
             var days = [];
             var currentDay = null;
             var dayBuffer = [];
@@ -1563,9 +2046,6 @@
 
             var reversedDays = days.reverse();
 
-            // =============================================
-            // حساب الإحصائيات العامة
-            // =============================================
             var totalIncomingAll = 0;
             var totalOutgoingAll = 0;
             var validRows = 0;
@@ -1587,9 +2067,7 @@
             document.getElementById('totalOutgoing').textContent = totalOutgoingAll.toLocaleString() + ' ج.م';
             document.getElementById('totalTransactions').textContent = validRows;
 
-            // =============================================
             // CARDS (Mobile)
-            // =============================================
             var cardsHTML = '<div class="cards-container">';
             reversedDays.forEach(function(dayItems) {
                 dayItems.forEach(function(item) {
@@ -1686,9 +2164,7 @@
             });
             cardsHTML += '</div>';
 
-            // =============================================
             // TABLE (Desktop)
-            // =============================================
             var tableRows = '';
             var TOTAL_COLS = 9;
 
