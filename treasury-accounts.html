@@ -4,8 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
     <title>خزينة الحسابات - شركة رولكس</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- تحميل الخطوط مع preconnect لتسريع التحميل -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <!-- تحميل Font Awesome مع preconnect -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
     <style>
         /* ============================================================
            RESET & BASE
@@ -14,6 +22,8 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -28,6 +38,12 @@
         a {
             text-decoration: none;
             color: inherit;
+            touch-action: manipulation;
+        }
+
+        button {
+            touch-action: manipulation;
+            cursor: pointer;
         }
 
         .container {
@@ -74,14 +90,19 @@
             }
         }
 
-        @keyframes slideDown {
-            0% {
-                opacity: 0;
-                transform: translateY(-10px) scale(0.95);
-            }
+        @keyframes pulse {
+            0%,
             100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
             }
         }
 
@@ -102,6 +123,10 @@
 
         .animate-float {
             animation: float 6s ease-in-out infinite;
+        }
+
+        .animate-pulse {
+            animation: pulse 2s ease-in-out infinite;
         }
 
         .animate-glow-purple {
@@ -214,6 +239,9 @@
             align-items: center;
             gap: 4px;
             cursor: pointer;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         nav .nav-item > a::after {
@@ -298,6 +326,9 @@
             font-size: 0.8rem;
             transition: 0.3s;
             border-right: 2px solid transparent;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         nav .dropdown a:hover {
@@ -343,6 +374,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            touch-action: manipulation;
         }
 
         .header-actions button:hover {
@@ -362,6 +394,11 @@
             background: rgba(255, 255, 255, 0.03);
             transition: 0.3s;
             z-index: 1001;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            pointer-events: auto;
         }
 
         .hamburger:hover {
@@ -385,6 +422,7 @@
             -webkit-backdrop-filter: blur(8px);
             opacity: 0;
             transition: opacity 0.3s ease;
+            pointer-events: none;
         }
 
         .mobile-nav-overlay.active {
@@ -405,7 +443,7 @@
             border-left: 1px solid rgba(179, 136, 255, 0.05);
             z-index: 1000;
             padding: 80px 24px 30px;
-            transition: right 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+            transition: right 0.25s cubic-bezier(0.23, 1, 0.32, 1);
             overflow-y: auto;
             box-shadow: -10px 0 40px rgba(0, 0, 0, 0.4);
         }
@@ -426,6 +464,8 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
             background: rgba(255, 255, 255, 0.02);
             transition: 0.3s;
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
         }
 
         .mobile-nav-menu .close-btn:hover {
@@ -456,6 +496,9 @@
             font-weight: 600;
             font-size: 0.95rem;
             transition: 0.3s;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .mobile-nav-menu .menu-items a i {
@@ -494,6 +537,10 @@
             background: transparent !important;
             border: none !important;
             font-family: inherit !important;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
         }
 
         .mobile-dropdown-trigger:hover {
@@ -529,6 +576,9 @@
             font-weight: 500 !important;
             font-size: 0.85rem !important;
             transition: 0.3s !important;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .mobile-dropdown-menu a:hover {
@@ -542,7 +592,7 @@
         }
 
         /* ============================================================
-           MOBILE BOTTOM NAV
+           MOBILE BOTTOM NAV - شريط سفلي محسّن
            ============================================================ */
         .mobile-nav-bottom {
             display: none;
@@ -554,29 +604,52 @@
             background: rgba(10, 10, 20, 0.95);
             backdrop-filter: blur(20px);
             border-top: 1px solid rgba(179, 136, 255, 0.05);
-            padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+            padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
         }
 
         .mobile-nav-bottom ul {
             display: flex;
             justify-content: space-around;
+            align-items: center;
             list-style: none;
+            width: 100%;
+            padding: 0 8px;
+            margin: 0;
         }
 
         .mobile-nav-bottom ul li {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1px;
-            font-size: 0.5rem;
+            justify-content: center;
+            gap: 2px;
+            font-size: 0.55rem;
             color: rgba(255, 255, 255, 0.4);
             transition: 0.3s;
-            padding: 4px 12px;
+            padding: 6px 8px;
             border-radius: 8px;
+            flex: 1;
+            min-width: 0;
+            text-align: center;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            cursor: pointer;
+            -webkit-touch-callout: none;
         }
 
         .mobile-nav-bottom ul li i {
-            font-size: 1rem;
+            font-size: 1.2rem;
+            transition: 0.3s;
+        }
+
+        .mobile-nav-bottom ul li span {
+            font-size: 0.5rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            transition: 0.3s;
         }
 
         .mobile-nav-bottom ul li:hover,
@@ -589,7 +662,12 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1px;
+            justify-content: center;
+            gap: 2px;
+            width: 100%;
+            padding: 2px 0;
+            text-decoration: none;
+            touch-action: manipulation;
         }
 
         /* ============================================================
@@ -669,6 +747,9 @@
             border: none;
             cursor: pointer;
             box-shadow: 0 4px 25px rgba(179, 136, 255, 0.2);
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .btn-primary:hover {
@@ -689,6 +770,9 @@
             gap: 8px;
             background: transparent;
             cursor: pointer;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .btn-secondary:hover {
@@ -1265,6 +1349,9 @@
             box-shadow: 0 8px 35px rgba(179, 136, 255, 0.4);
             animation: float 3s ease-in-out infinite;
             text-decoration: none;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .btn-add-floating:hover {
@@ -1696,7 +1783,7 @@
     </section>
 
     <!-- ============================================================
-    FLOATING ADD BUTTON
+    FLOATING ADD BUTTON - يفتح نموذج إضافة حركة خزينة الحسابات
     ============================================================ -->
     <a href="entry-accounts.html" class="btn-add-floating animate-pulse">
         <i class="fas fa-plus-circle"></i>
