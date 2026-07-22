@@ -388,8 +388,8 @@
             touch-action: manipulation;
             user-select: none;
             -webkit-user-select: none;
-            /* منع أي تأخير في الاستجابة */
             -webkit-touch-callout: none;
+            pointer-events: auto;
         }
 
         .hamburger:hover {
@@ -1978,7 +1978,7 @@
     </footer>
 
     <!-- ============================================================
-    JAVASCRIPT - محسّن للسرعة القصوى
+    JAVASCRIPT - محسّن للسرعة القصوى مع حل مشكلة الـ Hamburger
     ============================================================ -->
     <script>
         // ============================================================
@@ -1994,15 +1994,24 @@
         });
 
         // ============================================================
-        // HAMBURGER - فتح وإغلاق القائمة المنزلقة (محسّن للسرعة القصوى)
+        // HAMBURGER - حل سريع ومضمون (يعمل فوراً)
         // ============================================================
-        document.addEventListener('DOMContentLoaded', function() {
+        (function() {
+            // الحصول على العناصر فوراً
             var hamburger = document.getElementById('hamburger');
             var mobileMenu = document.getElementById('mobileMenu');
             var mobileOverlay = document.getElementById('mobileOverlay');
             var closeMenu = document.getElementById('closeMenu');
 
-            // متغير لحالة القائمة
+            // التأكد من وجود العناصر
+            if (!hamburger || !mobileMenu || !mobileOverlay || !closeMenu) {
+                console.warn('⚠️ عناصر القائمة غير موجودة - إعادة المحاولة...');
+                // محاولة مرة أخرى بعد 100ms
+                setTimeout(arguments.callee, 100);
+                return;
+            }
+
+            // متغير حالة القائمة
             var isMenuOpen = false;
 
             // دالة فتح القائمة
@@ -2014,6 +2023,7 @@
                 document.body.style.overflow = 'hidden';
                 hamburger.innerHTML = '<i class="fas fa-times"></i>';
                 hamburger.classList.add('open');
+                console.log('✅ القائمة مفتوحة');
             }
 
             // دالة إغلاق القائمة
@@ -2025,73 +2035,105 @@
                 document.body.style.overflow = '';
                 hamburger.innerHTML = '<i class="fas fa-bars"></i>';
                 hamburger.classList.remove('open');
+                console.log('✅ القائمة مغلقة');
             }
 
-            // إضافة Event Listeners مع منع التأخير
-            hamburger.addEventListener('click', function(e) {
-                e.preventDefault();
-                // استخدام requestAnimationFrame لتسريع الاستجابة
-                requestAnimationFrame(function() {
+            // إزالة أي مستمعات قديمة
+            function removeOldListeners() {
+                var newHamburger = hamburger.cloneNode(true);
+                hamburger.parentNode.replaceChild(newHamburger, hamburger);
+                hamburger = newHamburger;
+                hamburger.id = 'hamburger';
+
+                var newClose = closeMenu.cloneNode(true);
+                closeMenu.parentNode.replaceChild(newClose, closeMenu);
+                closeMenu = newClose;
+                closeMenu.id = 'closeMenu';
+            }
+
+            // إضافة Event Listeners
+            function initEvents() {
+                // مستمع الهامبورجر
+                hamburger.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     if (isMenuOpen) {
                         closeMenuFn();
                     } else {
                         openMenu();
                     }
                 });
-            });
 
-            // إغلاق القائمة عند الضغط على زر الإغلاق
-            closeMenu.addEventListener('click', function(e) {
-                e.preventDefault();
-                requestAnimationFrame(function() {
-                    closeMenuFn();
-                });
-            });
-
-            // إغلاق القائمة عند الضغط على الخلفية
-            mobileOverlay.addEventListener('click', function(e) {
-                e.preventDefault();
-                requestAnimationFrame(function() {
-                    closeMenuFn();
-                });
-            });
-
-            // إغلاق القائمة عند الضغط على Escape
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && isMenuOpen) {
-                    requestAnimationFrame(function() {
-                        closeMenuFn();
-                    });
-                }
-            });
-
-            // إغلاق القائمة عند تغيير حجم الشاشة إلى ديسكتوب
-            window.addEventListener('resize', function() {
-                if (window.innerWidth > 992 && isMenuOpen) {
-                    requestAnimationFrame(function() {
-                        closeMenuFn();
-                    });
-                }
-            });
-        });
-
-        // ============================================================
-        // MOBILE DROPDOWN TOGGLE - تشغيل القائمة المنسدلة في الموبايل
-        // ============================================================
-        document.addEventListener('DOMContentLoaded', function() {
-            var mobileDropdownTrigger = document.getElementById('mobileDropdownTrigger');
-            var mobileDropdownMenu = document.getElementById('mobileDropdownMenu');
-
-            if (mobileDropdownTrigger && mobileDropdownMenu) {
-                mobileDropdownTrigger.addEventListener('click', function(e) {
+                // مستمع زر الإغلاق
+                closeMenu.addEventListener('click', function(e) {
                     e.preventDefault();
-                    requestAnimationFrame(function() {
-                        this.classList.toggle('open');
-                        mobileDropdownMenu.classList.toggle('open');
-                    });
+                    e.stopPropagation();
+                    closeMenuFn();
+                });
+
+                // مستمع الخلفية
+                mobileOverlay.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeMenuFn();
+                });
+
+                // مستمع Escape
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && isMenuOpen) {
+                        closeMenuFn();
+                    }
+                });
+
+                // مستمع تغيير حجم الشاشة
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 992 && isMenuOpen) {
+                        closeMenuFn();
+                    }
+                });
+
+                console.log('✅ Hamburger menu initialized successfully');
+            }
+
+            // تهيئة الأحداث فوراً
+            initEvents();
+
+            // تهيئة إضافية بعد تحميل الصفحة
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    initEvents();
                 });
             }
-        });
+
+            // تهيئة إضافية بعد تحميل كل شيء
+            window.addEventListener('load', function() {
+                initEvents();
+            });
+
+            // جعل الدوال عامة
+            window.openMenu = openMenu;
+            window.closeMenuFn = closeMenuFn;
+        })();
+
+        // ============================================================
+        // MOBILE DROPDOWN TOGGLE
+        // ============================================================
+        (function() {
+            var trigger = document.getElementById('mobileDropdownTrigger');
+            var menu = document.getElementById('mobileDropdownMenu');
+
+            if (!trigger || !menu) {
+                console.warn('⚠️ عناصر القائمة المنسدلة غير موجودة');
+                return;
+            }
+
+            trigger.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.toggle('open');
+                menu.classList.toggle('open');
+            });
+        })();
 
         // ============================================================
         // HELPER: Get Arabic day name
