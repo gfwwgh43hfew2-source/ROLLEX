@@ -4,8 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
     <title>الخزينة الرئيسية - شركة رولكس</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- تحميل الخطوط مع preconnect لتسريع التحميل -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <!-- تحميل Font Awesome مع preconnect -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
     <style>
         /* ============================================================
            RESET & BASE
@@ -380,6 +388,8 @@
             touch-action: manipulation;
             user-select: none;
             -webkit-user-select: none;
+            /* منع أي تأخير في الاستجابة */
+            -webkit-touch-callout: none;
         }
 
         .hamburger:hover {
@@ -403,6 +413,7 @@
             -webkit-backdrop-filter: blur(8px);
             opacity: 0;
             transition: opacity 0.3s ease;
+            pointer-events: none;
         }
 
         .mobile-nav-overlay.active {
@@ -423,7 +434,7 @@
             border-left: 1px solid rgba(245, 200, 66, 0.05);
             z-index: 1000;
             padding: 80px 24px 30px;
-            transition: right 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+            transition: right 0.25s cubic-bezier(0.23, 1, 0.32, 1);
             overflow-y: auto;
             box-shadow: -10px 0 40px rgba(0, 0, 0, 0.4);
         }
@@ -445,6 +456,7 @@
             background: rgba(255, 255, 255, 0.02);
             transition: 0.3s;
             touch-action: manipulation;
+            -webkit-touch-callout: none;
         }
 
         .mobile-nav-menu .close-btn:hover {
@@ -519,6 +531,7 @@
             touch-action: manipulation;
             user-select: none;
             -webkit-user-select: none;
+            -webkit-touch-callout: none;
         }
 
         .mobile-dropdown-trigger:hover {
@@ -613,6 +626,7 @@
             user-select: none;
             -webkit-user-select: none;
             cursor: pointer;
+            -webkit-touch-callout: none;
         }
 
         .mobile-nav-bottom ul li i {
@@ -1964,7 +1978,7 @@
     </footer>
 
     <!-- ============================================================
-    JAVASCRIPT
+    JAVASCRIPT - محسّن للسرعة القصوى
     ============================================================ -->
     <script>
         // ============================================================
@@ -1980,65 +1994,104 @@
         });
 
         // ============================================================
-        // HAMBURGER - فتح وإغلاق القائمة المنزلقة
+        // HAMBURGER - فتح وإغلاق القائمة المنزلقة (محسّن للسرعة القصوى)
         // ============================================================
-        var hamburger = document.getElementById('hamburger');
-        var mobileMenu = document.getElementById('mobileMenu');
-        var mobileOverlay = document.getElementById('mobileOverlay');
-        var closeMenu = document.getElementById('closeMenu');
+        document.addEventListener('DOMContentLoaded', function() {
+            var hamburger = document.getElementById('hamburger');
+            var mobileMenu = document.getElementById('mobileMenu');
+            var mobileOverlay = document.getElementById('mobileOverlay');
+            var closeMenu = document.getElementById('closeMenu');
 
-        function openMenu() {
-            mobileMenu.classList.add('open');
-            mobileOverlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
-            hamburger.innerHTML = '<i class="fas fa-times"></i>';
-            hamburger.classList.add('open');
-        }
+            // متغير لحالة القائمة
+            var isMenuOpen = false;
 
-        function closeMenuFn() {
-            mobileMenu.classList.remove('open');
-            mobileOverlay.classList.remove('active');
-            document.body.style.overflow = '';
-            hamburger.innerHTML = '<i class="fas fa-bars"></i>';
-            hamburger.classList.remove('open');
-        }
-
-        hamburger.addEventListener('click', function() {
-            if (mobileMenu.classList.contains('open')) {
-                closeMenuFn();
-            } else {
-                openMenu();
+            // دالة فتح القائمة
+            function openMenu() {
+                if (isMenuOpen) return;
+                isMenuOpen = true;
+                mobileMenu.classList.add('open');
+                mobileOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                hamburger.innerHTML = '<i class="fas fa-times"></i>';
+                hamburger.classList.add('open');
             }
-        });
 
-        closeMenu.addEventListener('click', closeMenuFn);
-        mobileOverlay.addEventListener('click', closeMenuFn);
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && mobileMenu.classList.contains('open')) {
-                closeMenuFn();
+            // دالة إغلاق القائمة
+            function closeMenuFn() {
+                if (!isMenuOpen) return;
+                isMenuOpen = false;
+                mobileMenu.classList.remove('open');
+                mobileOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+                hamburger.innerHTML = '<i class="fas fa-bars"></i>';
+                hamburger.classList.remove('open');
             }
-        });
 
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 992 && mobileMenu.classList.contains('open')) {
-                closeMenuFn();
-            }
+            // إضافة Event Listeners مع منع التأخير
+            hamburger.addEventListener('click', function(e) {
+                e.preventDefault();
+                // استخدام requestAnimationFrame لتسريع الاستجابة
+                requestAnimationFrame(function() {
+                    if (isMenuOpen) {
+                        closeMenuFn();
+                    } else {
+                        openMenu();
+                    }
+                });
+            });
+
+            // إغلاق القائمة عند الضغط على زر الإغلاق
+            closeMenu.addEventListener('click', function(e) {
+                e.preventDefault();
+                requestAnimationFrame(function() {
+                    closeMenuFn();
+                });
+            });
+
+            // إغلاق القائمة عند الضغط على الخلفية
+            mobileOverlay.addEventListener('click', function(e) {
+                e.preventDefault();
+                requestAnimationFrame(function() {
+                    closeMenuFn();
+                });
+            });
+
+            // إغلاق القائمة عند الضغط على Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && isMenuOpen) {
+                    requestAnimationFrame(function() {
+                        closeMenuFn();
+                    });
+                }
+            });
+
+            // إغلاق القائمة عند تغيير حجم الشاشة إلى ديسكتوب
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 992 && isMenuOpen) {
+                    requestAnimationFrame(function() {
+                        closeMenuFn();
+                    });
+                }
+            });
         });
 
         // ============================================================
         // MOBILE DROPDOWN TOGGLE - تشغيل القائمة المنسدلة في الموبايل
         // ============================================================
-        var mobileDropdownTrigger = document.getElementById('mobileDropdownTrigger');
-        var mobileDropdownMenu = document.getElementById('mobileDropdownMenu');
+        document.addEventListener('DOMContentLoaded', function() {
+            var mobileDropdownTrigger = document.getElementById('mobileDropdownTrigger');
+            var mobileDropdownMenu = document.getElementById('mobileDropdownMenu');
 
-        if (mobileDropdownTrigger && mobileDropdownMenu) {
-            mobileDropdownTrigger.addEventListener('click', function(e) {
-                e.preventDefault();
-                this.classList.toggle('open');
-                mobileDropdownMenu.classList.toggle('open');
-            });
-        }
+            if (mobileDropdownTrigger && mobileDropdownMenu) {
+                mobileDropdownTrigger.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    requestAnimationFrame(function() {
+                        this.classList.toggle('open');
+                        mobileDropdownMenu.classList.toggle('open');
+                    });
+                });
+            }
+        });
 
         // ============================================================
         // HELPER: Get Arabic day name
