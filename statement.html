@@ -672,6 +672,30 @@
             color: #ab47bc;
         }
 
+        .badge-source {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.45rem;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        .badge-source.main {
+            background: rgba(245, 200, 66, 0.15);
+            color: #f5c842;
+        }
+
+        .badge-source.accounts {
+            background: rgba(33, 150, 243, 0.15);
+            color: #2196f3;
+        }
+
+        .badge-source.driver {
+            background: rgba(76, 175, 80, 0.15);
+            color: #4caf50;
+        }
+
         /* ============================================================
            EMPTY STATE
            ============================================================ */
@@ -944,10 +968,9 @@
                 color: #1565c0 !important;
             }
 
-            .badge-type.return {
-                background: #fff8e1 !important;
-                border-color: #ffd54f !important;
-                color: #f57f17 !important;
+            .badge-source {
+                background: #eee !important;
+                color: #333 !important;
             }
 
             .empty-state {
@@ -1074,6 +1097,7 @@
                             <th style="text-align:center;">مدين</th>
                             <th style="text-align:center;">دائن</th>
                             <th style="text-align:center;">الرصيد</th>
+                            <th>المصدر</th>
                         </tr>
                     </thead>
                     <tbody id="entriesBody"></tbody>
@@ -1161,7 +1185,9 @@
         var SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
         var SHEET_CLIENTS = 'بيانات العملاء';
         var SHEET_SALES = 'المبيعات والمرتجعات';
-        var SHEET_COLLECTIONS = 'خزينة الحسابات'; // شيت التحصيلات
+        var SHEET_MAIN = 'الخزينة الرئيسية';
+        var SHEET_ACCOUNTS = 'خزينة الحسابات';
+        var SHEET_DRIVER = 'خزينة السائق';
 
         // ============================================================
         // DOM REFS
@@ -1187,7 +1213,7 @@
         // ============================================================
         var clientsData = [];
         var salesData = [];
-        var collectionsData = [];
+        var collectionsData = []; // من جميع الخزائن
         var selectedClient = null;
 
         // ============================================================
@@ -1245,7 +1271,9 @@
             Promise.all([
                 fetchSheetData(SHEET_CLIENTS),
                 fetchSheetData(SHEET_SALES),
-                fetchSheetData(SHEET_COLLECTIONS)
+                fetchSheetData(SHEET_MAIN),
+                fetchSheetData(SHEET_ACCOUNTS),
+                fetchSheetData(SHEET_DRIVER)
             ]).then(function(results) {
                 loadingState.style.display = 'none';
 
@@ -1263,12 +1291,43 @@
                     });
                 }
 
-                // بيانات التحصيلات - من شيت خزينة الحسابات
-                if (results[2] && results[2].length > 1) {
-                    collectionsData = results[2].slice(1).filter(function(row) {
-                        return row[0] && row[0].trim() !== '';
-                    });
-                }
+                // جمع التحصيلات من جميع الخزائن
+                var allCollections = [];
+                var sources = [
+                    { name: 'main', label: 'الخزينة الرئيسية', data: results[2] },
+                    { name: 'accounts', label: 'خزينة الحسابات', data: results[3] },
+                    { name: 'driver', label: 'خزينة السائق', data: results[4] }
+                ];
+
+                sources.forEach(function(source) {
+                    if (!source.data || source.data.length < 2) return;
+                    for (var i = 1; i < source.data.length; i++) {
+                        var row = source.data[i];
+                        if (row && row.length > 5) {
+                            // التحقق من وجود مبلغ (وارد أو صادر)
+                            var incoming = cleanNumber(row[5]);
+                            var outgoing = cleanNumber(row[6]);
+                            var amount = incoming > 0 ? incoming : outgoing;
+                            if (amount > 0) {
+                                var entry = {
+                                    date: row[0] || '',
+                                    number: row[1] || '',
+                                    type: row[2] || '',
+                                    description: row[4] || '',
+                                    amount: amount,
+                                    generalTab: row[9] || '',
+                                    privateTab: row[10] || '',
+                                    notes: row[7] || '',
+                                    source: source.name,
+                                    sourceLabel: source.label
+                                };
+                                allCollections.push(entry);
+                            }
+                        }
+                    }
+                });
+
+                collectionsData = allCollections;
 
                 console.log('✅ تم تحميل البيانات:');
                 console.log('📊 العملاء:', clientsData.length);
@@ -1286,7 +1345,7 @@
         }
 
         // ============================================================
-        // SEARCH - البحث الذكي
+        // SEARCH
         // ============================================================
         function performSearch(query) {
             if (!query || query.trim() === '') {
@@ -1315,7 +1374,7 @@
                 var salesman = row[6] || '';
                 var status = row[7] || '';
 
-                html += '<div class="suggestion-item" data-code="' + code + '">' +
+                html += '<div class="suggestion-item" data-code="' + code + '" data-name="' + name + '">' +
                     '<span class="s-code">' + code + '</span>' +
                     '<span class="s-name">' + name + '</span>' +
                     '<span class="s-salesman">' + salesman + '</span>' +
@@ -1329,9 +1388,10 @@
             suggestionsContainer.querySelectorAll('.suggestion-item').forEach(function(item) {
                 item.addEventListener('click', function() {
                     var code = this.dataset.code;
+                    var name = this.dataset.name;
                     var client = clientsData.find(function(row) { return row[0] === code; });
                     if (client) {
-                        searchInput.value = client[1] + ' (' + client[0] + ')';
+                        searchInput.value = name + ' (' + code + ')';
                         suggestionsContainer.classList.remove('show');
                         clearBtn.classList.add('visible');
                         selectClient(client);
@@ -1349,17 +1409,17 @@
         }
 
         // ============================================================
-        // GET CLIENT COLLECTIONS
+        // GET CLIENT COLLECTIONS - بالاسم
         // ============================================================
-        function getClientCollections(clientCode) {
+        function getClientCollections(clientName) {
             return collectionsData.filter(function(row) {
-                var privateTab = row[10] || '';
-                var description = row[4] || '';
-                var generalTab = row[9] || '';
-                // البحث عن كود العميل في التبويبات أو البيان
-                return privateTab.includes(clientCode) ||
-                    description.includes(clientCode) ||
-                    generalTab.includes(clientCode);
+                var privateTab = row.privateTab || '';
+                var description = row.description || '';
+                var generalTab = row.generalTab || '';
+                // البحث عن اسم العميل في التبويبات أو البيان
+                return privateTab.includes(clientName) ||
+                    description.includes(clientName) ||
+                    generalTab.includes(clientName);
             });
         }
 
@@ -1369,25 +1429,27 @@
         function showStatement(client) {
             if (!client) return;
 
+            var clientNameVal = client[1] || '';
+            var clientCodeVal = client[0] || '';
+
             // عرض معلومات العميل
             clientInfoCard.classList.add('show');
-            clientCode.textContent = client[0] || '-';
-            clientName.textContent = client[1] || '-';
+            clientCode.textContent = clientCodeVal;
+            clientName.textContent = clientNameVal;
             clientSalesman.textContent = client[6] || '-';
             openingBalance.textContent = formatNumber(cleanNumber(client[4]));
 
-            // جلب حركات العميل
-            var clientCodeVal = client[0];
-
-            // جلب المبيعات
+            // جلب المبيعات (بالكود)
             var clientSales = salesData.filter(function(row) {
                 return row[4] === clientCodeVal;
             });
 
-            // جلب التحصيلات
-            var clientCollections = getClientCollections(clientCodeVal);
+            // جلب التحصيلات (بالاسم)
+            var clientCollections = getClientCollections(clientNameVal);
 
-            console.log('📊 العميل:', client[1], 'المبيعات:', clientSales.length, 'التحصيلات:', clientCollections.length);
+            console.log('📊 العميل:', clientNameVal);
+            console.log('📊 المبيعات:', clientSales.length);
+            console.log('📊 التحصيلات:', clientCollections.length);
 
             // بناء الجدول
             buildTable(client, clientSales, clientCollections);
@@ -1412,7 +1474,9 @@
                 debit: 0,
                 credit: runningBalance,
                 balance: runningBalance,
-                isOpening: true
+                isOpening: true,
+                source: '',
+                sourceLabel: ''
             });
 
             // ترتيب المبيعات حسب التاريخ
@@ -1431,27 +1495,31 @@
                     debit: amount,
                     credit: 0,
                     balance: runningBalance,
-                    isSales: true
+                    isSales: true,
+                    source: 'sales',
+                    sourceLabel: 'المبيعات'
                 });
             });
 
             // ترتيب التحصيلات حسب التاريخ
             var sortedCollections = collections.slice().sort(function(a, b) {
-                return (a[0] || '').localeCompare(b[0] || '');
+                return (a.date || '').localeCompare(b.date || '');
             });
 
             sortedCollections.forEach(function(row) {
-                var amount = cleanNumber(row[5]); // المبلغ في العمود 5
+                var amount = row.amount || 0;
                 runningBalance -= amount;
                 rows.push({
                     type: 'collection',
-                    date: row[0] || '-',
-                    number: row[1] || '-',
-                    description: row[4] || 'تحصيل',
+                    date: row.date || '-',
+                    number: row.number || '-',
+                    description: row.description || 'تحصيل',
                     debit: 0,
                     credit: amount,
                     balance: runningBalance,
-                    isCollection: true
+                    isCollection: true,
+                    source: row.source || '',
+                    sourceLabel: row.sourceLabel || 'تحصيل'
                 });
             });
 
@@ -1476,6 +1544,13 @@
                 var debitColor = row.debit > 0 ? 'color:#4caf50;font-weight:700;' : '';
                 var creditColor = row.credit > 0 ? 'color:#ef5350;font-weight:700;' : '';
 
+                // مصدر التحصيل
+                var sourceBadge = '';
+                if (row.source && row.source !== 'sales') {
+                    var sourceClass = row.source;
+                    sourceBadge = '<span class="badge-source ' + sourceClass + '">' + row.sourceLabel + '</span>';
+                }
+
                 html += '<tr>' +
                     '<td>' + row.date + '</td>' +
                     '<td>' + row.number + '</td>' +
@@ -1485,6 +1560,7 @@
                     '<td style="text-align:center;' + creditColor + '">' + creditDisplay + '</td>' +
                     '<td style="text-align:center;color:#f5c842;font-weight:700;">' + formatNumber(row.balance) +
                     '</td>' +
+                    '<td>' + sourceBadge + '</td>' +
                     '</tr>';
             });
 
@@ -1573,6 +1649,7 @@
         (function init() {
             loadAllData();
             console.log('🚀 كشف حساب العميل - تم التحميل');
+            console.log('📌 يتم جلب التحصيلات من شيتات الخزائن الثلاث');
         })();
     </script>
 
