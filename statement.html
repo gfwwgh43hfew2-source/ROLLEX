@@ -449,7 +449,7 @@
         }
 
         /* ============================================================
-           SUGGESTIONS - مع دعم التنقل بالكيبورد
+           SUGGESTIONS
            ============================================================ */
         .suggestions-container {
             position: absolute;
@@ -521,7 +521,7 @@
         }
 
         /* ============================================================
-           CLIENT INFO - عرض الرصيد الحالي
+           CLIENT INFO
            ============================================================ */
         .client-info-card {
             background: rgba(18, 26, 46, 0.85);
@@ -659,12 +659,6 @@
             background: rgba(33, 150, 243, 0.12);
             border: 1px solid rgba(33, 150, 243, 0.12);
             color: #2196f3;
-        }
-
-        .badge-type.return {
-            background: rgba(255, 193, 7, 0.12);
-            border: 1px solid rgba(255, 193, 7, 0.12);
-            color: #ffc107;
         }
 
         .badge-type.opening {
@@ -1349,7 +1343,7 @@
         }
 
         // ============================================================
-        // SEARCH - مع دعم التنقل بالكيبورد
+        // SEARCH
         // ============================================================
         function performSearch(query) {
             if (!query || query.trim() === '') {
@@ -1412,7 +1406,7 @@
         }
 
         // ============================================================
-        // KEYBOARD NAVIGATION - التنقل بين الاقتراحات
+        // KEYBOARD NAVIGATION
         // ============================================================
         searchInput.addEventListener('keydown', function(e) {
             var items = suggestionsContainer.querySelectorAll('.suggestion-item');
@@ -1475,7 +1469,7 @@
         }
 
         // ============================================================
-        // SHOW STATEMENT - مع دمج الحركات وترتيبها حسب التاريخ
+        // SHOW STATEMENT - مع تفاصيل المبيعات
         // ============================================================
         function showStatement(client) {
             if (!client) return;
@@ -1497,18 +1491,33 @@
             // جلب التحصيلات
             var clientCollections = getClientCollections(clientNameVal);
 
-            // دمج الحركات في مصفوفة واحدة
+            // دمج الحركات
             var allTransactions = [];
             var openingBalanceVal = cleanNumber(client[4]);
             var runningBalance = openingBalanceVal;
 
-            // إضافة المبيعات
+            // إضافة المبيعات مع تفاصيل كاملة
             clientSales.forEach(function(row) {
                 var amount = cleanNumber(row[13]);
+                
+                // بناء وصف مفصل للمبيعات
+                var salesDetails = [];
+                if (row[8]) salesDetails.push('المبيعات: ' + formatNumber(cleanNumber(row[8])));
+                if (row[9]) salesDetails.push('الوزن: ' + formatNumber(cleanNumber(row[9])));
+                if (row[10]) salesDetails.push('العبوة: ' + row[10]);
+                if (row[11]) salesDetails.push('العدد: ' + formatNumber(cleanNumber(row[11])));
+                if (row[12]) salesDetails.push('سعر البيع: ' + formatNumber(cleanNumber(row[12])));
+                if (row[13]) salesDetails.push('الإجمالي: ' + formatNumber(cleanNumber(row[13])));
+                
+                var description = row[5] || 'مبيعات';
+                if (salesDetails.length > 0) {
+                    description += ' (' + salesDetails.join('، ') + ')';
+                }
+                
                 allTransactions.push({
                     date: row[2] || '',
                     number: row[0] || '',
-                    description: row[5] || 'مبيعات',
+                    description: description,
                     type: 'sales',
                     debit: amount,
                     credit: 0,
@@ -1542,7 +1551,7 @@
                 });
             });
 
-            // ترتيب الحركات حسب التاريخ (من الأقدم إلى الأحدث)
+            // ترتيب الحركات حسب التاريخ
             allTransactions.sort(function(a, b) {
                 return (a.date || '').localeCompare(b.date || '');
             });
@@ -1560,11 +1569,11 @@
             // بناء الجدول
             var html = '';
 
-            // صف الرصيد الافتتاحي (في أول الجدول)
+            // صف الرصيد الافتتاحي
             html += '<tr class="row-opening">' +
                 '<td>-</td>' +
                 '<td>-</td>' +
-                '<td>الرصيد الافتتاحي</td>' +
+                '<td style="text-align:right;">الرصيد الافتتاحي</td>' +
                 '<td><span class="badge-type opening">افتتاحي</span></td>' +
                 '<td style="text-align:center;">-</td>' +
                 '<td style="text-align:center;color:#ab47bc;font-weight:700;">' + formatNumber(openingBalanceVal) +
@@ -1602,7 +1611,7 @@
                 html += '<tr>' +
                     '<td>' + tx.date + '</td>' +
                     '<td>' + tx.number + '</td>' +
-                    '<td>' + tx.description + '</td>' +
+                    '<td style="text-align:right;font-size:0.6rem;">' + tx.description + '</td>' +
                     '<td><span class="badge-type ' + badgeClass + '">' + badgeText + '</span></td>' +
                     '<td style="text-align:center;' + debitColor + '">' + debitDisplay + '</td>' +
                     '<td style="text-align:center;' + creditColor + '">' + creditDisplay + '</td>' +
@@ -1680,7 +1689,6 @@
 
         searchInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
-                // السماح للتنقل بالكيبورد بالعمل أولاً
                 if (activeSuggestionIndex === -1) {
                     e.preventDefault();
                     btnShow.click();
@@ -1703,7 +1711,7 @@
         (function init() {
             loadAllData();
             console.log('🚀 كشف حساب العميل - تم التحميل');
-            console.log('📌 يتم دمج المبيعات والتحصيلات وترتيبها حسب التاريخ');
+            console.log('📌 يتم عرض تفاصيل المبيعات كاملة في عمود البيان');
             console.log('📌 استخدم أسهم ↑↓ للتنقل بين الاقتراحات');
         })();
     </script>
