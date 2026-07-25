@@ -485,7 +485,7 @@
         td {
             padding: 6px 4px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-            color: rgba(255, 255, 255, 0.6);
+            color: #ffffff;  /* أبيض بدلاً من الرمادي */
             font-size: 0.65rem;
         }
 
@@ -527,7 +527,7 @@
             font-weight: 600;
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid rgba(255, 255, 255, 0.03);
-            color: rgba(255, 255, 255, 0.4);
+            color: rgba(255, 255, 255, 0.6);
         }
 
         .badge-type.deposit {
@@ -827,7 +827,7 @@
 
         <!-- ===== SUMMARY ===== -->
         <div class="summary-bar" id="summaryBar">
-            <div class="total">إجمالي المبلغ المحصل: <span id="totalAmount">0</span> ج.م</div>
+            <div class="total">إجمالي المبلغ المحصل: <span id="totalAmount">0</span></div>
             <div class="count">عدد الحركات: <span id="totalCount">0</span></div>
         </div>
 
@@ -951,6 +951,15 @@
         var allEntries = [];
 
         // ============================================================
+        // دالة تنسيق الأرقام - إنجليزية بدون علامات
+        // ============================================================
+        function formatNumber(num) {
+            if (num === undefined || num === null || isNaN(num)) return '0';
+            var rounded = Math.round(num);
+            return rounded.toString(); // أرقام إنجليزية بدون علامات
+        }
+
+        // ============================================================
         // FETCH DATA FROM GOOGLE SHEETS (نفس منطق الخزينة الرئيسية)
         // ============================================================
         function fetchSheetData(sheetName) {
@@ -998,7 +1007,6 @@
         function mapRowToEntry(row, source) {
             if (!row || row.length < 11) return null;
 
-            // الأعمدة حسب هيكل الخزينة
             var date = row[0] || '';
             var number = row[1] || '';
             var type = row[2] || '';
@@ -1009,7 +1017,6 @@
             var generalTab = row[9] || '';
             var privateTab = row[10] || '';
 
-            // تحديد المبلغ ونوع الحركة
             var amount = 0;
             var actualType = type;
             if (incoming > 0) {
@@ -1022,7 +1029,6 @@
 
             if (amount === 0) return null;
 
-            // التحقق من أن التبويب العام يحتوي على "تحصيلات العملاء"
             var isCollection = (
                 generalTab.includes('تحصيلات العملاء') ||
                 generalTab.includes('تحصيلات_العملاء') ||
@@ -1063,7 +1069,6 @@
                     results.forEach(function(data, index) {
                         if (!data || data.length < 2) return;
                         var source = sources[index];
-                        // الصف 0 هو الرؤوس، نبدأ من الصف 1
                         for (var i = 1; i < data.length; i++) {
                             var entry = mapRowToEntry(data[i], source);
                             if (entry) {
@@ -1088,14 +1093,13 @@
         function displayEntries(entries) {
             var filtered = filterEntries(entries);
 
-            // تحديث الملخص
             var total = filtered.length;
             var totalAmt = 0;
             filtered.forEach(function(entry) {
                 totalAmt += entry.amount || 0;
             });
             totalCount.textContent = total;
-            totalAmount.textContent = totalAmt.toLocaleString();
+            totalAmount.textContent = formatNumber(totalAmt); // بدون علامات
 
             if (filtered.length === 0) {
                 entriesBody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد حركات تحصيلات للعملاء</p></div></td></tr>';
@@ -1103,7 +1107,6 @@
             }
 
             var html = '';
-            // ترتيب حسب التاريخ (الأحدث أولاً)
             var sorted = filtered.slice().sort(function(a, b) {
                 return (b.date || '').localeCompare(a.date || '');
             });
@@ -1132,11 +1135,11 @@
                     '<td>' + (entry.number || '-') + '</td>' +
                     '<td><span class="' + badgeClass + '">' + (entry.type || '-') + '</span></td>' +
                     '<td>' + (entry.description || '-') + '</td>' +
-                    '<td style="text-align:center;color:#f5c842;font-weight:700;">' + (entry.amount ? entry.amount
-                        .toLocaleString() : '0') + '</td>' +
+                    '<td style="text-align:center;color:#f5c842;font-weight:700;">' + formatNumber(entry.amount) +
+                    '</td>' +
                     '<td><span class="badge-source ' + sourceClass + '">' + sourceLabel + '</span></td>' +
-                    '<td style="color:#ffffff;opacity:0.7;">' + (entry.privateTab || '-') + '</td>' +
-                    '<td style="font-size:0.55rem;color:rgba(255,255,255,0.3);">' + (entry.notes || '-') + '</td>' +
+                    '<td style="color:#ffffff;opacity:0.85;">' + (entry.privateTab || '-') + '</td>' +
+                    '<td style="font-size:0.55rem;color:rgba(255,255,255,0.5);">' + (entry.notes || '-') + '</td>' +
                     '</tr>';
             });
 
@@ -1153,17 +1156,14 @@
             var source = filterSource.value;
 
             return entries.filter(function(entry) {
-                // فلتر التاريخ
                 if (fromDate && entry.date < fromDate) return false;
                 if (toDate && entry.date > toDate) return false;
 
-                // فلتر العميل (البحث في البيان والتبويب الخاص)
                 if (client) {
                     var searchText = (entry.description || '').toLowerCase() + ' ' + (entry.privateTab || '').toLowerCase();
                     if (!searchText.includes(client)) return false;
                 }
 
-                // فلتر المصدر
                 if (source !== 'all' && entry.source !== source) return false;
 
                 return true;
@@ -1186,21 +1186,23 @@
         });
 
         // ============================================================
-        // INIT
+        // INIT - التاريخ من أول السنة
         // ============================================================
         (function init() {
-            // تعيين التاريخ الافتراضي (آخر 30 يوم)
             var today = new Date();
-            var thirtyDaysAgo = new Date(today);
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            var currentYear = today.getFullYear();
 
+            // تاريخ اليوم
             filterDateTo.value = today.toISOString().split('T')[0];
-            filterDateFrom.value = thirtyDaysAgo.toISOString().split('T')[0];
+
+            // أول يوم في السنة الحالية (1 يناير)
+            var firstDayOfYear = new Date(currentYear, 0, 1);
+            filterDateFrom.value = firstDayOfYear.toISOString().split('T')[0];
 
             loadAllData();
 
             console.log('🚀 صفحة تحصيلات العملاء - تم التحميل');
-            console.log('📊 جاري عرض الحركات من جميع الخزائن...');
+            console.log('📅 الفترة: من ' + filterDateFrom.value + ' إلى ' + filterDateTo.value);
         })();
 
         // تحديث البيانات كل 5 دقائق
