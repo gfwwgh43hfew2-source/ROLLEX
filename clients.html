@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>بيانات العملاء - شركة رولكس</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    <style>
+        /* ============================================================
+           RESET & BASE
+           ============================================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
+            background: #0a0f1f;
+            color: #eee;
+            direction: rtl;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0f1f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f5c842;
+            border-radius: 10px;
+        }
+
+        /* ============================================================
+           HEADER
+           ============================================================ */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 10px 0;
+            background: rgba(10, 15, 31, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        header .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(135deg, #f5c842, #d4a020);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 900;
+            color: #0a0f1f;
+        }
+
+        .logo-text h1 {
+            font-size: 1rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #f5c842, #d4a020);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+
+        .logo-text span {
+            font-size: 0.5rem;
+            color: rgba(255, 255, 255, 0.3);
+            display: block;
+            -webkit-text-fill-color: rgba(255, 255, 255, 0.3);
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        nav a {
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: 0.3s;
+            position: relative;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            right: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #f5c842, #d4a020);
+            transition: 0.3s;
+            border-radius: 10px;
+        }
+
+        nav a:hover {
+            color: #fff;
+        }
+        nav a:hover::after {
+            width: 100%;
+        }
+        nav a.active {
+            color: #f5c842;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-actions button {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.03);
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-actions button:hover {
+            background: rgba(245, 200, 66, 0.1);
+            border-color: rgba(245, 200, 66, 0.2);
+            color: #f5c842;
+        }
+
+        .hamburger {
+            display: none;
+            font-size: 1.4rem;
+            color: #fff;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.03);
+            transition: 0.3s;
+            z-index: 1001;
+        }
+
+        .hamburger:hover {
+            background: rgba(245, 200, 66, 0.08);
+            border-color: rgba(245, 200, 66, 0.15);
+        }
+
+        .mobile-nav-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .mobile-nav-overlay.active {
+            opacity: 1;
+        }
+
+        .mobile-nav-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: -280px;
+            width: 280px;
+            height: 100vh;
+            background: rgba(10, 15, 31, 0.98);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            z-index: 1000;
+            padding: 80px 24px 30px;
+            transition: right 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+            overflow-y: auto;
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .mobile-nav-menu.open {
+            right: 0;
+        }
+
+        .mobile-nav-menu .close-btn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            font-size: 1.6rem;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.02);
+            transition: 0.3s;
+        }
+
+        .mobile-nav-menu .close-btn:hover {
+            background: rgba(245, 200, 66, 0.08);
+            border-color: rgba(245, 200, 66, 0.15);
+            color: #f5c842;
+        }
+
+        .mobile-nav-menu .menu-header {
+            margin-bottom: 30px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .mobile-nav-menu .menu-items {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .mobile-nav-menu .menu-items a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: 0.3s;
+        }
+
+        .mobile-nav-menu .menu-items a i {
+            width: 20px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 1rem;
+        }
+
+        .mobile-nav-menu .menu-items a:hover {
+            background: rgba(245, 200, 66, 0.06);
+            color: #f5c842;
+        }
+
+        .mobile-nav-menu .menu-items a.active {
+            background: rgba(245, 200, 66, 0.08);
+            color: #f5c842;
+        }
+
+        .mobile-nav-bottom {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 998;
+            background: rgba(10, 15, 31, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+        }
+
+        .mobile-nav-bottom ul {
+            display: flex;
+            justify-content: space-around;
+            list-style: none;
+        }
+
+        .mobile-nav-bottom ul li {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            font-size: 0.5rem;
+            color: rgba(255, 255, 255, 0.4);
+            transition: 0.3s;
+            padding: 4px 12px;
+            border-radius: 8px;
+        }
+
+        .mobile-nav-bottom ul li i {
+            font-size: 1rem;
+        }
+
+        .mobile-nav-bottom ul li:hover,
+        .mobile-nav-bottom ul li.active {
+            color: #f5c842;
+        }
+
+        .mobile-nav-bottom ul li a {
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+        }
+
+        /* ============================================================
+           PAGE HEADER
+           ============================================================ */
+        .page-header {
+            padding: 20px 0 10px;
+        }
+
+        .page-header h1 {
+            font-size: 1.8rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #f5c842, #d4a020);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .page-header p {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        /* ============================================================
+           FILTERS
+           ============================================================ */
+        .filters-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+            background: linear-gradient(145deg, #121a2e, #0e1525);
+            border-radius: 14px;
+            padding: 16px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            align-items: center;
+        }
+
+        .filters-section .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .filters-section .filter-group label {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .filters-section .filter-group input,
+        .filters-section .filter-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.03);
+            color: #eee;
+            font-size: 0.8rem;
+            font-family: inherit;
+            transition: 0.3s;
+            outline: none;
+        }
+
+        .filters-section .filter-group input:focus,
+        .filters-section .filter-group select:focus {
+            border-color: #f5c842;
+            background: rgba(245, 200, 66, 0.04);
+        }
+
+        .filters-section .filter-group input::placeholder {
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .filters-section .filter-group select option {
+            background: #0a0f1f;
+            color: #eee;
+        }
+
+        .btn-filter {
+            padding: 8px 20px;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #f5c842, #d4a020);
+            border: none;
+            color: #0a0f1f;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .btn-filter:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(245, 200, 66, 0.3);
+        }
+
+        .btn-reset {
+            padding: 8px 16px;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .btn-reset:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        /* ============================================================
+           SUMMARY
+           ============================================================ */
+        .summary-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            background: linear-gradient(145deg, #121a2e, #0e1525);
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .summary-bar .total {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .summary-bar .total span {
+            color: #f5c842;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .summary-bar .count {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .summary-bar .count span {
+            color: #fff;
+            font-weight: 700;
+        }
+
+        /* ============================================================
+           TABLE
+           ============================================================ */
+        .table-wrapper {
+            background: linear-gradient(145deg, #121a2e, #0e1525);
+            border-radius: 14px;
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            padding: 0 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.65rem;
+            min-width: 1200px;
+        }
+
+        th {
+            background: rgba(26, 47, 68, 0.4);
+            color: #f5c842;
+            padding: 8px 6px;
+            text-align: right;
+            font-weight: 700;
+            white-space: nowrap;
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        td {
+            padding: 6px 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            color: #ffffff;
+            font-size: 0.6rem;
+        }
+
+        tr:hover td {
+            background: rgba(245, 200, 66, 0.02);
+        }
+
+        /* ===== Status Badge ===== */
+        .badge-status {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 50px;
+            font-size: 0.5rem;
+            font-weight: 600;
+        }
+
+        .badge-status.active {
+            background: rgba(76, 175, 80, 0.15);
+            border: 1px solid rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+        }
+
+        .badge-status.inactive {
+            background: rgba(239, 83, 80, 0.15);
+            border: 1px solid rgba(239, 83, 80, 0.2);
+            color: #ef5350;
+        }
+
+        .badge-status.suspended {
+            background: rgba(255, 193, 7, 0.15);
+            border: 1px solid rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        /* ============================================================
+           EMPTY & LOADING
+           ============================================================ */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+            opacity: 0.2;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .empty-state p {
+            font-size: 0.85rem;
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #f5c842;
+        }
+
+        .loading-state i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
+        @media (min-width: 769px) {
+            .mobile-nav-bottom {
+                display: none !important;
+            }
+            .mobile-nav-overlay {
+                display: none !important;
+            }
+            .mobile-nav-menu {
+                display: none !important;
+            }
+            .hamburger {
+                display: none !important;
+            }
+            nav {
+                display: flex !important;
+            }
+            .container {
+                padding: 0 24px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                display: none !important;
+            }
+            .hamburger {
+                display: flex !important;
+            }
+            .mobile-nav-bottom {
+                display: flex !important;
+            }
+            .mobile-nav-menu {
+                display: block;
+            }
+            .mobile-nav-overlay {
+                display: block;
+            }
+            .mobile-nav-menu.open {
+                right: 0;
+            }
+            .mobile-nav-overlay.active {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            .page-header h1 {
+                font-size: 1.4rem;
+            }
+            .filters-section {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 14px;
+            }
+            .filters-section .filter-group {
+                min-width: unset;
+            }
+            .btn-filter,
+            .btn-reset {
+                width: 100%;
+                justify-content: center;
+            }
+            .summary-bar {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 6px;
+            }
+            .container {
+                padding: 0 14px;
+            }
+            .table-wrapper table {
+                font-size: 0.55rem;
+                min-width: 800px;
+            }
+            .table-wrapper table thead th,
+            .table-wrapper table tbody td {
+                padding: 4px 4px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .page-header h1 {
+                font-size: 1.2rem;
+            }
+            .filters-section {
+                padding: 10px;
+            }
+            .filters-section .filter-group input,
+            .filters-section .filter-group select {
+                font-size: 0.7rem;
+                padding: 6px 10px;
+            }
+            .table-wrapper table {
+                font-size: 0.5rem;
+                min-width: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================
+    HEADER
+    ============================================================ -->
+    <header id="header">
+        <div class="container">
+            <div class="logo">
+                <div class="logo-icon">👤</div>
+                <div class="logo-text">
+                    <h1>بيانات العملاء</h1>
+                    <span>شركة رولكس</span>
+                </div>
+            </div>
+            <nav>
+                <a href="treasury.html">الخزينة</a>
+                <a href="#" class="active">بيانات العملاء</a>
+                <a href="#">التقارير</a>
+                <a href="#">تواصل</a>
+            </nav>
+            <div class="header-actions">
+                <button aria-label="بحث"><i class="fas fa-search"></i></button>
+                <button aria-label="إشعارات"><i class="fas fa-bell"></i></button>
+                <div class="hamburger" id="navToggle"><i class="fas fa-bars"></i></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================================================
+    MOBILE NAV
+    ============================================================ -->
+    <div class="mobile-nav-overlay" id="mobileOverlay"></div>
+    <div class="mobile-nav-menu" id="mobileMenu">
+        <div class="close-btn" id="closeMenu"><i class="fas fa-times"></i></div>
+        <div class="menu-header">
+            <div class="logo-text">
+                <h1 style="font-size:1.2rem; background: linear-gradient(135deg, #f5c842, #d4a020); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">بيانات العملاء</h1>
+                <span style="font-size:0.6rem; color:rgba(255,255,255,0.3); display:block;">شركة رولكس</span>
+            </div>
+        </div>
+        <div class="menu-items">
+            <a href="treasury.html"><i class="fas fa-coins"></i> الخزينة</a>
+            <a href="#" class="active"><i class="fas fa-users"></i> بيانات العملاء</a>
+            <a href="#"><i class="fas fa-chart-pie"></i> التقارير</a>
+            <a href="#"><i class="fas fa-phone"></i> تواصل</a>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    MOBILE BOTTOM NAV
+    ============================================================ -->
+    <nav class="mobile-nav-bottom" id="mobileNavBottom">
+        <ul>
+            <li><a href="treasury.html"><i class="fas fa-coins"></i><span>الخزينة</span></a></li>
+            <li class="active"><a href="#"><i class="fas fa-users"></i><span>العملاء</span></a></li>
+            <li><a href="#"><i class="fas fa-chart-pie"></i><span>التقارير</span></a></li>
+            <li><a href="#"><i class="fas fa-phone"></i><span>تواصل</span></a></li>
+        </ul>
+    </nav>
+
+    <!-- ============================================================
+    PAGE CONTENT
+    ============================================================ -->
+    <div class="container">
+
+        <!-- ===== PAGE HEADER ===== -->
+        <div class="page-header">
+            <h1>👤 بيانات العملاء</h1>
+            <p>عرض جميع بيانات العملاء من Google Sheets</p>
+        </div>
+
+        <!-- ===== FILTERS ===== -->
+        <div class="filters-section">
+            <div class="filter-group">
+                <label><i class="fas fa-user"></i> اسم العميل</label>
+                <input type="text" id="filterClient" placeholder="اسم العميل..." />
+            </div>
+            <div class="filter-group">
+                <label><i class="fas fa-user-tie"></i> المندوب</label>
+                <input type="text" id="filterSalesman" placeholder="اسم المندوب..." />
+            </div>
+            <div class="filter-group" style="flex:0.5;min-width:120px;">
+                <label><i class="fas fa-circle"></i> الحالة</label>
+                <select id="filterStatus">
+                    <option value="all">الكل</option>
+                    <option value="نشط">نشط</option>
+                    <option value="غير نشط">غير نشط</option>
+                    <option value="موقوف">موقوف</option>
+                </select>
+            </div>
+            <button class="btn-filter" id="btnApplyFilter"><i class="fas fa-filter"></i> تطبيق</button>
+            <button class="btn-reset" id="btnResetFilter"><i class="fas fa-undo"></i> إلغاء</button>
+        </div>
+
+        <!-- ===== SUMMARY ===== -->
+        <div class="summary-bar" id="summaryBar">
+            <div class="total">إجمالي العملاء: <span id="totalCount">0</span></div>
+            <div class="count">إجمالي الرصيد المستحق: <span id="totalBalance">0</span></div>
+        </div>
+
+        <!-- ===== TABLE ===== -->
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>كود العميل</th>
+                        <th>اسم العميل</th>
+                        <th>الهاتف</th>
+                        <th>العنوان</th>
+                        <th style="text-align:center;">الرصيد الافتتاحي</th>
+                        <th style="text-align:center;">حد الائتمان</th>
+                        <th>المندوب</th>
+                        <th>الحالة</th>
+                        <th style="text-align:center;">إجمالي المبيعات</th>
+                        <th style="text-align:center;">إضافات يدوية</th>
+                        <th style="text-align:center;">التحصيلات</th>
+                        <th style="text-align:center;">الرصيد المستحق</th>
+                        <th>حالة الائتمان</th>
+                    </tr>
+                </thead>
+                <tbody id="entriesBody">
+                    <tr>
+                        <td colspan="13">
+                            <div class="loading-state">
+                                <i class="fas fa-spinner"></i>
+                                <p>جاري تحميل البيانات...</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- ============================================================
+    JAVASCRIPT
+    ============================================================ -->
+    <script>
+        // ============================================================
+        // HEADER SCROLL
+        // ============================================================
+        var header = document.getElementById('header');
+        window.addEventListener('scroll', function() {
+            if (window.pageYOffset > 10) {
+                header.style.background = 'rgba(10, 15, 31, 0.98)';
+                header.style.borderBottom = '1px solid rgba(255,255,255,0.08)';
+            } else {
+                header.style.background = 'rgba(10, 15, 31, 0.95)';
+                header.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+            }
+        });
+
+        // ============================================================
+        // MOBILE NAV
+        // ============================================================
+        var navToggle = document.getElementById('navToggle');
+        var mobileMenu = document.getElementById('mobileMenu');
+        var mobileOverlay = document.getElementById('mobileOverlay');
+        var closeMenu = document.getElementById('closeMenu');
+
+        function openMenu() {
+            mobileMenu.classList.add('open');
+            mobileOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            navToggle.innerHTML = '<i class="fas fa-times"></i>';
+            navToggle.classList.add('open');
+        }
+
+        function closeMenuFn() {
+            mobileMenu.classList.remove('open');
+            mobileOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+            navToggle.innerHTML = '<i class="fas fa-bars"></i>';
+            navToggle.classList.remove('open');
+        }
+
+        navToggle.addEventListener('click', function() {
+            if (mobileMenu.classList.contains('open')) {
+                closeMenuFn();
+            } else {
+                openMenu();
+            }
+        });
+
+        closeMenu.addEventListener('click', closeMenuFn);
+        mobileOverlay.addEventListener('click', closeMenuFn);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('open')) {
+                closeMenuFn();
+            }
+        });
+
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768 && mobileMenu.classList.contains('open')) {
+                closeMenuFn();
+            }
+        });
+
+        // ============================================================
+        // CONFIGURATION
+        // ============================================================
+        var SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
+        var SHEET_NAME = 'بيانات العملاء';
+
+        // ============================================================
+        // DOM REFS
+        // ============================================================
+        var entriesBody = document.getElementById('entriesBody');
+        var totalCount = document.getElementById('totalCount');
+        var totalBalance = document.getElementById('totalBalance');
+
+        var filterClient = document.getElementById('filterClient');
+        var filterSalesman = document.getElementById('filterSalesman');
+        var filterStatus = document.getElementById('filterStatus');
+        var btnApplyFilter = document.getElementById('btnApplyFilter');
+        var btnResetFilter = document.getElementById('btnResetFilter');
+
+        var allRows = [];
+
+        // ============================================================
+        // دالة تنسيق الأرقام
+        // ============================================================
+        function formatNumber(num) {
+            if (num === undefined || num === null || isNaN(num)) return '0';
+            var rounded = Math.round(num);
+            return rounded.toString();
+        }
+
+        // ============================================================
+        // FETCH DATA FROM GOOGLE SHEETS
+        // ============================================================
+        function fetchSheetData() {
+            var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + SHEET_NAME;
+            return fetch(url)
+                .then(function(response) {
+                    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
+                    return response.text();
+                })
+                .then(function(csvText) {
+                    var lines = csvText.split('\n').filter(function(line) {
+                        return line.trim() !== '';
+                    });
+                    return lines.map(function(line) {
+                        var row = [];
+                        var current = '';
+                        var insideQuotes = false;
+                        for (var i = 0; i < line.length; i++) {
+                            var char = line[i];
+                            if (char === '"') {
+                                insideQuotes = !insideQuotes;
+                            } else if (char === ',' && !insideQuotes) {
+                                row.push(current.trim());
+                                current = '';
+                            } else {
+                                current += char;
+                            }
+                        }
+                        row.push(current.trim());
+                        return row;
+                    });
+                });
+        }
+
+        function cleanNumber(value) {
+            if (!value) return 0;
+            if (typeof value === 'number') return value;
+            var cleaned = String(value).replace(/[^0-9.]/g, '');
+            return parseFloat(cleaned) || 0;
+        }
+
+        // ============================================================
+        // LOAD DATA
+        // ============================================================
+        function loadData() {
+            entriesBody.innerHTML = '<tr><td colspan="13"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
+
+            fetchSheetData()
+                .then(function(data) {
+                    if (!data || data.length < 2) {
+                        entriesBody.innerHTML = '<tr><td colspan="13"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>لا توجد بيانات</p></div></td></tr>';
+                        return;
+                    }
+
+                    var rows = [];
+                    for (var i = 1; i < data.length; i++) {
+                        var row = data[i];
+                        if (row && row.length > 0 && row[0] && row[0].trim() !== '') {
+                            rows.push(row);
+                        }
+                    }
+
+                    allRows = rows;
+                    displayRows(rows);
+                })
+                .catch(function(error) {
+                    console.error('Error loading data:', error);
+                    entriesBody.innerHTML = '<tr><td colspan="13"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات<br><small style="color:rgba(255,255,255,0.2);">' +
+                        error.message + '</small></p></div></td></tr>';
+                });
+        }
+
+        // ============================================================
+        // GET STATUS BADGE
+        // ============================================================
+        function getStatusBadge(status) {
+            var statusText = status || '-';
+            var statusClass = '';
+            
+            if (statusText.includes('نشط') || statusText.includes('active')) {
+                statusClass = 'active';
+                statusText = 'نشط';
+            } else if (statusText.includes('غير نشط') || statusText.includes('inactive')) {
+                statusClass = 'inactive';
+                statusText = 'غير نشط';
+            } else if (statusText.includes('موقوف') || statusText.includes('suspended')) {
+                statusClass = 'suspended';
+                statusText = 'موقوف';
+            } else {
+                return statusText;
+            }
+            
+            return '<span class="badge-status ' + statusClass + '">' + statusText + '</span>';
+        }
+
+        // ============================================================
+        // DISPLAY ROWS
+        // ============================================================
+        function displayRows(rows) {
+            var filtered = filterRows(rows);
+
+            var total = filtered.length;
+            var totalBal = 0;
+            filtered.forEach(function(row) {
+                var balance = cleanNumber(row[11]); // الرصيد المستحق (index 11)
+                totalBal += balance;
+            });
+
+            totalCount.textContent = total;
+            totalBalance.textContent = formatNumber(totalBal);
+
+            if (filtered.length === 0) {
+                entriesBody.innerHTML = '<tr><td colspan="13"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا يوجد عملاء</p></div></td></tr>';
+                return;
+            }
+
+            var html = '';
+            filtered.forEach(function(row) {
+                html += '<tr>' +
+                    '<td style="color:#f5c842;font-weight:600;">' + (row[0] || '-') + '</td>' + // كود العميل
+                    '<td style="color:#f5c842;font-weight:600;">' + (row[1] || '-') + '</td>' + // اسم العميل
+                    '<td>' + (row[2] || '-') + '</td>' + // الهاتف
+                    '<td style="font-size:0.55rem;">' + (row[3] || '-') + '</td>' + // العنوان
+                    '<td style="text-align:center;">' + formatNumber(cleanNumber(row[4])) + '</td>' + // الرصيد الافتتاحي
+                    '<td style="text-align:center;">' + formatNumber(cleanNumber(row[5])) + '</td>' + // حد الائتمان
+                    '<td>' + (row[6] || '-') + '</td>' + // المندوب
+                    '<td>' + getStatusBadge(row[7] || '-') + '</td>' + // الحالة
+                    '<td style="text-align:center;">' + formatNumber(cleanNumber(row[8])) + '</td>' + // إجمالي المبيعات
+                    '<td style="text-align:center;">' + formatNumber(cleanNumber(row[9])) + '</td>' + // إضافات يدوية
+                    '<td style="text-align:center;">' + formatNumber(cleanNumber(row[10])) + '</td>' + // التحصيلات
+                    '<td style="text-align:center;color:#f5c842;font-weight:700;">' + formatNumber(cleanNumber(row[11])) + '</td>' + // الرصيد المستحق
+                    '<td>' + (row[12] || '-') + '</td>' + // حالة الائتمان
+                    '</tr>';
+            });
+
+            entriesBody.innerHTML = html;
+        }
+
+        // ============================================================
+        // FILTER ROWS
+        // ============================================================
+        function filterRows(rows) {
+            var client = filterClient.value.trim().toLowerCase();
+            var salesman = filterSalesman.value.trim().toLowerCase();
+            var status = filterStatus.value;
+
+            return rows.filter(function(row) {
+                // فلتر اسم العميل (العمود 1)
+                if (client) {
+                    var clientName = (row[1] || '').toLowerCase();
+                    if (!clientName.includes(client)) return false;
+                }
+
+                // فلتر المندوب (العمود 6)
+                if (salesman) {
+                    var salesmanName = (row[6] || '').toLowerCase();
+                    if (!salesmanName.includes(salesman)) return false;
+                }
+
+                // فلتر الحالة (العمود 7)
+                if (status !== 'all') {
+                    var rowStatus = (row[7] || '').toLowerCase();
+                    var statusMap = {
+                        'نشط': 'نشط',
+                        'غير نشط': 'غير نشط',
+                        'موقوف': 'موقوف'
+                    };
+                    var statusKey = statusMap[status] || status;
+                    if (!rowStatus.includes(statusKey)) return false;
+                }
+
+                return true;
+            });
+        }
+
+        // ============================================================
+        // FILTER EVENTS
+        // ============================================================
+        btnApplyFilter.addEventListener('click', function() {
+            displayRows(allRows);
+        });
+
+        btnResetFilter.addEventListener('click', function() {
+            filterClient.value = '';
+            filterSalesman.value = '';
+            filterStatus.value = 'all';
+            displayRows(allRows);
+        });
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        (function init() {
+            loadData();
+            console.log('🚀 صفحة بيانات العملاء - تم التحميل');
+        })();
+
+        // تحديث البيانات كل 5 دقائق
+        setInterval(function() {
+            loadData();
+        }, 300000);
+    </script>
+
+</body>
+</html>
