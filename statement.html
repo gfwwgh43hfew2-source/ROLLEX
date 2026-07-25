@@ -449,7 +449,7 @@
         }
 
         /* ============================================================
-           SUGGESTIONS
+           SUGGESTIONS - مع دعم التنقل بالكيبورد
            ============================================================ */
         .suggestions-container {
             position: absolute;
@@ -481,8 +481,9 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.02);
         }
 
-        .suggestions-container .suggestion-item:hover {
-            background: rgba(245, 200, 66, 0.06);
+        .suggestions-container .suggestion-item:hover,
+        .suggestions-container .suggestion-item.active {
+            background: rgba(245, 200, 66, 0.08);
         }
 
         .suggestions-container .suggestion-item .s-code {
@@ -520,7 +521,7 @@
         }
 
         /* ============================================================
-           CLIENT INFO
+           CLIENT INFO - عرض الرصيد الحالي
            ============================================================ */
         .client-info-card {
             background: rgba(18, 26, 46, 0.85);
@@ -550,7 +551,7 @@
 
         .client-info-card .info-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 12px;
         }
 
@@ -607,7 +608,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.7rem;
-            min-width: 750px;
+            min-width: 800px;
         }
 
         .table-wrapper table thead th {
@@ -692,6 +693,11 @@
         }
 
         .badge-source.driver {
+            background: rgba(76, 175, 80, 0.15);
+            color: #4caf50;
+        }
+
+        .badge-source.sales {
             background: rgba(76, 175, 80, 0.15);
             color: #4caf50;
         }
@@ -1045,7 +1051,7 @@
                 <span>📊</span>
                 <span class="gold-text">كشف حساب العميل</span>
             </div>
-            <div class="title-sub">عرض تفاصيل حركات العميل من المبيعات والتحصيلات</div>
+            <div class="title-sub">عرض تفاصيل حركات العميل مرتبة تسلسلياً حسب التاريخ</div>
         </div>
 
         <!-- ===== SEARCH SECTION ===== -->
@@ -1078,8 +1084,8 @@
                     <div class="value white" id="clientSalesman">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="label">الرصيد الافتتاحي</div>
-                    <div class="value" id="openingBalance">0</div>
+                    <div class="label">الرصيد الحالي</div>
+                    <div class="value" id="currentBalance">0</div>
                 </div>
             </div>
         </div>
@@ -1206,15 +1212,17 @@
         var clientCode = document.getElementById('clientCode');
         var clientName = document.getElementById('clientName');
         var clientSalesman = document.getElementById('clientSalesman');
-        var openingBalance = document.getElementById('openingBalance');
+        var currentBalance = document.getElementById('currentBalance');
 
         // ============================================================
         // DATA
         // ============================================================
         var clientsData = [];
         var salesData = [];
-        var collectionsData = []; // من جميع الخزائن
+        var collectionsData = [];
         var selectedClient = null;
+        var suggestionItems = [];
+        var activeSuggestionIndex = -1;
 
         // ============================================================
         // دالة تنسيق الأرقام
@@ -1277,21 +1285,18 @@
             ]).then(function(results) {
                 loadingState.style.display = 'none';
 
-                // بيانات العملاء
                 if (results[0] && results[0].length > 1) {
                     clientsData = results[0].slice(1).filter(function(row) {
                         return row[0] && row[0].trim() !== '';
                     });
                 }
 
-                // بيانات المبيعات
                 if (results[1] && results[1].length > 1) {
                     salesData = results[1].slice(1).filter(function(row) {
                         return row[0] && row[0].trim() !== '';
                     });
                 }
 
-                // جمع التحصيلات من جميع الخزائن
                 var allCollections = [];
                 var sources = [
                     { name: 'main', label: 'الخزينة الرئيسية', data: results[2] },
@@ -1304,7 +1309,6 @@
                     for (var i = 1; i < source.data.length; i++) {
                         var row = source.data[i];
                         if (row && row.length > 5) {
-                            // التحقق من وجود مبلغ (وارد أو صادر)
                             var incoming = cleanNumber(row[5]);
                             var outgoing = cleanNumber(row[6]);
                             var amount = incoming > 0 ? incoming : outgoing;
@@ -1345,7 +1349,7 @@
         }
 
         // ============================================================
-        // SEARCH
+        // SEARCH - مع دعم التنقل بالكيبورد
         // ============================================================
         function performSearch(query) {
             if (!query || query.trim() === '') {
@@ -1364,26 +1368,33 @@
             if (results.length === 0) {
                 suggestionsContainer.innerHTML = '<div class="suggestion-empty">لا توجد نتائج</div>';
                 suggestionsContainer.classList.add('show');
+                suggestionItems = [];
+                activeSuggestionIndex = -1;
                 return;
             }
 
             var html = '';
-            results.slice(0, 15).forEach(function(row) {
+            suggestionItems = [];
+            results.slice(0, 15).forEach(function(row, index) {
                 var code = row[0] || '';
                 var name = row[1] || '';
                 var salesman = row[6] || '';
                 var status = row[7] || '';
 
-                html += '<div class="suggestion-item" data-code="' + code + '" data-name="' + name + '">' +
+                html += '<div class="suggestion-item" data-index="' + index + '" data-code="' + code + '" data-name="' +
+                    name + '">' +
                     '<span class="s-code">' + code + '</span>' +
                     '<span class="s-name">' + name + '</span>' +
                     '<span class="s-salesman">' + salesman + '</span>' +
                     (status ? '<span class="s-badge">' + status + '</span>' : '') +
                     '</div>';
+
+                suggestionItems.push(row);
             });
 
             suggestionsContainer.innerHTML = html;
             suggestionsContainer.classList.add('show');
+            activeSuggestionIndex = -1;
 
             suggestionsContainer.querySelectorAll('.suggestion-item').forEach(function(item) {
                 item.addEventListener('click', function() {
@@ -1401,6 +1412,47 @@
         }
 
         // ============================================================
+        // KEYBOARD NAVIGATION - التنقل بين الاقتراحات
+        // ============================================================
+        searchInput.addEventListener('keydown', function(e) {
+            var items = suggestionsContainer.querySelectorAll('.suggestion-item');
+            if (items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeSuggestionIndex = Math.min(activeSuggestionIndex + 1, items.length - 1);
+                updateActiveSuggestion(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeSuggestionIndex = Math.max(activeSuggestionIndex - 1, 0);
+                updateActiveSuggestion(items);
+            } else if (e.key === 'Enter') {
+                if (activeSuggestionIndex >= 0 && activeSuggestionIndex < items.length) {
+                    var activeItem = items[activeSuggestionIndex];
+                    var code = activeItem.dataset.code;
+                    var client = clientsData.find(function(row) { return row[0] === code; });
+                    if (client) {
+                        searchInput.value = client[1] + ' (' + client[0] + ')';
+                        suggestionsContainer.classList.remove('show');
+                        clearBtn.classList.add('visible');
+                        selectClient(client);
+                    }
+                }
+            }
+        });
+
+        function updateActiveSuggestion(items) {
+            items.forEach(function(item, index) {
+                if (index === activeSuggestionIndex) {
+                    item.classList.add('active');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        // ============================================================
         // SELECT CLIENT
         // ============================================================
         function selectClient(client) {
@@ -1409,14 +1461,13 @@
         }
 
         // ============================================================
-        // GET CLIENT COLLECTIONS - بالاسم
+        // GET CLIENT COLLECTIONS
         // ============================================================
         function getClientCollections(clientName) {
             return collectionsData.filter(function(row) {
                 var privateTab = row.privateTab || '';
                 var description = row.description || '';
                 var generalTab = row.generalTab || '';
-                // البحث عن اسم العميل في التبويبات أو البيان
                 return privateTab.includes(clientName) ||
                     description.includes(clientName) ||
                     generalTab.includes(clientName);
@@ -1424,7 +1475,7 @@
         }
 
         // ============================================================
-        // SHOW STATEMENT
+        // SHOW STATEMENT - مع دمج الحركات وترتيبها حسب التاريخ
         // ============================================================
         function showStatement(client) {
             if (!client) return;
@@ -1437,134 +1488,134 @@
             clientCode.textContent = clientCodeVal;
             clientName.textContent = clientNameVal;
             clientSalesman.textContent = client[6] || '-';
-            openingBalance.textContent = formatNumber(cleanNumber(client[4]));
 
-            // جلب المبيعات (بالكود)
+            // جلب المبيعات
             var clientSales = salesData.filter(function(row) {
                 return row[4] === clientCodeVal;
             });
 
-            // جلب التحصيلات (بالاسم)
+            // جلب التحصيلات
             var clientCollections = getClientCollections(clientNameVal);
 
-            console.log('📊 العميل:', clientNameVal);
-            console.log('📊 المبيعات:', clientSales.length);
-            console.log('📊 التحصيلات:', clientCollections.length);
+            // دمج الحركات في مصفوفة واحدة
+            var allTransactions = [];
+            var openingBalanceVal = cleanNumber(client[4]);
+            var runningBalance = openingBalanceVal;
 
-            // بناء الجدول
-            buildTable(client, clientSales, clientCollections);
-
-            tableWrapper.classList.add('show');
-            emptyState.style.display = 'none';
-        }
-
-        // ============================================================
-        // BUILD TABLE
-        // ============================================================
-        function buildTable(client, sales, collections) {
-            var rows = [];
-            var runningBalance = cleanNumber(client[4]);
-
-            // صف الرصيد الافتتاحي
-            rows.push({
-                type: 'opening',
-                date: '-',
-                number: '-',
-                description: 'الرصيد الافتتاحي',
-                debit: 0,
-                credit: runningBalance,
-                balance: runningBalance,
-                isOpening: true,
-                source: '',
-                sourceLabel: ''
-            });
-
-            // ترتيب المبيعات حسب التاريخ
-            var sortedSales = sales.slice().sort(function(a, b) {
-                return (a[2] || '').localeCompare(b[2] || '');
-            });
-
-            sortedSales.forEach(function(row) {
+            // إضافة المبيعات
+            clientSales.forEach(function(row) {
                 var amount = cleanNumber(row[13]);
-                runningBalance += amount;
-                rows.push({
-                    type: 'sales',
-                    date: row[2] || '-',
-                    number: row[0] || '-',
+                allTransactions.push({
+                    date: row[2] || '',
+                    number: row[0] || '',
                     description: row[5] || 'مبيعات',
+                    type: 'sales',
                     debit: amount,
                     credit: 0,
-                    balance: runningBalance,
-                    isSales: true,
+                    amount: amount,
                     source: 'sales',
-                    sourceLabel: 'المبيعات'
+                    sourceLabel: 'المبيعات',
+                    isOpening: false,
+                    isSales: true,
+                    isCollection: false,
+                    raw: row
                 });
             });
 
-            // ترتيب التحصيلات حسب التاريخ
-            var sortedCollections = collections.slice().sort(function(a, b) {
+            // إضافة التحصيلات
+            clientCollections.forEach(function(row) {
+                var amount = row.amount || 0;
+                allTransactions.push({
+                    date: row.date || '',
+                    number: row.number || '',
+                    description: row.description || 'تحصيل',
+                    type: 'collection',
+                    debit: 0,
+                    credit: amount,
+                    amount: amount,
+                    source: row.source || '',
+                    sourceLabel: row.sourceLabel || 'تحصيل',
+                    isOpening: false,
+                    isSales: false,
+                    isCollection: true,
+                    raw: row
+                });
+            });
+
+            // ترتيب الحركات حسب التاريخ (من الأقدم إلى الأحدث)
+            allTransactions.sort(function(a, b) {
                 return (a.date || '').localeCompare(b.date || '');
             });
 
-            sortedCollections.forEach(function(row) {
-                var amount = row.amount || 0;
-                runningBalance -= amount;
-                rows.push({
-                    type: 'collection',
-                    date: row.date || '-',
-                    number: row.number || '-',
-                    description: row.description || 'تحصيل',
-                    debit: 0,
-                    credit: amount,
-                    balance: runningBalance,
-                    isCollection: true,
-                    source: row.source || '',
-                    sourceLabel: row.sourceLabel || 'تحصيل'
-                });
+            // حساب الرصيد التراكمي
+            var finalBalance = openingBalanceVal;
+            allTransactions.forEach(function(tx) {
+                finalBalance += tx.debit - tx.credit;
+                tx.balance = finalBalance;
             });
 
-            // عرض الجدول
+            // الرصيد الحالي
+            currentBalance.textContent = formatNumber(finalBalance);
+
+            // بناء الجدول
             var html = '';
-            rows.forEach(function(row) {
+
+            // صف الرصيد الافتتاحي (في أول الجدول)
+            html += '<tr class="row-opening">' +
+                '<td>-</td>' +
+                '<td>-</td>' +
+                '<td>الرصيد الافتتاحي</td>' +
+                '<td><span class="badge-type opening">افتتاحي</span></td>' +
+                '<td style="text-align:center;">-</td>' +
+                '<td style="text-align:center;color:#ab47bc;font-weight:700;">' + formatNumber(openingBalanceVal) +
+                '</td>' +
+                '<td style="text-align:center;color:#f5c842;font-weight:700;">' + formatNumber(openingBalanceVal) +
+                '</td>' +
+                '<td></td>' +
+                '</tr>';
+
+            // عرض الحركات المرتبة
+            allTransactions.forEach(function(tx) {
                 var badgeClass = '';
                 var badgeText = '';
-                if (row.isOpening) {
-                    badgeClass = 'opening';
-                    badgeText = 'افتتاحي';
-                } else if (row.isSales) {
+                if (tx.isSales) {
                     badgeClass = 'sales';
                     badgeText = 'مبيعات';
-                } else if (row.isCollection) {
+                } else if (tx.isCollection) {
                     badgeClass = 'collection';
                     badgeText = 'تحصيل';
                 }
 
-                var debitDisplay = row.debit > 0 ? formatNumber(row.debit) : '-';
-                var creditDisplay = row.credit > 0 ? formatNumber(row.credit) : '-';
-                var debitColor = row.debit > 0 ? 'color:#4caf50;font-weight:700;' : '';
-                var creditColor = row.credit > 0 ? 'color:#ef5350;font-weight:700;' : '';
+                var debitDisplay = tx.debit > 0 ? formatNumber(tx.debit) : '-';
+                var creditDisplay = tx.credit > 0 ? formatNumber(tx.credit) : '-';
+                var debitColor = tx.debit > 0 ? 'color:#4caf50;font-weight:700;' : '';
+                var creditColor = tx.credit > 0 ? 'color:#ef5350;font-weight:700;' : '';
 
-                // مصدر التحصيل
                 var sourceBadge = '';
-                if (row.source && row.source !== 'sales') {
-                    var sourceClass = row.source;
-                    sourceBadge = '<span class="badge-source ' + sourceClass + '">' + row.sourceLabel + '</span>';
+                if (tx.source && tx.source !== 'sales') {
+                    var sourceClass = tx.source;
+                    sourceBadge = '<span class="badge-source ' + sourceClass + '">' + tx.sourceLabel + '</span>';
+                } else if (tx.isSales) {
+                    sourceBadge = '<span class="badge-source sales">المبيعات</span>';
                 }
 
                 html += '<tr>' +
-                    '<td>' + row.date + '</td>' +
-                    '<td>' + row.number + '</td>' +
-                    '<td>' + row.description + '</td>' +
+                    '<td>' + tx.date + '</td>' +
+                    '<td>' + tx.number + '</td>' +
+                    '<td>' + tx.description + '</td>' +
                     '<td><span class="badge-type ' + badgeClass + '">' + badgeText + '</span></td>' +
                     '<td style="text-align:center;' + debitColor + '">' + debitDisplay + '</td>' +
                     '<td style="text-align:center;' + creditColor + '">' + creditDisplay + '</td>' +
-                    '<td style="text-align:center;color:#f5c842;font-weight:700;">' + formatNumber(row.balance) +
+                    '<td style="text-align:center;color:#f5c842;font-weight:700;">' + formatNumber(tx.balance) +
                     '</td>' +
                     '<td>' + sourceBadge + '</td>' +
                     '</tr>';
             });
 
             entriesBody.innerHTML = html;
+
+            tableWrapper.classList.add('show');
+            emptyState.style.display = 'none';
         }
 
         // ============================================================
@@ -1628,9 +1679,12 @@
         btnPrint.addEventListener('click', printStatement);
 
         searchInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                btnShow.click();
+            if (e.key === 'Enter' && !e.shiftKey) {
+                // السماح للتنقل بالكيبورد بالعمل أولاً
+                if (activeSuggestionIndex === -1) {
+                    e.preventDefault();
+                    btnShow.click();
+                }
             }
             if (e.key === 'Escape') {
                 clearBtn.click();
@@ -1649,7 +1703,8 @@
         (function init() {
             loadAllData();
             console.log('🚀 كشف حساب العميل - تم التحميل');
-            console.log('📌 يتم جلب التحصيلات من شيتات الخزائن الثلاث');
+            console.log('📌 يتم دمج المبيعات والتحصيلات وترتيبها حسب التاريخ');
+            console.log('📌 استخدم أسهم ↑↓ للتنقل بين الاقتراحات');
         })();
     </script>
 
