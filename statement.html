@@ -352,7 +352,7 @@
         }
 
         /* ============================================================
-           SEARCH SECTION - البحث الذكي
+           SEARCH SECTION
            ============================================================ */
         .search-section {
             margin-bottom: 24px;
@@ -449,7 +449,7 @@
         }
 
         /* ============================================================
-           SUGGESTIONS - اقتراحات البحث الذكية
+           SUGGESTIONS
            ============================================================ */
         .suggestions-container {
             position: absolute;
@@ -520,7 +520,7 @@
         }
 
         /* ============================================================
-           CLIENT INFO CARD
+           CLIENT INFO
            ============================================================ */
         .client-info-card {
             background: rgba(18, 26, 46, 0.85);
@@ -578,14 +578,6 @@
 
         .client-info-card .info-item .value.white {
             color: #fff;
-        }
-
-        .client-info-card .info-item .value.green {
-            color: #4caf50;
-        }
-
-        .client-info-card .info-item .value.red {
-            color: #ef5350;
         }
 
         /* ============================================================
@@ -1169,6 +1161,7 @@
         var SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
         var SHEET_CLIENTS = 'بيانات العملاء';
         var SHEET_SALES = 'المبيعات والمرتجعات';
+        var SHEET_COLLECTIONS = 'خزينة الحسابات'; // شيت التحصيلات
 
         // ============================================================
         // DOM REFS
@@ -1213,7 +1206,7 @@
         }
 
         // ============================================================
-        // FETCH DATA
+        // FETCH DATA FROM GOOGLE SHEETS
         // ============================================================
         function fetchSheetData(sheetName) {
             var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + sheetName;
@@ -1251,32 +1244,37 @@
 
             Promise.all([
                 fetchSheetData(SHEET_CLIENTS),
-                fetchSheetData(SHEET_SALES)
+                fetchSheetData(SHEET_SALES),
+                fetchSheetData(SHEET_COLLECTIONS)
             ]).then(function(results) {
                 loadingState.style.display = 'none';
 
+                // بيانات العملاء
                 if (results[0] && results[0].length > 1) {
                     clientsData = results[0].slice(1).filter(function(row) {
                         return row[0] && row[0].trim() !== '';
                     });
                 }
 
+                // بيانات المبيعات
                 if (results[1] && results[1].length > 1) {
                     salesData = results[1].slice(1).filter(function(row) {
                         return row[0] && row[0].trim() !== '';
                     });
                 }
 
-                // محاولة جلب التحصيلات من LocalStorage
-                try {
-                    var collections = localStorage.getItem('rollex_collections_data');
-                    if (collections) {
-                        collectionsData = JSON.parse(collections);
-                    }
-                } catch (e) {}
+                // بيانات التحصيلات - من شيت خزينة الحسابات
+                if (results[2] && results[2].length > 1) {
+                    collectionsData = results[2].slice(1).filter(function(row) {
+                        return row[0] && row[0].trim() !== '';
+                    });
+                }
 
-                console.log('✅ تم تحميل البيانات: ' + clientsData.length + ' عميل, ' + salesData.length +
-                    ' حركة مبيعات');
+                console.log('✅ تم تحميل البيانات:');
+                console.log('📊 العملاء:', clientsData.length);
+                console.log('📊 المبيعات:', salesData.length);
+                console.log('📊 التحصيلات:', collectionsData.length);
+
                 emptyState.style.display = 'block';
                 emptyState.innerHTML = '<i class="fas fa-user-search"></i><p>ابحث عن عميل لعرض كشف الحساب</p><div class="sub">اكتب اسم العميل أو الكود في مربع البحث</div>';
             }).catch(function(error) {
@@ -1328,7 +1326,6 @@
             suggestionsContainer.innerHTML = html;
             suggestionsContainer.classList.add('show');
 
-            // إضافة حدث النقر على كل اقتراح
             suggestionsContainer.querySelectorAll('.suggestion-item').forEach(function(item) {
                 item.addEventListener('click', function() {
                     var code = this.dataset.code;
@@ -1352,6 +1349,21 @@
         }
 
         // ============================================================
+        // GET CLIENT COLLECTIONS
+        // ============================================================
+        function getClientCollections(clientCode) {
+            return collectionsData.filter(function(row) {
+                var privateTab = row[10] || '';
+                var description = row[4] || '';
+                var generalTab = row[9] || '';
+                // البحث عن كود العميل في التبويبات أو البيان
+                return privateTab.includes(clientCode) ||
+                    description.includes(clientCode) ||
+                    generalTab.includes(clientCode);
+            });
+        }
+
+        // ============================================================
         // SHOW STATEMENT
         // ============================================================
         function showStatement(client) {
@@ -1366,16 +1378,16 @@
 
             // جلب حركات العميل
             var clientCodeVal = client[0];
+
+            // جلب المبيعات
             var clientSales = salesData.filter(function(row) {
                 return row[4] === clientCodeVal;
             });
 
-            // جلب التحصيلات (من LocalStorage)
-            var clientCollections = collectionsData.filter(function(row) {
-                var privateTab = row[10] || '';
-                var description = row[4] || '';
-                return privateTab.includes(clientCodeVal) || description.includes(clientCodeVal);
-            });
+            // جلب التحصيلات
+            var clientCollections = getClientCollections(clientCodeVal);
+
+            console.log('📊 العميل:', client[1], 'المبيعات:', clientSales.length, 'التحصيلات:', clientCollections.length);
 
             // بناء الجدول
             buildTable(client, clientSales, clientCollections);
@@ -1385,7 +1397,7 @@
         }
 
         // ============================================================
-        // BUILD TABLE - عرض التفاصيل فقط
+        // BUILD TABLE
         // ============================================================
         function buildTable(client, sales, collections) {
             var rows = [];
@@ -1429,7 +1441,7 @@
             });
 
             sortedCollections.forEach(function(row) {
-                var amount = cleanNumber(row[5]);
+                var amount = cleanNumber(row[5]); // المبلغ في العمود 5
                 runningBalance -= amount;
                 rows.push({
                     type: 'collection',
@@ -1493,7 +1505,6 @@
         // ============================================================
         // EVENT LISTENERS
         // ============================================================
-        // البحث الفوري
         searchInput.addEventListener('input', function() {
             var val = this.value;
             if (val.trim() === '') {
@@ -1505,7 +1516,6 @@
             performSearch(val);
         });
 
-        // زر المسح
         clearBtn.addEventListener('click', function() {
             searchInput.value = '';
             this.classList.remove('visible');
@@ -1517,7 +1527,6 @@
             emptyState.innerHTML = '<i class="fas fa-user-search"></i><p>ابحث عن عميل لعرض كشف الحساب</p><div class="sub">اكتب اسم العميل أو الكود في مربع البحث</div>';
         });
 
-        // زر العرض
         btnShow.addEventListener('click', function() {
             var val = searchInput.value.trim();
             if (!val) {
@@ -1525,7 +1534,6 @@
                 return;
             }
 
-            // البحث عن العميل المطابق
             var q = val.toLowerCase();
             var found = clientsData.find(function(row) {
                 var code = (row[0] || '').toLowerCase();
@@ -1537,15 +1545,12 @@
                 suggestionsContainer.classList.remove('show');
                 selectClient(found);
             } else {
-                // عرض نتائج البحث في الاقتراحات
                 performSearch(val);
             }
         });
 
-        // زر الطباعة
         btnPrint.addEventListener('click', printStatement);
 
-        // Enter في مربع البحث
         searchInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -1556,7 +1561,6 @@
             }
         });
 
-        // إغلاق الاقتراحات عند النقر خارجها
         document.addEventListener('click', function(e) {
             if (!e.target.closest('.search-section')) {
                 suggestionsContainer.classList.remove('show');
