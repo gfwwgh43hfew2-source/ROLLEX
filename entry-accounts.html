@@ -562,6 +562,88 @@
             color: #4caf50;
         }
 
+        /* ===== CUSTOM DROPDOWN ===== */
+        .custom-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            right: 0;
+            left: 0;
+            background: rgba(18, 26, 46, 0.98);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .custom-dropdown.show {
+            display: block;
+        }
+
+        .custom-dropdown .dropdown-header {
+            padding: 8px 12px;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .custom-dropdown .dropdown-item {
+            padding: 8px 14px;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .custom-dropdown .dropdown-item:hover {
+            background: rgba(245, 200, 66, 0.06);
+            color: var(--gold-primary);
+        }
+
+        .custom-dropdown .dropdown-item.active {
+            background: rgba(245, 200, 66, 0.08);
+            color: var(--gold-primary);
+        }
+
+        .custom-dropdown .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .custom-dropdown .dropdown-empty {
+            padding: 12px 14px;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-align: center;
+        }
+
+        .dropdown-arrow {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            cursor: pointer;
+            z-index: 3;
+            transition: var(--transition-smooth);
+        }
+
+        .dropdown-arrow:hover {
+            color: var(--gold-primary);
+        }
+
+        .dropdown-arrow.open {
+            transform: translateY(-50%) rotate(180deg);
+            color: var(--gold-primary);
+        }
+
         .amount-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1350,10 +1432,18 @@
                                 التبويب العام
                                 <span class="required-star">*</span>
                             </label>
-                            <div class="field-wrapper">
-                                <input type="text" id="entryGeneralTab" list="generalTabs" placeholder="اكتب للبحث..." autocomplete="off" required />
-                                <datalist id="generalTabs"></datalist>
+                            <div class="field-wrapper" style="position:relative;">
+                                <input type="text" id="entryGeneralTab" placeholder="اكتب للبحث..." autocomplete="off" required />
                                 <span class="field-icon"><i class="fas fa-list-ul"></i></span>
+                                <span class="dropdown-arrow" id="generalDropdownArrow" onclick="toggleDropdown('general')">
+                                    <i class="fas fa-chevron-down"></i>
+                                </span>
+                                <div class="custom-dropdown" id="generalDropdown">
+                                    <div class="dropdown-header">
+                                        <i class="fas fa-search"></i> التبويبات العامة
+                                    </div>
+                                    <div id="generalDropdownList"></div>
+                                </div>
                             </div>
                             <div class="validation-message" id="generalTabValidation"></div>
                         </div>
@@ -1407,10 +1497,18 @@
                             التبويب الخاص
                             <span class="required-star">*</span>
                         </label>
-                        <div class="field-wrapper">
-                            <input type="text" id="entryPrivateTab" list="privateTabs" placeholder="اكتب للبحث..." autocomplete="off" required />
-                            <datalist id="privateTabs"></datalist>
+                        <div class="field-wrapper" style="position:relative;">
+                            <input type="text" id="entryPrivateTab" placeholder="اكتب للبحث..." autocomplete="off" required />
                             <span class="field-icon"><i class="fas fa-list"></i></span>
+                            <span class="dropdown-arrow" id="privateDropdownArrow" onclick="toggleDropdown('private')">
+                                <i class="fas fa-chevron-down"></i>
+                            </span>
+                            <div class="custom-dropdown" id="privateDropdown">
+                                <div class="dropdown-header">
+                                    <i class="fas fa-search"></i> التبويبات الخاصة
+                                </div>
+                                <div id="privateDropdownList"></div>
+                            </div>
                         </div>
                         <div class="validation-message" id="privateTabValidation"></div>
                     </div>
@@ -1627,7 +1725,7 @@
         });
 
         // ============================================================
-        // CONFIGURATION - استخدم الرابط الجديد
+        // CONFIGURATION
         // ============================================================
         var WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwzDyVjlpzCEOsJVYbKwXd_E_k73doYQPQEyB7KeXa3WHEoqTqCKcsXu1w-D_GqAMpCLQ/exec';
         var STORAGE_KEY = 'rollex_treasury_accounts_entries';
@@ -1654,8 +1752,6 @@
         var resetBtn = document.getElementById('resetBtn');
         var entriesBody = document.getElementById('entriesBody');
         var entriesCount = document.getElementById('entriesCount');
-        var generalDatalist = document.getElementById('generalTabs');
-        var privateDatalist = document.getElementById('privateTabs');
 
         var sidebarOpeningBalance = document.getElementById('sidebarOpeningBalance');
         var sidebarTotalIncoming = document.getElementById('sidebarTotalIncoming');
@@ -1674,10 +1770,21 @@
 
         var notesCounter = document.getElementById('notesCounter');
 
+        // عناصر القائمة المخصصة
+        var generalDropdown = document.getElementById('generalDropdown');
+        var generalDropdownList = document.getElementById('generalDropdownList');
+        var generalDropdownArrow = document.getElementById('generalDropdownArrow');
+
+        var privateDropdown = document.getElementById('privateDropdown');
+        var privateDropdownList = document.getElementById('privateDropdownList');
+        var privateDropdownArrow = document.getElementById('privateDropdownArrow');
+
         // ============================================================
         // STATE
         // ============================================================
         var openingBalance = 0;
+        var generalTabsData = [];
+        var privateTabsData = [];
 
         // ============================================================
         // TOAST
@@ -1731,6 +1838,148 @@
                 }
             });
         }
+
+        // ============================================================
+        // CUSTOM DROPDOWN FUNCTIONS
+        // ============================================================
+        function toggleDropdown(type) {
+            var dropdown, arrow;
+            if (type === 'general') {
+                dropdown = generalDropdown;
+                arrow = generalDropdownArrow;
+            } else {
+                dropdown = privateDropdown;
+                arrow = privateDropdownArrow;
+            }
+
+            if (dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+                arrow.classList.remove('open');
+            } else {
+                // إغلاق القوائم الأخرى
+                closeAllDropdowns();
+                dropdown.classList.add('show');
+                arrow.classList.add('open');
+            }
+        }
+
+        function closeAllDropdowns() {
+            generalDropdown.classList.remove('show');
+            generalDropdownArrow.classList.remove('open');
+            privateDropdown.classList.remove('show');
+            privateDropdownArrow.classList.remove('open');
+        }
+
+        function selectDropdownItem(type, value) {
+            if (type === 'general') {
+                generalTabInput.value = value;
+                generalDropdown.classList.remove('show');
+                generalDropdownArrow.classList.remove('open');
+                // تشغيل حدث التحقق
+                var event = new Event('input');
+                generalTabInput.dispatchEvent(event);
+            } else {
+                privateTabInput.value = value;
+                privateDropdown.classList.remove('show');
+                privateDropdownArrow.classList.remove('open');
+                var event = new Event('input');
+                privateTabInput.dispatchEvent(event);
+            }
+        }
+
+        function updateDropdownList(type, items, filterText) {
+            var list, dropdown;
+            if (type === 'general') {
+                list = generalDropdownList;
+                dropdown = generalDropdown;
+            } else {
+                list = privateDropdownList;
+                dropdown = privateDropdown;
+            }
+
+            list.innerHTML = '';
+
+            var filteredItems = items;
+            if (filterText && filterText.trim() !== '') {
+                var search = filterText.trim().toLowerCase();
+                filteredItems = items.filter(function(item) {
+                    return item.toLowerCase().includes(search);
+                });
+            }
+
+            if (filteredItems.length === 0) {
+                list.innerHTML = '<div class="dropdown-empty">لا توجد نتائج</div>';
+                return;
+            }
+
+            filteredItems.forEach(function(item) {
+                var div = document.createElement('div');
+                div.className = 'dropdown-item';
+                div.textContent = item;
+                div.addEventListener('click', function() {
+                    selectDropdownItem(type, item);
+                });
+                list.appendChild(div);
+            });
+
+            // عرض القائمة إذا كانت مخفية
+            if (!dropdown.classList.contains('show')) {
+                dropdown.classList.add('show');
+                if (type === 'general') {
+                    generalDropdownArrow.classList.add('open');
+                } else {
+                    privateDropdownArrow.classList.add('open');
+                }
+            }
+        }
+
+        // ============================================================
+        // INPUT EVENTS FOR DROPDOWN
+        // ============================================================
+        generalTabInput.addEventListener('input', function() {
+            var value = this.value;
+            updateDropdownList('general', generalTabsData, value);
+            validateGeneralTab();
+        });
+
+        generalTabInput.addEventListener('focus', function() {
+            if (generalTabsData.length > 0) {
+                updateDropdownList('general', generalTabsData, this.value);
+            }
+        });
+
+        generalTabInput.addEventListener('blur', function() {
+            setTimeout(function() {
+                generalDropdown.classList.remove('show');
+                generalDropdownArrow.classList.remove('open');
+            }, 200);
+        });
+
+        privateTabInput.addEventListener('input', function() {
+            var value = this.value;
+            updateDropdownList('private', privateTabsData, value);
+            validatePrivateTab();
+        });
+
+        privateTabInput.addEventListener('focus', function() {
+            if (privateTabsData.length > 0) {
+                updateDropdownList('private', privateTabsData, this.value);
+            }
+        });
+
+        privateTabInput.addEventListener('blur', function() {
+            setTimeout(function() {
+                privateDropdown.classList.remove('show');
+                privateDropdownArrow.classList.remove('open');
+            }, 200);
+        });
+
+        // إغلاق القوائم عند النقر خارجها
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.field-wrapper')) {
+                closeAllDropdowns();
+            }
+        });
 
         // ============================================================
         // VALIDATION HELPERS
@@ -1959,24 +2208,6 @@
             validateAmounts();
         });
 
-        generalTabInput.addEventListener('blur', validateGeneralTab);
-        generalTabInput.addEventListener('input', function() {
-            if (generalTabInput.value.trim()) {
-                validateGeneralTab();
-            } else {
-                clearValidation(generalTabValidation);
-            }
-        });
-
-        privateTabInput.addEventListener('blur', validatePrivateTab);
-        privateTabInput.addEventListener('input', function() {
-            if (privateTabInput.value.trim()) {
-                validatePrivateTab();
-            } else {
-                clearValidation(privateTabValidation);
-            }
-        });
-
         notesInput.addEventListener('input', function() {
             var len = notesInput.value.length;
             notesCounter.textContent = len + ' / 300';
@@ -1989,13 +2220,13 @@
         });
 
         // ============================================================
-        // LOAD TABS - جلب التبويبات من شيت الإعدادات
+        // LOAD TABS
         // ============================================================
         var TABS_SHEET_URL = WEB_APP_URL + '?action=getTabs';
 
         function loadTabs() {
             showToast('🔄 جاري تحميل', 'جاري تحميل التبويبات من شيت الإعدادات...', 'warning');
-            
+
             fetch(TABS_SHEET_URL)
                 .then(function(response) {
                     if (response.ok) return response.json();
@@ -2003,19 +2234,20 @@
                 })
                 .then(function(data) {
                     console.log('📋 بيانات التبويبات المستلمة:', data);
-                    
+
                     if (data.success) {
-                        var generalTabs = data.generalTabs || [];
-                        var privateTabs = data.privateTabs || [];
-                        
-                        // تحديث قوائم الاقتراحات
-                        updateDatalist(generalDatalist, generalTabs);
-                        updateDatalist(privateDatalist, privateTabs);
-                        
+                        generalTabsData = data.generalTabs || [];
+                        privateTabsData = data.privateTabs || [];
+
+                        // تحديث القوائم المخصصة
+                        updateDropdownList('general', generalTabsData, '');
+                        updateDropdownList('private', privateTabsData, '');
+
                         // حفظ في LocalStorage
                         localStorage.setItem(TABS_KEY, JSON.stringify(data));
-                        
-                        showToast('✅ تم التحميل', 'تم تحميل ' + generalTabs.length + ' تبويب عام و ' + privateTabs.length + ' تبويب خاص', 'success');
+
+                        showToast('✅ تم التحميل', 'تم تحميل ' + generalTabsData.length + ' تبويب عام و ' +
+                            privateTabsData.length + ' تبويب خاص', 'success');
                     } else {
                         loadTabsFromLocalStorage();
                     }
@@ -2031,38 +2263,24 @@
                 var data = localStorage.getItem(TABS_KEY);
                 if (data) {
                     var parsed = JSON.parse(data);
-                    updateDatalist(generalDatalist, parsed.generalTabs || []);
-                    updateDatalist(privateDatalist, parsed.privateTabs || []);
+                    generalTabsData = parsed.generalTabs || [];
+                    privateTabsData = parsed.privateTabs || [];
+                    updateDropdownList('general', generalTabsData, '');
+                    updateDropdownList('private', privateTabsData, '');
                     showToast('💾 تحميل محلي', 'تم تحميل التبويبات من الذاكرة المحلية', 'warning');
                 } else {
-                    // إذا لم توجد بيانات في LocalStorage، استخدم قيماً افتراضية
-                    var defaultGeneral = ['تحصيلات العملاء', 'إيرادات أخرى', 'رأس مال', 'قرض وارد', 'مدفوعات الموردين', 'مصروفات تشغيلية', 'رواتب', 'ضرائب', 'تحويل بين الخزائن', 'إيداع بالبنك', 'سحب من البنك'];
-                    var defaultPrivate = ['مصروفات تشغيلية', 'رواتب', 'ضرائب'];
-                    updateDatalist(generalDatalist, defaultGeneral);
-                    updateDatalist(privateDatalist, defaultPrivate);
+                    // قيم افتراضية
+                    generalTabsData = ['تحصيلات العملاء', 'إيرادات أخرى', 'رأس مال', 'قرض وارد', 'مدفوعات الموردين',
+                        'مصروفات تشغيلية', 'رواتب', 'ضرائب', 'تحويل بين الخزائن', 'إيداع بالبنك', 'سحب من البنك'
+                    ];
+                    privateTabsData = ['مصروفات تشغيلية', 'رواتب', 'ضرائب'];
+                    updateDropdownList('general', generalTabsData, '');
+                    updateDropdownList('private', privateTabsData, '');
                     showToast('📋 قيم افتراضية', 'تم تحميل التبويبات الافتراضية', 'warning');
                 }
             } catch (e) {
                 console.error('Error loading tabs from localStorage:', e);
             }
-        }
-
-        function updateDatalist(datalist, items) {
-            datalist.innerHTML = '';
-            if (!items || items.length === 0) {
-                var option = document.createElement('option');
-                option.value = 'لا توجد بيانات';
-                datalist.appendChild(option);
-                return;
-            }
-            items.forEach(function(item) {
-                if (item && item.trim() !== '') {
-                    var option = document.createElement('option');
-                    option.value = item.trim();
-                    datalist.appendChild(option);
-                }
-            });
-            console.log('✅ تم تحديث ' + datalist.id + ' بـ ' + datalist.children.length + ' خيار');
         }
 
         // ============================================================
@@ -2373,7 +2591,7 @@
             var today = new Date().toISOString().split('T')[0];
             dateInput.value = today;
 
-            // تحميل التبويبات من شيت الإعدادات
+            // تحميل التبويبات
             loadTabs();
 
             // جلب الرصيد الافتتاحي
