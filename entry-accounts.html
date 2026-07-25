@@ -1725,9 +1725,9 @@
         });
 
         // ============================================================
-        // CONFIGURATION
+        // CONFIGURATION - الرابط الجديد
         // ============================================================
-        var WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwzDyVjlpzCEOsJVYbKwXd_E_k73doYQPQEyB7KeXa3WHEoqTqCKcsXu1w-D_GqAMpCLQ/exec';
+        var WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxa46lgxIC5XEQBI0Zww41vi8dYMtq82CidD9wDY0qiiJlwQvb92Ilt9q8_26xmb5JSoQ/exec';
         var STORAGE_KEY = 'rollex_treasury_accounts_entries';
         var TABS_KEY = 'rollex_accounts_tabs_data';
 
@@ -1856,10 +1856,15 @@
                 dropdown.classList.remove('show');
                 arrow.classList.remove('open');
             } else {
-                // إغلاق القوائم الأخرى
                 closeAllDropdowns();
                 dropdown.classList.add('show');
                 arrow.classList.add('open');
+                // تحديث القائمة عند الفتح
+                if (type === 'general') {
+                    updateDropdownList('general', generalTabsData, generalTabInput.value);
+                } else {
+                    updateDropdownList('private', privateTabsData, privateTabInput.value);
+                }
             }
         }
 
@@ -1875,15 +1880,12 @@
                 generalTabInput.value = value;
                 generalDropdown.classList.remove('show');
                 generalDropdownArrow.classList.remove('open');
-                // تشغيل حدث التحقق
-                var event = new Event('input');
-                generalTabInput.dispatchEvent(event);
+                validateGeneralTab();
             } else {
                 privateTabInput.value = value;
                 privateDropdown.classList.remove('show');
                 privateDropdownArrow.classList.remove('open');
-                var event = new Event('input');
-                privateTabInput.dispatchEvent(event);
+                validatePrivateTab();
             }
         }
 
@@ -1899,11 +1901,17 @@
 
             list.innerHTML = '';
 
+            // التأكد من أن items مصفوفة
+            if (!items || !Array.isArray(items) || items.length === 0) {
+                list.innerHTML = '<div class="dropdown-empty">لا توجد بيانات متاحة</div>';
+                return;
+            }
+
             var filteredItems = items;
             if (filterText && filterText.trim() !== '') {
                 var search = filterText.trim().toLowerCase();
                 filteredItems = items.filter(function(item) {
-                    return item.toLowerCase().includes(search);
+                    return item && item.toLowerCase().includes(search);
                 });
             }
 
@@ -1921,16 +1929,6 @@
                 });
                 list.appendChild(div);
             });
-
-            // عرض القائمة إذا كانت مخفية
-            if (!dropdown.classList.contains('show')) {
-                dropdown.classList.add('show');
-                if (type === 'general') {
-                    generalDropdownArrow.classList.add('open');
-                } else {
-                    privateDropdownArrow.classList.add('open');
-                }
-            }
         }
 
         // ============================================================
@@ -1940,11 +1938,18 @@
             var value = this.value;
             updateDropdownList('general', generalTabsData, value);
             validateGeneralTab();
+            // إظهار القائمة إذا كانت مخفية وهناك بيانات
+            if (generalTabsData.length > 0 && !generalDropdown.classList.contains('show')) {
+                generalDropdown.classList.add('show');
+                generalDropdownArrow.classList.add('open');
+            }
         });
 
         generalTabInput.addEventListener('focus', function() {
             if (generalTabsData.length > 0) {
                 updateDropdownList('general', generalTabsData, this.value);
+                generalDropdown.classList.add('show');
+                generalDropdownArrow.classList.add('open');
             }
         });
 
@@ -1952,18 +1957,24 @@
             setTimeout(function() {
                 generalDropdown.classList.remove('show');
                 generalDropdownArrow.classList.remove('open');
-            }, 200);
+            }, 300);
         });
 
         privateTabInput.addEventListener('input', function() {
             var value = this.value;
             updateDropdownList('private', privateTabsData, value);
             validatePrivateTab();
+            if (privateTabsData.length > 0 && !privateDropdown.classList.contains('show')) {
+                privateDropdown.classList.add('show');
+                privateDropdownArrow.classList.add('open');
+            }
         });
 
         privateTabInput.addEventListener('focus', function() {
             if (privateTabsData.length > 0) {
                 updateDropdownList('private', privateTabsData, this.value);
+                privateDropdown.classList.add('show');
+                privateDropdownArrow.classList.add('open');
             }
         });
 
@@ -1971,7 +1982,7 @@
             setTimeout(function() {
                 privateDropdown.classList.remove('show');
                 privateDropdownArrow.classList.remove('open');
-            }, 200);
+            }, 300);
         });
 
         // إغلاق القوائم عند النقر خارجها
@@ -2220,13 +2231,13 @@
         });
 
         // ============================================================
-        // LOAD TABS
+        // LOAD TABS - جلب التبويبات من شيت الإعدادات
         // ============================================================
         var TABS_SHEET_URL = WEB_APP_URL + '?action=getTabs';
 
         function loadTabs() {
             showToast('🔄 جاري تحميل', 'جاري تحميل التبويبات من شيت الإعدادات...', 'warning');
-
+            
             fetch(TABS_SHEET_URL)
                 .then(function(response) {
                     if (response.ok) return response.json();
@@ -2234,18 +2245,18 @@
                 })
                 .then(function(data) {
                     console.log('📋 بيانات التبويبات المستلمة:', data);
-
+                    
                     if (data.success) {
                         generalTabsData = data.generalTabs || [];
                         privateTabsData = data.privateTabs || [];
-
+                        
                         // تحديث القوائم المخصصة
                         updateDropdownList('general', generalTabsData, '');
                         updateDropdownList('private', privateTabsData, '');
-
+                        
                         // حفظ في LocalStorage
                         localStorage.setItem(TABS_KEY, JSON.stringify(data));
-
+                        
                         showToast('✅ تم التحميل', 'تم تحميل ' + generalTabsData.length + ' تبويب عام و ' +
                             privateTabsData.length + ' تبويب خاص', 'success');
                     } else {
@@ -2270,8 +2281,10 @@
                     showToast('💾 تحميل محلي', 'تم تحميل التبويبات من الذاكرة المحلية', 'warning');
                 } else {
                     // قيم افتراضية
-                    generalTabsData = ['تحصيلات العملاء', 'إيرادات أخرى', 'رأس مال', 'قرض وارد', 'مدفوعات الموردين',
-                        'مصروفات تشغيلية', 'رواتب', 'ضرائب', 'تحويل بين الخزائن', 'إيداع بالبنك', 'سحب من البنك'
+                    generalTabsData = [
+                        'تحصيلات العملاء', 'إيرادات أخرى', 'رأس مال', 'قرض وارد',
+                        'مدفوعات الموردين', 'مصروفات تشغيلية', 'رواتب', 'ضرائب',
+                        'تحويل بين الخزائن', 'إيداع بالبنك', 'سحب من البنك'
                     ];
                     privateTabsData = ['مصروفات تشغيلية', 'رواتب', 'ضرائب'];
                     updateDropdownList('general', generalTabsData, '');
