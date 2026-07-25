@@ -7,7 +7,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
-        /* ===== RESET & BASE ===== */
+        /* ============================================================
+           RESET & BASE
+           ============================================================ */
         *,
         *::before,
         *::after {
@@ -1625,7 +1627,7 @@
         });
 
         // ============================================================
-        // CONFIGURATION - الرابط الجديد
+        // CONFIGURATION - استخدم الرابط الجديد
         // ============================================================
         var WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwzDyVjlpzCEOsJVYbKwXd_E_k73doYQPQEyB7KeXa3WHEoqTqCKcsXu1w-D_GqAMpCLQ/exec';
         var STORAGE_KEY = 'rollex_treasury_accounts_entries';
@@ -1987,27 +1989,39 @@
         });
 
         // ============================================================
-        // LOAD TABS
+        // LOAD TABS - جلب التبويبات من شيت الإعدادات
         // ============================================================
-        var TABS_SHEET_URL =
-            'https://script.google.com/macros/s/AKfycbwzDyVjlpzCEOsJVYbKwXd_E_k73doYQPQEyB7KeXa3WHEoqTqCKcsXu1w-D_GqAMpCLQ/exec?action=getTabs';
+        var TABS_SHEET_URL = WEB_APP_URL + '?action=getTabs';
 
         function loadTabs() {
+            showToast('🔄 جاري تحميل', 'جاري تحميل التبويبات من شيت الإعدادات...', 'warning');
+            
             fetch(TABS_SHEET_URL)
                 .then(function(response) {
                     if (response.ok) return response.json();
                     throw new Error('Network response was not ok');
                 })
                 .then(function(data) {
+                    console.log('📋 بيانات التبويبات المستلمة:', data);
+                    
                     if (data.success) {
-                        updateDatalist(generalDatalist, data.generalTabs || []);
-                        updateDatalist(privateDatalist, data.privateTabs || []);
+                        var generalTabs = data.generalTabs || [];
+                        var privateTabs = data.privateTabs || [];
+                        
+                        // تحديث قوائم الاقتراحات
+                        updateDatalist(generalDatalist, generalTabs);
+                        updateDatalist(privateDatalist, privateTabs);
+                        
+                        // حفظ في LocalStorage
                         localStorage.setItem(TABS_KEY, JSON.stringify(data));
+                        
+                        showToast('✅ تم التحميل', 'تم تحميل ' + generalTabs.length + ' تبويب عام و ' + privateTabs.length + ' تبويب خاص', 'success');
                     } else {
                         loadTabsFromLocalStorage();
                     }
                 })
-                .catch(function() {
+                .catch(function(error) {
+                    console.error('❌ خطأ في تحميل التبويبات:', error);
                     loadTabsFromLocalStorage();
                 });
         }
@@ -2019,6 +2033,14 @@
                     var parsed = JSON.parse(data);
                     updateDatalist(generalDatalist, parsed.generalTabs || []);
                     updateDatalist(privateDatalist, parsed.privateTabs || []);
+                    showToast('💾 تحميل محلي', 'تم تحميل التبويبات من الذاكرة المحلية', 'warning');
+                } else {
+                    // إذا لم توجد بيانات في LocalStorage، استخدم قيماً افتراضية
+                    var defaultGeneral = ['تحصيلات العملاء', 'إيرادات أخرى', 'رأس مال', 'قرض وارد', 'مدفوعات الموردين', 'مصروفات تشغيلية', 'رواتب', 'ضرائب', 'تحويل بين الخزائن', 'إيداع بالبنك', 'سحب من البنك'];
+                    var defaultPrivate = ['مصروفات تشغيلية', 'رواتب', 'ضرائب'];
+                    updateDatalist(generalDatalist, defaultGeneral);
+                    updateDatalist(privateDatalist, defaultPrivate);
+                    showToast('📋 قيم افتراضية', 'تم تحميل التبويبات الافتراضية', 'warning');
                 }
             } catch (e) {
                 console.error('Error loading tabs from localStorage:', e);
@@ -2027,11 +2049,20 @@
 
         function updateDatalist(datalist, items) {
             datalist.innerHTML = '';
-            items.forEach(function(item) {
+            if (!items || items.length === 0) {
                 var option = document.createElement('option');
-                option.value = item;
+                option.value = 'لا توجد بيانات';
                 datalist.appendChild(option);
+                return;
+            }
+            items.forEach(function(item) {
+                if (item && item.trim() !== '') {
+                    var option = document.createElement('option');
+                    option.value = item.trim();
+                    datalist.appendChild(option);
+                }
             });
+            console.log('✅ تم تحديث ' + datalist.id + ' بـ ' + datalist.children.length + ' خيار');
         }
 
         // ============================================================
@@ -2263,7 +2294,7 @@
             renderEntries();
 
             // ============================================================
-            // 2. إرسال إلى Google Sheets (باستخدام الرابط الجديد)
+            // 2. إرسال إلى Google Sheets
             // ============================================================
             try {
                 fetch(WEB_APP_URL, {
@@ -2342,12 +2373,16 @@
             var today = new Date().toISOString().split('T')[0];
             dateInput.value = today;
 
+            // تحميل التبويبات من شيت الإعدادات
             loadTabs();
-            fetchOpeningBalance();
-            renderEntries();
-            updateSidebarStats();
 
-            console.log('🚀 تطبيق إدخال خزينة الحسابات - الإصدار الخفيف');
+            // جلب الرصيد الافتتاحي
+            fetchOpeningBalance();
+
+            // عرض الحركات المسجلة
+            renderEntries();
+
+            console.log('🚀 تطبيق إدخال خزينة الحسابات - الإصدار النهائي');
             console.log('📊 عدد الحركات:', getEntries().length);
             console.log('🔗 Web App URL:', WEB_APP_URL);
         })();
