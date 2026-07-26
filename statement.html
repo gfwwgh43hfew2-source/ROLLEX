@@ -853,134 +853,6 @@
                 font-size: 0.75rem;
             }
         }
-
-        /* ============================================================
-           PRINT STYLES
-           ============================================================ */
-        @media print {
-            header,
-            .header-actions,
-            .hamburger,
-            .mobile-nav-bottom,
-            .mobile-nav-overlay,
-            .mobile-nav-menu,
-            .search-box .btn-search,
-            .search-box .btn-print,
-            .search-box .clear-btn {
-                display: none !important;
-            }
-
-            body {
-                background: #fff !important;
-                color: #000 !important;
-            }
-
-            .container {
-                padding: 0 !important;
-                max-width: 100% !important;
-            }
-
-            .page-header .title-main .gold-text {
-                -webkit-text-fill-color: #0a0f1f !important;
-                color: #0a0f1f !important;
-            }
-
-            .search-box {
-                background: #f5f5f5 !important;
-                border: 1px solid #ddd !important;
-                box-shadow: none !important;
-            }
-
-            .search-box input {
-                color: #000 !important;
-            }
-
-            .search-box input::placeholder {
-                color: #999 !important;
-            }
-
-            .search-box .search-icon {
-                color: #666 !important;
-            }
-
-            .suggestions-container {
-                display: none !important;
-            }
-
-            .client-info-card {
-                background: #f5f5f5 !important;
-                border: 1px solid #ddd !important;
-                box-shadow: none !important;
-            }
-
-            .client-info-card .info-item {
-                background: transparent !important;
-            }
-
-            .client-info-card .info-item .label {
-                color: #666 !important;
-            }
-
-            .client-info-card .info-item .value {
-                color: #0a0f1f !important;
-            }
-
-            .client-info-card .info-item .value.white {
-                color: #333 !important;
-            }
-
-            .table-wrapper {
-                background: #fff !important;
-                border: 1px solid #ddd !important;
-                box-shadow: none !important;
-            }
-
-            .table-wrapper table thead th {
-                background: #e8e8e8 !important;
-                color: #0a0f1f !important;
-                border-bottom: 2px solid #0a0f1f !important;
-            }
-
-            .table-wrapper table tbody td {
-                color: #333 !important;
-                border-bottom: 1px solid #eee !important;
-            }
-
-            .table-wrapper table tbody tr:hover td {
-                background: transparent !important;
-            }
-
-            .badge-type {
-                background: #eee !important;
-                color: #333 !important;
-                border: 1px solid #ccc !important;
-            }
-
-            .badge-type.sales {
-                background: #e8f5e9 !important;
-                border-color: #a5d6a7 !important;
-                color: #2e7d32 !important;
-            }
-
-            .badge-type.collection {
-                background: #e3f2fd !important;
-                border-color: #90caf9 !important;
-                color: #1565c0 !important;
-            }
-
-            .badge-source {
-                background: #eee !important;
-                color: #333 !important;
-            }
-
-            .empty-state {
-                color: #999 !important;
-            }
-
-            .loading-state {
-                color: #666 !important;
-            }
-        }
     </style>
 </head>
 <body>
@@ -1234,7 +1106,7 @@
         }
 
         // ============================================================
-        // FETCH DATA FROM GOOGLE SHEETS
+        // FETCH DATA
         // ============================================================
         function fetchSheetData(sheetName) {
             var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + sheetName;
@@ -1469,7 +1341,7 @@
         }
 
         // ============================================================
-        // SHOW STATEMENT - مع اسم الصنف في البيان
+        // SHOW STATEMENT
         // ============================================================
         function showStatement(client) {
             if (!client) return;
@@ -1477,43 +1349,37 @@
             var clientNameVal = client[1] || '';
             var clientCodeVal = client[0] || '';
 
-            // عرض معلومات العميل
             clientInfoCard.classList.add('show');
             clientCode.textContent = clientCodeVal;
             clientName.textContent = clientNameVal;
             clientSalesman.textContent = client[6] || '-';
 
-            // جلب المبيعات
             var clientSales = salesData.filter(function(row) {
                 return row[4] === clientCodeVal;
             });
 
-            // جلب التحصيلات
             var clientCollections = getClientCollections(clientNameVal);
 
-            // دمج الحركات
             var allTransactions = [];
             var openingBalanceVal = cleanNumber(client[4]);
             var runningBalance = openingBalanceVal;
 
-            // إضافة المبيعات مع تفاصيل كاملة (مع اسم الصنف)
             clientSales.forEach(function(row) {
                 var amount = cleanNumber(row[13]);
-                
-                // بناء وصف مفصل للمبيعات (مع اسم الصنف من العمود I)
+
                 var salesDetails = [];
-                if (row[8]) salesDetails.push('الصنف: ' + row[8]);  // العمود I = اسم الصنف
+                if (row[8]) salesDetails.push('الصنف: ' + row[8]);
                 if (row[9]) salesDetails.push('الوزن: ' + formatNumber(cleanNumber(row[9])));
                 if (row[10]) salesDetails.push('العبوة: ' + row[10]);
                 if (row[11]) salesDetails.push('العدد: ' + formatNumber(cleanNumber(row[11])));
                 if (row[12]) salesDetails.push('سعر البيع: ' + formatNumber(cleanNumber(row[12])));
                 if (row[13]) salesDetails.push('الإجمالي: ' + formatNumber(cleanNumber(row[13])));
-                
+
                 var description = 'مبيعات';
                 if (salesDetails.length > 0) {
                     description += ' (' + salesDetails.join('، ') + ')';
                 }
-                
+
                 allTransactions.push({
                     date: row[2] || '',
                     number: row[0] || '',
@@ -1524,14 +1390,11 @@
                     amount: amount,
                     source: 'sales',
                     sourceLabel: 'المبيعات',
-                    isOpening: false,
                     isSales: true,
-                    isCollection: false,
-                    raw: row
+                    isCollection: false
                 });
             });
 
-            // إضافة التحصيلات
             clientCollections.forEach(function(row) {
                 var amount = row.amount || 0;
                 allTransactions.push({
@@ -1544,32 +1407,35 @@
                     amount: amount,
                     source: row.source || '',
                     sourceLabel: row.sourceLabel || 'تحصيل',
-                    isOpening: false,
                     isSales: false,
-                    isCollection: true,
-                    raw: row
+                    isCollection: true
                 });
             });
 
-            // ترتيب الحركات حسب التاريخ
             allTransactions.sort(function(a, b) {
                 return (a.date || '').localeCompare(b.date || '');
             });
 
-            // حساب الرصيد التراكمي
             var finalBalance = openingBalanceVal;
             allTransactions.forEach(function(tx) {
                 finalBalance += tx.debit - tx.credit;
                 tx.balance = finalBalance;
             });
 
-            // الرصيد الحالي
             currentBalance.textContent = formatNumber(finalBalance);
 
-            // بناء الجدول
+            // حفظ البيانات للطباعة
+            window.printData = {
+                clientCode: clientCodeVal,
+                clientName: clientNameVal,
+                clientSalesman: clientSalesmanVal,
+                balance: formatNumber(finalBalance),
+                openingBalance: formatNumber(openingBalanceVal),
+                transactions: allTransactions
+            };
+
             var html = '';
 
-            // صف الرصيد الافتتاحي
             html += '<tr class="row-opening">' +
                 '<td>-</td>' +
                 '<td>-</td>' +
@@ -1583,7 +1449,6 @@
                 '<td></td>' +
                 '</tr>';
 
-            // عرض الحركات المرتبة
             allTransactions.forEach(function(tx) {
                 var badgeClass = '';
                 var badgeText = '';
@@ -1628,14 +1493,312 @@
         }
 
         // ============================================================
-        // PRINT
+        // PRINT - طباعة احترافية 100%
         // ============================================================
         function printStatement() {
             if (!selectedClient) {
                 alert('يرجى اختيار عميل أولاً');
                 return;
             }
-            window.print();
+
+            var data = window.printData || {};
+            var now = new Date();
+            var dateStr = now.toLocaleDateString('ar-EG');
+            var timeStr = now.toLocaleTimeString('ar-EG');
+
+            // بناء الجدول للطباعة
+            var tableRows = '';
+            var openingBalanceVal = data.openingBalance || '0';
+            var balanceVal = data.balance || '0';
+
+            // صف الرصيد الافتتاحي
+            tableRows += `
+                <tr style="background:#f0f8f0;">
+                    <td>-</td>
+                    <td>-</td>
+                    <td style="text-align:right;">الرصيد الافتتاحي</td>
+                    <td><span class="badge-type opening">افتتاحي</span></td>
+                    <td style="text-align:center;">-</td>
+                    <td style="text-align:center;color:#2e7d32;font-weight:700;">${openingBalanceVal}</td>
+                    <td style="text-align:center;color:#0a0f1f;font-weight:700;">${openingBalanceVal}</td>
+                    <td></td>
+                </tr>
+            `;
+
+            var transactions = data.transactions || [];
+            transactions.forEach(function(tx) {
+                var badgeClass = '';
+                var badgeText = '';
+                if (tx.isSales) {
+                    badgeClass = 'sales';
+                    badgeText = 'مبيعات';
+                } else if (tx.isCollection) {
+                    badgeClass = 'collection';
+                    badgeText = 'تحصيل';
+                }
+
+                var debitDisplay = tx.debit > 0 ? formatNumber(tx.debit) : '-';
+                var creditDisplay = tx.credit > 0 ? formatNumber(tx.credit) : '-';
+
+                var sourceBadge = '';
+                if (tx.source && tx.source !== 'sales') {
+                    sourceBadge = `<span class="badge-source ${tx.source}">${tx.sourceLabel}</span>`;
+                } else if (tx.isSales) {
+                    sourceBadge = '<span class="badge-source sales">المبيعات</span>';
+                }
+
+                tableRows += `
+                    <tr>
+                        <td>${tx.date}</td>
+                        <td>${tx.number}</td>
+                        <td style="text-align:right;font-size:7.5pt;">${tx.description}</td>
+                        <td><span class="badge-type ${badgeClass}">${badgeText}</span></td>
+                        <td style="text-align:center;${tx.debit > 0 ? 'color:#2e7d32;font-weight:700;' : ''}">${debitDisplay}</td>
+                        <td style="text-align:center;${tx.credit > 0 ? 'color:#c62828;font-weight:700;' : ''}">${creditDisplay}</td>
+                        <td style="text-align:center;color:#0a0f1f;font-weight:700;">${formatNumber(tx.balance)}</td>
+                        <td>${sourceBadge}</td>
+                    </tr>
+                `;
+            });
+
+            // نافذة الطباعة
+            var printWindow = window.open('', '_blank', 'width=1100,height=800');
+            if (!printWindow) {
+                alert('يرجى السماح بنوافذ منبثقة للطباعة');
+                return;
+            }
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html dir="rtl">
+                <head>
+                    <meta charset="UTF-8" />
+                    <title>كشف حساب العميل - ${data.clientName}</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+                    <style>
+                        * { margin:0; padding:0; box-sizing:border-box; }
+                        body { 
+                            font-family: 'Cairo', sans-serif; 
+                            background:#fff; 
+                            color:#000; 
+                            padding:25px; 
+                            font-size:10pt; 
+                            line-height:1.4; 
+                            direction:rtl;
+                        }
+                        .print-header { 
+                            text-align:center; 
+                            border-bottom:3px solid #0a0f1f; 
+                            padding-bottom:14px; 
+                            margin-bottom:18px; 
+                        }
+                        .print-header .company-name { 
+                            font-size:18pt; 
+                            font-weight:900; 
+                            color:#0a0f1f; 
+                        }
+                        .print-header .company-sub { 
+                            font-size:10pt; 
+                            color:#555; 
+                            margin-top:2px; 
+                        }
+                        .print-header .report-title { 
+                            font-size:14pt; 
+                            font-weight:700; 
+                            color:#0a0f1f; 
+                            margin-top:6px; 
+                        }
+                        .print-client-info { 
+                            display:grid; 
+                            grid-template-columns:repeat(4,1fr); 
+                            gap:10px; 
+                            background:#f5f5f5; 
+                            padding:12px 16px; 
+                            border-radius:6px; 
+                            margin-bottom:14px; 
+                            border:1px solid #ddd; 
+                        }
+                        .print-client-info .item { text-align:center; }
+                        .print-client-info .item .label { 
+                            font-size:7pt; 
+                            color:#666; 
+                            font-weight:600; 
+                            text-transform:uppercase; 
+                        }
+                        .print-client-info .item .value { 
+                            font-size:11pt; 
+                            font-weight:700; 
+                            color:#0a0f1f; 
+                        }
+                        .table-wrapper { 
+                            background:#fff; 
+                            border:1px solid #ccc; 
+                            border-radius:4px; 
+                            overflow:hidden; 
+                            margin-top:10px; 
+                        }
+                        table { 
+                            width:100%; 
+                            border-collapse:collapse; 
+                            font-size:8pt; 
+                        }
+                        th { 
+                            background:#e8e8e8; 
+                            color:#0a0f1f; 
+                            border:1px solid #ccc; 
+                            padding:7px 10px; 
+                            font-size:7pt; 
+                            font-weight:700; 
+                            text-transform:uppercase; 
+                            text-align:center; 
+                        }
+                        td { 
+                            color:#333; 
+                            border:1px solid #ddd; 
+                            padding:6px 10px; 
+                            font-size:8pt; 
+                            text-align:center; 
+                        }
+                        .row-opening td { 
+                            background:#f0f8f0; 
+                            color:#2e7d32; 
+                            font-weight:700; 
+                        }
+                        .badge-type { 
+                            background:#f0f0f0; 
+                            color:#333; 
+                            border:1px solid #ccc; 
+                            padding:2px 10px; 
+                            border-radius:4px; 
+                            font-size:7pt; 
+                            font-weight:600; 
+                            display:inline-block; 
+                        }
+                        .badge-type.sales { 
+                            background:#e8f5e9; 
+                            border-color:#a5d6a7; 
+                            color:#2e7d32; 
+                        }
+                        .badge-type.collection { 
+                            background:#e3f2fd; 
+                            border-color:#90caf9; 
+                            color:#1565c0; 
+                        }
+                        .badge-type.opening { 
+                            background:#f3e5f5; 
+                            border-color:#ce93d8; 
+                            color:#6a1b9a; 
+                        }
+                        .badge-source { 
+                            background:#f0f0f0; 
+                            color:#333; 
+                            border:1px solid #ddd; 
+                            padding:1px 8px; 
+                            border-radius:3px; 
+                            font-size:6pt; 
+                            display:inline-block; 
+                        }
+                        .badge-source.sales { 
+                            background:#e8f5e9; 
+                            border-color:#a5d6a7; 
+                            color:#2e7d32; 
+                        }
+                        .badge-source.main { 
+                            background:#fff3e0; 
+                            border-color:#ffcc80; 
+                            color:#e65100; 
+                        }
+                        .badge-source.accounts { 
+                            background:#e3f2fd; 
+                            border-color:#90caf9; 
+                            color:#1565c0; 
+                        }
+                        .badge-source.driver { 
+                            background:#e8f5e9; 
+                            border-color:#a5d6a7; 
+                            color:#2e7d32; 
+                        }
+                        .print-footer { 
+                            text-align:center; 
+                            border-top:1px solid #ddd; 
+                            padding-top:12px; 
+                            margin-top:18px; 
+                            font-size:7pt; 
+                            color:#999; 
+                        }
+                        table { page-break-inside:auto; }
+                        tr { page-break-inside:avoid; page-break-after:auto; }
+                        thead { display:table-header-group; }
+                        .table-wrapper table td:nth-child(3) { 
+                            min-width:200px; 
+                            text-align:right; 
+                            font-size:7.5pt; 
+                        }
+                        .no-print { display:none !important; }
+                        .page-break { page-break-before:always; }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-header">
+                        <div class="company-name">🏭 شركة رولكس للدهانات والمنتجات الكيماوية</div>
+                        <div class="company-sub">السجل التجاري: 0100585230 - 0100374906</div>
+                        <div class="report-title">📊 كشف حساب العميل</div>
+                    </div>
+
+                    <div class="print-client-info">
+                        <div class="item">
+                            <div class="label">كود العميل</div>
+                            <div class="value">${data.clientCode || '-'}</div>
+                        </div>
+                        <div class="item">
+                            <div class="label">اسم العميل</div>
+                            <div class="value">${data.clientName || '-'}</div>
+                        </div>
+                        <div class="item">
+                            <div class="label">المندوب</div>
+                            <div class="value">${data.clientSalesman || '-'}</div>
+                        </div>
+                        <div class="item">
+                            <div class="label">الرصيد الحالي</div>
+                            <div class="value" style="color:#0a0f1f;">${data.balance || '0'}</div>
+                        </div>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th>رقم المستند</th>
+                                    <th>البيان</th>
+                                    <th>نوع الحركة</th>
+                                    <th style="text-align:center;">مدين</th>
+                                    <th style="text-align:center;">دائن</th>
+                                    <th style="text-align:center;">الرصيد</th>
+                                    <th>المصدر</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="print-footer">
+                        تم الطباعة بتاريخ: ${dateStr} الساعة ${timeStr} · جميع الحقوق محفوظة لشركة رولكس
+                    </div>
+
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() { window.close(); }, 1000);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+
+            printWindow.document.close();
         }
 
         // ============================================================
@@ -1711,7 +1874,7 @@
         (function init() {
             loadAllData();
             console.log('🚀 كشف حساب العميل - تم التحميل');
-            console.log('📌 يتم عرض اسم الصنف مع تفاصيل المبيعات');
+            console.log('📌 الطباعة احترافية 100% بدون أي عناصر إضافية');
             console.log('📌 استخدم أسهم ↑↓ للتنقل بين الاقتراحات');
         })();
     </script>
