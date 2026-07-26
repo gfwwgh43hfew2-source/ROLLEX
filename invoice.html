@@ -1128,7 +1128,7 @@
     </div>
 
     <!-- ============================================================
-    JAVASCRIPT - مع إصلاح الاقتراحات
+    JAVASCRIPT - مع الرابط الجديد
     ============================================================ -->
     <script>
         // ============================================================
@@ -1191,6 +1191,11 @@
                 closeMenuFn();
             }
         });
+
+        // ============================================================
+        // CONFIGURATION - الرابط الجديد
+        // ============================================================
+        var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7ng74zPmKd-4SS_dquriU-G0llIAedNxiw1A9mvXa-XbHQB8hfROWLdVNxO8u2SsE4Q/exec';
 
         // ============================================================
         // DOM REFS
@@ -1291,90 +1296,82 @@
         })();
 
         // ============================================================
-        // LOAD DATA - مع قيم افتراضية في حالة الفشل
+        // LOAD DATA - من Google Apps Script
         // ============================================================
         function loadData() {
-            var SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
-
-            // جلب العملاء من شيت بيانات العملاء
-            var clientsUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=بيانات العملاء';
-            // جلب المنتجات من شيت المنتجات
-            var itemsUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=المنتجات';
-
-            // محاولة جلب العملاء
-            fetch(clientsUrl)
+            // محاولة جلب البيانات من الـ Script
+            fetch(SCRIPT_URL + '?action=getAll')
                 .then(function(response) {
                     if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
-                    return response.text();
+                    return response.json();
                 })
-                .then(function(csvText) {
-                    var clients = parseCSV(csvText, 1); // العمود الثاني (index 1)
-                    if (clients.length > 0) {
-                        clientsList = clients;
+                .then(function(data) {
+                    if (data.success) {
+                        clientsList = data.clients || [];
+                        itemsList = data.products || [];
                         console.log('✅ تم تحميل العملاء:', clientsList.length);
-                    } else {
-                        clientsList = ['شركة النور للتجارة', 'مؤسسة الصفا', 'شركة الاتحاد', 'مؤسسة الأمل', 'شركة الوفاء'];
-                        console.log('⚠️ تم استخدام عملاء افتراضيين');
-                    }
-                })
-                .catch(function(error) {
-                    console.error('❌ خطأ في تحميل العملاء:', error);
-                    clientsList = ['شركة النور للتجارة', 'مؤسسة الصفا', 'شركة الاتحاد', 'مؤسسة الأمل', 'شركة الوفاء'];
-                    console.log('⚠️ تم استخدام عملاء افتراضيين (بسبب خطأ)');
-                });
-
-            // محاولة جلب المنتجات
-            fetch(itemsUrl)
-                .then(function(response) {
-                    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
-                    return response.text();
-                })
-                .then(function(csvText) {
-                    var items = parseCSV(csvText, 1, 2); // العمود الثاني (index 1)، بداية من الصف 3 (index 2)
-                    if (items.length > 0) {
-                        itemsList = items;
                         console.log('✅ تم تحميل المنتجات:', itemsList.length);
+
+                        // حفظ في LocalStorage للاستخدام المستقبلي
+                        try {
+                            localStorage.setItem('rollex_clients', JSON.stringify(clientsList));
+                            localStorage.setItem('rollex_products', JSON.stringify(itemsList));
+                        } catch (e) {}
+
+                        // تحديث الاقتراحات
+                        updateSuggestions();
                     } else {
-                        itemsList = ['دهان داخلي أبيض', 'دهان خارجي أزرق', 'ورنيش شفاف', 'معجون جدران', 'دهان أسقف'];
-                        console.log('⚠️ تم استخدام منتجات افتراضية');
+                        console.warn('⚠️ فشل تحميل البيانات:', data.message);
+                        useDefaultData();
                     }
                 })
                 .catch(function(error) {
-                    console.error('❌ خطأ في تحميل المنتجات:', error);
-                    itemsList = ['دهان داخلي أبيض', 'دهان خارجي أزرق', 'ورنيش شفاف', 'معجون جدران', 'دهان أسقف'];
-                    console.log('⚠️ تم استخدام منتجات افتراضية (بسبب خطأ)');
+                    console.error('❌ خطأ في جلب البيانات:', error);
+                    // محاولة تحميل من LocalStorage
+                    try {
+                        var savedClients = localStorage.getItem('rollex_clients');
+                        var savedProducts = localStorage.getItem('rollex_products');
+                        if (savedClients) clientsList = JSON.parse(savedClients);
+                        if (savedProducts) itemsList = JSON.parse(savedProducts);
+                        if (clientsList.length > 0 || itemsList.length > 0) {
+                            console.log('✅ تم تحميل البيانات من LocalStorage');
+                            updateSuggestions();
+                            return;
+                        }
+                    } catch (e) {}
+                    useDefaultData();
                 });
         }
 
-        // ============================================================
-        // دالة parseCSV لاستخراج البيانات من عمود معين
-        // ============================================================
-        function parseCSV(csvText, columnIndex, startRow) {
-            startRow = startRow || 1; // افتراضي من الصف 2 (بعد الرؤوس)
-            var lines = csvText.split('\n').filter(function(line) { return line.trim() !== ''; });
-            var result = [];
-            for (var r = startRow; r < lines.length; r++) {
-                var line = lines[r];
-                var row = [];
-                var current = '';
-                var insideQuotes = false;
-                for (var i = 0; i < line.length; i++) {
-                    var char = line[i];
-                    if (char === '"') insideQuotes = !insideQuotes;
-                    else if (char === ',' && !insideQuotes) {
-                        row.push(current.trim());
-                        current = '';
-                    } else current += char;
-                }
-                row.push(current.trim());
-                if (row.length > columnIndex) {
-                    var val = row[columnIndex];
-                    if (val && val.trim() !== '' && val.trim() !== 'اسم العميل' && val.trim() !== 'اسم المنتج') {
-                        result.push(val.trim());
-                    }
-                }
+        function useDefaultData() {
+            clientsList = ['شركة النور للتجارة', 'مؤسسة الصفا', 'شركة الاتحاد', 'مؤسسة الأمل', 'شركة الوفاء', 'شركة البركة', 'مؤسسة النجاح',
+                'شركة الخير', 'مؤسسة السلام', 'شركة الفتح'
+            ];
+            itemsList = ['دهان داخلي أبيض', 'دهان خارجي أزرق', 'ورنيش شفاف', 'معجون جدران', 'دهان أسقف', 'بوية خشب', 'أكريلك',
+                'دهان إيبوكسي', 'دهان حراري', 'عازل مائي'
+            ];
+            console.log('⚠️ تم استخدام بيانات افتراضية');
+            updateSuggestions();
+        }
+
+        function updateSuggestions() {
+            // تحديث قوائم الاقتراحات
+            if (clientsList.length > 0) {
+                clientSuggestions.innerHTML = '';
+                clientsList.forEach(function(item) {
+                    var opt = document.createElement('option');
+                    opt.value = item;
+                    clientSuggestions.appendChild(opt);
+                });
             }
-            return result;
+            if (itemsList.length > 0) {
+                itemSuggestions.innerHTML = '';
+                itemsList.forEach(function(item) {
+                    var opt = document.createElement('option');
+                    opt.value = item;
+                    itemSuggestions.appendChild(opt);
+                });
+            }
         }
 
         // تحميل البيانات عند بدء التشغيل
@@ -1395,13 +1392,11 @@
                     return;
                 }
 
-                // استخدام البيانات المحملة (قد تكون فارغة في البداية)
                 var list = dataList;
                 if (list.length === 0) {
-                    // قيم افتراضية مؤقتة
                     if (container === 'clientSuggestions') {
                         list = ['شركة النور للتجارة', 'مؤسسة الصفا', 'شركة الاتحاد', 'مؤسسة الأمل', 'شركة الوفاء'];
-                    } else if (container === 'itemSuggestions') {
+                    } else {
                         list = ['دهان داخلي أبيض', 'دهان خارجي أزرق', 'ورنيش شفاف', 'معجون جدران', 'دهان أسقف'];
                     }
                 }
@@ -1500,7 +1495,6 @@
             }
         }
 
-        // تفعيل الاقتراحات مع قيم افتراضية
         setupSuggestions(clientName, 'clientSuggestions', clientsList);
         setupSuggestions(itemName, 'itemSuggestions', itemsList);
 
@@ -1550,7 +1544,6 @@
                 return;
             }
 
-            // إضافة المنتج إلى القائمة إذا لم يكن موجوداً
             if (!itemsList.includes(name)) {
                 itemsList.push(name);
             }
@@ -1848,7 +1841,7 @@
         });
 
         console.log('🧾 فاتورة المبيعات - تم التحميل');
-        console.log('📌 الاقتراحات تعمل حتى بدون تحميل البيانات (قيم افتراضية)');
+        console.log('🔗 Script URL:', SCRIPT_URL);
         console.log('📌 استخدم Enter للتنقل بين الحقول');
         console.log('📌 Ctrl+Enter للحفظ');
     </script>
