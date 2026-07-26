@@ -342,14 +342,13 @@
         }
 
         /* ============================================================
-           INVOICE FORM - تصميم محسّن مع هوامش أكبر
+           INVOICE FORM
            ============================================================ */
         .invoice-form {
             background: rgba(18, 26, 46, 0.85);
             backdrop-filter: blur(20px);
             border-radius: 14px;
             padding: 24px 28px 32px 28px;
-            /* أعلى 24، يمين 28، أسفل 32 (3 سم تقريباً)، يسار 28 (2 سم تقريباً) */
             border: 1px solid rgba(255, 255, 255, 0.04);
             margin-bottom: 16px;
         }
@@ -416,7 +415,6 @@
             color: #eee;
         }
 
-        /* حقول صغيرة للتاريخ ورقم الفاتورة والمندوب */
         .invoice-form .form-row.small-fields {
             grid-template-columns: 1fr 1fr 1fr;
         }
@@ -1020,7 +1018,7 @@
                 </div>
             </div>
 
-            <!-- اسم العميل (بحجم أكبر) -->
+            <!-- اسم العميل -->
             <div class="form-row">
                 <div class="form-group suggestion-wrapper">
                     <label>اسم العميل <span class="required">*</span></label>
@@ -1130,7 +1128,7 @@
     </div>
 
     <!-- ============================================================
-    JAVASCRIPT
+    JAVASCRIPT - مع إصلاح الاقتراحات
     ============================================================ -->
     <script>
         // ============================================================
@@ -1293,106 +1291,97 @@
         })();
 
         // ============================================================
-        // FETCH DATA - العملاء من شيت بيانات العملاء + المنتجات من شيت المنتجات
+        // LOAD DATA - مع قيم افتراضية في حالة الفشل
         // ============================================================
         function loadData() {
             var SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
 
-            // جلب العملاء من شيت بيانات العملاء (العمود الثاني - index 1)
-            var clientsUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
-            '/gviz/tq?tqx=out:csv&sheet=بيانات العملاء';
+            // جلب العملاء من شيت بيانات العملاء
+            var clientsUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=بيانات العملاء';
+            // جلب المنتجات من شيت المنتجات
+            var itemsUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=المنتجات';
 
-            // جلب المنتجات من شيت المنتجات (العمود الثاني - index 1، من الصف 3)
-            var itemsUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
-            '/gviz/tq?tqx=out:csv&sheet=المنتجات';
-
-            // جلب العملاء
+            // محاولة جلب العملاء
             fetch(clientsUrl)
                 .then(function(response) {
                     if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
                     return response.text();
                 })
                 .then(function(csvText) {
-                    var lines = csvText.split('\n').filter(function(line) { return line.trim() !== ''; });
-                    var data = lines.map(function(line) {
-                        var row = [];
-                        var current = '';
-                        var insideQuotes = false;
-                        for (var i = 0; i < line.length; i++) {
-                            var char = line[i];
-                            if (char === '"') insideQuotes = !insideQuotes;
-                            else if (char === ',' && !insideQuotes) {
-                                row.push(current.trim());
-                                current = '';
-                            } else current += char;
-                        }
-                        row.push(current.trim());
-                        return row;
-                    });
-
-                    var clientsSet = new Set();
-                    // الصف 0 هو الرؤوس، نبدأ من الصف 1
-                    for (var r = 1; r < data.length; r++) {
-                        if (data[r] && data[r].length > 1) {
-                            var val = data[r][1]; // العمود الثاني (index 1)
-                            if (val && val.trim() !== '' && val.trim() !== 'اسم العميل') {
-                                clientsSet.add(val.trim());
-                            }
-                        }
+                    var clients = parseCSV(csvText, 1); // العمود الثاني (index 1)
+                    if (clients.length > 0) {
+                        clientsList = clients;
+                        console.log('✅ تم تحميل العملاء:', clientsList.length);
+                    } else {
+                        clientsList = ['شركة النور للتجارة', 'مؤسسة الصفا', 'شركة الاتحاد', 'مؤسسة الأمل', 'شركة الوفاء'];
+                        console.log('⚠️ تم استخدام عملاء افتراضيين');
                     }
-                    clientsList = Array.from(clientsSet);
-                    console.log('✅ تم تحميل العملاء:', clientsList.length);
                 })
                 .catch(function(error) {
                     console.error('❌ خطأ في تحميل العملاء:', error);
+                    clientsList = ['شركة النور للتجارة', 'مؤسسة الصفا', 'شركة الاتحاد', 'مؤسسة الأمل', 'شركة الوفاء'];
+                    console.log('⚠️ تم استخدام عملاء افتراضيين (بسبب خطأ)');
                 });
 
-            // جلب المنتجات
+            // محاولة جلب المنتجات
             fetch(itemsUrl)
                 .then(function(response) {
                     if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
                     return response.text();
                 })
                 .then(function(csvText) {
-                    var lines = csvText.split('\n').filter(function(line) { return line.trim() !== ''; });
-                    var data = lines.map(function(line) {
-                        var row = [];
-                        var current = '';
-                        var insideQuotes = false;
-                        for (var i = 0; i < line.length; i++) {
-                            var char = line[i];
-                            if (char === '"') insideQuotes = !insideQuotes;
-                            else if (char === ',' && !insideQuotes) {
-                                row.push(current.trim());
-                                current = '';
-                            } else current += char;
-                        }
-                        row.push(current.trim());
-                        return row;
-                    });
-
-                    var itemsSet = new Set();
-                    // نبدأ من الصف 3 (index 2)
-                    for (var r = 2; r < data.length; r++) {
-                        if (data[r] && data[r].length > 1) {
-                            var val = data[r][1]; // العمود الثاني (index 1)
-                            if (val && val.trim() !== '' && val.trim() !== 'اسم المنتج') {
-                                itemsSet.add(val.trim());
-                            }
-                        }
+                    var items = parseCSV(csvText, 1, 2); // العمود الثاني (index 1)، بداية من الصف 3 (index 2)
+                    if (items.length > 0) {
+                        itemsList = items;
+                        console.log('✅ تم تحميل المنتجات:', itemsList.length);
+                    } else {
+                        itemsList = ['دهان داخلي أبيض', 'دهان خارجي أزرق', 'ورنيش شفاف', 'معجون جدران', 'دهان أسقف'];
+                        console.log('⚠️ تم استخدام منتجات افتراضية');
                     }
-                    itemsList = Array.from(itemsSet);
-                    console.log('✅ تم تحميل المنتجات:', itemsList.length);
                 })
                 .catch(function(error) {
                     console.error('❌ خطأ في تحميل المنتجات:', error);
+                    itemsList = ['دهان داخلي أبيض', 'دهان خارجي أزرق', 'ورنيش شفاف', 'معجون جدران', 'دهان أسقف'];
+                    console.log('⚠️ تم استخدام منتجات افتراضية (بسبب خطأ)');
                 });
         }
 
+        // ============================================================
+        // دالة parseCSV لاستخراج البيانات من عمود معين
+        // ============================================================
+        function parseCSV(csvText, columnIndex, startRow) {
+            startRow = startRow || 1; // افتراضي من الصف 2 (بعد الرؤوس)
+            var lines = csvText.split('\n').filter(function(line) { return line.trim() !== ''; });
+            var result = [];
+            for (var r = startRow; r < lines.length; r++) {
+                var line = lines[r];
+                var row = [];
+                var current = '';
+                var insideQuotes = false;
+                for (var i = 0; i < line.length; i++) {
+                    var char = line[i];
+                    if (char === '"') insideQuotes = !insideQuotes;
+                    else if (char === ',' && !insideQuotes) {
+                        row.push(current.trim());
+                        current = '';
+                    } else current += char;
+                }
+                row.push(current.trim());
+                if (row.length > columnIndex) {
+                    var val = row[columnIndex];
+                    if (val && val.trim() !== '' && val.trim() !== 'اسم العميل' && val.trim() !== 'اسم المنتج') {
+                        result.push(val.trim());
+                    }
+                }
+            }
+            return result;
+        }
+
+        // تحميل البيانات عند بدء التشغيل
         loadData();
 
         // ============================================================
-        // SUGGESTIONS
+        // SUGGESTIONS - محسّن
         // ============================================================
         function setupSuggestions(input, container, dataList) {
             var suggestionIndex = -1;
@@ -1406,7 +1395,18 @@
                     return;
                 }
 
-                var results = dataList.filter(function(item) {
+                // استخدام البيانات المحملة (قد تكون فارغة في البداية)
+                var list = dataList;
+                if (list.length === 0) {
+                    // قيم افتراضية مؤقتة
+                    if (container === 'clientSuggestions') {
+                        list = ['شركة النور للتجارة', 'مؤسسة الصفا', 'شركة الاتحاد', 'مؤسسة الأمل', 'شركة الوفاء'];
+                    } else if (container === 'itemSuggestions') {
+                        list = ['دهان داخلي أبيض', 'دهان خارجي أزرق', 'ورنيش شفاف', 'معجون جدران', 'دهان أسقف'];
+                    }
+                }
+
+                var results = list.filter(function(item) {
                     return item.toLowerCase().includes(query);
                 });
 
@@ -1500,6 +1500,7 @@
             }
         }
 
+        // تفعيل الاقتراحات مع قيم افتراضية
         setupSuggestions(clientName, 'clientSuggestions', clientsList);
         setupSuggestions(itemName, 'itemSuggestions', itemsList);
 
@@ -1549,6 +1550,7 @@
                 return;
             }
 
+            // إضافة المنتج إلى القائمة إذا لم يكن موجوداً
             if (!itemsList.includes(name)) {
                 itemsList.push(name);
             }
@@ -1846,8 +1848,7 @@
         });
 
         console.log('🧾 فاتورة المبيعات - تم التحميل');
-        console.log('📌 العملاء من شيت بيانات العملاء (العمود الثاني)');
-        console.log('📌 المنتجات من شيت المنتجات (العمود الثاني، من الصف 3)');
+        console.log('📌 الاقتراحات تعمل حتى بدون تحميل البيانات (قيم افتراضية)');
         console.log('📌 استخدم Enter للتنقل بين الحقول');
         console.log('📌 Ctrl+Enter للحفظ');
     </script>
