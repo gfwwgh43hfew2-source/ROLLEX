@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>فاتورة المبيعات - شركة رولكس</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    <style>
+        /* ============================================================
+           RESET & BASE
+           ============================================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
+            background: #0a0f1f;
+            color: #eee;
+            direction: rtl;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0f1f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f5c842;
+            border-radius: 10px;
+        }
+
+        /* ============================================================
+           HEADER
+           ============================================================ */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 10px 0;
+            background: rgba(10, 15, 31, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        header .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(135deg, #f5c842, #d4a020);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 900;
+            color: #0a0f1f;
+        }
+
+        .logo-text h1 {
+            font-size: 1rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #f5c842, #d4a020);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+
+        .logo-text span {
+            font-size: 0.5rem;
+            color: rgba(255, 255, 255, 0.3);
+            display: block;
+            -webkit-text-fill-color: rgba(255, 255, 255, 0.3);
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        nav a {
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: 0.3s;
+            position: relative;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            right: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #f5c842, #d4a020);
+            transition: 0.3s;
+            border-radius: 10px;
+        }
+
+        nav a:hover {
+            color: #fff;
+        }
+        nav a:hover::after {
+            width: 100%;
+        }
+        nav a.active {
+            color: #f5c842;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-actions button {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.03);
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-actions button:hover {
+            background: rgba(245, 200, 66, 0.1);
+            border-color: rgba(245, 200, 66, 0.2);
+            color: #f5c842;
+        }
+
+        .hamburger {
+            display: none;
+            font-size: 1.4rem;
+            color: #fff;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.03);
+            transition: 0.3s;
+            z-index: 1001;
+        }
+
+        .hamburger:hover {
+            background: rgba(245, 200, 66, 0.08);
+            border-color: rgba(245, 200, 66, 0.15);
+        }
+
+        .mobile-nav-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .mobile-nav-overlay.active {
+            opacity: 1;
+        }
+
+        .mobile-nav-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: -280px;
+            width: 280px;
+            height: 100vh;
+            background: rgba(10, 15, 31, 0.98);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            z-index: 1000;
+            padding: 80px 24px 30px;
+            transition: right 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+            overflow-y: auto;
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .mobile-nav-menu.open {
+            right: 0;
+        }
+
+        .mobile-nav-menu .close-btn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            font-size: 1.6rem;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.02);
+            transition: 0.3s;
+        }
+
+        .mobile-nav-menu .close-btn:hover {
+            background: rgba(245, 200, 66, 0.08);
+            border-color: rgba(245, 200, 66, 0.15);
+            color: #f5c842;
+        }
+
+        .mobile-nav-menu .menu-header {
+            margin-bottom: 30px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .mobile-nav-menu .menu-items {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .mobile-nav-menu .menu-items a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: 0.3s;
+        }
+
+        .mobile-nav-menu .menu-items a i {
+            width: 20px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 1rem;
+        }
+
+        .mobile-nav-menu .menu-items a:hover {
+            background: rgba(245, 200, 66, 0.06);
+            color: #f5c842;
+        }
+
+        .mobile-nav-menu .menu-items a.active {
+            background: rgba(245, 200, 66, 0.08);
+            color: #f5c842;
+        }
+
+        .mobile-nav-bottom {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 998;
+            background: rgba(10, 15, 31, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+        }
+
+        .mobile-nav-bottom ul {
+            display: flex;
+            justify-content: space-around;
+            list-style: none;
+        }
+
+        .mobile-nav-bottom ul li {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            font-size: 0.5rem;
+            color: rgba(255, 255, 255, 0.4);
+            transition: 0.3s;
+            padding: 4px 12px;
+            border-radius: 8px;
+        }
+
+        .mobile-nav-bottom ul li i {
+            font-size: 1rem;
+        }
+
+        .mobile-nav-bottom ul li:hover,
+        .mobile-nav-bottom ul li.active {
+            color: #f5c842;
+        }
+
+        .mobile-nav-bottom ul li a {
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+        }
+
+        /* ============================================================
+           PAGE HEADER
+           ============================================================ */
+        .page-header {
+            padding: 20px 0 16px;
+        }
+
+        .page-header h1 {
+            font-size: 1.6rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #f5c842, #d4a020);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-header p {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.85rem;
+            margin-top: 2px;
+        }
+
+        /* ============================================================
+           INVOICE FORM
+           ============================================================ */
+        .invoice-form {
+            background: linear-gradient(145deg, #121a2e, #0e1525);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            margin-bottom: 20px;
+        }
+
+        .invoice-form .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .invoice-form .form-row.three-col {
+            grid-template-columns: 2fr 1fr 1fr;
+        }
+
+        .invoice-form .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .invoice-form .form-group label {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 600;
+        }
+
+        .invoice-form .form-group label .required {
+            color: #ef5350;
+        }
+
+        .invoice-form .form-group input,
+        .invoice-form .form-group select {
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.03);
+            color: #eee;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: 0.3s;
+            outline: none;
+            width: 100%;
+        }
+
+        .invoice-form .form-group input:focus,
+        .invoice-form .form-group select:focus {
+            border-color: #f5c842;
+            background: rgba(245, 200, 66, 0.04);
+        }
+
+        .invoice-form .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .invoice-form .form-group select option {
+            background: #0a0f1f;
+            color: #eee;
+        }
+
+        /* ============================================================
+           ITEMS TABLE
+           ============================================================ */
+        .items-table-wrapper {
+            background: linear-gradient(145deg, #121a2e, #0e1525);
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            margin-bottom: 16px;
+        }
+
+        .items-table-wrapper table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .items-table-wrapper table thead th {
+            background: rgba(26, 47, 68, 0.3);
+            color: #f5c842;
+            padding: 10px 12px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            border-bottom: 1px solid rgba(245, 200, 66, 0.05);
+        }
+
+        .items-table-wrapper table tbody td {
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            font-size: 0.8rem;
+        }
+
+        .items-table-wrapper table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .items-table-wrapper table tbody td .btn-remove {
+            background: rgba(239, 83, 80, 0.15);
+            border: none;
+            color: #ef5350;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 0.7rem;
+        }
+
+        .items-table-wrapper table tbody td .btn-remove:hover {
+            background: rgba(239, 83, 80, 0.25);
+        }
+
+        .items-table-wrapper .empty-items {
+            text-align: center;
+            padding: 30px 20px;
+            color: rgba(255, 255, 255, 0.15);
+        }
+
+        .items-table-wrapper .empty-items i {
+            font-size: 2rem;
+            opacity: 0.2;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        /* ============================================================
+           TOTALS
+           ============================================================ */
+        .totals-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: flex-end;
+            padding: 16px 20px;
+            background: linear-gradient(145deg, #121a2e, #0e1525);
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            margin-bottom: 16px;
+        }
+
+        .totals-section .total-item {
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .totals-section .total-item .label {
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.3);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .totals-section .total-item .value {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #f5c842;
+            margin-top: 2px;
+        }
+
+        .totals-section .total-item .value.green {
+            color: #4caf50;
+        }
+
+        .totals-section .total-item .value.red {
+            color: #ef5350;
+        }
+
+        /* ============================================================
+           BUTTONS
+           ============================================================ */
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-save {
+            padding: 12px 32px;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #f5c842, #d4a020);
+            border: none;
+            color: #0a0f1f;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 20px rgba(245, 200, 66, 0.15);
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(245, 200, 66, 0.25);
+        }
+
+        .btn-save:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-add {
+            padding: 10px 24px;
+            border-radius: 50px;
+            background: rgba(76, 175, 80, 0.12);
+            border: 1px solid rgba(76, 175, 80, 0.15);
+            color: #4caf50;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-add:hover {
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+        .btn-reset-form {
+            padding: 10px 24px;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-reset-form:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        /* ============================================================
+           TOAST
+           ============================================================ */
+        .toast-container {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 99999;
+            max-width: 420px;
+            width: 90%;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: rgba(18, 26, 46, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateY(20px);
+            transition: transform 0.4s ease, opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: auto;
+            border-right: 4px solid #f5c842;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast .toast-icon {
+            font-size: 1.2rem;
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toast .toast-icon.success {
+            color: #4caf50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .toast .toast-icon.error {
+            color: #ef5350;
+            background: rgba(239, 83, 80, 0.1);
+        }
+
+        .toast .toast-icon.warning {
+            color: #f5c842;
+            background: rgba(245, 200, 66, 0.1);
+        }
+
+        .toast .toast-content {
+            flex: 1;
+        }
+
+        .toast .toast-content .toast-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .toast .toast-content .toast-message {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 2px;
+        }
+
+        .toast .toast-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 4px;
+        }
+
+        /* ============================================================
+           SUGGESTIONS
+           ============================================================ */
+        .suggestions-container {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: rgba(18, 26, 46, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .suggestions-container.show {
+            display: block;
+        }
+
+        .suggestions-container .suggestion-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: 0.2s;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .suggestions-container .suggestion-item:hover,
+        .suggestions-container .suggestion-item.active {
+            background: rgba(245, 200, 66, 0.06);
+            color: #f5c842;
+        }
+
+        .suggestions-container .suggestion-item .s-name {
+            font-size: 0.85rem;
+        }
+
+        .suggestions-container .suggestion-item .s-code {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .suggestions-container .suggestion-empty {
+            padding: 16px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.8rem;
+        }
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
+        @media (min-width: 769px) {
+            .mobile-nav-bottom {
+                display: none !important;
+            }
+            .mobile-nav-overlay {
+                display: none !important;
+            }
+            .mobile-nav-menu {
+                display: none !important;
+            }
+            .hamburger {
+                display: none !important;
+            }
+            nav {
+                display: flex !important;
+            }
+            .container {
+                padding: 0 24px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                display: none !important;
+            }
+            .hamburger {
+                display: flex !important;
+            }
+            .mobile-nav-bottom {
+                display: flex !important;
+            }
+            .mobile-nav-menu {
+                display: block;
+            }
+            .mobile-nav-overlay {
+                display: block;
+            }
+            .mobile-nav-menu.open {
+                right: 0;
+            }
+            .mobile-nav-overlay.active {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            .page-header h1 {
+                font-size: 1.3rem;
+            }
+            .invoice-form .form-row {
+                grid-template-columns: 1fr;
+            }
+            .invoice-form .form-row.three-col {
+                grid-template-columns: 1fr;
+            }
+            .totals-section {
+                justify-content: center;
+            }
+            .form-actions {
+                flex-direction: column;
+            }
+            .form-actions .btn-save,
+            .form-actions .btn-add,
+            .form-actions .btn-reset-form {
+                width: 100%;
+                justify-content: center;
+            }
+            .container {
+                padding: 0 14px;
+            }
+            .items-table-wrapper table {
+                font-size: 0.7rem;
+            }
+            .items-table-wrapper table thead th,
+            .items-table-wrapper table tbody td {
+                padding: 6px 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .page-header h1 {
+                font-size: 1.1rem;
+            }
+            .invoice-form {
+                padding: 16px;
+            }
+            .invoice-form .form-group input,
+            .invoice-form .form-group select {
+                font-size: 0.8rem;
+                padding: 8px 12px;
+            }
+            .totals-section .total-item .value {
+                font-size: 1rem;
+            }
+            .items-table-wrapper table {
+                font-size: 0.6rem;
+            }
+            .items-table-wrapper table thead th,
+            .items-table-wrapper table tbody td {
+                padding: 4px 6px;
+            }
+        }
+
+        /* ============================================================
+           SUGGESTIONS CONTAINER STYLES
+           ============================================================ */
+        .suggestion-wrapper {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================
+    HEADER
+    ============================================================ -->
+    <header id="header">
+        <div class="container">
+            <div class="logo">
+                <div class="logo-icon">🧾</div>
+                <div class="logo-text">
+                    <h1>فاتورة المبيعات</h1>
+                    <span>شركة رولكس</span>
+                </div>
+            </div>
+            <nav>
+                <a href="treasury.html">الخزينة</a>
+                <a href="sales.html">المبيعات</a>
+                <a href="#" class="active">فاتورة جديدة</a>
+                <a href="#">التقارير</a>
+            </nav>
+            <div class="header-actions">
+                <button aria-label="بحث"><i class="fas fa-search"></i></button>
+                <button aria-label="إشعارات"><i class="fas fa-bell"></i></button>
+                <div class="hamburger" id="navToggle"><i class="fas fa-bars"></i></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================================================
+    MOBILE NAV
+    ============================================================ -->
+    <div class="mobile-nav-overlay" id="mobileOverlay"></div>
+    <div class="mobile-nav-menu" id="mobileMenu">
+        <div class="close-btn" id="closeMenu"><i class="fas fa-times"></i></div>
+        <div class="menu-header">
+            <div class="logo-text">
+                <h1 style="font-size:1.2rem; background: linear-gradient(135deg, #f5c842, #d4a020); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">فاتورة المبيعات</h1>
+                <span style="font-size:0.6rem; color:rgba(255,255,255,0.3); display:block;">شركة رولكس</span>
+            </div>
+        </div>
+        <div class="menu-items">
+            <a href="treasury.html"><i class="fas fa-coins"></i> الخزينة</a>
+            <a href="sales.html"><i class="fas fa-chart-line"></i> المبيعات</a>
+            <a href="#" class="active"><i class="fas fa-file-invoice"></i> فاتورة جديدة</a>
+            <a href="#"><i class="fas fa-chart-pie"></i> التقارير</a>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    MOBILE BOTTOM NAV
+    ============================================================ -->
+    <nav class="mobile-nav-bottom" id="mobileNavBottom">
+        <ul>
+            <li><a href="treasury.html"><i class="fas fa-coins"></i><span>الخزينة</span></a></li>
+            <li><a href="sales.html"><i class="fas fa-chart-line"></i><span>المبيعات</span></a></li>
+            <li class="active"><a href="#"><i class="fas fa-file-invoice"></i><span>فاتورة</span></a></li>
+            <li><a href="#"><i class="fas fa-chart-pie"></i><span>التقارير</span></a></li>
+        </ul>
+    </nav>
+
+    <!-- ============================================================
+    TOAST CONTAINER
+    ============================================================ -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ============================================================
+    PAGE CONTENT
+    ============================================================ -->
+    <div class="container">
+
+        <!-- ===== PAGE HEADER ===== -->
+        <div class="page-header">
+            <h1>🧾 فاتورة مبيعات جديدة</h1>
+            <p>إدخال بيانات الفاتورة مع إضافة الأصناف والكميات والأسعار</p>
+        </div>
+
+        <!-- ===== INVOICE FORM ===== -->
+        <div class="invoice-form" id="invoiceForm">
+            <!-- بيانات الفاتورة الثابتة -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>رقم الفاتورة <span class="required">*</span></label>
+                    <input type="text" id="invoiceNumber" placeholder="مثال: INV-001" />
+                </div>
+                <div class="form-group">
+                    <label>التاريخ <span class="required">*</span></label>
+                    <input type="date" id="invoiceDate" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>اسم العميل <span class="required">*</span></label>
+                    <input type="text" id="clientName" placeholder="اسم العميل" list="clientSuggestions" />
+                    <datalist id="clientSuggestions"></datalist>
+                </div>
+                <div class="form-group">
+                    <label>المندوب <span class="required">*</span></label>
+                    <input type="text" id="salesman" placeholder="اسم المندوب" />
+                </div>
+            </div>
+
+            <hr style="border-color:rgba(255,255,255,0.05);margin:16px 0;" />
+
+            <!-- إدخال الأصناف -->
+            <div class="form-row three-col">
+                <div class="form-group suggestion-wrapper">
+                    <label>الصنف <span class="required">*</span></label>
+                    <input type="text" id="itemName" placeholder="اختر الصنف..." autocomplete="off" />
+                    <div class="suggestions-container" id="itemSuggestions"></div>
+                </div>
+                <div class="form-group">
+                    <label>الكمية <span class="required">*</span></label>
+                    <input type="number" id="itemQuantity" placeholder="0" min="0.1" step="0.1" />
+                </div>
+                <div class="form-group">
+                    <label>سعر الوحدة <span class="required">*</span></label>
+                    <input type="number" id="itemPrice" placeholder="0.00" min="0" step="0.01" />
+                </div>
+            </div>
+
+            <!-- أزرار إضافة الصنف -->
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+                <button class="btn-add" id="btnAddItem"><i class="fas fa-plus"></i> إضافة الصنف</button>
+                <button class="btn-reset-form" id="btnClearItem"><i class="fas fa-undo"></i> تفريغ الحقول</button>
+            </div>
+
+            <!-- ===== ITEMS TABLE ===== -->
+            <div class="items-table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th style="text-align:right;">الصنف</th>
+                            <th>الكمية</th>
+                            <th>سعر الوحدة</th>
+                            <th>الإجمالي</th>
+                            <th>إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsBody">
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-items">
+                                    <i class="fas fa-box-open"></i>
+                                    <p>لا توجد أصناف مضافة</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ===== TOTALS ===== -->
+            <div class="totals-section">
+                <div class="total-item">
+                    <div class="label">إجمالي المبلغ</div>
+                    <div class="value" id="totalAmount">0.00</div>
+                </div>
+                <div class="total-item">
+                    <div class="label">الخصم</div>
+                    <div class="value red" id="discountAmount">0.00</div>
+                </div>
+                <div class="total-item">
+                    <div class="label">الصافي</div>
+                    <div class="value green" id="netAmount">0.00</div>
+                </div>
+            </div>
+
+            <!-- ===== FORM ACTIONS ===== -->
+            <div class="form-actions">
+                <button class="btn-save" id="btnSaveInvoice"><i class="fas fa-save"></i> حفظ الفاتورة</button>
+                <button class="btn-reset-form" id="btnResetAll"><i class="fas fa-undo-alt"></i> إلغاء الكل</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============================================================
+    JAVASCRIPT
+    ============================================================ -->
+    <script>
+        // ============================================================
+        // HEADER SCROLL
+        // ============================================================
+        var header = document.getElementById('header');
+        window.addEventListener('scroll', function() {
+            if (window.pageYOffset > 10) {
+                header.style.background = 'rgba(10, 15, 31, 0.98)';
+                header.style.borderBottom = '1px solid rgba(255,255,255,0.08)';
+            } else {
+                header.style.background = 'rgba(10, 15, 31, 0.95)';
+                header.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+            }
+        });
+
+        // ============================================================
+        // MOBILE NAV
+        // ============================================================
+        var navToggle = document.getElementById('navToggle');
+        var mobileMenu = document.getElementById('mobileMenu');
+        var mobileOverlay = document.getElementById('mobileOverlay');
+        var closeMenu = document.getElementById('closeMenu');
+
+        function openMenu() {
+            mobileMenu.classList.add('open');
+            mobileOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            navToggle.innerHTML = '<i class="fas fa-times"></i>';
+            navToggle.classList.add('open');
+        }
+
+        function closeMenuFn() {
+            mobileMenu.classList.remove('open');
+            mobileOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+            navToggle.innerHTML = '<i class="fas fa-bars"></i>';
+            navToggle.classList.remove('open');
+        }
+
+        navToggle.addEventListener('click', function() {
+            if (mobileMenu.classList.contains('open')) {
+                closeMenuFn();
+            } else {
+                openMenu();
+            }
+        });
+
+        closeMenu.addEventListener('click', closeMenuFn);
+        mobileOverlay.addEventListener('click', closeMenuFn);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('open')) {
+                closeMenuFn();
+            }
+        });
+
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768 && mobileMenu.classList.contains('open')) {
+                closeMenuFn();
+            }
+        });
+
+        // ============================================================
+        // DOM REFS
+        // ============================================================
+        var invoiceNumber = document.getElementById('invoiceNumber');
+        var invoiceDate = document.getElementById('invoiceDate');
+        var clientName = document.getElementById('clientName');
+        var salesman = document.getElementById('salesman');
+        var itemName = document.getElementById('itemName');
+        var itemQuantity = document.getElementById('itemQuantity');
+        var itemPrice = document.getElementById('itemPrice');
+        var btnAddItem = document.getElementById('btnAddItem');
+        var btnClearItem = document.getElementById('btnClearItem');
+        var btnSaveInvoice = document.getElementById('btnSaveInvoice');
+        var btnResetAll = document.getElementById('btnResetAll');
+        var itemsBody = document.getElementById('itemsBody');
+        var totalAmount = document.getElementById('totalAmount');
+        var discountAmount = document.getElementById('discountAmount');
+        var netAmount = document.getElementById('netAmount');
+        var itemSuggestions = document.getElementById('itemSuggestions');
+        var clientSuggestions = document.getElementById('clientSuggestions');
+
+        // ============================================================
+        // STATE
+        // ============================================================
+        var items = [];
+        var itemsList = [];
+        var clientsList = [];
+        var editIndex = -1;
+        var total = 0;
+        var discount = 0;
+        var net = 0;
+
+        // ============================================================
+        // TOAST
+        // ============================================================
+        function showToast(title, message, type) {
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast';
+
+            var iconClass = 'warning';
+            if (type === 'success') iconClass = 'success';
+            else if (type === 'error') iconClass = 'error';
+
+            var iconMap = {
+                'success': 'fa-check-circle',
+                'error': 'fa-times-circle',
+                'warning': 'fa-exclamation-triangle'
+            };
+
+            toast.innerHTML = '' +
+                '<div class="toast-icon ' + iconClass + '"><i class="fas ' + (iconMap[type] || 'fa-info-circle') +
+                '"></i></div>' +
+                '<div class="toast-content">' +
+                '<div class="toast-title">' + title + '</div>' +
+                '<div class="toast-message">' + message + '</div>' +
+                '</div>' +
+                '<button class="toast-close"><i class="fas fa-times"></i></button>';
+
+            container.appendChild(toast);
+
+            requestAnimationFrame(function() {
+                toast.classList.add('show');
+            });
+
+            var timeout = setTimeout(function() {
+                if (toast.parentElement) {
+                    toast.classList.remove('show');
+                    setTimeout(function() {
+                        if (toast.parentElement) toast.remove();
+                    }, 300);
+                }
+            }, 3500);
+
+            toast.addEventListener('click', function(e) {
+                if (e.target.closest('.toast-close') || e.target.closest('.toast-icon')) {
+                    clearTimeout(timeout);
+                    toast.classList.remove('show');
+                    setTimeout(function() {
+                        if (toast.parentElement) toast.remove();
+                    }, 300);
+                }
+            });
+        }
+
+        // ============================================================
+        // SET DEFAULT DATE
+        // ============================================================
+        (function setDefaultDate() {
+            var today = new Date();
+            invoiceDate.value = today.toISOString().split('T')[0];
+            // رقم فاتورة افتراضي
+            var dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+            invoiceNumber.value = 'INV-' + dateStr + '-' + String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+        })();
+
+        // ============================================================
+        // LOAD ITEMS & CLIENTS
+        // ============================================================
+        function loadItemsAndClients() {
+            var SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
+            var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=إعدادات';
+
+            fetch(url)
+                .then(function(response) {
+                    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
+                    return response.text();
+                })
+                .then(function(csvText) {
+                    var lines = csvText.split('\n').filter(function(line) { return line.trim() !== ''; });
+                    var data = lines.map(function(line) {
+                        var row = [];
+                        var current = '';
+                        var insideQuotes = false;
+                        for (var i = 0; i < line.length; i++) {
+                            var char = line[i];
+                            if (char === '"') insideQuotes = !insideQuotes;
+                            else if (char === ',' && !insideQuotes) {
+                                row.push(current.trim());
+                                current = '';
+                            } else current += char;
+                        }
+                        row.push(current.trim());
+                        return row;
+                    });
+
+                    // قراءة الأصناف من العمود I (index 8) - قوائم الوارد
+                    var itemsSet = new Set();
+                    for (var r = 0; r < data.length; r++) {
+                        if (data[r] && data[r].length > 8) {
+                            var val = data[r][8];
+                            if (val && val.trim() !== '' && val.trim() !== 'قوائم الوارد') {
+                                itemsSet.add(val.trim());
+                            }
+                        }
+                    }
+                    itemsList = Array.from(itemsSet);
+
+                    // قراءة العملاء من العمود P (index 15) - اسم العميل
+                    var clientsSet = new Set();
+                    for (var r = 0; r < data.length; r++) {
+                        if (data[r] && data[r].length > 15) {
+                            var val = data[r][15];
+                            if (val && val.trim() !== '' && val.trim() !== 'اسم العميل') {
+                                clientsSet.add(val.trim());
+                            }
+                        }
+                    }
+                    clientsList = Array.from(clientsSet);
+
+                    // تحديث datalist
+                    updateDatalist(clientSuggestions, clientsList);
+                    console.log('✅ تم تحميل الأصناف:', itemsList.length, 'العملاء:', clientsList.length);
+                })
+                .catch(function(error) {
+                    console.error('❌ خطأ في تحميل البيانات:', error);
+                });
+        }
+
+        function updateDatalist(datalist, items) {
+            datalist.innerHTML = '';
+            items.forEach(function(item) {
+                var option = document.createElement('option');
+                option.value = item;
+                datalist.appendChild(option);
+            });
+        }
+
+        loadItemsAndClients();
+
+        // ============================================================
+        // SUGGESTIONS FOR ITEMS
+        // ============================================================
+        itemName.addEventListener('input', function() {
+            var query = this.value.trim().toLowerCase();
+            var container = document.getElementById('itemSuggestions');
+
+            if (!query || query === '') {
+                container.classList.remove('show');
+                return;
+            }
+
+            var results = itemsList.filter(function(item) {
+                return item.toLowerCase().includes(query);
+            });
+
+            if (results.length === 0) {
+                container.innerHTML = '<div class="suggestion-empty">لا توجد أصناف مطابقة</div>';
+                container.classList.add('show');
+                return;
+            }
+
+            var html = '';
+            results.slice(0, 10).forEach(function(item) {
+                html += '<div class="suggestion-item" data-value="' + item + '">' +
+                    '<span class="s-name">' + item + '</span>' +
+                    '</div>';
+            });
+
+            container.innerHTML = html;
+            container.classList.add('show');
+
+            container.querySelectorAll('.suggestion-item').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    itemName.value = this.dataset.value;
+                    container.classList.remove('show');
+                    itemQuantity.focus();
+                });
+            });
+        });
+
+        // إغلاق الاقتراحات عند النقر خارجها
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.suggestion-wrapper')) {
+                document.getElementById('itemSuggestions').classList.remove('show');
+            }
+        });
+
+        // التنقل بالكيبورد في الاقتراحات
+        var suggestionIndex = -1;
+        itemName.addEventListener('keydown', function(e) {
+            var container = document.getElementById('itemSuggestions');
+            var items = container.querySelectorAll('.suggestion-item');
+            if (items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                suggestionIndex = Math.min(suggestionIndex + 1, items.length - 1);
+                updateSuggestionActive(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                suggestionIndex = Math.max(suggestionIndex - 1, 0);
+                updateSuggestionActive(items);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (suggestionIndex >= 0 && suggestionIndex < items.length) {
+                    var activeItem = items[suggestionIndex];
+                    itemName.value = activeItem.dataset.value;
+                    container.classList.remove('show');
+                    suggestionIndex = -1;
+                    itemQuantity.focus();
+                }
+            }
+        });
+
+        function updateSuggestionActive(items) {
+            items.forEach(function(el, index) {
+                if (index === suggestionIndex) {
+                    el.classList.add('active');
+                    el.scrollIntoView({ block: 'nearest' });
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+        }
+
+        // ============================================================
+        // ADD ITEM - Press Enter
+        // ============================================================
+        itemPrice.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addItem();
+            }
+        });
+
+        itemQuantity.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                itemPrice.focus();
+            }
+        });
+
+        // ============================================================
+        // ADD ITEM
+        // ============================================================
+        function addItem() {
+            var name = itemName.value.trim();
+            var qty = parseFloat(itemQuantity.value);
+            var price = parseFloat(itemPrice.value);
+
+            if (!name) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال اسم الصنف', 'error');
+                itemName.focus();
+                return;
+            }
+
+            if (!qty || qty <= 0) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال كمية صحيحة', 'error');
+                itemQuantity.focus();
+                return;
+            }
+
+            if (!price || price <= 0) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال سعر صحيح', 'error');
+                itemPrice.focus();
+                return;
+            }
+
+            // التحقق من وجود الصنف في القائمة
+            if (!itemsList.includes(name)) {
+                // إضافة الصنف إلى القائمة
+                itemsList.push(name);
+                updateDatalist(clientSuggestions, clientsList);
+            }
+
+            var totalItem = qty * price;
+
+            if (editIndex >= 0) {
+                // تعديل
+                items[editIndex] = { name: name, qty: qty, price: price, total: totalItem };
+                editIndex = -1;
+                btnAddItem.innerHTML = '<i class="fas fa-plus"></i> إضافة الصنف';
+                showToast('✏️ تعديل', 'تم تعديل الصنف بنجاح', 'warning');
+            } else {
+                // إضافة جديد
+                items.push({ name: name, qty: qty, price: price, total: totalItem });
+                showToast('✅ إضافة', 'تم إضافة الصنف بنجاح', 'success');
+            }
+
+            renderItems();
+            clearItemFields();
+            calculateTotals();
+            itemName.focus();
+        }
+
+        // ============================================================
+        // CLEAR ITEM FIELDS
+        // ============================================================
+        function clearItemFields() {
+            itemName.value = '';
+            itemQuantity.value = '';
+            itemPrice.value = '';
+            document.getElementById('itemSuggestions').classList.remove('show');
+            suggestionIndex = -1;
+        }
+
+        // ============================================================
+        // RENDER ITEMS
+        // ============================================================
+        function renderItems() {
+            if (items.length === 0) {
+                itemsBody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-items">
+                                <i class="fas fa-box-open"></i>
+                                <p>لا توجد أصناف مضافة</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            var html = '';
+            items.forEach(function(item, index) {
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td style="text-align:right;">${item.name}</td>
+                        <td>${item.qty}</td>
+                        <td>${item.price.toFixed(2)}</td>
+                        <td style="color:#f5c842;font-weight:700;">${item.total.toFixed(2)}</td>
+                        <td>
+                            <button class="btn-remove" onclick="removeItem(${index})"><i class="fas fa-trash"></i></button>
+                            <button class="btn-remove" onclick="editItem(${index})" style="background:rgba(245,200,66,0.12);color:#f5c842;margin-right:4px;"><i class="fas fa-edit"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            itemsBody.innerHTML = html;
+        }
+
+        // ============================================================
+        // REMOVE ITEM
+        // ============================================================
+        function removeItem(index) {
+            items.splice(index, 1);
+            renderItems();
+            calculateTotals();
+            showToast('🗑️ حذف', 'تم حذف الصنف بنجاح', 'warning');
+        }
+
+        // ============================================================
+        // EDIT ITEM
+        // ============================================================
+        function editItem(index) {
+            var item = items[index];
+            itemName.value = item.name;
+            itemQuantity.value = item.qty;
+            itemPrice.value = item.price;
+            editIndex = index;
+            btnAddItem.innerHTML = '<i class="fas fa-edit"></i> تحديث الصنف';
+            itemName.focus();
+            showToast('✏️ تعديل', 'قم بتعديل البيانات ثم اضغط تحديث', 'warning');
+        }
+
+        // ============================================================
+        // CALCULATE TOTALS
+        // ============================================================
+        function calculateTotals() {
+            total = 0;
+            items.forEach(function(item) {
+                total += item.total;
+            });
+
+            // الخصم: 0 حالياً (يمكن إضافته لاحقاً)
+            discount = 0;
+            net = total - discount;
+
+            totalAmount.textContent = total.toFixed(2);
+            discountAmount.textContent = discount.toFixed(2);
+            netAmount.textContent = net.toFixed(2);
+        }
+
+        // ============================================================
+        // BUTTON EVENTS
+        // ============================================================
+        btnAddItem.addEventListener('click', addItem);
+
+        btnClearItem.addEventListener('click', function() {
+            clearItemFields();
+            editIndex = -1;
+            btnAddItem.innerHTML = '<i class="fas fa-plus"></i> إضافة الصنف';
+        });
+
+        btnResetAll.addEventListener('click', function() {
+            if (items.length > 0) {
+                if (!confirm('هل أنت متأكد من إلغاء كل البيانات؟')) return;
+            }
+            items = [];
+            renderItems();
+            calculateTotals();
+            clearItemFields();
+            editIndex = -1;
+            btnAddItem.innerHTML = '<i class="fas fa-plus"></i> إضافة الصنف';
+            invoiceNumber.value = '';
+            clientName.value = '';
+            salesman.value = '';
+            var today = new Date();
+            invoiceDate.value = today.toISOString().split('T')[0];
+            showToast('🔄 إلغاء', 'تم تفريغ النموذج بالكامل', 'warning');
+        });
+
+        // ============================================================
+        // SAVE INVOICE
+        // ============================================================
+        btnSaveInvoice.addEventListener('click', function() {
+            var number = invoiceNumber.value.trim();
+            var date = invoiceDate.value;
+            var client = clientName.value.trim();
+            var sales = salesman.value.trim();
+
+            if (!number) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال رقم الفاتورة', 'error');
+                invoiceNumber.focus();
+                return;
+            }
+
+            if (!date) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال التاريخ', 'error');
+                invoiceDate.focus();
+                return;
+            }
+
+            if (!client) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال اسم العميل', 'error');
+                clientName.focus();
+                return;
+            }
+
+            if (!sales) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال اسم المندوب', 'error');
+                salesman.focus();
+                return;
+            }
+
+            if (items.length === 0) {
+                showToast('⚠️ تنبيه', 'يرجى إضافة صنف واحد على الأقل', 'error');
+                itemName.focus();
+                return;
+            }
+
+            // بناء بيانات الفاتورة
+            var invoiceData = {
+                number: number,
+                date: date,
+                client: client,
+                salesman: sales,
+                items: items,
+                total: total,
+                discount: discount,
+                net: net
+            };
+
+            // إرسال البيانات إلى Google Sheets
+            saveInvoiceToSheet(invoiceData);
+        });
+
+        // ============================================================
+        // SAVE TO GOOGLE SHEETS
+        // ============================================================
+        function saveInvoiceToSheet(invoiceData) {
+            btnSaveInvoice.disabled = true;
+            btnSaveInvoice.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+
+            var SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
+            var SHEET_NAME = 'المبيعات والمرتجعات';
+            var WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwzDyVjlpzCEOsJVYbKwXd_E_k73doYQPQEyB7KeXa3WHEoqTqCKcsXu1w-D_GqAMpCLQ/exec';
+
+            // بناء صفوف البيانات لكل صنف
+            var rows = [];
+            invoiceData.items.forEach(function(item) {
+                var row = [
+                    invoiceData.number,
+                    new Date(invoiceData.date).toLocaleString('ar-EG', { month: 'long' }),
+                    invoiceData.date,
+                    invoiceData.salesman,
+                    '', // كود العميل (يمكن إضافته لاحقاً)
+                    invoiceData.client,
+                    '', // اسم الحساب
+                    '', // الكود
+                    item.total, // المبيعات
+                    '', // الوزن
+                    '', // العبوة
+                    item.qty, // العدد
+                    item.price, // سعر البيع
+                    item.total, // اجمالي مبيعات
+                    '', // اجمالي الوزن
+                    '', // اللون
+                    item.name, // نوع الحصوة (نضع اسم الصنف)
+                    '' // ملاحظات
+                ];
+                rows.push(row);
+            });
+
+            // إرسال كل صف على حدة
+            var promises = rows.map(function(row) {
+                return fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sheetName: SHEET_NAME,
+                        row: row
+                    })
+                });
+            });
+
+            Promise.all(promises)
+                .then(function() {
+                    showToast('✅ تم الحفظ', 'تم حفظ الفاتورة بنجاح في Google Sheets', 'success');
+                    btnSaveInvoice.disabled = false;
+                    btnSaveInvoice.innerHTML = '<i class="fas fa-save"></i> حفظ الفاتورة';
+
+                    // تفريغ النموذج بعد الحفظ
+                    items = [];
+                    renderItems();
+                    calculateTotals();
+                    clearItemFields();
+                    editIndex = -1;
+                    btnAddItem.innerHTML = '<i class="fas fa-plus"></i> إضافة الصنف';
+                    clientName.value = '';
+                    salesman.value = '';
+                    var today = new Date();
+                    invoiceDate.value = today.toISOString().split('T')[0];
+                    var dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+                    invoiceNumber.value = 'INV-' + dateStr + '-' + String(Math.floor(Math.random() * 1000)).padStart(3,
+                        '0');
+                })
+                .catch(function(error) {
+                    console.error('Error saving invoice:', error);
+                    showToast('❌ خطأ', 'حدث خطأ في حفظ الفاتورة', 'error');
+                    btnSaveInvoice.disabled = false;
+                    btnSaveInvoice.innerHTML = '<i class="fas fa-save"></i> حفظ الفاتورة';
+                });
+        }
+
+        // ============================================================
+        // KEYBOARD SHORTCUTS
+        // ============================================================
+        document.addEventListener('keydown', function(e) {
+            // Ctrl + Enter = حفظ
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                if (e.target.closest('#invoiceForm')) {
+                    e.preventDefault();
+                    btnSaveInvoice.click();
+                }
+            }
+            // Escape = إلغاء
+            if (e.key === 'Escape') {
+                if (e.target.closest('.suggestion-wrapper')) {
+                    document.getElementById('itemSuggestions').classList.remove('show');
+                }
+            }
+        });
+
+        console.log('🧾 فاتورة المبيعات - تم التحميل');
+        console.log('📌 استخدم Enter للتنقل بين الحقول');
+        console.log('📌 Ctrl+Enter للحفظ');
+    </script>
+
+</body>
+</html>
