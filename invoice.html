@@ -7,9 +7,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
-        /* ============================================================
-           RESET & BASE
-           ============================================================ */
         * {
             margin: 0;
             padding: 0;
@@ -31,7 +28,7 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 0 16px;
         }
@@ -174,11 +171,6 @@
             border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, 0.06);
             background: rgba(255, 255, 255, 0.03);
-        }
-
-        .hamburger:hover {
-            background: rgba(245, 200, 66, 0.06);
-            border-color: rgba(245, 200, 66, 0.1);
         }
 
         /* ============================================================
@@ -348,20 +340,20 @@
             background: rgba(18, 26, 46, 0.85);
             backdrop-filter: blur(20px);
             border-radius: 14px;
-            padding: 24px 28px 32px 28px;
+            padding: 20px;
             border: 1px solid rgba(255, 255, 255, 0.04);
             margin-bottom: 16px;
         }
 
         .invoice-form .form-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 10px;
             margin-bottom: 10px;
         }
 
-        .invoice-form .form-row.three-col {
-            grid-template-columns: 2fr 1fr 1fr;
+        .invoice-form .form-row.small-fields {
+            grid-template-columns: 1fr 1fr 1fr;
         }
 
         .invoice-form .form-group {
@@ -415,34 +407,46 @@
             color: #eee;
         }
 
-        .invoice-form .form-row.small-fields {
-            grid-template-columns: 1fr 1fr 1fr;
-        }
-
         .invoice-form .form-row.small-fields .form-group input {
             height: 30px;
             font-size: 0.75rem;
             padding: 4px 8px;
         }
 
-        .invoice-form .form-row.small-fields .form-group label {
-            font-size: 0.55rem;
-        }
-
         .invoice-form .divider {
             border: none;
             border-top: 1px solid rgba(255, 255, 255, 0.04);
-            margin: 12px 0;
+            margin: 10px 0;
         }
 
         /* ============================================================
-           SUGGESTIONS
+           CUSTOM DROPDOWN (بديل datalist)
            ============================================================ */
-        .suggestion-wrapper {
+        .dropdown-wrapper {
             position: relative;
         }
 
-        .suggestions-container {
+        .dropdown-wrapper input {
+            cursor: pointer;
+        }
+
+        .dropdown-wrapper .dropdown-arrow {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+            font-size: 0.7rem;
+            transition: 0.3s;
+        }
+
+        .dropdown-wrapper input:focus+.dropdown-arrow {
+            color: #f5c842;
+        }
+
+        .dropdown-list {
+            display: none;
             position: absolute;
             top: calc(100% + 2px);
             left: 0;
@@ -451,40 +455,39 @@
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 8px;
-            max-height: 160px;
+            max-height: 180px;
             overflow-y: auto;
-            display: none;
             z-index: 100;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
         }
 
-        .suggestions-container.show {
+        .dropdown-list.show {
             display: block;
         }
 
-        .suggestions-container .suggestion-item {
+        .dropdown-list .dropdown-item {
             padding: 8px 12px;
             cursor: pointer;
             transition: 0.2s;
             border-bottom: 1px solid rgba(255, 255, 255, 0.02);
             color: rgba(255, 255, 255, 0.7);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             font-size: 0.8rem;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
             touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
-        .suggestions-container .suggestion-item:hover,
-        .suggestions-container .suggestion-item.active {
+        .dropdown-list .dropdown-item:hover,
+        .dropdown-list .dropdown-item.active {
             background: rgba(245, 200, 66, 0.06);
             color: #f5c842;
         }
 
-        .suggestions-container .suggestion-empty {
+        .dropdown-list .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-list .dropdown-empty {
             padding: 12px;
             text-align: center;
             color: rgba(255, 255, 255, 0.3);
@@ -645,9 +648,6 @@
             align-items: center;
             gap: 6px;
             box-shadow: 0 2px 12px rgba(245, 200, 66, 0.15);
-            touch-action: manipulation;
-            user-select: none;
-            -webkit-user-select: none;
         }
 
         .btn-save:hover {
@@ -674,10 +674,7 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            touch-action: manipulation;
-            user-select: none;
-            -webkit-user-select: none;
-            height: 36px;
+            height: 34px;
         }
 
         .btn-add:hover {
@@ -697,10 +694,7 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            touch-action: manipulation;
-            user-select: none;
-            -webkit-user-select: none;
-            height: 36px;
+            height: 34px;
         }
 
         .btn-reset-form:hover {
@@ -844,17 +838,11 @@
                 font-size: 1.1rem;
             }
             .invoice-form {
-                padding: 16px 18px 24px 18px;
+                padding: 14px;
             }
             .invoice-form .form-row {
                 grid-template-columns: 1fr 1fr;
                 gap: 8px;
-            }
-            .invoice-form .form-row.three-col {
-                grid-template-columns: 1fr 1fr;
-            }
-            .invoice-form .form-row.three-col .suggestion-wrapper {
-                grid-column: 1 / -1;
             }
             .invoice-form .form-row.small-fields {
                 grid-template-columns: 1fr 1fr;
@@ -895,12 +883,9 @@
                 font-size: 1rem;
             }
             .invoice-form {
-                padding: 12px 14px 20px 14px;
+                padding: 10px;
             }
             .invoice-form .form-row {
-                grid-template-columns: 1fr;
-            }
-            .invoice-form .form-row.three-col {
                 grid-template-columns: 1fr;
             }
             .invoice-form .form-row.small-fields {
@@ -1002,7 +987,7 @@
         <!-- ===== INVOICE FORM ===== -->
         <div class="invoice-form" id="invoiceForm">
 
-            <!-- بيانات الفاتورة - حقول صغيرة -->
+            <!-- بيانات الفاتورة -->
             <div class="form-row small-fields">
                 <div class="form-group">
                     <label>رقم الفاتورة <span class="required">*</span></label>
@@ -1018,23 +1003,25 @@
                 </div>
             </div>
 
-            <!-- اسم العميل -->
+            <!-- اسم العميل - مع قائمة منسدلة مخصصة -->
             <div class="form-row">
-                <div class="form-group suggestion-wrapper">
+                <div class="form-group dropdown-wrapper">
                     <label>اسم العميل <span class="required">*</span></label>
                     <input type="text" id="clientName" placeholder="ابحث عن عميل..." autocomplete="off" />
-                    <div class="suggestions-container" id="clientSuggestions"></div>
+                    <span class="dropdown-arrow"><i class="fas fa-chevron-down"></i></span>
+                    <div class="dropdown-list" id="clientDropdown"></div>
                 </div>
             </div>
 
             <hr class="divider" />
 
             <!-- إدخال الأصناف -->
-            <div class="form-row three-col">
-                <div class="form-group suggestion-wrapper">
+            <div class="form-row" style="grid-template-columns:2fr 1fr 1fr;">
+                <div class="form-group dropdown-wrapper">
                     <label>المنتج <span class="required">*</span></label>
                     <input type="text" id="itemName" placeholder="ابحث عن منتج..." autocomplete="off" />
-                    <div class="suggestions-container" id="itemSuggestions"></div>
+                    <span class="dropdown-arrow"><i class="fas fa-chevron-down"></i></span>
+                    <div class="dropdown-list" id="productDropdown"></div>
                 </div>
                 <div class="form-group">
                     <label>الكمية <span class="required">*</span></label>
@@ -1046,7 +1033,7 @@
                 </div>
             </div>
 
-            <!-- حقل الوحدة -->
+            <!-- الوحدة والوزن واللون -->
             <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;">
                 <div class="form-group">
                     <label>الوحدة <span class="required">*</span></label>
@@ -1069,7 +1056,7 @@
                 </div>
             </div>
 
-            <!-- أزرار إضافة الصنف -->
+            <!-- أزرار -->
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
                 <button class="btn-add" id="btnAddItem"><i class="fas fa-plus"></i> إضافة</button>
                 <button class="btn-reset-form" id="btnClearItem"><i class="fas fa-undo"></i> تفريغ</button>
@@ -1128,7 +1115,7 @@
     </div>
 
     <!-- ============================================================
-    JAVASCRIPT - مع الرابط الجديد
+    JAVASCRIPT - من الصفر
     ============================================================ -->
     <script>
         // ============================================================
@@ -1193,11 +1180,6 @@
         });
 
         // ============================================================
-        // CONFIGURATION - الرابط الجديد
-        // ============================================================
-        var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7ng74zPmKd-4SS_dquriU-G0llIAedNxiw1A9mvXa-XbHQB8hfROWLdVNxO8u2SsE4Q/exec';
-
-        // ============================================================
         // DOM REFS
         // ============================================================
         var invoiceNumber = document.getElementById('invoiceNumber');
@@ -1218,19 +1200,31 @@
         var totalAmount = document.getElementById('totalAmount');
         var discountAmount = document.getElementById('discountAmount');
         var netAmount = document.getElementById('netAmount');
-        var clientSuggestions = document.getElementById('clientSuggestions');
-        var itemSuggestions = document.getElementById('itemSuggestions');
+        var clientDropdown = document.getElementById('clientDropdown');
+        var productDropdown = document.getElementById('productDropdown');
 
         // ============================================================
         // STATE
         // ============================================================
         var items = [];
-        var itemsList = [];
-        var clientsList = [];
+        var clients = [];
+        var products = [];
         var editIndex = -1;
-        var total = 0;
-        var discount = 0;
-        var net = 0;
+
+        // ============================================================
+        // CONFIG
+        // ============================================================
+        var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7ng74zPmKd-4SS_dquriU-G0llIAedNxiw1A9mvXa-XbHQB8hfROWLdVNxO8u2SsE4Q/exec';
+
+        // ============================================================
+        // SET DEFAULT DATE
+        // ============================================================
+        (function() {
+            var today = new Date();
+            invoiceDate.value = today.toISOString().split('T')[0];
+            var dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+            invoiceNumber.value = 'INV-' + dateStr + '-' + String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+        })();
 
         // ============================================================
         // TOAST
@@ -1286,20 +1280,9 @@
         }
 
         // ============================================================
-        // SET DEFAULT DATE
-        // ============================================================
-        (function setDefaultDate() {
-            var today = new Date();
-            invoiceDate.value = today.toISOString().split('T')[0];
-            var dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-            invoiceNumber.value = 'INV-' + dateStr + '-' + String(Math.floor(Math.random() * 1000)).padStart(3, '0');
-        })();
-
-        // ============================================================
         // LOAD DATA - من Google Apps Script
         // ============================================================
         function loadData() {
-            // محاولة جلب البيانات من الـ Script
             fetch(SCRIPT_URL + '?action=getAll')
                 .then(function(response) {
                     if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
@@ -1307,35 +1290,33 @@
                 })
                 .then(function(data) {
                     if (data.success) {
-                        clientsList = data.clients || [];
-                        itemsList = data.products || [];
-                        console.log('✅ تم تحميل العملاء:', clientsList.length);
-                        console.log('✅ تم تحميل المنتجات:', itemsList.length);
+                        clients = data.clients || [];
+                        products = data.products || [];
+                        console.log('✅ العملاء:', clients.length, 'المنتجات:', products.length);
 
-                        // حفظ في LocalStorage للاستخدام المستقبلي
+                        // حفظ في LocalStorage
                         try {
-                            localStorage.setItem('rollex_clients', JSON.stringify(clientsList));
-                            localStorage.setItem('rollex_products', JSON.stringify(itemsList));
+                            localStorage.setItem('rollex_clients', JSON.stringify(clients));
+                            localStorage.setItem('rollex_products', JSON.stringify(products));
                         } catch (e) {}
 
-                        // تحديث الاقتراحات
-                        updateSuggestions();
+                        // تحديث القوائم المنسدلة
+                        updateDropdowns();
                     } else {
-                        console.warn('⚠️ فشل تحميل البيانات:', data.message);
                         useDefaultData();
                     }
                 })
                 .catch(function(error) {
                     console.error('❌ خطأ في جلب البيانات:', error);
-                    // محاولة تحميل من LocalStorage
+                    // محاولة من LocalStorage
                     try {
                         var savedClients = localStorage.getItem('rollex_clients');
                         var savedProducts = localStorage.getItem('rollex_products');
-                        if (savedClients) clientsList = JSON.parse(savedClients);
-                        if (savedProducts) itemsList = JSON.parse(savedProducts);
-                        if (clientsList.length > 0 || itemsList.length > 0) {
+                        if (savedClients) clients = JSON.parse(savedClients);
+                        if (savedProducts) products = JSON.parse(savedProducts);
+                        if (clients.length > 0 || products.length > 0) {
                             console.log('✅ تم تحميل البيانات من LocalStorage');
-                            updateSuggestions();
+                            updateDropdowns();
                             return;
                         }
                     } catch (e) {}
@@ -1344,148 +1325,134 @@
         }
 
         function useDefaultData() {
-            clientsList = ['شركة النور للتجارة', 'مؤسسة الصفا', 'شركة الاتحاد', 'مؤسسة الأمل', 'شركة الوفاء', 'شركة البركة', 'مؤسسة النجاح',
-                'شركة الخير', 'مؤسسة السلام', 'شركة الفتح'
-            ];
-            itemsList = ['دهان داخلي أبيض', 'دهان خارجي أزرق', 'ورنيش شفاف', 'معجون جدران', 'دهان أسقف', 'بوية خشب', 'أكريلك',
-                'دهان إيبوكسي', 'دهان حراري', 'عازل مائي'
-            ];
+            clients = ['شركة النور للتجارة', 'مؤسسة الصفا', 'شركة الاتحاد', 'مؤسسة الأمل', 'شركة الوفاء', 'شركة البركة', 'مؤسسة النجاح'];
+            products = ['دهان داخلي أبيض', 'دهان خارجي أزرق', 'ورنيش شفاف', 'معجون جدران', 'دهان أسقف', 'بوية خشب', 'أكريلك'];
             console.log('⚠️ تم استخدام بيانات افتراضية');
-            updateSuggestions();
+            updateDropdowns();
         }
 
-        function updateSuggestions() {
-            // تحديث قوائم الاقتراحات
-            if (clientsList.length > 0) {
-                clientSuggestions.innerHTML = '';
-                clientsList.forEach(function(item) {
-                    var opt = document.createElement('option');
-                    opt.value = item;
-                    clientSuggestions.appendChild(opt);
-                });
-            }
-            if (itemsList.length > 0) {
-                itemSuggestions.innerHTML = '';
-                itemsList.forEach(function(item) {
-                    var opt = document.createElement('option');
-                    opt.value = item;
-                    itemSuggestions.appendChild(opt);
-                });
-            }
-        }
-
-        // تحميل البيانات عند بدء التشغيل
-        loadData();
-
         // ============================================================
-        // SUGGESTIONS - محسّن
+        // CUSTOM DROPDOWN - قائمة منسدلة مخصصة
         // ============================================================
-        function setupSuggestions(input, container, dataList) {
-            var suggestionIndex = -1;
+        function setupDropdown(input, dropdown, dataList) {
+            var selectedIndex = -1;
+
+            // إظهار القائمة عند التركيز أو الضغط
+            input.addEventListener('focus', function() {
+                var query = this.value.trim().toLowerCase();
+                renderDropdown(query);
+            });
 
             input.addEventListener('input', function() {
                 var query = this.value.trim().toLowerCase();
-                var containerEl = document.getElementById(container);
+                renderDropdown(query);
+            });
 
-                if (!query || query === '') {
-                    containerEl.classList.remove('show');
-                    return;
+            // إغلاق القائمة عند النقر خارجها
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.dropdown-wrapper')) {
+                    dropdown.classList.remove('show');
                 }
+            });
 
+            // التنقل بالكيبورد
+            input.addEventListener('keydown', function(e) {
+                var items = dropdown.querySelectorAll('.dropdown-item:not(.dropdown-empty)');
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    updateActive(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, 0);
+                    updateActive(items);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (selectedIndex >= 0 && selectedIndex < items.length) {
+                        var val = items[selectedIndex].dataset.value;
+                        input.value = val;
+                        dropdown.classList.remove('show');
+                        selectedIndex = -1;
+                        // الانتقال للحقل التالي
+                        if (input.id === 'clientName') {
+                            salesman.focus();
+                        } else if (input.id === 'itemName') {
+                            itemQuantity.focus();
+                        }
+                    }
+                } else if (e.key === 'Escape') {
+                    dropdown.classList.remove('show');
+                    selectedIndex = -1;
+                }
+            });
+
+            function renderDropdown(query) {
                 var list = dataList;
                 if (list.length === 0) {
-                    if (container === 'clientSuggestions') {
+                    // قيم افتراضية
+                    if (input.id === 'clientName') {
                         list = ['شركة النور للتجارة', 'مؤسسة الصفا', 'شركة الاتحاد', 'مؤسسة الأمل', 'شركة الوفاء'];
                     } else {
                         list = ['دهان داخلي أبيض', 'دهان خارجي أزرق', 'ورنيش شفاف', 'معجون جدران', 'دهان أسقف'];
                     }
                 }
 
-                var results = list.filter(function(item) {
-                    return item.toLowerCase().includes(query);
-                });
+                var results = list;
+                if (query) {
+                    results = list.filter(function(item) {
+                        return item.toLowerCase().includes(query);
+                    });
+                }
 
                 if (results.length === 0) {
-                    containerEl.innerHTML = '<div class="suggestion-empty">لا توجد نتائج</div>';
-                    containerEl.classList.add('show');
+                    dropdown.innerHTML = '<div class="dropdown-empty">لا توجد نتائج</div>';
+                    dropdown.classList.add('show');
                     return;
                 }
 
                 var html = '';
-                results.slice(0, 10).forEach(function(item) {
-                    html += '<div class="suggestion-item" data-value="' + item + '">' +
-                        '<span>' + item + '</span>' +
-                        '</div>';
+                results.slice(0, 15).forEach(function(item) {
+                    html += '<div class="dropdown-item" data-value="' + item + '">' + item + '</div>';
                 });
 
-                containerEl.innerHTML = html;
-                containerEl.classList.add('show');
+                dropdown.innerHTML = html;
+                dropdown.classList.add('show');
 
-                containerEl.querySelectorAll('.suggestion-item').forEach(function(el) {
-                    el.addEventListener('click', function(e) {
-                        e.preventDefault();
+                // إضافة حدث النقر لكل عنصر
+                dropdown.querySelectorAll('.dropdown-item').forEach(function(el) {
+                    el.addEventListener('click', function() {
                         input.value = this.dataset.value;
-                        containerEl.classList.remove('show');
-                        var event = new Event('input');
-                        input.dispatchEvent(event);
+                        dropdown.classList.remove('show');
+                        selectedIndex = -1;
                         if (input.id === 'clientName') {
-                            document.getElementById('salesman').focus();
+                            salesman.focus();
                         } else if (input.id === 'itemName') {
-                            document.getElementById('itemQuantity').focus();
+                            itemQuantity.focus();
                         }
                     });
 
                     el.addEventListener('touchstart', function(e) {
                         e.preventDefault();
                         input.value = this.dataset.value;
-                        containerEl.classList.remove('show');
+                        dropdown.classList.remove('show');
+                        selectedIndex = -1;
                         if (input.id === 'clientName') {
-                            document.getElementById('salesman').focus();
+                            salesman.focus();
                         } else if (input.id === 'itemName') {
-                            document.getElementById('itemQuantity').focus();
+                            itemQuantity.focus();
                         }
                     }, { passive: true });
                 });
-            });
 
-            input.addEventListener('keydown', function(e) {
-                var containerEl = document.getElementById(container);
-                var items = containerEl.querySelectorAll('.suggestion-item');
-                if (items.length === 0) return;
-
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    suggestionIndex = Math.min(suggestionIndex + 1, items.length - 1);
-                    updateActive(items);
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    suggestionIndex = Math.max(suggestionIndex - 1, 0);
-                    updateActive(items);
-                } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (suggestionIndex >= 0 && suggestionIndex < items.length) {
-                        var activeItem = items[suggestionIndex];
-                        input.value = activeItem.dataset.value;
-                        containerEl.classList.remove('show');
-                        suggestionIndex = -1;
-                        if (input.id === 'clientName') {
-                            document.getElementById('salesman').focus();
-                        } else if (input.id === 'itemName') {
-                            document.getElementById('itemQuantity').focus();
-                        }
-                    }
-                }
-            });
-
-            document.addEventListener('click', function(e) {
-                if (!e.target.closest('.suggestion-wrapper')) {
-                    document.getElementById(container).classList.remove('show');
-                }
-            });
+                // إعادة تعيين المؤشر
+                selectedIndex = -1;
+            }
 
             function updateActive(items) {
                 items.forEach(function(el, index) {
-                    if (index === suggestionIndex) {
+                    if (index === selectedIndex) {
                         el.classList.add('active');
                         el.scrollIntoView({ block: 'nearest' });
                     } else {
@@ -1495,11 +1462,23 @@
             }
         }
 
-        setupSuggestions(clientName, 'clientSuggestions', clientsList);
-        setupSuggestions(itemName, 'itemSuggestions', itemsList);
+        function updateDropdowns() {
+            // إعادة تعيين القوائم
+            clientDropdown.innerHTML = '';
+            productDropdown.innerHTML = '';
+            // إعادة تهيئة القوائم المنسدلة
+            setupDropdown(clientName, clientDropdown, clients);
+            setupDropdown(itemName, productDropdown, products);
+        }
+
+        // تهيئة القوائم المنسدلة
+        updateDropdowns();
+
+        // تحميل البيانات
+        loadData();
 
         // ============================================================
-        // ADD ITEM - Press Enter
+        // ADD ITEM - Enter
         // ============================================================
         itemPrice.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
@@ -1544,10 +1523,6 @@
                 return;
             }
 
-            if (!itemsList.includes(name)) {
-                itemsList.push(name);
-            }
-
             var totalItem = qty * price;
 
             if (editIndex >= 0) {
@@ -1578,7 +1553,7 @@
             itemUnit.value = 'كجم';
             itemWeight.value = '';
             itemColor.value = '';
-            document.getElementById('itemSuggestions').classList.remove('show');
+            productDropdown.classList.remove('show');
         }
 
         // ============================================================
@@ -1651,13 +1626,13 @@
         // CALCULATE TOTALS
         // ============================================================
         function calculateTotals() {
-            total = 0;
+            var total = 0;
             items.forEach(function(item) {
                 total += item.total;
             });
 
-            discount = 0;
-            net = total - discount;
+            var discount = 0;
+            var net = total - discount;
 
             totalAmount.textContent = total.toFixed(2);
             discountAmount.textContent = discount.toFixed(2);
@@ -1738,9 +1713,9 @@
                 client: client,
                 salesman: sales,
                 items: items,
-                total: total,
-                discount: discount,
-                net: net
+                total: parseFloat(totalAmount.textContent),
+                discount: parseFloat(discountAmount.textContent),
+                net: parseFloat(netAmount.textContent)
             };
 
             saveInvoiceToSheet(invoiceData);
@@ -1833,17 +1808,15 @@
                 }
             }
             if (e.key === 'Escape') {
-                if (e.target.closest('.suggestion-wrapper')) {
-                    document.getElementById('itemSuggestions').classList.remove('show');
-                    document.getElementById('clientSuggestions').classList.remove('show');
-                }
+                clientDropdown.classList.remove('show');
+                productDropdown.classList.remove('show');
             }
         });
 
         console.log('🧾 فاتورة المبيعات - تم التحميل');
-        console.log('🔗 Script URL:', SCRIPT_URL);
         console.log('📌 استخدم Enter للتنقل بين الحقول');
         console.log('📌 Ctrl+Enter للحفظ');
+        console.log('📌 القوائم المنسدلة تعمل باللمس والكيبورد');
     </script>
 
 </body>
