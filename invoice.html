@@ -359,7 +359,6 @@
             font-size: 0.8rem;
         }
 
-        /* صف الأرقام - آلي ودفتري */
         .invoice-form .form-row.invoice-numbers {
             grid-template-columns: 1fr 1fr 1fr;
         }
@@ -377,6 +376,7 @@
         .invoice-form .form-row.invoice-numbers .form-group input:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+            color: rgba(255, 255, 255, 0.6);
         }
 
         .invoice-form .form-row {
@@ -1111,15 +1111,15 @@
                 بيانات الفاتورة
             </div>
 
-            <!-- صف الأرقام: رقم الفاتورة (آلي) + رقم دفتري + التاريخ -->
+            <!-- صف الأرقام: رقم الفاتورة (آلي) + رقم دفتري (آلي) + التاريخ -->
             <div class="form-row invoice-numbers">
                 <div class="form-group">
                     <label>رقم الفاتورة <span class="auto-badge">آلي</span></label>
                     <input type="text" id="invoiceNumber" disabled />
                 </div>
                 <div class="form-group">
-                    <label>رقم دفتري <span class="required">*</span></label>
-                    <input type="text" id="bookNumber" placeholder="مثال: 1" />
+                    <label>رقم دفتري <span class="auto-badge">تسلسلي</span></label>
+                    <input type="text" id="bookNumber" disabled />
                 </div>
                 <div class="form-group">
                     <label>التاريخ <span class="required">*</span></label>
@@ -1387,6 +1387,22 @@
         var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7ng74zPmKd-4SS_dquriU-G0llIAedNxiw1A9mvXa-XbHQB8hfROWLdVNxO8u2SsE4Q/exec';
 
         // ============================================================
+        // AUTO BOOK NUMBER - رقم دفتري آلي (تسلسلي حسب السنة)
+        // ============================================================
+        function generateBookNumber() {
+            var today = new Date();
+            var year = today.getFullYear();
+            var key = 'rollex_book_counter_' + year;
+
+            // قراءة العداد من localStorage
+            var counter = parseInt(localStorage.getItem(key)) || 0;
+            counter++;
+            localStorage.setItem(key, counter);
+
+            return counter;
+        }
+
+        // ============================================================
         // AUTO INVOICE NUMBER - رقم فاتورة آلي
         // ============================================================
         function generateInvoiceNumber() {
@@ -1405,10 +1421,9 @@
             var invNumber = 'INV-' + year + month + day + '-' + num;
             invoiceNumber.value = invNumber;
 
-            // تعيين رقم دفتري افتراضي
-            if (!bookNumber.value) {
-                bookNumber.value = counter;
-            }
+            // تعيين رقم دفتري آلي
+            var bookNum = generateBookNumber();
+            bookNumber.value = bookNum;
 
             return invNumber;
         }
@@ -1837,7 +1852,6 @@
             clientCode.value = '';
             salesman.value = '';
             invoiceType.value = 'مبيعات';
-            bookNumber.value = '';
             var today = new Date();
             invoiceDate.value = today.toISOString().split('T')[0];
             generateInvoiceNumber();
@@ -1888,7 +1902,6 @@
             clientCode.value = '';
             salesman.value = '';
             invoiceType.value = 'مبيعات';
-            bookNumber.value = '';
             var today = new Date();
             invoiceDate.value = today.toISOString().split('T')[0];
             generateInvoiceNumber();
@@ -1907,9 +1920,13 @@
             var sales = salesman.value.trim();
             var type = invoiceType.value;
 
+            if (!number) {
+                showToast('⚠️ تنبيه', 'رقم الفاتورة غير متوفر', 'error');
+                return;
+            }
+
             if (!book) {
-                showToast('⚠️ تنبيه', 'يرجى إدخال رقم دفتري', 'error');
-                bookNumber.focus();
+                showToast('⚠️ تنبيه', 'الرقم الدفتري غير متوفر', 'error');
                 return;
             }
 
@@ -2019,7 +2036,6 @@
                     clientCode.value = '';
                     salesman.value = '';
                     invoiceType.value = 'مبيعات';
-                    bookNumber.value = '';
                     var today = new Date();
                     invoiceDate.value = today.toISOString().split('T')[0];
                     generateInvoiceNumber();
@@ -2049,7 +2065,8 @@
         });
 
         console.log('🧾 فاتورة المبيعات - تم التحميل');
-        console.log('📌 رقم الفاتورة آلي (تلقائي)');
+        console.log('📌 رقم الفاتورة: آلي (تلقائي)');
+        console.log('📌 الرقم الدفتري: آلي (تسلسلي حسب السنة)');
         console.log('📌 استخدم Enter للتنقل بين الحقول');
         console.log('📌 Ctrl+Enter للحفظ');
     </script>
