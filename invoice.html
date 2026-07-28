@@ -1331,81 +1331,163 @@
         }
 
         // ============================================================
-        // SUGGESTIONS SYSTEM
+        // SUGGESTIONS SYSTEM - الإصدار المحسن
         // ============================================================
         function setupSuggestions() {
-            setupSuggestionInput(clientName, clientSuggestions, clients, null);
+            // اقتراحات العملاء
+            setupSuggestionInput(clientName, clientSuggestions, clients, null, false);
 
-            setupSuggestionInput(itemName, productSuggestions, products.map(function(p) { return p.name; }),
-                function(selectedName) {
-                    var found = products.find(function(p) { return p.name === selectedName; });
-                    if (found) {
-                        fillProductData(found);
-                    }
-                }
-            );
+            // اقتراحات المنتجات - مع عرض الكود بجانب الاسم
+            setupProductSuggestions();
+        }
 
-            // حقل كود المنتج - بحث فوري
-            itemCode.addEventListener('input', function() {
-                var code = this.value.trim();
-                if (code) {
-                    var found = products.find(function(p) { return p.code === code; });
-                    if (found) {
-                        itemName.value = found.name;
-                        fillProductData(found);
-                        productSuggestions.classList.remove('show');
-                    }
-                }
+        // ============================================================
+        // PRODUCT SUGGESTIONS - دالة مخصصة للمنتجات
+        // ============================================================
+        function setupProductSuggestions() {
+            var input = itemName;
+            var container = productSuggestions;
+            var activeIndex = -1;
+
+            input.addEventListener('focus', function() {
+                var query = this.value.trim().toLowerCase();
+                renderProductSuggestions(query);
             });
 
-            itemCode.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
+            input.addEventListener('input', function() {
+                var query = this.value.trim().toLowerCase();
+                activeIndex = -1;
+                renderProductSuggestions(query);
+            });
+
+            input.addEventListener('keydown', function(e) {
+                var listItems = container.querySelectorAll('.suggestion-item');
+                if (listItems.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
                     e.preventDefault();
-                    var code = this.value.trim();
-                    if (code) {
-                        var found = products.find(function(p) { return p.code === code; });
-                        if (found) {
-                            itemName.value = found.name;
-                            fillProductData(found);
-                            productSuggestions.classList.remove('show');
-                            itemQuantity.focus();
-                        } else {
-                            showToast('⚠️ تنبيه', 'كود المنتج غير موجود', 'error');
+                    activeIndex = Math.min(activeIndex + 1, listItems.length - 1);
+                    updateActiveSuggestion(listItems, activeIndex);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    activeIndex = Math.max(activeIndex - 1, 0);
+                    updateActiveSuggestion(listItems, activeIndex);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (activeIndex >= 0 && activeIndex < listItems.length) {
+                        var selectedItem = listItems[activeIndex];
+                        var productCode = selectedItem.dataset.code;
+                        var product = products.find(function(p) { return p.code === productCode; });
+                        if (product) {
+                            input.value = product.name;
+                            container.classList.remove('show');
+                            activeIndex = -1;
+                            fillProductData(product);
+                            document.getElementById('itemQuantity').focus();
                         }
                     }
+                } else if (e.key === 'Escape') {
+                    container.classList.remove('show');
+                    activeIndex = -1;
                 }
             });
-        }
 
-        // ============================================================
-        // FILL PRODUCT DATA - ملء بيانات المنتج (مع العبوة)
-        // ============================================================
-        function fillProductData(product) {
-            if (product.unit) {
-                var unitOptions = document.getElementById('itemUnit').options;
-                for (var i = 0; i < unitOptions.length; i++) {
-                    if (unitOptions[i].value === product.unit) {
-                        itemUnit.value = product.unit;
-                        break;
-                    }
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.suggestions-wrapper')) {
+                    container.classList.remove('show');
                 }
+            });
+
+            function renderProductSuggestions(query) {
+                var results = [];
+
+                if (products.length === 0) {
+                    container.innerHTML = '<div class="suggestion-empty">جاري تحميل المنتجات...</div>';
+                    container.classList.add('show');
+                    return;
+                }
+
+                // البحث في جميع المنتجات
+                if (query) {
+                    results = products.filter(function(p) {
+                        var searchText = (p.name + ' ' + p.code + ' ' + (p.name1 || '') + ' ' + (p.name2 || ''))
+                            .toLowerCase();
+                        return searchText.includes(query);
+                    });
+                } else {
+                    // إذا لم يكن هناك بحث، نعرض أول 20 منتج
+                    results = products.slice(0, 20);
+                }
+
+                if (results.length === 0) {
+                    container.innerHTML = '<div class="suggestion-empty">لا توجد نتائج</div>';
+                    container.classList.add('show');
+                    return;
+                }
+
+                var html = '';
+                results.slice(0, 20).forEach(function(product) {
+                    var displayName = product.name;
+                    if (query) {
+                        var regex = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+                        displayName = product.name.replace(regex, '<strong>$1</strong>');
+                    }
+                    html += `
+                        <div class="suggestion-item" data-code="${product.code}" data-name="${product.name}">
+                            <span>${displayName}</span>
+                            <span style="font-size:0.6rem;color:var(--ink-mute);background:var(--surface-muted);padding:1px 8px;border-radius:4px;margin-right:8px;">
+                                ${product.code}
+                            </span>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+                container.classList.add('show');
+                activeIndex = -1;
+
+                container.querySelectorAll('.suggestion-item').forEach(function(el) {
+                    el.addEventListener('click', function() {
+                        var productCode = this.dataset.code;
+                        var product = products.find(function(p) { return p.code === productCode; });
+                        if (product) {
+                            input.value = product.name;
+                            container.classList.remove('show');
+                            fillProductData(product);
+                            document.getElementById('itemQuantity').focus();
+                        }
+                    });
+
+                    el.addEventListener('touchstart', function(e) {
+                        e.preventDefault();
+                        var productCode = this.dataset.code;
+                        var product = products.find(function(p) { return p.code === productCode; });
+                        if (product) {
+                            input.value = product.name;
+                            container.classList.remove('show');
+                            fillProductData(product);
+                            document.getElementById('itemQuantity').focus();
+                        }
+                    }, { passive: true });
+                });
             }
-            if (product.weight) {
-                itemWeight.value = product.weight;
+
+            function updateActiveSuggestion(listItems, index) {
+                listItems.forEach(function(el, i) {
+                    if (i === index) {
+                        el.classList.add('active');
+                        el.scrollIntoView({ block: 'nearest' });
+                    } else {
+                        el.classList.remove('active');
+                    }
+                });
             }
-            if (product.package) {
-                itemPackage.value = product.package;
-            }
-            if (product.price) {
-                itemPrice.value = product.price;
-            }
-            itemCode.value = product.code;
         }
 
         // ============================================================
-        // SUGGESTION INPUT
+        // SUGGESTION INPUT - للعملاء
         // ============================================================
-        function setupSuggestionInput(input, suggestionsContainer, dataList, onSelect) {
+        function setupSuggestionInput(input, suggestionsContainer, dataList, onSelect, isProduct) {
             var activeIndex = -1;
 
             input.addEventListener('focus', function() {
@@ -1439,8 +1521,7 @@
                         suggestionsContainer.classList.remove('show');
                         activeIndex = -1;
                         if (onSelect) onSelect(val);
-                        if (input.id === 'clientName') { document.getElementById('salesman').focus(); } else if (input
-                            .id === 'itemName') { document.getElementById('itemQuantity').focus(); }
+                        if (input.id === 'clientName') { document.getElementById('salesman').focus(); }
                     }
                 } else if (e.key === 'Escape') {
                     suggestionsContainer.classList.remove('show');
@@ -1449,14 +1530,15 @@
             });
 
             document.addEventListener('click', function(e) {
-                if (!e.target.closest('.suggestions-wrapper')) { suggestionsContainer.classList.remove('show'); }
+                if (!e.target.closest('.suggestions-wrapper')) {
+                    suggestionsContainer.classList.remove('show');
+                }
             });
 
             function renderSuggestions(query) {
                 var list = dataList;
                 if (!list || list.length === 0) {
-                    list = (input.id === 'clientName') ? DEFAULT_CLIENTS : DEFAULT_PRODUCTS.map(function(p) { return p
-                            .name; });
+                    list = DEFAULT_CLIENTS;
                 }
 
                 var results = list;
@@ -1492,8 +1574,7 @@
                         input.value = val;
                         suggestionsContainer.classList.remove('show');
                         if (onSelect) onSelect(val);
-                        if (input.id === 'clientName') { document.getElementById('salesman').focus(); } else if (input
-                            .id === 'itemName') { document.getElementById('itemQuantity').focus(); }
+                        if (input.id === 'clientName') { document.getElementById('salesman').focus(); }
                     });
 
                     el.addEventListener('touchstart', function(e) {
@@ -1502,18 +1583,46 @@
                         input.value = val;
                         suggestionsContainer.classList.remove('show');
                         if (onSelect) onSelect(val);
-                        if (input.id === 'clientName') { document.getElementById('salesman').focus(); } else if (input
-                            .id === 'itemName') { document.getElementById('itemQuantity').focus(); }
+                        if (input.id === 'clientName') { document.getElementById('salesman').focus(); }
                     }, { passive: true });
                 });
             }
 
             function updateActiveSuggestion(listItems, index) {
                 listItems.forEach(function(el, i) {
-                    if (i === index) { el.classList.add('active'); el.scrollIntoView({ block: 'nearest' }); } else { el
-                            .classList.remove('active'); }
+                    if (i === index) {
+                        el.classList.add('active');
+                        el.scrollIntoView({ block: 'nearest' });
+                    } else {
+                        el.classList.remove('active');
+                    }
                 });
             }
+        }
+
+        // ============================================================
+        // FILL PRODUCT DATA - ملء بيانات المنتج (مع العبوة)
+        // ============================================================
+        function fillProductData(product) {
+            if (product.unit) {
+                var unitOptions = document.getElementById('itemUnit').options;
+                for (var i = 0; i < unitOptions.length; i++) {
+                    if (unitOptions[i].value === product.unit) {
+                        itemUnit.value = product.unit;
+                        break;
+                    }
+                }
+            }
+            if (product.weight) {
+                itemWeight.value = product.weight;
+            }
+            if (product.package) {
+                itemPackage.value = product.package;
+            }
+            if (product.price) {
+                itemPrice.value = product.price;
+            }
+            itemCode.value = product.code;
         }
 
         // ============================================================
@@ -1895,8 +2004,8 @@
 
         console.log('🧾 فاتورة المبيعات — مع حقل كود المنتج والعبوة');
         console.log('📌 اكتب كود المنتج ثم اضغط Enter لملء البيانات تلقائياً');
+        console.log('📌 اكتب اسم المنتج واختر من القائمة المنسدلة');
         console.log('📌 خيارات الحصوة: ناعم، نص مل، 1 مل، 1.5 مل، 2 مل');
-        console.log('📌 استخدم الأسهم ↑↓ للتنقل بين الاقتراحات');
         console.log('📌 Ctrl+Enter للحفظ');
         console.log('🔗 Web App URL:', SCRIPT_URL);
     </script>
