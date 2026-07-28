@@ -10,11 +10,6 @@
     <style>
         /* ============================================================
            TOKENS
-           ------------------------------------------------------------
-           Subject: a paint distributor's invoicing ledger.
-           Palette pulls from a physical paint colour-card: warm ochre,
-           steel ink, mineral teal and a rust-red — the four pigments
-           that show up on the shop's own swatch racks.
            ============================================================ */
         :root {
             --ink: #121821;
@@ -26,17 +21,17 @@
             --line: #dde3e0;
             --line-strong: #c7d0cc;
 
-            --accent: #dd9f2e;       /* ochre */
+            --accent: #dd9f2e;
             --accent-ink: #7a5312;
             --accent-soft: #faead0;
 
-            --teal: #1d7b6c;         /* mineral teal */
+            --teal: #1d7b6c;
             --teal-soft: #e2f2ee;
 
-            --rust: #bf4f30;         /* rust red */
+            --rust: #bf4f30;
             --rust-soft: #fbe8e1;
 
-            --blue: #2f5b8a;         /* enamel blue */
+            --blue: #2f5b8a;
 
             --radius: 14px;
             --radius-sm: 9px;
@@ -70,12 +65,6 @@
         ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--ink-mute); }
 
-        /* ============================================================
-           SIGNATURE — swatch strip
-           A thin, four-colour rail runs across the very top of the
-           app, echoing the colour chips this business sells. It is
-           the one bold gesture; everything below stays disciplined.
-           ============================================================ */
         .swatch-stripe {
             height: var(--stripe-height);
             flex-shrink: 0;
@@ -355,7 +344,7 @@
         .right-panel .form-row.invoice-numbers { grid-template-columns: 1fr 1fr 1fr; }
         .right-panel .form-row.small-fields { grid-template-columns: 1fr 1fr; }
         .right-panel .form-row.client-row { grid-template-columns: 2fr 1fr; }
-        .right-panel .form-row.product-row { grid-template-columns: 1fr; }
+        .right-panel .form-row.product-row { grid-template-columns: 1fr 1.8fr; }
         .right-panel .form-row.qty-row { grid-template-columns: 1fr 0.85fr 1fr; }
         .right-panel .form-row.attrs-row { grid-template-columns: 1fr 0.85fr 1fr; }
 
@@ -936,10 +925,14 @@
 
                 <div class="section-title alt" style="margin-top:0;"><span class="dot"></span> تفاصيل الأصناف</div>
 
-                <!-- صف المنتج وحده — يحتاج مساحة كاملة لقائمة الاقتراحات -->
+                <!-- صف كود المنتج واسم المنتج مع اقتراحات -->
                 <div class="form-row product-row">
+                    <div class="form-group">
+                        <label>كود المنتج <span class="optional-badge">اختياري</span></label>
+                        <input type="text" id="itemCode" placeholder="أدخل كود المنتج..." autocomplete="off" />
+                    </div>
                     <div class="form-group suggestions-wrapper">
-                        <label>المنتج <span class="required">*</span></label>
+                        <label>اسم المنتج <span class="required">*</span></label>
                         <input type="text" id="itemName" placeholder="اكتب اسم المنتج..." autocomplete="off" />
                         <div class="suggestions-list" id="productSuggestions">
                             <div class="suggestion-empty">جاري تحميل المنتجات...</div>
@@ -1084,7 +1077,7 @@
     </div>
 
     <!-- ============================================================
-    JAVASCRIPT — منطق التطبيق (بدون تغيير وظيفي)
+    JAVASCRIPT
     ============================================================ -->
     <script>
         // ============================================================
@@ -1136,6 +1129,7 @@
         var clientCode = document.getElementById('clientCode');
         var salesman = document.getElementById('salesman');
         var invoiceType = document.getElementById('invoiceType');
+        var itemCode = document.getElementById('itemCode');
         var itemName = document.getElementById('itemName');
         var itemQuantity = document.getElementById('itemQuantity');
         var itemPrice = document.getElementById('itemPrice');
@@ -1160,7 +1154,7 @@
         // ============================================================
         var items = [];
         var clients = [];
-        var products = [];
+        var products = []; // سيحتوي على كائنات { code, name, unit, weight }
         var editIndex = -1;
         var invoiceCounter = 0;
 
@@ -1185,17 +1179,18 @@
             'شركة الرشيد للمقاولات'
         ];
 
-        var DEFAULT_PRODUCTS = [
-            'دهان داخلي أبيض',
-            'دهان خارجي أزرق',
-            'دهان خارجي أخضر',
-            'ورنيش شفاف',
-            'معجون جدران',
-            'دهان أسقف',
-            'بوية خشب',
-            'أكريلك',
-            'دهان داخلي بيج',
-            'دهان خارجي أحمر'
+        // منتجات افتراضية مع كود ووحدة ووزن
+        var DEFAULT_PRODUCTS_DATA = [
+            { code: 'P001', name: 'دهان داخلي أبيض', unit: 'لتر', weight: 5 },
+            { code: 'P002', name: 'دهان خارجي أزرق', unit: 'لتر', weight: 5 },
+            { code: 'P003', name: 'دهان خارجي أخضر', unit: 'لتر', weight: 5 },
+            { code: 'P004', name: 'ورنيش شفاف', unit: 'لتر', weight: 3 },
+            { code: 'P005', name: 'معجون جدران', unit: 'كجم', weight: 10 },
+            { code: 'P006', name: 'دهان أسقف', unit: 'لتر', weight: 5 },
+            { code: 'P007', name: 'بوية خشب', unit: 'لتر', weight: 3 },
+            { code: 'P008', name: 'أكريلك', unit: 'لتر', weight: 4 },
+            { code: 'P009', name: 'دهان داخلي بيج', unit: 'لتر', weight: 5 },
+            { code: 'P010', name: 'دهان خارجي أحمر', unit: 'لتر', weight: 5 }
         ];
 
         // ============================================================
@@ -1288,7 +1283,24 @@
                 .then(function(data) {
                     if (data.success) {
                         clients = (data.clients && data.clients.length > 0) ? data.clients : DEFAULT_CLIENTS;
-                        products = (data.products && data.products.length > 0) ? data.products : DEFAULT_PRODUCTS;
+
+                        // معالجة المنتجات - نأمل أن تأتي مع كود ووحدة ووزن
+                        if (data.productsData && data.productsData.length > 0) {
+                            products = data.productsData;
+                        } else if (data.products && data.products.length > 0) {
+                            // إذا كانت البيانات قديمة (أسماء فقط)، نحولها
+                            products = data.products.map(function(name, index) {
+                                return {
+                                    code: 'P' + String(index + 1).padStart(3, '0'),
+                                    name: name,
+                                    unit: 'لتر',
+                                    weight: 5
+                                };
+                            });
+                        } else {
+                            products = DEFAULT_PRODUCTS_DATA;
+                        }
+
                         console.log('✅ العملاء:', clients.length, 'المنتجات:', products.length);
                         try {
                             localStorage.setItem('rollex_clients', JSON.stringify(clients));
@@ -1318,20 +1330,90 @@
                 }
             } catch (e) {}
             clients = DEFAULT_CLIENTS;
-            products = DEFAULT_PRODUCTS;
+            products = DEFAULT_PRODUCTS_DATA;
             console.log('⚠️ تم استخدام البيانات الافتراضية');
             setupSuggestions();
         }
 
         // ============================================================
-        // SUGGESTIONS SYSTEM
+        // SUGGESTIONS SYSTEM - مع دعم الكود
         // ============================================================
         function setupSuggestions() {
-            setupSuggestionInput(clientName, clientSuggestions, clients);
-            setupSuggestionInput(itemName, productSuggestions, products);
+            setupSuggestionInput(clientName, clientSuggestions, clients, null);
+            // حقل اسم المنتج مع اقتراحات
+            setupSuggestionInput(itemName, productSuggestions, products.map(function(p) { return p.name; }),
+                function(selectedName) {
+                    // عند اختيار منتج من الاقتراحات، نبحث عن بياناته
+                    var found = products.find(function(p) { return p.name === selectedName; });
+                    if (found) {
+                        fillProductData(found);
+                    }
+                }
+            );
+
+            // حقل كود المنتج - بحث فوري
+            itemCode.addEventListener('input', function() {
+                var code = this.value.trim();
+                if (code) {
+                    var found = products.find(function(p) { return p.code === code; });
+                    if (found) {
+                        itemName.value = found.name;
+                        fillProductData(found);
+                        // إغلاق الاقتراحات
+                        productSuggestions.classList.remove('show');
+                    }
+                }
+            });
+
+            // عند الضغط على Enter في حقل الكود
+            itemCode.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    var code = this.value.trim();
+                    if (code) {
+                        var found = products.find(function(p) { return p.code === code; });
+                        if (found) {
+                            itemName.value = found.name;
+                            fillProductData(found);
+                            productSuggestions.classList.remove('show');
+                            itemQuantity.focus();
+                        } else {
+                            showToast('⚠️ تنبيه', 'كود المنتج غير موجود', 'error');
+                        }
+                    }
+                }
+            });
         }
 
-        function setupSuggestionInput(input, suggestionsContainer, dataList) {
+        // ============================================================
+        // FILL PRODUCT DATA - ملء بيانات المنتج
+        // ============================================================
+        function fillProductData(product) {
+            if (product.unit) {
+                // محاولة مطابقة الوحدة مع القائمة
+                var unitOptions = document.getElementById('itemUnit').options;
+                for (var i = 0; i < unitOptions.length; i++) {
+                    if (unitOptions[i].value === product.unit) {
+                        itemUnit.value = product.unit;
+                        break;
+                    }
+                }
+            }
+            if (product.weight) {
+                itemWeight.value = product.weight;
+            }
+            // تعيين سعر افتراضي (يمكن للمستخدم تعديله)
+            if (product.price) {
+                itemPrice.value = product.price;
+            }
+            // تنظيف حقل الكود بعد الملء
+            itemCode.value = product.code;
+        }
+
+        // ============================================================
+        // SUGGESTION INPUT
+        // ============================================================
+        function setupSuggestionInput(input, suggestionsContainer, dataList, onSelect) {
             var activeIndex = -1;
 
             input.addEventListener('focus', function() {
@@ -1364,6 +1446,7 @@
                         input.value = val;
                         suggestionsContainer.classList.remove('show');
                         activeIndex = -1;
+                        if (onSelect) onSelect(val);
                         if (input.id === 'clientName') { document.getElementById('salesman').focus(); }
                         else if (input.id === 'itemName') { document.getElementById('itemQuantity').focus(); }
                     }
@@ -1380,12 +1463,15 @@
             function renderSuggestions(query) {
                 var list = dataList;
                 if (!list || list.length === 0) {
-                    list = (input.id === 'clientName') ? DEFAULT_CLIENTS : DEFAULT_PRODUCTS;
+                    list = (input.id === 'clientName') ? DEFAULT_CLIENTS : DEFAULT_PRODUCTS_DATA.map(function(p) { return p
+                            .name; });
                 }
 
                 var results = list;
                 if (query) {
-                    results = list.filter(function(item) { return item.toLowerCase().includes(query); });
+                    results = list.filter(function(item) {
+                        return item.toLowerCase().includes(query);
+                    });
                 }
 
                 if (results.length === 0) {
@@ -1413,6 +1499,7 @@
                         var val = this.dataset.value;
                         input.value = val;
                         suggestionsContainer.classList.remove('show');
+                        if (onSelect) onSelect(val);
                         if (input.id === 'clientName') { document.getElementById('salesman').focus(); }
                         else if (input.id === 'itemName') { document.getElementById('itemQuantity').focus(); }
                     });
@@ -1422,6 +1509,7 @@
                         var val = this.dataset.value;
                         input.value = val;
                         suggestionsContainer.classList.remove('show');
+                        if (onSelect) onSelect(val);
                         if (input.id === 'clientName') { document.getElementById('salesman').focus(); }
                         else if (input.id === 'itemName') { document.getElementById('itemQuantity').focus(); }
                     }, { passive: true });
@@ -1482,6 +1570,7 @@
         }
 
         function clearItemFields() {
+            itemCode.value = '';
             itemName.value = '';
             itemQuantity.value = '';
             itemPrice.value = '';
@@ -1560,6 +1649,9 @@
             itemWeight.value = item.weight || '';
             itemColor.value = item.color || '';
             itemCrusherType.value = item.crusherType || '';
+            // محاولة العثور على الكود
+            var found = products.find(function(p) { return p.name === item.name; });
+            if (found) { itemCode.value = found.code; }
             editIndex = index;
             btnAddItem.innerHTML = '<i class="fas fa-edit"></i> تحديث';
             itemName.focus();
@@ -1779,9 +1871,9 @@
         // ============================================================
         loadData();
 
-        console.log('🧾 فاتورة المبيعات — تصميم مطوّر');
+        console.log('🧾 فاتورة المبيعات — مع حقل كود المنتج');
+        console.log('📌 اكتب كود المنتج ثم اضغط Enter لملء البيانات تلقائياً');
         console.log('📌 خيارات الحصوة: ناعم، نص مل، 1 مل، 1.5 مل، 2 مل');
-        console.log('📌 اكتب في حقل العميل أو المنتج لتظهر الاقتراحات');
         console.log('📌 استخدم الأسهم ↑↓ للتنقل بين الاقتراحات');
         console.log('📌 Ctrl+Enter للحفظ');
     </script>
