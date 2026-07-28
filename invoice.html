@@ -345,7 +345,7 @@
         .right-panel .form-row.small-fields { grid-template-columns: 1fr 1fr; }
         .right-panel .form-row.client-row { grid-template-columns: 2fr 1fr; }
         .right-panel .form-row.product-row { grid-template-columns: 1fr 1.8fr; }
-        .right-panel .form-row.qty-row { grid-template-columns: 1fr 0.85fr 1fr 1fr; }
+        .right-panel .form-row.qty-row { grid-template-columns: 1fr 0.85fr 1fr; }
         .right-panel .form-row.attrs-row { grid-template-columns: 1fr 0.85fr 1fr; }
 
         .right-panel .form-group { display: flex; flex-direction: column; gap: 4px; }
@@ -940,7 +940,7 @@
                     </div>
                 </div>
 
-                <!-- صف الكمية والوحدة والعبوة والسعر -->
+                <!-- صف الكمية والوحدة والسعر -->
                 <div class="form-row qty-row">
                     <div class="form-group">
                         <label>الكمية <span class="required">*</span></label>
@@ -956,10 +956,6 @@
                             <option value="متر">متر</option>
                             <option value="طرد">طرد</option>
                         </select>
-                    </div>
-                    <div class="form-group">
-                        <label>العبوة <span class="optional-badge">اختياري</span></label>
-                        <input type="text" id="itemPackage" placeholder="نوع العبوة..." />
                     </div>
                     <div class="form-group">
                         <label>سعر الوحدة <span class="required">*</span></label>
@@ -1016,7 +1012,6 @@
                                     <th style="text-align:right;">المنتج</th>
                                     <th style="width:50px;">الكمية</th>
                                     <th style="width:50px;">الوحدة</th>
-                                    <th style="width:60px;">العبوة</th>
                                     <th style="width:60px;">السعر</th>
                                     <th style="width:70px;">الإجمالي</th>
                                     <th style="width:60px;">نوع الحصوة</th>
@@ -1025,7 +1020,7 @@
                             </thead>
                             <tbody id="itemsBody">
                                 <tr>
-                                    <td colspan="9">
+                                    <td colspan="8">
                                         <div class="empty-items">
                                             <i class="fas fa-box-open"></i>
                                             <p>لا توجد أصناف مضافة</p>
@@ -1139,7 +1134,6 @@
         var itemQuantity = document.getElementById('itemQuantity');
         var itemPrice = document.getElementById('itemPrice');
         var itemUnit = document.getElementById('itemUnit');
-        var itemPackage = document.getElementById('itemPackage');
         var itemWeight = document.getElementById('itemWeight');
         var itemColor = document.getElementById('itemColor');
         var itemCrusherType = document.getElementById('itemCrusherType');
@@ -1160,14 +1154,14 @@
         // ============================================================
         var items = [];
         var clients = [];
-        var products = [];
+        var products = []; // سيحتوي على كائنات { code, name, unit, weight, package }
         var editIndex = -1;
         var invoiceCounter = 0;
 
         // ============================================================
-        // CONFIG - الرابط الجديد
+        // CONFIG - الرابط الجديد (تم التحديث)
         // ============================================================
-        var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyzS1ZvNdSB0oX5HciZTYLHakejadjRYLXTxqaRg3ezOtZ_eSm47TSRYQyNn88PPOcxw/exec';
+        var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyS5Oa8BHaODm58YbMRz960fRVl24bZMSG_ZWyUdM_MdW0X9oAvcttuVMFCkP_IiI0BpQ/exec';
 
         // ============================================================
         // DEFAULT DATA
@@ -1276,13 +1270,15 @@
                 })
                 .then(function(data) {
                     console.log('📦 البيانات المستلمة:', data);
-
+                    
                     if (data.success) {
                         clients = (data.clients && data.clients.length > 0) ? data.clients : DEFAULT_CLIENTS;
 
+                        // الأهم: استخدام productsData
                         if (data.productsData && data.productsData.length > 0) {
                             products = data.productsData;
                             console.log('✅ تم جلب المنتجات مع الأكواد:', products.length);
+                            console.log('📌 أول منتج:', products[0]);
                         } else if (data.products && data.products.length > 0) {
                             products = data.products.map(function(name, index) {
                                 return {
@@ -1295,12 +1291,14 @@
                             });
                         } else {
                             products = DEFAULT_PRODUCTS;
+                            console.log('⚠️ تم استخدام المنتجات الافتراضية');
                         }
 
                         try {
                             localStorage.setItem('rollex_clients', JSON.stringify(clients));
                             localStorage.setItem('rollex_products', JSON.stringify(products));
                         } catch (e) {}
+                        
                         setupSuggestions();
                     } else {
                         useDefaultData();
@@ -1378,7 +1376,7 @@
         }
 
         // ============================================================
-        // FILL PRODUCT DATA - ملء بيانات المنتج (مع العبوة)
+        // FILL PRODUCT DATA - ملء بيانات المنتج
         // ============================================================
         function fillProductData(product) {
             if (product.unit) {
@@ -1393,12 +1391,11 @@
             if (product.weight) {
                 itemWeight.value = product.weight;
             }
-            if (product.package) {
-                itemPackage.value = product.package;
-            }
+            // تعيين سعر افتراضي (يمكن للمستخدم تعديله)
             if (product.price) {
                 itemPrice.value = product.price;
             }
+            // تنظيف حقل الكود بعد الملء
             itemCode.value = product.code;
         }
 
@@ -1439,8 +1436,8 @@
                         suggestionsContainer.classList.remove('show');
                         activeIndex = -1;
                         if (onSelect) onSelect(val);
-                        if (input.id === 'clientName') { document.getElementById('salesman').focus(); } else if (input
-                            .id === 'itemName') { document.getElementById('itemQuantity').focus(); }
+                        if (input.id === 'clientName') { document.getElementById('salesman').focus(); }
+                        else if (input.id === 'itemName') { document.getElementById('itemQuantity').focus(); }
                     }
                 } else if (e.key === 'Escape') {
                     suggestionsContainer.classList.remove('show');
@@ -1492,8 +1489,8 @@
                         input.value = val;
                         suggestionsContainer.classList.remove('show');
                         if (onSelect) onSelect(val);
-                        if (input.id === 'clientName') { document.getElementById('salesman').focus(); } else if (input
-                            .id === 'itemName') { document.getElementById('itemQuantity').focus(); }
+                        if (input.id === 'clientName') { document.getElementById('salesman').focus(); }
+                        else if (input.id === 'itemName') { document.getElementById('itemQuantity').focus(); }
                     });
 
                     el.addEventListener('touchstart', function(e) {
@@ -1502,33 +1499,29 @@
                         input.value = val;
                         suggestionsContainer.classList.remove('show');
                         if (onSelect) onSelect(val);
-                        if (input.id === 'clientName') { document.getElementById('salesman').focus(); } else if (input
-                            .id === 'itemName') { document.getElementById('itemQuantity').focus(); }
+                        if (input.id === 'clientName') { document.getElementById('salesman').focus(); }
+                        else if (input.id === 'itemName') { document.getElementById('itemQuantity').focus(); }
                     }, { passive: true });
                 });
             }
 
             function updateActiveSuggestion(listItems, index) {
                 listItems.forEach(function(el, i) {
-                    if (i === index) { el.classList.add('active'); el.scrollIntoView({ block: 'nearest' }); } else { el
-                            .classList.remove('active'); }
+                    if (i === index) { el.classList.add('active'); el.scrollIntoView({ block: 'nearest' }); }
+                    else { el.classList.remove('active'); }
                 });
             }
         }
 
         // ============================================================
-        // ADD ITEM - مع إضافة العبوة
+        // ADD ITEM
         // ============================================================
         itemPrice.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') { e.preventDefault(); addItem(); }
         });
 
         itemQuantity.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') { e.preventDefault(); document.getElementById('itemPackage').focus(); }
-        });
-
-        document.getElementById('itemPackage').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') { e.preventDefault(); document.getElementById('itemPrice').focus(); }
+            if (e.key === 'Enter') { e.preventDefault(); itemPrice.focus(); }
         });
 
         function addItem() {
@@ -1536,7 +1529,6 @@
             var qty = parseFloat(itemQuantity.value);
             var price = parseFloat(itemPrice.value);
             var unit = itemUnit.value;
-            var packageType = itemPackage.value.trim();
             var weight = parseFloat(itemWeight.value) || 0;
             var color = itemColor.value.trim();
             var crusherType = itemCrusherType.value;
@@ -1548,32 +1540,14 @@
             var totalItem = qty * price;
 
             if (editIndex >= 0) {
-                items[editIndex] = {
-                    name: name,
-                    qty: qty,
-                    price: price,
-                    total: totalItem,
-                    unit: unit,
-                    package: packageType,
-                    weight: weight,
-                    color: color,
-                    crusherType: crusherType
-                };
+                items[editIndex] = { name: name, qty: qty, price: price, total: totalItem, unit: unit, weight: weight,
+                    color: color, crusherType: crusherType };
                 editIndex = -1;
                 btnAddItem.innerHTML = '<i class="fas fa-plus"></i> إضافة';
                 showToast('✏️ تعديل', 'تم تعديل المنتج بنجاح', 'warning');
             } else {
-                items.push({
-                    name: name,
-                    qty: qty,
-                    price: price,
-                    total: totalItem,
-                    unit: unit,
-                    package: packageType,
-                    weight: weight,
-                    color: color,
-                    crusherType: crusherType
-                });
+                items.push({ name: name, qty: qty, price: price, total: totalItem, unit: unit, weight: weight,
+                    color: color, crusherType: crusherType });
                 showToast('✅ إضافة', 'تم إضافة المنتج بنجاح', 'success');
             }
 
@@ -1590,7 +1564,6 @@
             itemQuantity.value = '';
             itemPrice.value = '';
             itemUnit.value = 'كجم';
-            itemPackage.value = '';
             itemWeight.value = '';
             itemColor.value = '';
             itemCrusherType.value = '';
@@ -1598,13 +1571,13 @@
         }
 
         // ============================================================
-        // RENDER ITEMS - مع إضافة عمود العبوة
+        // RENDER ITEMS
         // ============================================================
         function renderItems() {
             if (items.length === 0) {
                 itemsBody.innerHTML = `
                     <tr>
-                        <td colspan="9">
+                        <td colspan="8">
                             <div class="empty-items">
                                 <i class="fas fa-box-open"></i>
                                 <p>لا توجد أصناف مضافة</p>
@@ -1619,16 +1592,15 @@
 
             var html = '';
             items.forEach(function(item, index) {
-                var crusherDisplay = item.crusherType && item.crusherType !== '' ?
-                    '<span class="crusher-tag">' + item.crusherType + '</span>' :
-                    '<span class="crusher-tag">—</span>';
+                var crusherDisplay = item.crusherType && item.crusherType !== ''
+                    ? '<span class="crusher-tag">' + item.crusherType + '</span>'
+                    : '<span class="crusher-tag">—</span>';
                 html += `
                     <tr>
                         <td class="num">${index + 1}</td>
                         <td style="text-align:right;">${item.name}</td>
                         <td class="num">${item.qty}</td>
                         <td>${item.unit || 'كجم'}</td>
-                        <td>${item.package || '—'}</td>
                         <td class="money">${item.price.toFixed(2)}</td>
                         <td class="money" style="color:var(--teal);font-weight:700;">${item.total.toFixed(2)}</td>
                         <td>${crusherDisplay}</td>
@@ -1655,7 +1627,7 @@
         }
 
         // ============================================================
-        // EDIT ITEM - مع إضافة العبوة
+        // EDIT ITEM
         // ============================================================
         function editItem(index) {
             var item = items[index];
@@ -1663,7 +1635,6 @@
             itemQuantity.value = item.qty;
             itemPrice.value = item.price;
             itemUnit.value = item.unit || 'كجم';
-            itemPackage.value = item.package || '';
             itemWeight.value = item.weight || '';
             itemColor.value = item.color || '';
             itemCrusherType.value = item.crusherType || '';
@@ -1784,13 +1755,7 @@
             localStorage.setItem('rollex_book_counter', book);
 
             var invoiceData = {
-                number: number,
-                book: book,
-                date: date,
-                client: client,
-                code: code,
-                salesman: sales,
-                type: type,
+                number: number, book: book, date: date, client: client, code: code, salesman: sales, type: type,
                 items: items,
                 total: parseFloat(totalAmount.textContent),
                 discount: parseFloat(discountAmount.textContent),
@@ -1801,7 +1766,7 @@
         });
 
         // ============================================================
-        // SAVE TO GOOGLE SHEETS
+        // SAVE TO GOOGLE SHEETS - ترتيب الأعمدة الصحيح
         // ============================================================
         function saveInvoiceToSheet(invoiceData) {
             btnSaveInvoice.disabled = true;
@@ -1820,7 +1785,7 @@
                     invoiceData.salesman || '', // 4: المندوب
                     invoiceData.code || '', // 5: كود العميل
                     invoiceData.client || '', // 6: اسم العميل
-                    '', // 7: كود الصنف
+                    '', // 7: كود الصنف (حالياً فارغ)
                     item.name || '', // 8: الصنف
                     item.weight || '', // 9: الوزن
                     item.unit || 'كجم', // 10: الوحده
@@ -1830,7 +1795,7 @@
                     (item.weight * item.qty) || '', // 14: اجمالي الوزن
                     item.color || '', // 15: اللون
                     item.crusherType || '', // 16: نوع الحصوة
-                    item.package || '' // 17: ملاحظات (نضع العبوة هنا مؤقتاً)
+                    '' // 17: ملاحظات
                 ];
                 rows.push(row);
             });
@@ -1893,7 +1858,7 @@
         // ============================================================
         loadData();
 
-        console.log('🧾 فاتورة المبيعات — مع حقل كود المنتج والعبوة');
+        console.log('🧾 فاتورة المبيعات — مع حقل كود المنتج');
         console.log('📌 اكتب كود المنتج ثم اضغط Enter لملء البيانات تلقائياً');
         console.log('📌 خيارات الحصوة: ناعم، نص مل، 1 مل، 1.5 مل، 2 مل');
         console.log('📌 استخدم الأسهم ↑↓ للتنقل بين الاقتراحات');
