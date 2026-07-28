@@ -1159,9 +1159,9 @@
         var invoiceCounter = 0;
 
         // ============================================================
-        // CONFIG - الرابط الجديد
+        // CONFIG - الرابط الجديد (تم التحديث)
         // ============================================================
-        var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzzEC-xEbK3ISI4L4L28Ut8omI1J79hr_cZNZYIvAulPNeh5SSWIuGsUgOEdEd6wnuD5A/exec';
+        var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyS5Oa8BHaODm58YbMRz960fRVl24bZMSG_ZWyUdM_MdW0X9oAvcttuVMFCkP_IiI0BpQ/exec';
 
         // ============================================================
         // DEFAULT DATA
@@ -1269,11 +1269,16 @@
                     return response.json();
                 })
                 .then(function(data) {
+                    console.log('📦 البيانات المستلمة:', data);
+                    
                     if (data.success) {
                         clients = (data.clients && data.clients.length > 0) ? data.clients : DEFAULT_CLIENTS;
 
+                        // الأهم: استخدام productsData
                         if (data.productsData && data.productsData.length > 0) {
                             products = data.productsData;
+                            console.log('✅ تم جلب المنتجات مع الأكواد:', products.length);
+                            console.log('📌 أول منتج:', products[0]);
                         } else if (data.products && data.products.length > 0) {
                             products = data.products.map(function(name, index) {
                                 return {
@@ -1286,13 +1291,14 @@
                             });
                         } else {
                             products = DEFAULT_PRODUCTS;
+                            console.log('⚠️ تم استخدام المنتجات الافتراضية');
                         }
 
-                        console.log('✅ العملاء:', clients.length, 'المنتجات:', products.length);
                         try {
                             localStorage.setItem('rollex_clients', JSON.stringify(clients));
                             localStorage.setItem('rollex_products', JSON.stringify(products));
                         } catch (e) {}
+                        
                         setupSuggestions();
                     } else {
                         useDefaultData();
