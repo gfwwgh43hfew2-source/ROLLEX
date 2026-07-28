@@ -1154,14 +1154,14 @@
         // ============================================================
         var items = [];
         var clients = [];
-        var products = []; // سيحتوي على كائنات { code, name, unit, weight }
+        var products = []; // سيحتوي على كائنات { code, name, unit, weight, package }
         var editIndex = -1;
         var invoiceCounter = 0;
 
         // ============================================================
-        // CONFIG
+        // CONFIG - الرابط الجديد
         // ============================================================
-       var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbydYkPnaIn4UwMYqidkpHDe_Vqx0IZv2CCRF8MR6fviSKdUh8xVct0QVWzcsuU3fD_sZQ/exec';
+        var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwHXlmIIEXzoWmFvG_fQdmzXyZsdUJBa33KDMaTPf1IeD2FhJerWNOBRK9DFw3ZsITNZQ/exec';
 
         // ============================================================
         // DEFAULT DATA
@@ -1171,26 +1171,14 @@
             'مؤسسة الصفا للمقاولات',
             'شركة الاتحاد للمواد الغذائية',
             'مؤسسة الأمل للدهانات',
-            'شركة الوفاء للتوريدات',
-            'شركة البركة للمقاولات',
-            'مؤسسة النجاح للتجارة',
-            'شركة الأمان للمواد الكيماوية',
-            'مؤسسة السلام للبناء',
-            'شركة الرشيد للمقاولات'
+            'شركة الوفاء للتوريدات'
         ];
 
-        // منتجات افتراضية مع كود ووحدة ووزن
-        var DEFAULT_PRODUCTS_DATA = [
-            { code: 'P001', name: 'دهان داخلي أبيض', unit: 'لتر', weight: 5 },
-            { code: 'P002', name: 'دهان خارجي أزرق', unit: 'لتر', weight: 5 },
-            { code: 'P003', name: 'دهان خارجي أخضر', unit: 'لتر', weight: 5 },
-            { code: 'P004', name: 'ورنيش شفاف', unit: 'لتر', weight: 3 },
-            { code: 'P005', name: 'معجون جدران', unit: 'كجم', weight: 10 },
-            { code: 'P006', name: 'دهان أسقف', unit: 'لتر', weight: 5 },
-            { code: 'P007', name: 'بوية خشب', unit: 'لتر', weight: 3 },
-            { code: 'P008', name: 'أكريلك', unit: 'لتر', weight: 4 },
-            { code: 'P009', name: 'دهان داخلي بيج', unit: 'لتر', weight: 5 },
-            { code: 'P010', name: 'دهان خارجي أحمر', unit: 'لتر', weight: 5 }
+        var DEFAULT_PRODUCTS = [
+            { code: '1.1', name: 'فيكس وسط أبيض - عبوة 0.5 كيلو', unit: 'كيلو', weight: 0.5, package: 'عبوة' },
+            { code: '1.2', name: 'فيكس وسط أبيض - عبوة 1 كيلو', unit: 'كيلو', weight: 1, package: 'عبوة' },
+            { code: '1.3', name: 'فيكس وسط أبيض - جالون 3 كيلو', unit: 'كيلو', weight: 3, package: 'جالون' },
+            { code: '12.31', name: 'فيكس وسط أبيض', unit: 'كجم', weight: 0, package: '' }
         ];
 
         // ============================================================
@@ -1284,21 +1272,20 @@
                     if (data.success) {
                         clients = (data.clients && data.clients.length > 0) ? data.clients : DEFAULT_CLIENTS;
 
-                        // معالجة المنتجات - نأمل أن تأتي مع كود ووحدة ووزن
                         if (data.productsData && data.productsData.length > 0) {
                             products = data.productsData;
                         } else if (data.products && data.products.length > 0) {
-                            // إذا كانت البيانات قديمة (أسماء فقط)، نحولها
                             products = data.products.map(function(name, index) {
                                 return {
                                     code: 'P' + String(index + 1).padStart(3, '0'),
                                     name: name,
                                     unit: 'لتر',
-                                    weight: 5
+                                    weight: 5,
+                                    package: ''
                                 };
                             });
                         } else {
-                            products = DEFAULT_PRODUCTS_DATA;
+                            products = DEFAULT_PRODUCTS;
                         }
 
                         console.log('✅ العملاء:', clients.length, 'المنتجات:', products.length);
@@ -1330,20 +1317,19 @@
                 }
             } catch (e) {}
             clients = DEFAULT_CLIENTS;
-            products = DEFAULT_PRODUCTS_DATA;
+            products = DEFAULT_PRODUCTS;
             console.log('⚠️ تم استخدام البيانات الافتراضية');
             setupSuggestions();
         }
 
         // ============================================================
-        // SUGGESTIONS SYSTEM - مع دعم الكود
+        // SUGGESTIONS SYSTEM
         // ============================================================
         function setupSuggestions() {
             setupSuggestionInput(clientName, clientSuggestions, clients, null);
-            // حقل اسم المنتج مع اقتراحات
+
             setupSuggestionInput(itemName, productSuggestions, products.map(function(p) { return p.name; }),
                 function(selectedName) {
-                    // عند اختيار منتج من الاقتراحات، نبحث عن بياناته
                     var found = products.find(function(p) { return p.name === selectedName; });
                     if (found) {
                         fillProductData(found);
@@ -1359,13 +1345,11 @@
                     if (found) {
                         itemName.value = found.name;
                         fillProductData(found);
-                        // إغلاق الاقتراحات
                         productSuggestions.classList.remove('show');
                     }
                 }
             });
 
-            // عند الضغط على Enter في حقل الكود
             itemCode.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -1390,7 +1374,6 @@
         // ============================================================
         function fillProductData(product) {
             if (product.unit) {
-                // محاولة مطابقة الوحدة مع القائمة
                 var unitOptions = document.getElementById('itemUnit').options;
                 for (var i = 0; i < unitOptions.length; i++) {
                     if (unitOptions[i].value === product.unit) {
@@ -1463,7 +1446,7 @@
             function renderSuggestions(query) {
                 var list = dataList;
                 if (!list || list.length === 0) {
-                    list = (input.id === 'clientName') ? DEFAULT_CLIENTS : DEFAULT_PRODUCTS_DATA.map(function(p) { return p
+                    list = (input.id === 'clientName') ? DEFAULT_CLIENTS : DEFAULT_PRODUCTS.map(function(p) { return p
                             .name; });
                 }
 
@@ -1649,7 +1632,6 @@
             itemWeight.value = item.weight || '';
             itemColor.value = item.color || '';
             itemCrusherType.value = item.crusherType || '';
-            // محاولة العثور على الكود
             var found = products.find(function(p) { return p.name === item.name; });
             if (found) { itemCode.value = found.code; }
             editIndex = index;
@@ -1785,30 +1767,29 @@
             btnSaveInvoice.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
             var SHEET_NAME = 'المبيعات والمرتجعات';
-            var WEB_APP_URL =
-                'https://script.google.com/macros/s/AKfycbwzDyVjlpzCEOsJVYbKwXd_E_k73doYQPQEyB7KeXa3WHEoqTqCKcsXu1w-D_GqAMpCLQ/exec';
+            var WEB_APP_URL = SCRIPT_URL;
 
             var rows = [];
             invoiceData.items.forEach(function(item) {
                 var row = [
-                    invoiceData.number,
-                    new Date(invoiceData.date).toLocaleString('ar-EG', { month: 'long' }),
-                    invoiceData.date,
-                    invoiceData.salesman,
-                    invoiceData.code || '',
-                    invoiceData.client,
-                    '',
-                    '',
-                    item.total,
-                    item.weight || '',
-                    item.unit || 'كجم',
-                    item.qty,
-                    item.price,
-                    item.total,
-                    '',
-                    item.color || '',
-                    item.name,
-                    item.crusherType || ''
+                    invoiceData.book || '', // الرقم الدفتري
+                    invoiceData.number || '', // رقم الفاتورة
+                    new Date(invoiceData.date).toLocaleString('ar-EG', { month: 'long' }), // الشهر
+                    invoiceData.date || '', // التاريخ
+                    invoiceData.salesman || '', // المندوب
+                    invoiceData.code || '', // كود العميل
+                    invoiceData.client || '', // اسم العميل
+                    '', // كود الصنف
+                    item.name || '', // الصنف
+                    item.weight || '', // الوزن
+                    item.unit || 'كجم', // الوحده
+                    item.qty || '', // العدد
+                    item.price || '', // سعر البيع
+                    item.total || '', // اجمالي مبيعات
+                    (item.weight * item.qty) || '', // اجمالي الوزن
+                    item.color || '', // اللون
+                    item.crusherType || '', // نوع الحصوة
+                    '' // ملاحظات
                 ];
                 rows.push(row);
             });
@@ -1876,6 +1857,7 @@
         console.log('📌 خيارات الحصوة: ناعم، نص مل، 1 مل، 1.5 مل، 2 مل');
         console.log('📌 استخدم الأسهم ↑↓ للتنقل بين الاقتراحات');
         console.log('📌 Ctrl+Enter للحفظ');
+        console.log('🔗 Web App URL:', SCRIPT_URL);
     </script>
 
 </body>
