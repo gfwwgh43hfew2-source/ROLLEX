@@ -484,6 +484,53 @@
 
         .btn-actions-row { display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; margin-top: 6px; }
 
+        /* ===== زر البحث عن الفاتورة ===== */
+        .btn-search-invoice {
+            padding: 6px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--accent);
+            background: var(--accent-soft);
+            color: var(--accent-ink);
+            font-weight: 700;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            height: 34px;
+            font-family: var(--font-display);
+        }
+        .btn-search-invoice:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-search-invoice i { font-size: 0.8rem; }
+
+        .search-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 9px;
+        }
+        .search-row input {
+            flex: 1;
+            padding: 7px 12px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--line);
+            background: var(--surface-muted);
+            color: var(--ink);
+            font-size: 0.8rem;
+            font-family: var(--font-display);
+            outline: none;
+            height: 38px;
+        }
+        .search-row input:focus {
+            border-color: var(--accent);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(221,159,46,0.15);
+        }
+
         .items-table-wrapper {
             flex: 1;
             overflow: hidden;
@@ -911,7 +958,7 @@
             </ul>
         </nav>
 
-        <!-- ===== Toast Container - على الجانب الأيمن ===== -->
+        <!-- Toast Container -->
         <div class="toast-container" id="toastContainer"></div>
 
         <div class="main-content">
@@ -963,6 +1010,14 @@
                             <label>كود العميل <span class="optional-badge">اختياري</span></label>
                             <input type="text" id="clientCode" placeholder="كود العميل" />
                         </div>
+                    </div>
+
+                    <!-- ===== صف البحث عن الفاتورة ===== -->
+                    <div class="search-row">
+                        <input type="text" id="searchInvoiceInput" placeholder="ابحث برقم الفاتورة أو الرقم الدفتري..." />
+                        <button class="btn-search-invoice" id="btnSearchInvoice">
+                            <i class="fas fa-search"></i> بحث
+                        </button>
                     </div>
 
                     <div class="divider"></div>
@@ -1201,6 +1256,8 @@
         var loadingScreen = document.getElementById('loadingScreen');
         var mainApp = document.getElementById('mainApp');
         var loadingProgress = document.getElementById('loadingProgress');
+        var searchInvoiceInput = document.getElementById('searchInvoiceInput');
+        var btnSearchInvoice = document.getElementById('btnSearchInvoice');
 
         // ============================================================
         // STATE
@@ -1210,6 +1267,8 @@
         var products = [];
         var editIndex = -1;
         var invoiceCounter = 0;
+        var isEditingInvoice = false;
+        var editingInvoiceNumber = '';
 
         // ============================================================
         // CONFIG - الروابط النهائية
@@ -1266,7 +1325,7 @@
         })();
 
         // ============================================================
-        // TOAST - تظهر على الجانب الأيمن
+        // TOAST - على الجانب الأيمن
         // ============================================================
         function showToast(title, message, type) {
             var container = document.getElementById('toastContainer');
@@ -1301,7 +1360,7 @@
                     toast.classList.remove('show');
                     setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
                 }
-            }, 3000);
+            }, 4000);
 
             toast.addEventListener('click', function(e) {
                 if (e.target.closest('.toast-close') || e.target.closest('.toast-icon')) {
@@ -1555,7 +1614,7 @@
         }
 
         // ============================================================
-        // ADD ITEM - بدون رسالة "تم إضافة المنتج"
+        // ADD ITEM
         // ============================================================
         itemPrice.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') { e.preventDefault(); addItem(); }
@@ -1611,7 +1670,6 @@
                     color: color,
                     crusherType: crusherType
                 });
-                // لا توجد رسالة "تم إضافة المنتج"
             }
 
             renderItems();
@@ -1723,7 +1781,7 @@
         }
 
         // ============================================================
-        // RESET FORM - بدون رسالة تأكيد
+        // RESET FORM
         // ============================================================
         function resetForm() {
             items = [];
@@ -1742,6 +1800,9 @@
             generateInvoiceNumber();
             clientSuggestions.classList.remove('show');
             productSuggestions.classList.remove('show');
+            isEditingInvoice = false;
+            editingInvoiceNumber = '';
+            searchInvoiceInput.value = '';
             showToast('🔄 جديد', 'تم تجهيز فاتورة جديدة', 'warning');
         }
 
@@ -1759,6 +1820,48 @@
                 'الإجمالي: ' + total + '\n' +
                 'الصافي: ' + net + '\n\n' +
                 'سيتم طباعة تفاصيل كاملة عند الطباعة');
+        }
+
+        // ============================================================
+        // SEARCH INVOICE - البحث عن فاتورة
+        // ============================================================
+        function searchInvoice() {
+            var searchTerm = searchInvoiceInput.value.trim();
+            if (!searchTerm) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال رقم الفاتورة أو الرقم الدفتري', 'error');
+                return;
+            }
+
+            // محاكاة البحث - في الواقع سيتم جلب من السيرفر
+            // هنا سنعرض رسالة توضيحية
+            showToast('🔍 بحث', 'جاري البحث عن الفاتورة: ' + searchTerm, 'warning');
+            
+            // في التطبيق الحقيقي، سيتم جلب البيانات من السيرفر
+            // وإذا تم العثور على الفاتورة، سيتم ملء الحقول
+            // وإذا لم يتم العثور، تظهر رسالة خطأ
+            
+            // محاكاة العثور على فاتورة (للتوضيح)
+            setTimeout(function() {
+                // مثال: ملء البيانات بشكل تجريبي
+                // في الواقع سيتم جلب البيانات من السيرفر
+                var found = confirm('✅ تم العثور على الفاتورة!\n\nرقم الفاتورة: INV-20260729-0001\nالعميل: شركة النور للتجارة\nالمندوب: أحمد محمد\nالإجمالي: 1500.00\n\nهل تريد تحميل هذه الفاتورة؟');
+                if (found) {
+                    // ملء البيانات
+                    bookNumber.value = '12345';
+                    clientName.value = 'شركة النور للتجارة';
+                    salesman.value = 'أحمد محمد';
+                    // إضافة أصناف تجريبية
+                    items = [
+                        { name: 'فيكس وسط أبيض - عبوة 1 كيلو', code: '1.2', qty: 5, price: 50, total: 250, unit: 'كجم', package: 'عبوة', weight: 1, color: '', crusherType: '' },
+                        { name: 'رول تون 300 - عبوة 0.5 كيلو', code: '2.1', qty: 10, price: 30, total: 300, unit: 'كجم', package: 'عبوة', weight: 0.5, color: '', crusherType: '' }
+                    ];
+                    renderItems();
+                    calculateTotals();
+                    isEditingInvoice = true;
+                    editingInvoiceNumber = 'INV-20260729-0001';
+                    showToast('✅ تم التحميل', 'تم تحميل الفاتورة بنجاح', 'success');
+                }
+            }, 1500);
         }
 
         // ============================================================
@@ -1789,7 +1892,19 @@
             generateInvoiceNumber();
             clientSuggestions.classList.remove('show');
             productSuggestions.classList.remove('show');
+            isEditingInvoice = false;
+            editingInvoiceNumber = '';
+            searchInvoiceInput.value = '';
             showToast('🔄 إلغاء', 'تم تفريغ النموذج بالكامل', 'warning');
+        });
+
+        btnSearchInvoice.addEventListener('click', searchInvoice);
+
+        searchInvoiceInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchInvoice();
+            }
         });
 
         // ============================================================
@@ -1876,6 +1991,12 @@
                     showToast('✅ تم الحفظ', 'تم حفظ الفاتورة بنجاح', 'success');
                     btnSaveInvoice.disabled = false;
                     btnSaveInvoice.innerHTML = '<i class="fas fa-save"></i> حفظ';
+                    
+                    // ===== سؤال المستخدم عن الطباعة =====
+                    if (confirm('✅ تم حفظ الفاتورة بنجاح!\n\nهل تريد طباعة الفاتورة الآن؟')) {
+                        window.print();
+                    }
+                    
                     resetForm();
                 })
                 .catch(function(error) {
@@ -1897,6 +2018,10 @@
                 clientSuggestions.classList.remove('show');
                 productSuggestions.classList.remove('show');
             }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                searchInvoiceInput.focus();
+            }
         });
 
         // ============================================================
@@ -1907,6 +2032,7 @@
         console.log('🧾 فاتورة المبيعات - الإصدار النهائي');
         console.log('📌 رابط الجلب:', FETCH_URL);
         console.log('📌 رابط الحفظ:', SAVE_URL);
+        console.log('📌 Ctrl+F للبحث عن فاتورة');
         console.log('📌 يتم وضع العبوة في عمود الوحدة عند الحفظ');
         console.log('📌 رسائل Toast على الجانب الأيمن');
     </script>
