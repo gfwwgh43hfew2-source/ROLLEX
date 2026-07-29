@@ -813,9 +813,9 @@
         var invoiceCounter = 0;
 
         // ============================================================
-        // CONFIG - الرابط الجديد
+        // CONFIG - الرابط الجديد (الإصدار 37)
         // ============================================================
-        var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbynw9lWbQ9m5xo881pZBFw_D0DOm5buZehLoE3rSukOfaQ8YXfBg9cWNi807lRJFFMNCg/exec';
+        var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbycNuCGSjRXu7KW7R93Ih25e0bOLLFlBmjxGgA_nZ6ipy45ZJ4Lp0OyhSah_6jwjHBC7A/exec';
 
         // ============================================================
         // DEFAULT DATA
@@ -832,8 +832,6 @@
             { code: '1.1', name: 'فيكس وسط أبيض - عبوة 0.5 كيلو', unit: 'كيلو', weight: 0.5, package: 'عبوة' },
             { code: '1.2', name: 'فيكس وسط أبيض - عبوة 1 كيلو', unit: 'كيلو', weight: 1, package: 'عبوة' },
             { code: '1.3', name: 'فيكس وسط أبيض - جالون 3 كيلو', unit: 'كيلو', weight: 3, package: 'جالون' },
-            { code: '2.1', name: 'رول تون 300 - عبوة 0.5 كيلو', unit: 'كيلو', weight: 0.5, package: 'عبوة' },
-            { code: '11.325', name: 'جرافيت - شكارة 25 كيلو', unit: 'كيلو', weight: 25, package: 'شكارة' },
         ];
 
         // ============================================================
@@ -915,86 +913,81 @@
         }
 
         // ============================================================
-        // LOAD DATA
+        // LOAD DATA - استخدام getProducts و getClients
         // ============================================================
         function loadData() {
-            fetch(SCRIPT_URL + '?action=getAll')
+            var loadedProducts = false;
+            var loadedClients = false;
+
+            // جلب المنتجات
+            fetch(SCRIPT_URL + '?action=getProducts')
                 .then(function(response) {
                     if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
                     return response.json();
                 })
                 .then(function(data) {
-                    console.log('📦 البيانات المستلمة:', data);
-
-                    if (data.success) {
-                        // العملاء
-                        if (data.clients && data.clients.length > 0) {
-                            clients = data.clients;
-                        } else {
-                            clients = DEFAULT_CLIENTS;
-                        }
-
-                        // المنتجات
-                        if (data.productsData && data.productsData.length > 0) {
-                            products = data.productsData;
-                            console.log('✅ تم جلب ' + products.length + ' منتج مع الأكواد');
-                        } else if (data.products && data.products.length > 0) {
-                            products = data.products.map(function(name, index) {
-                                return {
-                                    code: 'P' + String(index + 1).padStart(3, '0'),
-                                    name: name,
-                                    unit: 'لتر',
-                                    weight: 5,
-                                    package: ''
-                                };
-                            });
-                        } else {
-                            products = DEFAULT_PRODUCTS;
-                            console.log('⚠️ تم استخدام المنتجات الافتراضية');
-                        }
-
+                    if (data.success && data.data && data.data.products) {
+                        products = data.data.products;
+                        console.log('✅ تم جلب ' + products.length + ' منتج');
                         try {
-                            localStorage.setItem('rollex_clients', JSON.stringify(clients));
                             localStorage.setItem('rollex_products', JSON.stringify(products));
                         } catch (e) {}
-
-                        setupSuggestions();
                     } else {
-                        useDefaultData();
+                        console.log('⚠️ استخدام المنتجات الافتراضية');
+                        products = DEFAULT_PRODUCTS;
                     }
+                    loadedProducts = true;
+                    checkAndSetup();
                 })
                 .catch(function(error) {
-                    console.error('❌ خطأ في جلب البيانات:', error);
-                    useDefaultData();
+                    console.error('❌ خطأ في جلب المنتجات:', error);
+                    products = DEFAULT_PRODUCTS;
+                    loadedProducts = true;
+                    checkAndSetup();
                 });
-        }
 
-        function useDefaultData() {
-            try {
-                var savedClients = localStorage.getItem('rollex_clients');
-                var savedProducts = localStorage.getItem('rollex_products');
-                if (savedClients) clients = JSON.parse(savedClients);
-                if (savedProducts) products = JSON.parse(savedProducts);
-                if (clients.length > 0 || products.length > 0) {
-                    console.log('✅ تم تحميل البيانات من LocalStorage');
+            // جلب العملاء
+            fetch(SCRIPT_URL + '?action=getClients')
+                .then(function(response) {
+                    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (data.success && data.data && data.data.clients) {
+                        clients = data.data.clients;
+                        console.log('✅ تم جلب ' + clients.length + ' عميل');
+                        try {
+                            localStorage.setItem('rollex_clients', JSON.stringify(clients));
+                        } catch (e) {}
+                    } else {
+                        console.log('⚠️ استخدام العملاء الافتراضيين');
+                        clients = DEFAULT_CLIENTS;
+                    }
+                    loadedClients = true;
+                    checkAndSetup();
+                })
+                .catch(function(error) {
+                    console.error('❌ خطأ في جلب العملاء:', error);
+                    clients = DEFAULT_CLIENTS;
+                    loadedClients = true;
+                    checkAndSetup();
+                });
+
+            function checkAndSetup() {
+                if (loadedProducts && loadedClients) {
                     setupSuggestions();
-                    return;
                 }
-            } catch (e) {}
-            clients = DEFAULT_CLIENTS;
-            products = DEFAULT_PRODUCTS;
-            console.log('⚠️ تم استخدام البيانات الافتراضية');
-            setupSuggestions();
+            }
         }
 
         // ============================================================
-        // SUGGESTIONS SYSTEM - عرض جميع المنتجات المطابقة
+        // SUGGESTIONS SYSTEM
         // ============================================================
         function setupSuggestions() {
             // اقتراحات العملاء
             setupSuggestionInput(clientName, clientSuggestions, clients, null);
 
-            // اقتراحات المنتجات - عرض جميع النتائج
+            // اقتراحات المنتجات
             setupSuggestionInput(itemName, productSuggestions, products.map(function(p) { return p.name; }),
                 function(selectedName) {
                     var found = products.find(function(p) { return p.name === selectedName; });
@@ -1004,17 +997,12 @@
                     }
                 },
                 function(query) {
-                    // إذا لم يكن هناك بحث، لا نعرض شيئاً
                     if (!query || query.trim() === '') {
                         return [];
                     }
-                    
-                    // عرض جميع المنتجات المطابقة للبحث
                     var results = products.filter(function(p) {
                         return p.name.toLowerCase().includes(query.toLowerCase());
                     });
-                    
-                    // عرض جميع النتائج بدون حد أقصى
                     return results.map(function(p) {
                         return {
                             display: p.name,
@@ -1028,7 +1016,7 @@
         }
 
         // ============================================================
-        // FILL PRODUCT DATA - ملء بيانات المنتج
+        // FILL PRODUCT DATA
         // ============================================================
         function fillProductData(product) {
             itemCode.value = product.code || '';
@@ -1046,9 +1034,6 @@
                         break;
                     }
                 }
-            }
-            if (product.price) {
-                itemPrice.value = product.price;
             }
         }
 
@@ -1099,7 +1084,9 @@
             });
 
             document.addEventListener('click', function(e) {
-                if (!e.target.closest('.suggestions-wrapper')) { suggestionsContainer.classList.remove('show'); }
+                if (!e.target.closest('.suggestions-wrapper')) {
+                    suggestionsContainer.classList.remove('show');
+                }
             });
 
             function renderSuggestions(query) {
@@ -1469,30 +1456,29 @@
             btnSaveInvoice.disabled = true;
             btnSaveInvoice.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
-            var SHEET_NAME = 'المبيعات والمرتجعات';
             var WEB_APP_URL = SCRIPT_URL;
 
             var rows = [];
             invoiceData.items.forEach(function(item) {
                 var row = [
-                    invoiceData.book || '', // 0: الرقم الدفتري
-                    invoiceData.number || '', // 1: رقم الفاتورة
-                    new Date(invoiceData.date).toLocaleString('ar-EG', { month: 'long' }), // 2: الشهر
-                    invoiceData.date || '', // 3: التاريخ
-                    invoiceData.salesman || '', // 4: المندوب
-                    invoiceData.code || '', // 5: كود العميل
-                    invoiceData.client || '', // 6: اسم العميل
-                    item.code || '', // 7: كود الصنف
-                    item.name || '', // 8: الصنف
-                    item.weight || '', // 9: الوزن
-                    item.unit || 'كجم', // 10: الوحده
-                    item.qty || '', // 11: العدد
-                    item.price || '', // 12: سعر البيع
-                    item.total || '', // 13: اجمالي مبيعات
-                    (item.weight * item.qty) || '', // 14: اجمالي الوزن
-                    item.color || '', // 15: اللون
-                    item.crusherType || '', // 16: نوع الحصوة
-                    item.package || '' // 17: العبوة
+                    invoiceData.book || '',
+                    invoiceData.number || '',
+                    new Date(invoiceData.date).toLocaleString('ar-EG', { month: 'long' }),
+                    invoiceData.date || '',
+                    invoiceData.salesman || '',
+                    invoiceData.code || '',
+                    invoiceData.client || '',
+                    item.code || '',
+                    item.name || '',
+                    item.weight || '',
+                    item.unit || 'كجم',
+                    item.qty || '',
+                    item.price || '',
+                    item.total || '',
+                    (item.weight * item.qty) || '',
+                    item.color || '',
+                    item.crusherType || '',
+                    item.package || ''
                 ];
                 rows.push(row);
             });
@@ -1502,7 +1488,7 @@
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sheetName: SHEET_NAME, row: row })
+                    body: JSON.stringify({ sheetName: 'المبيعات والمرتجعات', row: row })
                 });
             });
 
@@ -1555,7 +1541,7 @@
         // ============================================================
         loadData();
 
-        console.log('🧾 فاتورة المبيعات - الرابط الجديد');
+        console.log('🧾 فاتورة المبيعات - الإصدار النهائي');
         console.log('📌 اكتب اسم المنتج وستظهر جميع الاقتراحات المطابقة');
         console.log('📌 يتم جلب الكود والوزن والعبوة تلقائياً');
         console.log('🔗 Web App URL:', SCRIPT_URL);
