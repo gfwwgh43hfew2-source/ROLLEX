@@ -523,6 +523,9 @@
 
     <div class="main-content">
 
+        <!-- ============================================================
+        بيانات المؤسسة
+        ============================================================ -->
         <div class="card">
             <h2><i class="fas fa-building"></i> بيانات المؤسسة</h2>
 
@@ -560,10 +563,13 @@
             </div>
         </div>
 
-        <!-- ===== شعار المؤسسة ===== -->
+        <!-- ============================================================
+        شعار المؤسسة
+        ============================================================ -->
         <div class="card">
             <h2><i class="fas fa-image"></i> شعار المؤسسة</h2>
 
+            <!-- منطقة رفع الشعار -->
             <div class="logo-upload-area" id="logoUploadArea">
                 <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
                 <div class="upload-text">
@@ -573,13 +579,29 @@
                 <input type="file" id="logoInput" accept="image/*" />
             </div>
 
+            <!-- معاينة الشعار -->
             <div class="logo-preview" id="logoPreview">
                 <img id="logoImage" src="" alt="شعار المؤسسة" style="display:none;" />
-                <span class="remove-logo" id="removeLogo" style="display:none;"><i class="fas fa-times"></i> إزالة</span>
+                <span class="remove-logo" id="removeLogo" style="display:none;">
+                    <i class="fas fa-times"></i> إزالة
+                </span>
+            </div>
+
+            <!-- ===== حقل رابط الشعار (جديد) ===== -->
+            <div class="form-group" style="margin-top: 12px;">
+                <label>رابط الشعار (من GitHub أو Cloudflare Pages)</label>
+                <input type="text" id="logoUrlInput" 
+                       placeholder="https://raw.githubusercontent.com/.../logo.png" 
+                       dir="ltr" />
+                <small style="color: var(--ink-mute); font-size: 0.6rem; display: block; margin-top: 4px;">
+                    📌 الصق الرابط المباشر للصورة بعد رفعها على GitHub أو أي استضافة
+                </small>
             </div>
         </div>
 
-        <!-- ===== تذييل الفاتورة ===== -->
+        <!-- ============================================================
+        تذييل الفاتورة
+        ============================================================ -->
         <div class="card">
             <h2><i class="fas fa-file-signature"></i> تذييل الفاتورة</h2>
 
@@ -589,7 +611,9 @@
             </div>
         </div>
 
-        <!-- ===== أزرار الحفظ ===== -->
+        <!-- ============================================================
+        أزرار الحفظ
+        ============================================================ -->
         <div class="card">
             <div class="btn-actions">
                 <button class="btn-save" id="btnSaveSettings">
@@ -656,13 +680,14 @@
         var logoInput = document.getElementById('logoInput');
         var logoImage = document.getElementById('logoImage');
         var removeLogo = document.getElementById('removeLogo');
+        var logoUrlInput = document.getElementById('logoUrlInput'); // حقل الرابط الجديد
         var btnSaveSettings = document.getElementById('btnSaveSettings');
         var btnResetSettings = document.getElementById('btnResetSettings');
 
         // ============================================================
-        // CONFIG - الرابط الجديد (الإصدار 44)
+        // CONFIG - الرابط الجديد (الإصدار 48)
         // ============================================================
-var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbzYkvIbcUEs0Cy7zVgxsWdTLdatAeMJXU89qfYzps8wSGynSWQXJjwRas3Yc6qF3r-czQ/exec';
+        var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbwktOKxOfOBx9fKXB7E2pHKo0NUONQM6XTmjo2BhAdK-4a7_bJeoeHB3wlFGAB5KgDEoA/exec';
 
         // ============================================================
         // DEFAULT SETTINGS
@@ -729,36 +754,61 @@ var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbzYkvIbcUEs0Cy7zVgxs
         // LOAD SETTINGS
         // ============================================================
         function loadSettings() {
+            // محاولة قراءة الإعدادات من localStorage أولاً (للحصول على سرعة أفضل)
+            var savedSettings = localStorage.getItem('rollex_settings');
+            if (savedSettings) {
+                try {
+                    var parsedSettings = JSON.parse(savedSettings);
+                    fillSettingsForm(parsedSettings);
+                    console.log('✅ تم تحميل الإعدادات من localStorage');
+                    // نستمر في جلب البيانات من السيرفر للتحديث
+                } catch (e) {
+                    console.warn('⚠️ خطأ في قراءة الإعدادات من localStorage');
+                }
+            }
+
+            // جلب الإعدادات من السيرفر
             fetch(SETTINGS_URL + '?action=getSettings')
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
                     if (data.success && data.data) {
-                        var settings = data.data;
-                        companyName.value = settings.companyName || DEFAULT_SETTINGS.companyName;
-                        companyAddress.value = settings.companyAddress || DEFAULT_SETTINGS.companyAddress;
-                        companyPhone.value = settings.companyPhone || DEFAULT_SETTINGS.companyPhone;
-                        companyEmail.value = settings.companyEmail || DEFAULT_SETTINGS.companyEmail;
-                        companyWebsite.value = settings.companyWebsite || DEFAULT_SETTINGS.companyWebsite;
-                        companyTaxNumber.value = settings.companyTaxNumber || DEFAULT_SETTINGS.companyTaxNumber;
-                        invoiceFooter.value = settings.invoiceFooter || DEFAULT_SETTINGS.invoiceFooter;
-
-                        if (settings.companyLogo && settings.companyLogo !== '') {
-                            logoImage.src = settings.companyLogo;
-                            logoImage.style.display = 'block';
-                            removeLogo.style.display = 'inline-block';
-                        } else {
-                            logoImage.style.display = 'none';
-                            removeLogo.style.display = 'none';
-                        }
-
-                        console.log('✅ تم تحميل الإعدادات');
+                        fillSettingsForm(data.data);
+                        // حفظ في localStorage للاستخدام السريع
+                        localStorage.setItem('rollex_settings', JSON.stringify(data.data));
+                        console.log('✅ تم تحميل الإعدادات من السيرفر');
                     } else {
                         loadDefaultSettings();
                     }
                 })
-                .catch(function() {
-                    loadDefaultSettings();
+                .catch(function(error) {
+                    console.error('❌ خطأ في جلب الإعدادات:', error);
+                    // إذا لم توجد بيانات في localStorage، نستخدم الافتراضية
+                    if (!savedSettings) {
+                        loadDefaultSettings();
+                    }
                 });
+        }
+
+        function fillSettingsForm(settings) {
+            companyName.value = settings.companyName || DEFAULT_SETTINGS.companyName;
+            companyAddress.value = settings.companyAddress || DEFAULT_SETTINGS.companyAddress;
+            companyPhone.value = settings.companyPhone || DEFAULT_SETTINGS.companyPhone;
+            companyEmail.value = settings.companyEmail || DEFAULT_SETTINGS.companyEmail;
+            companyWebsite.value = settings.companyWebsite || DEFAULT_SETTINGS.companyWebsite;
+            companyTaxNumber.value = settings.companyTaxNumber || DEFAULT_SETTINGS.companyTaxNumber;
+            invoiceFooter.value = settings.invoiceFooter || DEFAULT_SETTINGS.invoiceFooter;
+
+            // تعبئة حقل رابط الشعار وعرضه
+            if (settings.companyLogo && settings.companyLogo !== '') {
+                logoImage.src = settings.companyLogo;
+                logoImage.style.display = 'block';
+                removeLogo.style.display = 'inline-block';
+                logoUrlInput.value = settings.companyLogo;
+            } else {
+                logoImage.style.display = 'none';
+                removeLogo.style.display = 'none';
+                logoUrlInput.value = '';
+            }
         }
 
         function loadDefaultSettings() {
@@ -771,11 +821,12 @@ var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbzYkvIbcUEs0Cy7zVgxs
             invoiceFooter.value = DEFAULT_SETTINGS.invoiceFooter;
             logoImage.style.display = 'none';
             removeLogo.style.display = 'none';
+            logoUrlInput.value = '';
             showToast('⚠️ تنبيه', 'تم تحميل الإعدادات الافتراضية', 'warning');
         }
 
         // ============================================================
-        // SAVE SETTINGS - باستخدام POST
+        // SAVE SETTINGS
         // ============================================================
         function saveSettings() {
             var settings = {
@@ -785,13 +836,17 @@ var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbzYkvIbcUEs0Cy7zVgxs
                 companyEmail: companyEmail.value.trim(),
                 companyWebsite: companyWebsite.value.trim(),
                 companyTaxNumber: companyTaxNumber.value.trim(),
-                companyLogo: logoImage.src || '',
+                companyLogo: logoUrlInput.value.trim() || logoImage.src || '',
                 invoiceFooter: invoiceFooter.value.trim()
             };
 
             btnSaveSettings.disabled = true;
             btnSaveSettings.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
+            // حفظ في localStorage أولاً (للتحديث الفوري)
+            localStorage.setItem('rollex_settings', JSON.stringify(settings));
+
+            // حفظ في السيرفر
             fetch(SETTINGS_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -802,7 +857,6 @@ var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbzYkvIbcUEs0Cy7zVgxs
                 })
             })
             .then(function() {
-                // no-cors لا يعطي رد، لكننا نعتبره ناجحاً
                 showToast('✅ تم الحفظ', 'تم حفظ الإعدادات بنجاح', 'success');
                 btnSaveSettings.disabled = false;
                 btnSaveSettings.innerHTML = '<i class="fas fa-save"></i> حفظ الإعدادات';
@@ -830,23 +884,40 @@ var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbzYkvIbcUEs0Cy7zVgxs
                 logoImage.src = '';
                 logoImage.style.display = 'none';
                 removeLogo.style.display = 'none';
+                logoUrlInput.value = '';
                 showToast('🔄 تم الاستعادة', 'تم استعادة الإعدادات الافتراضية', 'warning');
                 saveSettings();
             }
         }
 
         // ============================================================
-        // LOGO UPLOAD
+        // LOGO UPLOAD - رفع الشعار وعرضه مع تعبئة الرابط تلقائياً
         // ============================================================
         logoInput.addEventListener('change', function(e) {
             var file = e.target.files[0];
             if (file) {
                 var reader = new FileReader();
                 reader.onload = function(event) {
-                    logoImage.src = event.target.result;
+                    var imageDataUrl = event.target.result;
+                    logoImage.src = imageDataUrl;
                     logoImage.style.display = 'block';
                     removeLogo.style.display = 'inline-block';
-                    showToast('✅ تم الرفع', 'تم رفع الشعار بنجاح', 'success');
+                    
+                    // ===== محاولة استنتاج الرابط من اسم الملف =====
+                    var fileName = file.name;
+                    var suggestedUrl = '';
+                    
+                    // إذا كان الملف موجوداً على GitHub، نقترح رابطاً
+                    if (fileName) {
+                        // تنظيف اسم الملف للاستخدام في الرابط
+                        var cleanName = fileName.replace(/[^a-zA-Z0-9.]/g, '_');
+                        suggestedUrl = 'https://raw.githubusercontent.com/gfwwgh43hfew2-source/ROLLEX/main/' + cleanName;
+                    }
+                    
+                    // تعبئة حقل الرابط بالقيمة المقترحة
+                    logoUrlInput.value = suggestedUrl;
+                    
+                    showToast('✅ تم الرفع', 'تم رفع الشعار بنجاح. تأكد من رابط الصورة.', 'success');
                 };
                 reader.readAsDataURL(file);
             }
@@ -856,6 +927,7 @@ var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbzYkvIbcUEs0Cy7zVgxs
             logoImage.src = '';
             logoImage.style.display = 'none';
             removeLogo.style.display = 'none';
+            logoUrlInput.value = '';
             logoInput.value = '';
             showToast('🗑️ تم الإزالة', 'تم إزالة الشعار', 'warning');
         });
@@ -881,9 +953,10 @@ var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbzYkvIbcUEs0Cy7zVgxs
         // ============================================================
         loadSettings();
 
-        console.log('⚙️ صفحة الإعدادات');
+        console.log('⚙️ صفحة الإعدادات - الإصدار النهائي');
         console.log('📌 رابط السيرفر:', SETTINGS_URL);
         console.log('📌 Ctrl+S للحفظ');
+        console.log('📌 يتم حفظ رابط الصورة بدلاً من Base64');
     </script>
 
 </body>
