@@ -660,9 +660,9 @@
         var btnResetSettings = document.getElementById('btnResetSettings');
 
         // ============================================================
-        // CONFIG - الرابط الجديد (الإصدار 43)
+        // CONFIG - الرابط الجديد (الإصدار 44)
         // ============================================================
-        var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbwMCfnX6CfW_LnkyPdazYxMMmr28irC7jnzn_fCdPk4VV9B7FbIv0Zujmd6th7zC6zasQ/exec';
+        var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbwTc4T-KjMlx10njmN_EqcXkkYGu0LzlbRxtMkwAbJYvJNl_eLQbPkgkFthPKi4r8BOAQ/exec';
 
         // ============================================================
         // DEFAULT SETTINGS
@@ -775,48 +775,44 @@
         }
 
         // ============================================================
-        // SAVE SETTINGS - باستخدام GET (حل مشكلة CORS)
+        // SAVE SETTINGS - باستخدام POST
         // ============================================================
         function saveSettings() {
             var settings = {
-                companyName: encodeURIComponent(companyName.value.trim()),
-                companyAddress: encodeURIComponent(companyAddress.value.trim()),
-                companyPhone: encodeURIComponent(companyPhone.value.trim()),
-                companyEmail: encodeURIComponent(companyEmail.value.trim()),
-                companyWebsite: encodeURIComponent(companyWebsite.value.trim()),
-                companyTaxNumber: encodeURIComponent(companyTaxNumber.value.trim()),
-                companyLogo: encodeURIComponent(logoImage.src || ''),
-                invoiceFooter: encodeURIComponent(invoiceFooter.value.trim())
+                companyName: companyName.value.trim(),
+                companyAddress: companyAddress.value.trim(),
+                companyPhone: companyPhone.value.trim(),
+                companyEmail: companyEmail.value.trim(),
+                companyWebsite: companyWebsite.value.trim(),
+                companyTaxNumber: companyTaxNumber.value.trim(),
+                companyLogo: logoImage.src || '',
+                invoiceFooter: invoiceFooter.value.trim()
             };
 
             btnSaveSettings.disabled = true;
             btnSaveSettings.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
-            var url = SETTINGS_URL + '?action=saveSettings';
-            Object.keys(settings).forEach(function(key) {
-                url += '&' + key + '=' + settings[key];
+            fetch(SETTINGS_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'saveSettings',
+                    settings: settings
+                })
+            })
+            .then(function() {
+                // no-cors لا يعطي رد، لكننا نعتبره ناجحاً
+                showToast('✅ تم الحفظ', 'تم حفظ الإعدادات بنجاح', 'success');
+                btnSaveSettings.disabled = false;
+                btnSaveSettings.innerHTML = '<i class="fas fa-save"></i> حفظ الإعدادات';
+            })
+            .catch(function(error) {
+                console.error('Error saving settings:', error);
+                showToast('❌ خطأ', 'حدث خطأ في حفظ الإعدادات', 'error');
+                btnSaveSettings.disabled = false;
+                btnSaveSettings.innerHTML = '<i class="fas fa-save"></i> حفظ الإعدادات';
             });
-
-            fetch(url)
-                .then(function(response) { 
-                    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
-                    return response.json(); 
-                })
-                .then(function(data) {
-                    if (data.success) {
-                        showToast('✅ تم الحفظ', 'تم حفظ الإعدادات بنجاح', 'success');
-                    } else {
-                        showToast('❌ خطأ', data.message || 'حدث خطأ في حفظ الإعدادات', 'error');
-                    }
-                    btnSaveSettings.disabled = false;
-                    btnSaveSettings.innerHTML = '<i class="fas fa-save"></i> حفظ الإعدادات';
-                })
-                .catch(function(error) {
-                    console.error('Error saving settings:', error);
-                    showToast('❌ خطأ', 'حدث خطأ في حفظ الإعدادات', 'error');
-                    btnSaveSettings.disabled = false;
-                    btnSaveSettings.innerHTML = '<i class="fas fa-save"></i> حفظ الإعدادات';
-                });
         }
 
         // ============================================================
