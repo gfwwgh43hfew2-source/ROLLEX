@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>إعدادات المؤسسة - شركة رولكس للدهانات</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --ink: #121821;
+            --ink-soft: #2c3644;
+            --ink-mute: #6d7883;
+            --paper: #eef1ef;
+            --surface: #ffffff;
+            --surface-muted: #f4f6f5;
+            --line: #dde3e0;
+            --line-strong: #c7d0cc;
+            --accent: #dd9f2e;
+            --accent-ink: #7a5312;
+            --accent-soft: #faead0;
+            --teal: #1d7b6c;
+            --teal-soft: #e2f2ee;
+            --rust: #bf4f30;
+            --rust-soft: #fbe8e1;
+            --blue: #2f5b8a;
+            --radius: 14px;
+            --radius-sm: 9px;
+            --shadow: 0 14px 34px -16px rgba(18, 24, 33, 0.28);
+            --shadow-sm: 0 3px 10px -4px rgba(18, 24, 33, 0.18);
+            --font-display: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+            --header-height: 60px;
+            --stripe-height: 4px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-display);
+            background: var(--paper);
+            color: var(--ink);
+            direction: rtl;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        a { text-decoration: none; color: inherit; }
+
+        .swatch-stripe { height: var(--stripe-height); flex-shrink: 0; display: flex; }
+        .swatch-stripe span { flex: 1; }
+        .swatch-stripe span:nth-child(1) { background: var(--accent); }
+        .swatch-stripe span:nth-child(2) { background: var(--teal); }
+        .swatch-stripe span:nth-child(3) { background: var(--rust); }
+        .swatch-stripe span:nth-child(4) { background: var(--blue); }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 0 20px;
+            background: rgba(255,255,255,0.97);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--line);
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        header .header-content { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .logo { display: flex; align-items: center; gap: 11px; }
+        .logo-mark {
+            width: 36px; height: 36px; border-radius: 10px; background: var(--ink);
+            display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+            gap: 3px; padding: 6px; flex-shrink: 0;
+        }
+        .logo-mark span { border-radius: 2px; }
+        .logo-mark span:nth-child(1) { background: var(--accent); }
+        .logo-mark span:nth-child(2) { background: var(--teal); }
+        .logo-mark span:nth-child(3) { background: var(--rust); }
+        .logo-mark span:nth-child(4) { background: var(--blue); }
+        .logo-text h1 { font-size: 0.95rem; font-weight: 800; color: var(--ink); line-height: 1.25; letter-spacing: -0.2px; }
+        .logo-text span { font-size: 0.62rem; color: var(--ink-mute); display: block; font-weight: 600; }
+
+        nav { display: flex; align-items: center; gap: 22px; }
+        nav a {
+            color: var(--ink-mute); font-weight: 700; font-size: 0.76rem;
+            transition: 0.2s; position: relative; padding: 5px 0;
+        }
+        nav a::after {
+            content: ''; position: absolute; bottom: -2px; right: 0;
+            width: 0; height: 2px; background: var(--accent);
+            transition: 0.25s; border-radius: 10px;
+        }
+        nav a:hover { color: var(--ink); }
+        nav a:hover::after { width: 100%; }
+        nav a.active { color: var(--ink); }
+        nav a.active::after { width: 100%; }
+
+        .header-actions { display: flex; align-items: center; gap: 6px; }
+        .header-actions button {
+            width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line);
+            background: var(--surface); color: var(--ink-mute); cursor: pointer;
+            transition: 0.2s; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+        }
+        .header-actions button:hover { background: var(--ink); border-color: var(--ink); color: #fff; }
+        .hamburger {
+            display: none; font-size: 1.05rem; color: var(--ink); cursor: pointer;
+            padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface);
+        }
+
+        .mobile-nav-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(18,24,33,0.35);
+            z-index: 999; backdrop-filter: blur(3px); opacity: 0;
+            transition: opacity 0.3s ease; pointer-events: none;
+        }
+        .mobile-nav-overlay.active { opacity: 1; pointer-events: auto; }
+        .mobile-nav-menu {
+            display: none; position: fixed; top: 0; right: -270px;
+            width: 260px; height: 100vh; background: #ffffff;
+            border-left: 1px solid var(--line); z-index: 1000;
+            padding: 60px 18px 30px; transition: right 0.3s ease;
+            overflow-y: auto; box-shadow: var(--shadow);
+        }
+        .mobile-nav-menu.open { right: 0; }
+        .mobile-nav-menu .close-btn {
+            position: absolute; top: 12px; left: 12px;
+            font-size: 1.2rem; color: var(--ink-mute); cursor: pointer;
+            padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line);
+        }
+        .mobile-nav-menu .close-btn:hover { background: var(--accent-soft); color: var(--accent-ink); }
+        .mobile-nav-menu .menu-items a {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 12px; border-radius: 8px;
+            color: var(--ink-soft); font-weight: 700; font-size: 0.85rem;
+            transition: 0.2s;
+        }
+        .mobile-nav-menu .menu-items a i { width: 18px; color: var(--ink-mute); }
+        .mobile-nav-menu .menu-items a:hover { background: var(--surface-muted); }
+        .mobile-nav-menu .menu-items a.active { background: var(--accent-soft); color: var(--accent-ink); }
+        .mobile-nav-menu .menu-items a.active i { color: var(--accent-ink); }
+
+        .mobile-nav-bottom {
+            display: none; position: fixed; bottom: 0; left: 0; right: 0;
+            z-index: 998; background: #ffffff; border-top: 1px solid var(--line);
+            padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+        }
+        .mobile-nav-bottom ul { display: flex; justify-content: space-around; list-style: none; }
+        .mobile-nav-bottom ul li {
+            display: flex; flex-direction: column; align-items: center; gap: 2px;
+            font-size: 0.42rem; color: var(--ink-mute); transition: 0.2s; padding: 3px 8px; border-radius: 6px;
+        }
+        .mobile-nav-bottom ul li i { font-size: 0.9rem; }
+        .mobile-nav-bottom ul li:hover, .mobile-nav-bottom ul li.active { color: var(--accent-ink); }
+
+        /* ============================================================
+           MAIN CONTENT
+           ============================================================ */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--line);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--ink);
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--line);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2 i {
+            color: var(--accent);
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--ink-soft);
+            margin-bottom: 4px;
+        }
+
+        .form-group label .required {
+            color: var(--rust);
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1.5px solid var(--line);
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            font-family: var(--font-display);
+            background: var(--surface-muted);
+            transition: 0.2s;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(221,159,46,0.15);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        /* ===== رفع الشعار ===== */
+        .logo-upload-area {
+            border: 2px dashed var(--line);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+            background: var(--surface-muted);
+            position: relative;
+        }
+
+        .logo-upload-area:hover {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .logo-upload-area .upload-icon {
+            font-size: 2.5rem;
+            color: var(--ink-mute);
+            margin-bottom: 8px;
+        }
+
+        .logo-upload-area .upload-text {
+            font-size: 0.8rem;
+            color: var(--ink-mute);
+        }
+
+        .logo-upload-area .upload-text strong {
+            color: var(--accent-ink);
+        }
+
+        .logo-upload-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .logo-preview {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .logo-preview img {
+            max-height: 80px;
+            max-width: 200px;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            padding: 4px;
+            background: #fff;
+        }
+
+        .logo-preview .remove-logo {
+            color: var(--rust);
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--rust-soft);
+            background: var(--rust-soft);
+            transition: 0.2s;
+        }
+
+        .logo-preview .remove-logo:hover {
+            background: var(--rust);
+            color: #fff;
+        }
+
+        /* ===== الأزرار ===== */
+        .btn-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-save {
+            padding: 10px 30px;
+            border-radius: 8px;
+            background: var(--teal);
+            border: none;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-display);
+        }
+
+        .btn-save:hover {
+            background: #156b5d;
+            transform: translateY(-1px);
+        }
+
+        .btn-save:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-reset {
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-soft);
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: var(--font-display);
+        }
+
+        .btn-reset:hover {
+            background: var(--surface-muted);
+        }
+
+        /* ===== Toast ===== */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 99999;
+            max-width: 380px;
+            width: 90%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            background: #ffffff;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(20px);
+            transition: all 0.4s ease;
+            opacity: 0;
+            pointer-events: auto;
+            box-shadow: var(--shadow);
+            border-right: 4px solid var(--ink);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .toast .toast-icon {
+            font-size: 1rem;
+            width: 30px;
+            height: 30px;
+            min-width: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toast .toast-icon.success { color: var(--teal); background: var(--teal-soft); }
+        .toast .toast-icon.error { color: var(--rust); background: var(--rust-soft); }
+        .toast .toast-icon.warning { color: var(--accent-ink); background: var(--accent-soft); }
+
+        .toast .toast-title { font-size: 0.82rem; font-weight: 800; color: var(--ink); }
+        .toast .toast-message { font-size: 0.72rem; color: var(--ink-mute); margin-top: 1px; }
+
+        .toast .toast-close {
+            background: none;
+            border: none;
+            color: var(--ink-mute);
+            cursor: pointer;
+            font-size: 0.85rem;
+            padding: 4px;
+            margin-right: auto;
+        }
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .main-content {
+                padding: 12px;
+            }
+            .card {
+                padding: 16px;
+            }
+            .toast-container {
+                top: 70px;
+                right: 10px;
+                max-width: 300px;
+            }
+            nav { display: none !important; }
+            .hamburger { display: flex !important; }
+            .mobile-nav-bottom { display: flex !important; }
+            .mobile-nav-menu { display: block; }
+            .mobile-nav-overlay { display: block; }
+        }
+
+        @media (max-width: 480px) {
+            .toast-container {
+                top: 60px;
+                right: 8px;
+                max-width: 260px;
+            }
+            .toast {
+                padding: 10px 12px;
+            }
+            .toast .toast-title { font-size: 0.75rem; }
+            .toast .toast-message { font-size: 0.65rem; }
+            .btn-save, .btn-reset {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-nav-bottom, .mobile-nav-overlay, .mobile-nav-menu, .hamburger { display: none !important; }
+            nav { display: flex !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="swatch-stripe"><span></span><span></span><span></span><span></span></div>
+
+    <header id="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-mark"><span></span><span></span><span></span><span></span></div>
+                <div class="logo-text">
+                    <h1>إعدادات المؤسسة</h1>
+                    <span>شركة رولكس للدهانات</span>
+                </div>
+            </div>
+            <nav>
+                <a href="home.html">الرئيسية</a>
+                <a href="sales.html">المبيعات</a>
+                <a href="invoice.html">فاتورة جديدة</a>
+                <a href="#" class="active">الإعدادات</a>
+            </nav>
+            <div class="header-actions">
+                <button aria-label="بحث"><i class="fas fa-search"></i></button>
+                <button aria-label="إشعارات"><i class="fas fa-bell"></i></button>
+                <div class="hamburger" id="navToggle"><i class="fas fa-bars"></i></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="mobile-nav-overlay" id="mobileOverlay"></div>
+    <div class="mobile-nav-menu" id="mobileMenu">
+        <div class="close-btn" id="closeMenu"><i class="fas fa-times"></i></div>
+        <div class="menu-items">
+            <a href="home.html"><i class="fas fa-home"></i> الرئيسية</a>
+            <a href="sales.html"><i class="fas fa-chart-line"></i> المبيعات</a>
+            <a href="invoice.html"><i class="fas fa-file-invoice"></i> فاتورة جديدة</a>
+            <a href="#" class="active"><i class="fas fa-cog"></i> الإعدادات</a>
+        </div>
+    </div>
+
+    <nav class="mobile-nav-bottom" id="mobileNavBottom">
+        <ul>
+            <li><a href="home.html"><i class="fas fa-home"></i><span>الرئيسية</span></a></li>
+            <li><a href="sales.html"><i class="fas fa-chart-line"></i><span>المبيعات</span></a></li>
+            <li><a href="invoice.html"><i class="fas fa-file-invoice"></i><span>فاتورة</span></a></li>
+            <li class="active"><a href="#"><i class="fas fa-cog"></i><span>الإعدادات</span></a></li>
+        </ul>
+    </nav>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="main-content">
+
+        <div class="card">
+            <h2><i class="fas fa-building"></i> بيانات المؤسسة</h2>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>اسم المؤسسة <span class="required">*</span></label>
+                    <input type="text" id="companyName" placeholder="اسم المؤسسة" />
+                </div>
+                <div class="form-group">
+                    <label>العنوان <span class="required">*</span></label>
+                    <input type="text" id="companyAddress" placeholder="عنوان المؤسسة" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>رقم الهاتف <span class="required">*</span></label>
+                    <input type="text" id="companyPhone" placeholder="رقم الهاتف" />
+                </div>
+                <div class="form-group">
+                    <label>البريد الإلكتروني</label>
+                    <input type="email" id="companyEmail" placeholder="البريد الإلكتروني" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>الموقع الإلكتروني</label>
+                    <input type="text" id="companyWebsite" placeholder="www.example.com" />
+                </div>
+                <div class="form-group">
+                    <label>الرقم الضريبي</label>
+                    <input type="text" id="companyTaxNumber" placeholder="الرقم الضريبي" />
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== شعار المؤسسة ===== -->
+        <div class="card">
+            <h2><i class="fas fa-image"></i> شعار المؤسسة</h2>
+
+            <div class="logo-upload-area" id="logoUploadArea">
+                <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                <div class="upload-text">
+                    <strong>اضغط هنا لرفع الشعار</strong><br />
+                    (PNG, JPG, SVG - حجم مناسب للطباعة)
+                </div>
+                <input type="file" id="logoInput" accept="image/*" />
+            </div>
+
+            <div class="logo-preview" id="logoPreview">
+                <img id="logoImage" src="" alt="شعار المؤسسة" style="display:none;" />
+                <span class="remove-logo" id="removeLogo" style="display:none;"><i class="fas fa-times"></i> إزالة</span>
+            </div>
+        </div>
+
+        <!-- ===== تذييل الفاتورة ===== -->
+        <div class="card">
+            <h2><i class="fas fa-file-signature"></i> تذييل الفاتورة</h2>
+
+            <div class="form-group">
+                <label>نص التذييل</label>
+                <textarea id="invoiceFooter" placeholder="نص يظهر أسفل كل فاتورة..."></textarea>
+            </div>
+        </div>
+
+        <!-- ===== أزرار الحفظ ===== -->
+        <div class="card">
+            <div class="btn-actions">
+                <button class="btn-save" id="btnSaveSettings">
+                    <i class="fas fa-save"></i> حفظ الإعدادات
+                </button>
+                <button class="btn-reset" id="btnResetSettings">
+                    <i class="fas fa-undo"></i> استعادة الافتراضي
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ============================================================
+        // MOBILE NAV
+        // ============================================================
+        var navToggle = document.getElementById('navToggle');
+        var mobileMenu = document.getElementById('mobileMenu');
+        var mobileOverlay = document.getElementById('mobileOverlay');
+        var closeMenu = document.getElementById('closeMenu');
+
+        function openMenu() {
+            mobileMenu.classList.add('open');
+            mobileOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            navToggle.innerHTML = '<i class="fas fa-times"></i>';
+            navToggle.classList.add('open');
+        }
+
+        function closeMenuFn() {
+            mobileMenu.classList.remove('open');
+            mobileOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+            navToggle.innerHTML = '<i class="fas fa-bars"></i>';
+            navToggle.classList.remove('open');
+        }
+
+        navToggle.addEventListener('click', function() {
+            if (mobileMenu.classList.contains('open')) { closeMenuFn(); } else { openMenu(); }
+        });
+
+        closeMenu.addEventListener('click', closeMenuFn);
+        mobileOverlay.addEventListener('click', closeMenuFn);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('open')) { closeMenuFn(); }
+        });
+
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768 && mobileMenu.classList.contains('open')) { closeMenuFn(); }
+        });
+
+        // ============================================================
+        // DOM REFS
+        // ============================================================
+        var companyName = document.getElementById('companyName');
+        var companyAddress = document.getElementById('companyAddress');
+        var companyPhone = document.getElementById('companyPhone');
+        var companyEmail = document.getElementById('companyEmail');
+        var companyWebsite = document.getElementById('companyWebsite');
+        var companyTaxNumber = document.getElementById('companyTaxNumber');
+        var invoiceFooter = document.getElementById('invoiceFooter');
+        var logoInput = document.getElementById('logoInput');
+        var logoImage = document.getElementById('logoImage');
+        var removeLogo = document.getElementById('removeLogo');
+        var btnSaveSettings = document.getElementById('btnSaveSettings');
+        var btnResetSettings = document.getElementById('btnResetSettings');
+
+        // ============================================================
+        // CONFIG
+        // ============================================================
+        var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbw9afQVb4RXG51BJ-ohtg5wBT1UdaAC9z5czgdfltfBTEMGoNkHr_NOdWt20bE9sCyowg/exec';
+
+        // ============================================================
+        // DEFAULT SETTINGS
+        // ============================================================
+        var DEFAULT_SETTINGS = {
+            companyName: 'شركة رولكس للدهانات',
+            companyAddress: 'مصر - القاهرة',
+            companyPhone: '0123456789',
+            companyEmail: 'info@rollex.com',
+            companyWebsite: 'www.rollex.com',
+            companyTaxNumber: '123-456-789',
+            companyLogo: '',
+            invoiceFooter: 'شكراً لثقتكم بنا - شركة رولكس للدهانات'
+        };
+
+        // ============================================================
+        // TOAST
+        // ============================================================
+        function showToast(title, message, type) {
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast';
+
+            var iconClass = 'warning';
+            if (type === 'success') iconClass = 'success';
+            else if (type === 'error') iconClass = 'error';
+
+            var iconMap = {
+                'success': 'fa-check-circle',
+                'error': 'fa-times-circle',
+                'warning': 'fa-exclamation-triangle'
+            };
+
+            toast.innerHTML = '' +
+                '<div class="toast-icon ' + iconClass + '"><i class="fas ' + (iconMap[type] || 'fa-info-circle') +
+                '"></i></div>' +
+                '<div class="toast-content">' +
+                '<div class="toast-title">' + title + '</div>' +
+                '<div class="toast-message">' + message + '</div>' +
+                '</div>' +
+                '<button class="toast-close"><i class="fas fa-times"></i></button>';
+
+            container.appendChild(toast);
+
+            requestAnimationFrame(function() { toast.classList.add('show'); });
+
+            var timeout = setTimeout(function() {
+                if (toast.parentElement) {
+                    toast.classList.remove('show');
+                    setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
+                }
+            }, 4000);
+
+            toast.addEventListener('click', function(e) {
+                if (e.target.closest('.toast-close') || e.target.closest('.toast-icon')) {
+                    clearTimeout(timeout);
+                    toast.classList.remove('show');
+                    setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
+                }
+            });
+        }
+
+        // ============================================================
+        // LOAD SETTINGS
+        // ============================================================
+        function loadSettings() {
+            fetch(SETTINGS_URL + '?action=getSettings')
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success && data.data) {
+                        var settings = data.data;
+                        companyName.value = settings.companyName || DEFAULT_SETTINGS.companyName;
+                        companyAddress.value = settings.companyAddress || DEFAULT_SETTINGS.companyAddress;
+                        companyPhone.value = settings.companyPhone || DEFAULT_SETTINGS.companyPhone;
+                        companyEmail.value = settings.companyEmail || DEFAULT_SETTINGS.companyEmail;
+                        companyWebsite.value = settings.companyWebsite || DEFAULT_SETTINGS.companyWebsite;
+                        companyTaxNumber.value = settings.companyTaxNumber || DEFAULT_SETTINGS.companyTaxNumber;
+                        invoiceFooter.value = settings.invoiceFooter || DEFAULT_SETTINGS.invoiceFooter;
+
+                        // تحميل الشعار
+                        if (settings.companyLogo && settings.companyLogo !== '') {
+                            logoImage.src = settings.companyLogo;
+                            logoImage.style.display = 'block';
+                            removeLogo.style.display = 'inline-block';
+                        } else {
+                            logoImage.style.display = 'none';
+                            removeLogo.style.display = 'none';
+                        }
+
+                        console.log('✅ تم تحميل الإعدادات');
+                    } else {
+                        // استخدام الإعدادات الافتراضية
+                        loadDefaultSettings();
+                    }
+                })
+                .catch(function() {
+                    loadDefaultSettings();
+                });
+        }
+
+        function loadDefaultSettings() {
+            companyName.value = DEFAULT_SETTINGS.companyName;
+            companyAddress.value = DEFAULT_SETTINGS.companyAddress;
+            companyPhone.value = DEFAULT_SETTINGS.companyPhone;
+            companyEmail.value = DEFAULT_SETTINGS.companyEmail;
+            companyWebsite.value = DEFAULT_SETTINGS.companyWebsite;
+            companyTaxNumber.value = DEFAULT_SETTINGS.companyTaxNumber;
+            invoiceFooter.value = DEFAULT_SETTINGS.invoiceFooter;
+            logoImage.style.display = 'none';
+            removeLogo.style.display = 'none';
+            showToast('⚠️ تنبيه', 'تم تحميل الإعدادات الافتراضية', 'warning');
+        }
+
+        // ============================================================
+        // SAVE SETTINGS
+        // ============================================================
+        function saveSettings() {
+            var settings = {
+                companyName: companyName.value.trim(),
+                companyAddress: companyAddress.value.trim(),
+                companyPhone: companyPhone.value.trim(),
+                companyEmail: companyEmail.value.trim(),
+                companyWebsite: companyWebsite.value.trim(),
+                companyTaxNumber: companyTaxNumber.value.trim(),
+                companyLogo: logoImage.src || '',
+                invoiceFooter: invoiceFooter.value.trim()
+            };
+
+            btnSaveSettings.disabled = true;
+            btnSaveSettings.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+
+            fetch(SETTINGS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'saveSettings',
+                        settings: settings
+                    })
+                })
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        showToast('✅ تم الحفظ', 'تم حفظ الإعدادات بنجاح', 'success');
+                    } else {
+                        showToast('❌ خطأ', data.message || 'حدث خطأ في حفظ الإعدادات', 'error');
+                    }
+                    btnSaveSettings.disabled = false;
+                    btnSaveSettings.innerHTML = '<i class="fas fa-save"></i> حفظ الإعدادات';
+                })
+                .catch(function(error) {
+                    console.error('Error saving settings:', error);
+                    showToast('❌ خطأ', 'حدث خطأ في حفظ الإعدادات', 'error');
+                    btnSaveSettings.disabled = false;
+                    btnSaveSettings.innerHTML = '<i class="fas fa-save"></i> حفظ الإعدادات';
+                });
+        }
+
+        // ============================================================
+        // RESET TO DEFAULT
+        // ============================================================
+        function resetToDefault() {
+            if (confirm('هل أنت متأكد من استعادة الإعدادات الافتراضية؟')) {
+                companyName.value = DEFAULT_SETTINGS.companyName;
+                companyAddress.value = DEFAULT_SETTINGS.companyAddress;
+                companyPhone.value = DEFAULT_SETTINGS.companyPhone;
+                companyEmail.value = DEFAULT_SETTINGS.companyEmail;
+                companyWebsite.value = DEFAULT_SETTINGS.companyWebsite;
+                companyTaxNumber.value = DEFAULT_SETTINGS.companyTaxNumber;
+                invoiceFooter.value = DEFAULT_SETTINGS.invoiceFooter;
+                logoImage.src = '';
+                logoImage.style.display = 'none';
+                removeLogo.style.display = 'none';
+                showToast('🔄 تم الاستعادة', 'تم استعادة الإعدادات الافتراضية', 'warning');
+                saveSettings();
+            }
+        }
+
+        // ============================================================
+        // LOGO UPLOAD
+        // ============================================================
+        logoInput.addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    logoImage.src = event.target.result;
+                    logoImage.style.display = 'block';
+                    removeLogo.style.display = 'inline-block';
+                    showToast('✅ تم الرفع', 'تم رفع الشعار بنجاح', 'success');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        removeLogo.addEventListener('click', function() {
+            logoImage.src = '';
+            logoImage.style.display = 'none';
+            removeLogo.style.display = 'none';
+            logoInput.value = '';
+            showToast('🗑️ تم الإزالة', 'تم إزالة الشعار', 'warning');
+        });
+
+        // ============================================================
+        // BUTTON EVENTS
+        // ============================================================
+        btnSaveSettings.addEventListener('click', saveSettings);
+        btnResetSettings.addEventListener('click', resetToDefault);
+
+        // ============================================================
+        // KEYBOARD SHORTCUTS
+        // ============================================================
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveSettings();
+            }
+        });
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        loadSettings();
+
+        console.log('⚙️ صفحة الإعدادات');
+        console.log('📌 رابط السيرفر:', SETTINGS_URL);
+        console.log('📌 Ctrl+S للحفظ');
+    </script>
+
+</body>
+</html>
