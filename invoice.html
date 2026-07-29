@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-        /* ===== جميع الستايلات السابقة ===== */
         :root {
             --ink: #121821;
             --ink-soft: #2c3644;
@@ -914,17 +913,17 @@
         }
 
         // ============================================================
-        // LOAD DATA - جلب من السيرفر فقط، تجاهل LocalStorage تماماً
+        // LOAD DATA - جلب من السيرفر فقط (بدون LocalStorage)
         // ============================================================
         function loadData() {
             var loadedProducts = false;
             var loadedClients = false;
 
-            // ===== مسح LocalStorage القديم تماماً =====
+            // ===== مسح LocalStorage القديم =====
             try {
                 localStorage.removeItem('rollex_products');
                 localStorage.removeItem('rollex_clients');
-                console.log('✅ تم مسح LocalStorage القديم');
+                console.log('✅ تم مسح LocalStorage');
             } catch(e) {}
 
             // ===== جلب المنتجات من السيرفر =====
@@ -935,27 +934,8 @@
                 })
                 .then(function(data) {
                     if (data.success && data.data && data.data.products) {
-                        var rawProducts = data.data.products;
-                        // فلترة المنتجات لإزالة البيانات غير الصحيحة
-                        products = rawProducts.filter(function(p) {
-                            var name = p.name || '';
-                            // تخطي الأسماء التي تحتوي على تواريخ أو كلمات غريبة
-                            if (name.match(/GMT|توقیت|توقيت|EET|EEST|Sun|Mon|Tue|Wed|Thu|Fri|Sat/i)) {
-                                return false;
-                            }
-                            if (name.match(/\d{2}:\d{2}:\d{2}/)) {
-                                return false;
-                            }
-                            if (name.match(/\d{4}-\d{2}-\d{2}/)) {
-                                return false;
-                            }
-                            // تخطي الأسماء القصيرة جداً أو التي تحتوي على أرقام فقط
-                            if (name.length < 3) {
-                                return false;
-                            }
-                            return true;
-                        });
-                        console.log('✅ تم جلب ' + products.length + ' منتج صحيح (من ' + rawProducts.length + ' إجمالي)');
+                        products = data.data.products;
+                        console.log('✅ تم جلب ' + products.length + ' منتج من السيرفر');
                     } else {
                         console.log('⚠️ استخدام المنتجات الافتراضية');
                         products = DEFAULT_PRODUCTS;
@@ -979,7 +959,7 @@
                 .then(function(data) {
                     if (data.success && data.data && data.data.clients) {
                         clients = data.data.clients;
-                        console.log('✅ تم جلب ' + clients.length + ' عميل');
+                        console.log('✅ تم جلب ' + clients.length + ' عميل من السيرفر');
                     } else {
                         console.log('⚠️ استخدام العملاء الافتراضيين');
                         clients = DEFAULT_CLIENTS;
@@ -1562,8 +1542,8 @@
         // ============================================================
         loadData();
 
-        console.log('🧾 فاتورة المبيعات - الإصدار النهائي');
-        console.log('📌 تم مسح LocalStorage وجلب البيانات من السيرفر');
+        console.log('🧾 فاتورة المبيعات - نسخة بدون LocalStorage');
+        console.log('📌 يتم جلب البيانات من السيرفر في كل مرة');
         console.log('📌 اكتب اسم المنتج وستظهر جميع الاقتراحات المطابقة');
         console.log('🔗 Web App URL:', SCRIPT_URL);
     </script>
