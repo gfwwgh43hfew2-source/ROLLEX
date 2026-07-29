@@ -3,1017 +3,463 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>الرئيسية - نظام إدارة المبيعات</title>
+    <title>الرئيسية · نظام إدارة المبيعات — رولكس</title>
 
-    <!-- Favicon -->
     <link rel="shortcut icon" href="#">
-
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- Bootstrap 5 RTL -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Lexend:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
     <style>
-        /* ============================================================
-           نفس أسلوب Hope UI - مع ألوان ذهبية
-           ============================================================ */
+        /* ==========================================================
+           DESIGN TOKENS — "Studio Light"
+           Clean light workspace with a saturated violet→indigo
+           color-blocked sidebar as the single bold move; content
+           area stays quiet white/paper so data reads first.
+           ========================================================== */
         :root {
-            --gold-primary: #f5c842;
-            --gold-dark: #d4a020;
-            --gold-glow: rgba(245, 200, 66, 0.15);
-            --bg-primary: #080d1a;
-            --bg-secondary: #0d1428;
-            --bg-card: rgba(18, 26, 46, 0.6);
-            --border-color: rgba(255, 255, 255, 0.04);
-            --text-primary: #ffffff;
-            --text-secondary: rgba(255, 255, 255, 0.6);
-            --text-muted: rgba(255, 255, 255, 0.25);
-            --sidebar-width: 260px;
-            --header-height: 64px;
-            --radius: 14px;
-            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --page:         #f4f5fa;
+            --card:         #ffffff;
+            --card-2:       #fafbfe;
+            --border:       #e9eaf2;
+            --border-soft:  #f0f1f7;
+
+            --ink:          #191b28;
+            --ink-dim:      #63677c;
+            --ink-faint:    #9a9db0;
+
+            --violet:       #6d5df6;
+            --violet-light: #8f7cfb;
+            --violet-dark:  #4c3adb;
+            --violet-wash:  rgba(109,93,246,0.08);
+
+            --teal:         #0fb8a4;
+            --teal-wash:    rgba(15,184,164,0.10);
+            --amber:        #f5a623;
+            --amber-wash:   rgba(245,166,35,0.12);
+            --rose:         #f4436c;
+            --rose-wash:    rgba(244,67,108,0.10);
+            --sky:          #2596f0;
+            --sky-wash:     rgba(37,150,240,0.10);
+
+            --rise:         #12b76a;
+            --fall:         #f0433f;
+
+            --sidebar-w:    272px;
+            --header-h:     70px;
+            --r-lg:         20px;
+            --r-md:         14px;
+            --r-sm":        10px;
+            --r-sm:         10px;
+            --ease:         cubic-bezier(0.22, 1, 0.36, 1);
+            --shadow-sm:    0 1px 2px rgba(23,24,40,0.04), 0 1px 1px rgba(23,24,40,0.03);
+            --shadow-md:    0 10px 30px -8px rgba(76,58,219,0.10), 0 2px 8px rgba(23,24,40,0.04);
+
+            --display:      'Lexend', 'Cairo', sans-serif;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Cairo', 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
+            font-family: 'Cairo', 'Segoe UI', system-ui, sans-serif;
+            background: var(--page);
+            color: var(--ink);
             direction: rtl;
-            overflow-x: hidden;
             min-height: 100vh;
-            background-image:
-                radial-gradient(ellipse at 10% 20%, rgba(245, 200, 66, 0.03) 0%, transparent 50%),
-                radial-gradient(ellipse at 90% 80%, rgba(245, 200, 66, 0.02) 0%, transparent 50%),
-                linear-gradient(180deg, #080d1a 0%, #0d1428 100%);
         }
 
-        ::-webkit-scrollbar {
-            width: 4px;
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--bg-primary);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--gold-primary);
-            border-radius: 10px;
+        a { text-decoration: none; color: inherit; }
+        button { font-family: inherit; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d6d8e6; border-radius: 10px; }
+
+        :focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; border-radius: 4px; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
         }
 
-        a {
-            text-decoration: none;
-            color: inherit;
+        /* ==========================================================
+           SIDEBAR — bold color-blocked gradient
+           ========================================================== */
+        .sidebar-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(20,16,50,0.35); backdrop-filter: blur(2px);
+            z-index: 999; opacity: 0; transition: opacity .3s ease;
         }
+        .sidebar-overlay.active { opacity: 1; pointer-events: auto; }
 
-        /* ============================================================
-           SIDEBAR - مثل Hope UI
-           ============================================================ */
         .sidebar {
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: var(--sidebar-width);
-            height: 100vh;
-            background: rgba(8, 13, 26, 0.97);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border-left: 1px solid rgba(245, 200, 66, 0.06);
+            position: fixed; top: 0; right: 0;
+            width: var(--sidebar-w); height: 100vh;
+            background:
+                radial-gradient(520px 320px at 100% 0%, rgba(255,255,255,0.10), transparent 60%),
+                linear-gradient(200deg, #7b6bf8 0%, #6248e8 48%, #4c39d6 100%);
             z-index: 1000;
-            padding: 0;
-            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            box-shadow: 4px 0 40px rgba(0, 0, 0, 0.5);
+            display: flex; flex-direction: column; overflow-y: auto;
+            transition: right .4s var(--ease);
+            box-shadow: 4px 0 32px rgba(76,57,214,0.18);
         }
-
-        .sidebar::-webkit-scrollbar {
-            width: 2px;
-        }
-
-        .sidebar.collapsed {
-            right: calc(-1 * var(--sidebar-width));
-        }
+        .sidebar.collapsed { right: calc(-1 * var(--sidebar-w)); }
 
         .sidebar .brand {
-            padding: 20px 24px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-shrink: 0;
+            padding: 28px 26px 20px;
+            display: flex; align-items: center; gap: 13px;
+            position: relative;
         }
-
-        .sidebar .brand .icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--gold-primary), var(--gold-dark));
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            font-weight: 900;
-            color: #0a0f1f;
-            flex-shrink: 0;
-            box-shadow: 0 4px 16px rgba(245, 200, 66, 0.2);
+        .sidebar .brand::after {
+            content: ''; position: absolute; bottom: 0; right: 26px; left: 26px; height: 1px;
+            background: rgba(255,255,255,0.14);
         }
-
+        .sidebar .brand .mark {
+            width: 42px; height: 42px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+            background: rgba(255,255,255,0.16);
+            border: 1px solid rgba(255,255,255,0.24);
+        }
+        .sidebar .brand .mark svg { width: 21px; height: 21px; }
         .sidebar .brand .text {
-            font-size: 0.95rem;
-            font-weight: 900;
-            background: linear-gradient(135deg, var(--gold-primary), var(--gold-dark));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            line-height: 1.2;
+            font-family: var(--display); font-weight: 700; font-size: 0.98rem;
+            color: #ffffff; line-height: 1.3;
         }
-
         .sidebar .brand .text span {
-            font-size: 0.5rem;
-            color: rgba(255, 255, 255, 0.2);
-            display: block;
-            -webkit-text-fill-color: rgba(255, 255, 255, 0.2);
+            display: block; font-family: 'Cairo', sans-serif;
+            font-size: 0.62rem; font-weight: 600; color: rgba(255,255,255,0.65);
+            letter-spacing: 0.4px; margin-top: 2px;
         }
 
-        .sidebar .menu {
-            flex: 1;
-            padding: 16px 12px;
-        }
-
+        .sidebar .menu { flex: 1; padding: 14px 14px; }
         .sidebar .menu .label {
-            font-size: 0.55rem;
-            color: rgba(255, 255, 255, 0.12);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 8px 12px 4px;
-            font-weight: 700;
+            font-size: 0.6rem; color: rgba(255,255,255,0.42);
+            text-transform: uppercase; letter-spacing: 1.4px;
+            padding: 15px 12px 7px; font-weight: 700;
         }
+        .sidebar .menu .label:first-child { padding-top: 4px; }
 
         .sidebar .menu .item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 14px;
-            border-radius: 10px;
-            color: rgba(255, 255, 255, 0.4);
-            font-weight: 600;
-            font-size: 0.85rem;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            margin-bottom: 2px;
-            position: relative;
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 14px; border-radius: var(--r-sm);
+            color: rgba(255,255,255,0.78); font-weight: 600; font-size: 0.85rem;
+            transition: background .2s ease, color .2s ease, transform .2s ease;
+            cursor: pointer; margin-bottom: 2px; position: relative;
         }
-
-        .sidebar .menu .item:hover {
-            background: rgba(245, 200, 66, 0.04);
-            color: rgba(255, 255, 255, 0.8);
-        }
-
+        .sidebar .menu .item:hover { background: rgba(255,255,255,0.10); color: #fff; }
         .sidebar .menu .item.active {
-            background: rgba(245, 200, 66, 0.06);
-            color: var(--gold-primary);
+            background: #ffffff; color: var(--violet-dark);
+            box-shadow: 0 6px 16px rgba(28,16,90,0.22);
         }
-
-        .sidebar .menu .item.active::before {
-            content: '';
-            position: absolute;
-            right: 0;
-            top: 6px;
-            bottom: 6px;
-            width: 3px;
-            background: var(--gold-primary);
-            border-radius: 0 4px 4px 0;
-            box-shadow: 0 0 20px rgba(245, 200, 66, 0.2);
-        }
-
-        .sidebar .menu .item i {
-            width: 20px;
-            font-size: 1rem;
-            text-align: center;
-            opacity: 0.6;
-        }
-
+        .sidebar .menu .item i { width: 18px; text-align: center; font-size: 0.94rem; }
         .sidebar .menu .item .badge {
-            margin-right: auto;
-            font-size: 0.5rem;
-            padding: 2px 10px;
-            border-radius: 50px;
+            margin-right: auto; font-size: 0.55rem; font-weight: 800;
+            padding: 2px 9px; border-radius: 50px; letter-spacing: 0.2px;
         }
+        .sidebar .menu .item:not(.active) .badge.success { background: rgba(255,255,255,0.16); color: #d6ffe9; }
+        .sidebar .menu .item:not(.active) .badge.danger  { background: rgba(255,255,255,0.16); color: #ffd8db; }
+        .sidebar .menu .item.active .badge.success { background: var(--teal-wash); color: var(--teal); }
+        .sidebar .menu .item.active .badge.danger  { background: var(--rose-wash); color: var(--rose); }
 
-        .sidebar .menu .item .badge.success {
-            background: rgba(76, 175, 80, 0.12);
-            border: 1px solid rgba(76, 175, 80, 0.08);
-            color: #4caf50;
+        .sidebar .footer { padding: 18px 20px 22px; position: relative; }
+        .sidebar .footer::before {
+            content: ''; position: absolute; top: 0; right: 20px; left: 20px; height: 1px;
+            background: rgba(255,255,255,0.14);
         }
-
-        .sidebar .menu .item .badge.danger {
-            background: rgba(239, 83, 80, 0.12);
-            border: 1px solid rgba(239, 83, 80, 0.08);
-            color: #ef5350;
-        }
-
-        .sidebar .footer {
-            padding: 16px 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.04);
-            flex-shrink: 0;
-        }
-
-        .sidebar .footer .user {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
+        .sidebar .footer .user { display: flex; align-items: center; gap: 11px; padding-top: 16px; }
         .sidebar .footer .user .avatar {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--gold-primary), var(--gold-dark));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.85rem;
-            color: #0a0f1f;
-            flex-shrink: 0;
+            width: 37px; height: 37px; border-radius: 50%;
+            background: #ffffff; color: var(--violet-dark);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 0.86rem; flex-shrink: 0;
         }
-
-        .sidebar .footer .user .info .name {
-            font-size: 0.8rem;
-            font-weight: 700;
+        .sidebar .footer .user .info .name { font-size: 0.81rem; font-weight: 700; color: #fff; }
+        .sidebar .footer .user .info .role { font-size: 0.6rem; color: rgba(255,255,255,0.55); margin-top: 1px; }
+        .sidebar .footer .logout {
+            margin-right: auto; width: 29px; height: 29px; border-radius: var(--r-sm);
+            display: flex; align-items: center; justify-content: center;
+            color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.10);
+            transition: .2s;
         }
+        .sidebar .footer .logout:hover { background: rgba(255,255,255,0.2); color: #fff; }
 
-        .sidebar .footer .user .info .role {
-            font-size: 0.55rem;
-            color: rgba(255, 255, 255, 0.25);
-        }
+        /* ==========================================================
+           MAIN
+           ========================================================== */
+        .main { margin-right: var(--sidebar-w); min-height: 100vh; transition: margin-right .4s var(--ease); }
+        .main.expanded { margin-right: 0; }
 
-        /* ============================================================
-           OVERLAY
-           ============================================================ */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            backdrop-filter: blur(4px);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .sidebar-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        /* ============================================================
-           MAIN CONTENT
-           ============================================================ */
-        .main {
-            margin-right: var(--sidebar-width);
-            transition: margin-right 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-            min-height: 100vh;
-        }
-
-        .main.expanded {
-            margin-right: 0;
-        }
-
-        /* ============================================================
-           HEADER - مثل Hope UI
-           ============================================================ */
         .header {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            height: var(--header-height);
-            padding: 0 28px;
-            background: rgba(8, 13, 26, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+            height: var(--header-h); padding: 0 32px;
+            background: rgba(244,245,250,0.85); backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
         }
-
-        .header .left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
+        .header .left { display: flex; align-items: center; gap: 16px; }
         .header .hamburger {
-            font-size: 1.2rem;
-            color: rgba(255, 255, 255, 0.3);
-            cursor: pointer;
-            padding: 6px 10px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            background: rgba(255, 255, 255, 0.02);
-            transition: 0.3s;
-            display: none;
+            display: flex; width: 38px; height: 38px; border-radius: var(--r-sm);
+            align-items: center; justify-content: center;
+            border: 1px solid var(--border); background: var(--card);
+            color: var(--ink-dim); cursor: pointer; transition: .2s;
+            box-shadow: var(--shadow-sm);
         }
+        .header .hamburger:hover { color: var(--violet); border-color: var(--violet-light); }
+        .header .breadcrumb { font-size: 0.8rem; color: var(--ink-faint); }
+        .header .breadcrumb b { color: var(--violet-dark); font-weight: 700; }
 
-        .header .hamburger:hover {
-            background: rgba(245, 200, 66, 0.04);
-            border-color: rgba(245, 200, 66, 0.08);
-            color: var(--gold-primary);
+        .header .search {
+            display: flex; align-items: center; gap: 9px;
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 50px; padding: 9px 17px; width: 270px; color: var(--ink-faint);
+            transition: .2s; box-shadow: var(--shadow-sm);
         }
+        .header .search:focus-within { border-color: var(--violet-light); }
+        .header .search i { font-size: 0.78rem; }
+        .header .search input { background: none; border: none; outline: none; color: var(--ink); font-family: inherit; font-size: 0.8rem; width: 100%; }
+        .header .search input::placeholder { color: var(--ink-faint); }
 
-        .header .breadcrumb {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.3);
-        }
-
-        .header .breadcrumb span {
-            color: var(--gold-primary);
-        }
-
-        .header .right {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
+        .header .right { display: flex; align-items: center; gap: 10px; }
         .header .right .notif {
-            position: relative;
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            background: rgba(255, 255, 255, 0.02);
-            color: rgba(255, 255, 255, 0.3);
-            cursor: pointer;
-            transition: 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.95rem;
+            position: relative; width: 38px; height: 38px; border-radius: var(--r-sm);
+            border: 1px solid var(--border); background: var(--card);
+            color: var(--ink-dim); cursor: pointer; transition: .2s;
+            display: flex; align-items: center; justify-content: center; font-size: 0.94rem;
+            box-shadow: var(--shadow-sm);
         }
-
-        .header .right .notif:hover {
-            background: rgba(245, 200, 66, 0.04);
-            border-color: rgba(245, 200, 66, 0.08);
-            color: var(--gold-primary);
-        }
-
+        .header .right .notif:hover { color: var(--violet); border-color: var(--violet-light); }
         .header .right .notif .dot {
-            position: absolute;
-            top: 6px;
-            left: 6px;
-            width: 7px;
-            height: 7px;
-            background: #ef5350;
-            border-radius: 50%;
-            border: 2px solid #080d1a;
+            position: absolute; top: 7px; left: 7px; width: 7px; height: 7px; border-radius: 50%;
+            background: var(--rose); border: 2px solid var(--page);
         }
-
         .header .right .profile {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 4px 8px 4px 12px;
-            border-radius: 50px;
-            border: 1px solid rgba(255, 255, 255, 0.03);
-            cursor: pointer;
-            transition: 0.3s;
+            display: flex; align-items: center; gap: 9px;
+            padding: 4px 13px 4px 6px; border-radius: 50px; border: 1px solid var(--border);
+            cursor: pointer; transition: .2s; background: var(--card); box-shadow: var(--shadow-sm);
         }
-
-        .header .right .profile:hover {
-            background: rgba(255, 255, 255, 0.02);
-            border-color: rgba(255, 255, 255, 0.06);
-        }
-
+        .header .right .profile:hover { border-color: var(--violet-light); }
         .header .right .profile .avatar {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--gold-primary), var(--gold-dark));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.75rem;
-            color: #0a0f1f;
+            width: 30px; height: 30px; border-radius: 50%;
+            background: linear-gradient(155deg, var(--violet-light), var(--violet-dark));
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 0.74rem; color: #fff;
         }
+        .header .right .profile .name { font-size: 0.79rem; font-weight: 700; }
+        .header .right .profile .name small { display: block; font-size: 0.59rem; font-weight: 500; color: var(--ink-faint); }
+        .header .right .profile i { font-size: 0.62rem; color: var(--ink-faint); }
 
-        .header .right .profile .name {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.6);
-        }
+        .dash { padding: 28px 32px 44px; max-width: 1520px; }
 
-        .header .right .profile .name small {
-            font-size: 0.55rem;
-            color: rgba(255, 255, 255, 0.2);
-            display: block;
-            font-weight: 400;
-        }
-
-        /* ============================================================
-           BANNER - مثل Hope UI
-           ============================================================ */
+        /* ==========================================================
+           HERO BANNER
+           ========================================================== */
         .banner {
-            position: relative;
-            height: 180px;
-            margin-bottom: 24px;
-            border-radius: var(--radius);
-            overflow: hidden;
-            background: linear-gradient(135deg, #0d1428, #1a2a4a);
+            position: relative; border-radius: var(--r-lg); overflow: hidden;
+            margin-bottom: 22px;
+            background:
+                radial-gradient(700px 260px at 96% -20%, rgba(109,93,246,0.14), transparent 60%),
+                linear-gradient(120deg, #ffffff 0%, #f8f7ff 100%);
+            border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 32px 38px; gap: 28px;
+            box-shadow: var(--shadow-md);
         }
-
-        .banner .banner-content {
-            position: relative;
-            z-index: 2;
-            padding: 30px 36px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+        .banner .eyebrow {
+            font-size: 0.66rem; letter-spacing: 1.6px; text-transform: uppercase;
+            color: var(--violet-dark); font-weight: 800; margin-bottom: 10px;
+            display: flex; align-items: center; gap: 8px;
         }
-
-        .banner .banner-content h1 {
-            font-size: 1.6rem;
-            font-weight: 900;
-            background: linear-gradient(135deg, var(--gold-primary), var(--gold-dark));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .banner .eyebrow::before { content: ''; width: 16px; height: 2px; border-radius: 2px; background: var(--violet); }
+        .banner .banner-copy h1 {
+            font-family: var(--display); font-weight: 700; font-size: 1.7rem;
+            color: var(--ink); letter-spacing: -0.2px; line-height: 1.25;
         }
-
-        .banner .banner-content p {
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 0.9rem;
-            margin-top: 2px;
+        .banner .banner-copy p { color: var(--ink-dim); font-size: 0.87rem; margin-top: 9px; max-width: 40ch; }
+        .banner .banner-copy .cta {
+            margin-top: 18px; display: inline-flex; align-items: center; gap: 8px;
+            padding: 11px 24px; border-radius: 50px;
+            background: linear-gradient(135deg, var(--violet-light), var(--violet-dark));
+            color: #fff; font-weight: 800; font-size: 0.82rem;
+            box-shadow: 0 10px 22px rgba(76,58,219,0.28);
+            transition: transform .2s var(--ease), box-shadow .2s var(--ease);
         }
+        .banner .banner-copy .cta:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(76,58,219,0.36); }
 
-        .banner .banner-content .btn-banner {
-            margin-top: 10px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 24px;
-            border-radius: 50px;
-            background: rgba(245, 200, 66, 0.1);
-            border: 1px solid rgba(245, 200, 66, 0.15);
-            color: var(--gold-primary);
-            font-weight: 600;
-            font-size: 0.8rem;
-            transition: 0.3s;
-            width: fit-content;
+        .banner .goal { flex-shrink: 0; display: flex; align-items: center; gap: 20px; }
+        .banner .goal .ring-wrap { position: relative; width: 122px; height: 122px; }
+        .banner .goal .ring-wrap svg { width: 122px; height: 122px; transform: rotate(-90deg); }
+        .banner .goal .ring-wrap .ring-track { fill: none; stroke: #eeecfd; stroke-width: 9; }
+        .banner .goal .ring-wrap .ring-value {
+            fill: none; stroke: url(#goalGrad); stroke-width: 9; stroke-linecap: round;
+            stroke-dasharray: 333.3; stroke-dashoffset: 333.3;
+            transition: stroke-dashoffset 1.5s var(--ease) .25s;
         }
+        .banner .goal .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .banner .goal .ring-center .pct { font-family: var(--display); font-size: 1.4rem; font-weight: 700; color: var(--violet-dark); }
+        .banner .goal .ring-center .lbl { font-size: 0.55rem; color: var(--ink-faint); margin-top: 2px; letter-spacing: 0.4px; }
+        .banner .goal .goal-info .t { font-size: 0.68rem; color: var(--ink-faint); font-weight: 600; }
+        .banner .goal .goal-info .v { font-family: var(--display); font-size: 1.1rem; font-weight: 700; color: var(--ink); margin-top: 4px; }
+        .banner .goal .goal-info .v small { color: var(--ink-faint); font-family: 'Cairo', sans-serif; font-weight: 500; font-size: 0.7rem; }
+        .banner .goal .goal-info .achieved { margin-top: 8px; font-size: 0.7rem; color: var(--ink-faint); }
+        .banner .goal .goal-info .achieved b { color: var(--teal); font-weight: 700; }
 
-        .banner .banner-content .btn-banner:hover {
-            background: rgba(245, 200, 66, 0.15);
-            border-color: rgba(245, 200, 66, 0.3);
-        }
-
-        .banner .banner-img {
-            position: absolute;
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            opacity: 0.1;
-            font-size: 6rem;
-        }
-
-        /* ============================================================
-           STATS CARDS - مثل Hope UI
-           ============================================================ */
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 14px;
-            margin-bottom: 28px;
-        }
-
+        /* ==========================================================
+           STAT CARDS
+           ========================================================== */
+        .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 22px; }
         .stat-card {
-            background: var(--bg-card);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.03);
-            border-radius: var(--radius);
-            padding: 18px 20px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--r-md); padding: 19px 20px;
+            transition: transform .25s var(--ease), box-shadow .25s ease;
+            box-shadow: var(--shadow-sm);
         }
-
-        .stat-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            left: 0;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--gold-primary), transparent);
-            opacity: 0;
-            transition: 0.4s;
-        }
-
-        .stat-card:hover {
-            border-color: rgba(245, 200, 66, 0.06);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .stat-card:hover::after {
-            opacity: 1;
-        }
-
+        .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+        .stat-card .row-top { display: flex; align-items: flex-start; justify-content: space-between; }
         .stat-card .icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            margin-bottom: 8px;
+            width: 38px; height: 38px; border-radius: 11px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.02rem;
         }
+        .stat-card .icon.c-violet { background: var(--violet-wash); color: var(--violet); }
+        .stat-card .icon.c-teal   { background: var(--teal-wash);   color: var(--teal); }
+        .stat-card .icon.c-sky    { background: var(--sky-wash);    color: var(--sky); }
+        .stat-card .icon.c-rose   { background: var(--rose-wash);   color: var(--rose); }
+        .stat-card .icon.c-amber  { background: var(--amber-wash);  color: var(--amber); }
 
-        .stat-card .icon.gold {
-            background: rgba(245, 200, 66, 0.08);
-            color: var(--gold-primary);
-        }
-
-        .stat-card .icon.green {
-            background: rgba(76, 175, 80, 0.08);
-            color: #4caf50;
-        }
-
-        .stat-card .icon.blue {
-            background: rgba(33, 150, 243, 0.08);
-            color: #42a5f5;
-        }
-
-        .stat-card .icon.red {
-            background: rgba(239, 83, 80, 0.08);
-            color: #ef5350;
-        }
-
-        .stat-card .icon.purple {
-            background: rgba(156, 39, 176, 0.08);
-            color: #ab47bc;
-        }
-
-        .stat-card .number {
-            font-size: 1.4rem;
-            font-weight: 900;
-        }
-
-        .stat-card .label {
-            font-size: 0.7rem;
-            color: rgba(255, 255, 255, 0.3);
-            font-weight: 600;
-            margin-top: 2px;
-        }
-
+        .stat-card .spark { width: 64px; height: 28px; }
+        .stat-card .number { font-family: var(--display); font-size: 1.42rem; font-weight: 700; margin-top: 15px; letter-spacing: -0.2px; color: var(--ink); }
+        .stat-card .label { font-size: 0.72rem; color: var(--ink-faint); font-weight: 600; margin-top: 3px; }
         .stat-card .change {
-            font-size: 0.55rem;
-            font-weight: 600;
-            margin-top: 6px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 1px 10px;
-            border-radius: 50px;
+            display: inline-flex; align-items: center; gap: 4px; font-size: 0.6rem; font-weight: 700;
+            margin-top: 11px; padding: 2px 10px; border-radius: 50px;
         }
+        .stat-card .change.up   { background: rgba(18,183,106,0.10); color: var(--rise); }
+        .stat-card .change.down { background: rgba(240,67,63,0.10); color: var(--fall); }
 
-        .stat-card .change.up {
-            background: rgba(76, 175, 80, 0.08);
-            color: #4caf50;
+        /* ==========================================================
+           CHARTS
+           ========================================================== */
+        .charts { display: grid; grid-template-columns: 1.7fr 1fr; gap: 16px; margin-bottom: 22px; align-items: stretch; }
+        .panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 24px; box-shadow: var(--shadow-sm); }
+        .panel .p-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+        .panel .p-head .p-title { font-size: 0.87rem; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 9px; }
+        .panel .p-head .p-title i { color: var(--violet); font-size: 0.8rem; }
+        .panel .p-head .p-sub { font-size: 0.66rem; color: var(--ink-faint); margin-top: 3px; }
+        .panel .tabs { display: flex; gap: 3px; background: var(--card-2); padding: 3px; border-radius: 50px; border: 1px solid var(--border); }
+        .panel .tabs button { border: none; background: none; color: var(--ink-faint); font-size: 0.65rem; font-weight: 700; padding: 5px 13px; border-radius: 50px; cursor: pointer; transition: .2s; }
+        .panel .tabs button.active { background: var(--violet); color: #fff; }
+
+        .chart-canvas-wrap { position: relative; height: 240px; }
+
+        .legend-row { display: flex; gap: 18px; margin-top: 16px; flex-wrap: wrap; }
+        .legend-row .li { display: flex; align-items: center; gap: 7px; font-size: 0.7rem; color: var(--ink-dim); }
+        .legend-row .li .sw { width: 8px; height: 8px; border-radius: 2px; }
+
+        .donut-wrap { display: flex; align-items: center; gap: 22px; }
+        .donut-wrap .chart-canvas-wrap { height: 170px; width: 170px; flex-shrink: 0; }
+        .donut-list { flex: 1; display: flex; flex-direction: column; gap: 13px; }
+        .donut-list .item { display: flex; align-items: center; gap: 10px; }
+        .donut-list .item .dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+        .donut-list .item .name { font-size: 0.77rem; color: var(--ink-dim); flex: 1; }
+        .donut-list .item .percent { font-family: var(--display); font-size: 0.83rem; font-weight: 700; color: var(--ink); }
+
+        /* ==========================================================
+           ACTIVITY + TOP CLIENTS
+           ========================================================== */
+        .lower-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; }
+
+        .activity .head, .toplist .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .activity .head h3, .toplist .head h3 { font-size: 0.87rem; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 9px; }
+        .activity .head h3 i, .toplist .head h3 i { color: var(--violet); font-size: 0.8rem; }
+        .activity .head a, .toplist .head a { font-size: 0.7rem; color: var(--ink-faint); font-weight: 700; transition: .2s; }
+        .activity .head a:hover, .toplist .head a:hover { color: var(--violet); }
+
+        .activity .list { display: flex; flex-direction: column; gap: 4px; }
+        .activity .list .item { display: flex; align-items: center; gap: 13px; padding: 12px; border-radius: var(--r-sm); transition: background .2s; }
+        .activity .list .item:hover { background: var(--card-2); }
+        .activity .list .item .icon { width: 33px; height: 33px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0; }
+        .activity .list .item .icon.g  { background: var(--teal-wash);   color: var(--teal); }
+        .activity .list .item .icon.gd { background: var(--amber-wash); color: var(--amber); }
+        .activity .list .item .icon.b  { background: var(--sky-wash);   color: var(--sky); }
+        .activity .list .item .icon.r  { background: var(--rose-wash);  color: var(--rose); }
+        .activity .list .item .content { flex: 1; min-width: 0; }
+        .activity .list .item .content .text { font-size: 0.8rem; color: var(--ink-dim); line-height: 1.55; }
+        .activity .list .item .content .text strong { color: var(--ink); font-weight: 700; }
+        .activity .list .item .content .time { font-size: 0.63rem; color: var(--ink-faint); margin-top: 2px; }
+
+        .toplist .row { display: flex; align-items: center; gap: 13px; padding: 11px 4px; border-bottom: 1px solid var(--border-soft); }
+        .toplist .row:last-child { border-bottom: none; }
+        .toplist .row .rank {
+            width: 24px; height: 24px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.64rem; font-weight: 800; flex-shrink: 0;
+            background: var(--violet-wash); color: var(--violet);
         }
+        .toplist .row:nth-child(1) .rank { background: linear-gradient(135deg, var(--violet-light), var(--violet-dark)); color: #fff; }
+        .toplist .row .info { flex: 1; min-width: 0; }
+        .toplist .row .info .n { font-size: 0.79rem; font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .toplist .row .info .bar { height: 5px; border-radius: 3px; background: var(--border-soft); margin-top: 7px; overflow: hidden; }
+        .toplist .row .info .bar span { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--violet), var(--violet-light)); }
+        .toplist .row .amt { font-family: var(--display); font-size: 0.8rem; font-weight: 700; color: var(--ink); flex-shrink: 0; }
 
-        .stat-card .change.down {
-            background: rgba(239, 83, 80, 0.08);
-            color: #ef5350;
-        }
-
-        /* ============================================================
-           CHARTS - مثل Hope UI
-           ============================================================ */
-        .charts {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 16px;
-            margin-bottom: 28px;
-        }
-
-        .chart-box {
-            background: var(--bg-card);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.03);
-            border-radius: var(--radius);
-            padding: 20px;
-            transition: 0.3s;
-        }
-
-        .chart-box:hover {
-            border-color: rgba(245, 200, 66, 0.04);
-        }
-
-        .chart-box .title {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: rgba(255, 255, 255, 0.3);
-            margin-bottom: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .chart-box .title i {
-            color: var(--gold-primary);
-        }
-
-        .chart-bars {
-            height: 160px;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            gap: 10px;
-            padding-top: 10px;
-        }
-
-        .chart-bars .bar {
-            width: 28px;
-            border-radius: 6px 6px 0 0;
-            min-height: 16px;
-            transition: 0.3s;
-            position: relative;
-            background: linear-gradient(180deg, var(--gold-primary), var(--gold-dark));
-            opacity: 0.6;
-        }
-
-        .chart-bars .bar:hover {
-            opacity: 1;
-            transform: scaleY(1.03);
-        }
-
-        .chart-bars .bar .label {
-            position: absolute;
-            bottom: -18px;
-            right: 50%;
-            transform: translateX(50%);
-            font-size: 0.4rem;
-            color: rgba(255, 255, 255, 0.15);
-            white-space: nowrap;
-        }
-
-        .chart-bars .bar.purple {
-            background: linear-gradient(180deg, #ab47bc, #7b1fa2);
-        }
-
-        .chart-bars .bar.green {
-            background: linear-gradient(180deg, #4caf50, #2e7d32);
-        }
-
-        .chart-bars .bar.blue {
-            background: linear-gradient(180deg, #42a5f5, #1565c0);
-        }
-
-        .pie-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 6px 0;
-        }
-
-        .pie-list .item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .pie-list .item .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 3px;
-            flex-shrink: 0;
-        }
-
-        .pie-list .item .dot.gold {
-            background: var(--gold-primary);
-        }
-
-        .pie-list .item .dot.purple {
-            background: #ab47bc;
-        }
-
-        .pie-list .item .dot.green {
-            background: #4caf50;
-        }
-
-        .pie-list .item .dot.blue {
-            background: #42a5f5;
-        }
-
-        .pie-list .item .name {
-            font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.4);
-        }
-
-        .pie-list .item .percent {
-            margin-right: auto;
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #fff;
-        }
-
-        /* ============================================================
-           ACTIVITY - مثل Hope UI
-           ============================================================ */
-        .activity {
-            margin-bottom: 28px;
-        }
-
-        .activity .head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 14px;
-        }
-
-        .activity .head h3 {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: rgba(255, 255, 255, 0.4);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .activity .head h3 i {
-            color: var(--gold-primary);
-        }
-
-        .activity .head a {
-            font-size: 0.7rem;
-            color: rgba(245, 200, 66, 0.4);
-            transition: 0.3s;
-        }
-
-        .activity .head a:hover {
-            color: var(--gold-primary);
-        }
-
-        .activity .list {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .activity .list .item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 14px;
-            background: rgba(255, 255, 255, 0.01);
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.02);
-            transition: 0.3s;
-        }
-
-        .activity .list .item:hover {
-            background: rgba(255, 255, 255, 0.02);
-            border-color: rgba(245, 200, 66, 0.03);
-        }
-
-        .activity .list .item .icon {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            flex-shrink: 0;
-        }
-
-        .activity .list .item .icon.green {
-            background: rgba(76, 175, 80, 0.08);
-            color: #4caf50;
-        }
-
-        .activity .list .item .icon.gold {
-            background: rgba(245, 200, 66, 0.08);
-            color: var(--gold-primary);
-        }
-
-        .activity .list .item .icon.blue {
-            background: rgba(33, 150, 243, 0.08);
-            color: #42a5f5;
-        }
-
-        .activity .list .item .icon.red {
-            background: rgba(239, 83, 80, 0.08);
-            color: #ef5350;
-        }
-
-        .activity .list .item .content {
-            flex: 1;
-        }
-
-        .activity .list .item .content .text {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .activity .list .item .content .text strong {
-            color: #fff;
-        }
-
-        .activity .list .item .content .time {
-            font-size: 0.55rem;
-            color: rgba(255, 255, 255, 0.15);
-            margin-top: 1px;
-        }
-
-        /* ============================================================
+        /* ==========================================================
            RESPONSIVE
-           ============================================================ */
-        @media (min-width: 769px) {
-            .sidebar-overlay {
-                display: none !important;
-            }
-            .header .hamburger {
-                display: none !important;
-            }
-        }
-
-        @media (max-width: 1024px) {
-            .stats {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        @media (max-width: 992px) {
-            .charts {
-                grid-template-columns: 1fr;
-            }
-        }
-
+           ========================================================== */
+        @media (max-width: 1180px) { .stats { grid-template-columns: repeat(3, 1fr); } .header .search { display: none; } }
+        @media (max-width: 992px)  { .charts, .lower-grid { grid-template-columns: 1fr; } .donut-wrap { justify-content: center; } }
         @media (max-width: 768px) {
-            .sidebar {
-                right: calc(-1 * var(--sidebar-width));
-            }
-            .sidebar.open {
-                right: 0;
-            }
-            .sidebar-overlay {
-                display: block;
-            }
-            .header .hamburger {
-                display: flex !important;
-            }
-            .main {
-                margin-right: 0 !important;
-            }
-            .stats {
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
-            }
-            .stat-card {
-                padding: 14px;
-            }
-            .stat-card .number {
-                font-size: 1.2rem;
-            }
-            .header {
-                padding: 0 16px;
-            }
-            .header .right .profile .name {
-                display: none;
-            }
-            .banner {
-                height: 140px;
-            }
-            .banner .banner-content {
-                padding: 20px;
-            }
-            .banner .banner-content h1 {
-                font-size: 1.2rem;
-            }
-            .banner .banner-img {
-                font-size: 4rem;
-                left: 10px;
-            }
-            .chart-bars {
-                height: 120px;
-            }
-            .chart-bars .bar {
-                width: 20px;
-            }
+            .sidebar { right: calc(-1 * var(--sidebar-w)); }
+            .sidebar.open { right: 0; }
+            .sidebar-overlay { display: block; }
+            .main { margin-right: 0 !important; }
+            .stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .dash { padding: 20px 16px 34px; }
+            .header { padding: 0 16px; }
+            .header .right .profile .name { display: none; }
+            .banner { flex-direction: column; align-items: flex-start; padding: 26px; }
+            .banner .goal { align-self: stretch; justify-content: space-between; }
         }
+        @media (max-width: 480px) { .stats { grid-template-columns: 1fr; } .header .breadcrumb { display: none; } }
 
-        @media (max-width: 480px) {
-            .stats {
-                grid-template-columns: 1fr;
-            }
-            .header .breadcrumb {
-                font-size: 0.65rem;
-            }
-            .header .right .notif {
-                width: 32px;
-                height: 32px;
-                font-size: 0.8rem;
-            }
-            .activity .list .item {
-                padding: 8px 10px;
-            }
-            .activity .list .item .content .text {
-                font-size: 0.7rem;
-            }
-            .pie-list .item .name {
-                font-size: 0.65rem;
-            }
-            .pie-list .item .percent {
-                font-size: 0.65rem;
-            }
-            .banner .banner-content h1 {
-                font-size: 1rem;
-            }
-            .banner .banner-content p {
-                font-size: 0.7rem;
-            }
-        }
+        .fade-up { opacity: 0; transform: translateY(10px); animation: fadeUp .6s var(--ease) forwards; }
+        @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <!-- ============================================================
-    SIDEBAR OVERLAY
-    ============================================================ -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <!-- ============================================================
-    SIDEBAR - مثل Hope UI
+    SIDEBAR
     ============================================================ -->
     <nav class="sidebar" id="sidebar">
         <div class="brand">
-            <div class="icon">📊</div>
+            <div class="mark">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 19V9l8-5 8 5v10" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M9 19v-6h6v6" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+            </div>
             <div class="text">
                 نظام المبيعات
-                <span>شركة رولكس</span>
+                <span>شركة رولكس للدهانات</span>
             </div>
         </div>
 
         <div class="menu">
             <div class="label">القائمة الرئيسية</div>
+            <a href="home.html" class="item active"><i class="fas fa-house"></i> الرئيسية</a>
+            <a href="sales.html" class="item"><i class="fas fa-chart-line"></i> المبيعات <span class="badge success">جديد</span></a>
+            <a href="invoice.html" class="item"><i class="fas fa-file-invoice"></i> فاتورة جديدة</a>
+            <a href="treasury.html" class="item"><i class="fas fa-coins"></i> الخزينة</a>
+            <a href="clients.html" class="item"><i class="fas fa-users"></i> العملاء <span class="badge danger">12</span></a>
+            <a href="collections.html" class="item"><i class="fas fa-hand-holding-dollar"></i> تحصيلات العملاء</a>
 
-            <a href="home.html" class="item active">
-                <i class="fas fa-home"></i> الرئيسية
-            </a>
-            <a href="sales.html" class="item">
-                <i class="fas fa-chart-line"></i> المبيعات
-                <span class="badge success">جديد</span>
-            </a>
-            <a href="invoice.html" class="item">
-                <i class="fas fa-file-invoice"></i> فاتورة جديدة
-            </a>
-            <a href="treasury.html" class="item">
-                <i class="fas fa-coins"></i> الخزينة
-            </a>
-            <a href="clients.html" class="item">
-                <i class="fas fa-users"></i> العملاء
-                <span class="badge danger">12</span>
-            </a>
-            <a href="collections.html" class="item">
-                <i class="fas fa-hand-holding-usd"></i> تحصيلات العملاء
-            </a>
+            <div class="label">التقارير</div>
+            <a href="#" class="item"><i class="fas fa-file-lines"></i> تقارير المبيعات</a>
+            <a href="#" class="item"><i class="fas fa-file-invoice-dollar"></i> التقارير المالية</a>
+            <a href="#" class="item"><i class="fas fa-chart-pie"></i> تحليلات</a>
 
-            <div class="label" style="margin-top:12px;">التقارير</div>
-
-            <a href="#" class="item">
-                <i class="fas fa-file-alt"></i> تقارير المبيعات
-            </a>
-            <a href="#" class="item">
-                <i class="fas fa-file-invoice-dollar"></i> التقارير المالية
-            </a>
-            <a href="#" class="item">
-                <i class="fas fa-chart-pie"></i> تحليلات
-            </a>
-
-            <div class="label" style="margin-top:12px;">الإعدادات</div>
-
-            <a href="#" class="item">
-                <i class="fas fa-cog"></i> الإعدادات
-            </a>
-            <a href="#" class="item">
-                <i class="fas fa-question-circle"></i> المساعدة
-            </a>
+            <div class="label">الإعدادات</div>
+            <a href="#" class="item"><i class="fas fa-gear"></i> الإعدادات</a>
+            <a href="#" class="item"><i class="fas fa-circle-question"></i> المساعدة</a>
         </div>
 
         <div class="footer">
@@ -1023,165 +469,226 @@
                     <div class="name">محمد خلاف</div>
                     <div class="role">مدير النظام</div>
                 </div>
+                <a href="#" class="logout" title="تسجيل الخروج"><i class="fas fa-arrow-right-from-bracket"></i></a>
             </div>
         </div>
     </nav>
 
     <!-- ============================================================
-    MAIN CONTENT
+    MAIN
     ============================================================ -->
     <div class="main" id="main">
 
-        <!-- ===== HEADER ===== -->
         <header class="header">
             <div class="left">
-                <div class="hamburger" id="hamburger">
-                    <i class="fas fa-bars"></i>
-                </div>
-                <div class="breadcrumb">
-                    <i class="fas fa-home" style="color:var(--gold-primary);"></i>
-                    <span>الرئيسية</span> / لوحة التحكم
-                </div>
+                <button class="hamburger" id="hamburger" aria-label="فتح/إغلاق القائمة الجانبية"><i class="fas fa-bars"></i></button>
+                <div class="breadcrumb"><b>الرئيسية</b> / لوحة التحكم</div>
+            </div>
+            <div class="search">
+                <i class="fas fa-magnifying-glass"></i>
+                <input type="text" placeholder="ابحث عن فاتورة، عميل، أو منتج...">
             </div>
             <div class="right">
-                <button class="notif" id="notifBtn">
-                    <i class="fas fa-bell"></i>
-                    <span class="dot"></span>
-                </button>
+                <button class="notif" id="notifBtn"><i class="fas fa-bell"></i><span class="dot"></span></button>
                 <div class="profile">
                     <div class="avatar">م</div>
-                    <div class="name">
-                        محمد خلاف
-                        <small>مدير النظام</small>
-                    </div>
+                    <div class="name">محمد خلاف<small>مدير النظام</small></div>
+                    <i class="fas fa-chevron-down"></i>
                 </div>
             </div>
         </header>
 
-        <!-- ===== DASHBOARD ===== -->
-        <div class="dashboard" style="padding:28px;">
+        <div class="dash">
 
-            <!-- ===== BANNER - مثل Hope UI ===== -->
-            <div class="banner">
-                <div class="banner-content">
-                    <h1>مرحباً بك، محمد 👋</h1>
-                    <p>نظرة عامة على أداء النظام والمؤشرات الرئيسية</p>
-                    <a href="invoice.html" class="btn-banner">
-                        <i class="fas fa-plus"></i> إنشاء فاتورة جديدة
-                    </a>
+            <!-- ===== HERO BANNER + GOAL RING ===== -->
+            <div class="banner fade-up" style="animation-delay:.02s">
+                <div class="banner-copy">
+                    <div class="eyebrow">لوحة التحكم — يوليو ٢٠٢٦</div>
+                    <h1>مساء الخير، محمد 👋</h1>
+                    <p>هذا ملخص أداء المبيعات والخزينة اليوم، مرتّب في مكان واحد.</p>
+                    <a href="invoice.html" class="cta"><i class="fas fa-plus"></i> إنشاء فاتورة جديدة</a>
                 </div>
-                <div class="banner-img">📊</div>
+                <div class="goal">
+                    <div class="goal-info">
+                        <div class="t">هدف الشهر</div>
+                        <div class="v">150,000 <small>ج.م</small></div>
+                        <div class="achieved">المتحقق: <b>112,500 ج.م</b></div>
+                    </div>
+                    <div class="ring-wrap">
+                        <svg viewBox="0 0 110 110">
+                            <defs>
+                                <linearGradient id="goalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#8f7cfb"/>
+                                    <stop offset="100%" stop-color="#4c3adb"/>
+                                </linearGradient>
+                            </defs>
+                            <circle class="ring-track" cx="55" cy="55" r="53"/>
+                            <circle class="ring-value" id="goalRing" cx="55" cy="55" r="53"/>
+                        </svg>
+                        <div class="ring-center">
+                            <div class="pct" id="goalPct">0%</div>
+                            <div class="lbl">تحقّق</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- ===== STATS CARDS ===== -->
+            <!-- ===== STAT CARDS ===== -->
             <div class="stats">
-                <div class="stat-card">
-                    <div class="icon gold"><i class="fas fa-wallet"></i></div>
+                <div class="stat-card fade-up" style="animation-delay:.06s">
+                    <div class="row-top">
+                        <div class="icon c-violet"><i class="fas fa-wallet"></i></div>
+                        <div class="spark"><canvas id="spark1"></canvas></div>
+                    </div>
                     <div class="number" id="totalRevenue">0</div>
                     <div class="label">إجمالي الإيرادات</div>
-                    <div class="change up"><i class="fas fa-arrow-up"></i> 12.5%</div>
+                    <div class="change up"><i class="fas fa-arrow-trend-up"></i> 12.5%</div>
                 </div>
-                <div class="stat-card">
-                    <div class="icon green"><i class="fas fa-file-invoice"></i></div>
+                <div class="stat-card fade-up" style="animation-delay:.1s">
+                    <div class="row-top">
+                        <div class="icon c-teal"><i class="fas fa-file-invoice"></i></div>
+                        <div class="spark"><canvas id="spark2"></canvas></div>
+                    </div>
                     <div class="number" id="totalInvoices">0</div>
                     <div class="label">إجمالي الفواتير</div>
-                    <div class="change up"><i class="fas fa-arrow-up"></i> 8.2%</div>
+                    <div class="change up"><i class="fas fa-arrow-trend-up"></i> 8.2%</div>
                 </div>
-                <div class="stat-card">
-                    <div class="icon blue"><i class="fas fa-users"></i></div>
+                <div class="stat-card fade-up" style="animation-delay:.14s">
+                    <div class="row-top">
+                        <div class="icon c-sky"><i class="fas fa-users"></i></div>
+                        <div class="spark"><canvas id="spark3"></canvas></div>
+                    </div>
                     <div class="number" id="totalClients">0</div>
                     <div class="label">إجمالي العملاء</div>
-                    <div class="change up"><i class="fas fa-arrow-up"></i> 5.7%</div>
+                    <div class="change up"><i class="fas fa-arrow-trend-up"></i> 5.7%</div>
                 </div>
-                <div class="stat-card">
-                    <div class="icon red"><i class="fas fa-clock"></i></div>
+                <div class="stat-card fade-up" style="animation-delay:.18s">
+                    <div class="row-top">
+                        <div class="icon c-rose"><i class="fas fa-clock"></i></div>
+                        <div class="spark"><canvas id="spark4"></canvas></div>
+                    </div>
                     <div class="number" id="pendingOrders">0</div>
                     <div class="label">طلبات قيد التنفيذ</div>
-                    <div class="change down"><i class="fas fa-arrow-down"></i> 2.1%</div>
+                    <div class="change down"><i class="fas fa-arrow-trend-down"></i> 2.1%</div>
                 </div>
-                <div class="stat-card">
-                    <div class="icon purple"><i class="fas fa-hand-holding-usd"></i></div>
+                <div class="stat-card fade-up" style="animation-delay:.22s">
+                    <div class="row-top">
+                        <div class="icon c-amber"><i class="fas fa-hand-holding-dollar"></i></div>
+                        <div class="spark"><canvas id="spark5"></canvas></div>
+                    </div>
                     <div class="number" id="totalCollections">0</div>
                     <div class="label">إجمالي التحصيلات</div>
-                    <div class="change up"><i class="fas fa-arrow-up"></i> 15.3%</div>
+                    <div class="change up"><i class="fas fa-arrow-trend-up"></i> 15.3%</div>
                 </div>
             </div>
 
             <!-- ===== CHARTS ===== -->
             <div class="charts">
-                <div class="chart-box">
-                    <div class="title"><i class="fas fa-chart-bar"></i> المبيعات الشهرية</div>
-                    <div class="chart-bars">
-                        <div class="bar" style="height:80px;"><span class="label">يناير</span></div>
-                        <div class="bar purple" style="height:120px;"><span class="label">فبراير</span></div>
-                        <div class="bar green" style="height:60px;"><span class="label">مارس</span></div>
-                        <div class="bar blue" style="height:160px;"><span class="label">أبريل</span></div>
-                        <div class="bar" style="height:100px;"><span class="label">مايو</span></div>
-                        <div class="bar purple" style="height:140px;"><span class="label">يونيو</span></div>
-                        <div class="bar green" style="height:90px;"><span class="label">يوليو</span></div>
+                <div class="panel fade-up" style="animation-delay:.1s">
+                    <div class="p-head">
+                        <div>
+                            <div class="p-title"><i class="fas fa-chart-column"></i> أداء المبيعات الشهري</div>
+                            <div class="p-sub">مقارنة الإيرادات والمرتجعات خلال السنة</div>
+                        </div>
+                        <div class="tabs">
+                            <button class="active" data-range="6">٦ أشهر</button>
+                            <button data-range="12">١٢ شهر</button>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-wrap"><canvas id="salesChart"></canvas></div>
+                    <div class="legend-row">
+                        <div class="li"><span class="sw" style="background:var(--violet)"></span> المبيعات</div>
+                        <div class="li"><span class="sw" style="background:var(--amber)"></span> المرتجعات</div>
                     </div>
                 </div>
-                <div class="chart-box">
-                    <div class="title"><i class="fas fa-chart-pie"></i> توزيع المبيعات</div>
-                    <div class="pie-list">
-                        <div class="item">
-                            <span class="dot gold"></span>
-                            <span class="name">دهانات داخلية</span>
-                            <span class="percent">45%</span>
+
+                <div class="panel fade-up" style="animation-delay:.14s">
+                    <div class="p-head">
+                        <div>
+                            <div class="p-title"><i class="fas fa-chart-pie"></i> توزيع المبيعات</div>
+                            <div class="p-sub">حسب فئة المنتج</div>
                         </div>
-                        <div class="item">
-                            <span class="dot purple"></span>
-                            <span class="name">دهانات خارجية</span>
-                            <span class="percent">30%</span>
-                        </div>
-                        <div class="item">
-                            <span class="dot green"></span>
-                            <span class="name">ورنيش</span>
-                            <span class="percent">15%</span>
-                        </div>
-                        <div class="item">
-                            <span class="dot blue"></span>
-                            <span class="name">أخرى</span>
-                            <span class="percent">10%</span>
+                    </div>
+                    <div class="donut-wrap">
+                        <div class="chart-canvas-wrap"><canvas id="donutChart"></canvas></div>
+                        <div class="donut-list">
+                            <div class="item"><span class="dot" style="background:var(--violet)"></span><span class="name">دهانات داخلية</span><span class="percent">45%</span></div>
+                            <div class="item"><span class="dot" style="background:var(--teal)"></span><span class="name">دهانات خارجية</span><span class="percent">30%</span></div>
+                            <div class="item"><span class="dot" style="background:var(--amber)"></span><span class="name">ورنيش</span><span class="percent">15%</span></div>
+                            <div class="item"><span class="dot" style="background:var(--sky)"></span><span class="name">أخرى</span><span class="percent">10%</span></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ===== RECENT ACTIVITY ===== -->
-            <div class="activity">
-                <div class="head">
-                    <h3><i class="fas fa-clock"></i> النشاط الأخير</h3>
-                    <a href="#">عرض الكل <i class="fas fa-arrow-left"></i></a>
+            <!-- ===== ACTIVITY + TOP CLIENTS ===== -->
+            <div class="lower-grid">
+                <div class="panel activity fade-up" style="animation-delay:.18s">
+                    <div class="head">
+                        <h3><i class="fas fa-clock-rotate-left"></i> النشاط الأخير</h3>
+                        <a href="#">عرض الكل <i class="fas fa-arrow-left"></i></a>
+                    </div>
+                    <div class="list">
+                        <div class="item">
+                            <div class="icon g"><i class="fas fa-file-invoice"></i></div>
+                            <div class="content">
+                                <div class="text">تم إضافة فاتورة جديدة للعميل <strong>شركة النور للتجارة</strong></div>
+                                <div class="time">منذ 5 دقائق</div>
+                            </div>
+                        </div>
+                        <div class="item">
+                            <div class="icon gd"><i class="fas fa-coins"></i></div>
+                            <div class="content">
+                                <div class="text">تم تسجيل تحصيل بمبلغ <strong>15,000 ج.م</strong> من العميل <strong>مؤسسة الصفا</strong></div>
+                                <div class="time">منذ 25 دقيقة</div>
+                            </div>
+                        </div>
+                        <div class="item">
+                            <div class="icon b"><i class="fas fa-user-plus"></i></div>
+                            <div class="content">
+                                <div class="text">تم إضافة عميل جديد <strong>شركة الاتحاد للمقاولات</strong></div>
+                                <div class="time">منذ ساعة</div>
+                            </div>
+                        </div>
+                        <div class="item">
+                            <div class="icon r"><i class="fas fa-pen"></i></div>
+                            <div class="content">
+                                <div class="text">تم تعديل فاتورة رقم <strong>INV-2026-001</strong></div>
+                                <div class="time">منذ ساعتين</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="list">
-                    <div class="item">
-                        <div class="icon green"><i class="fas fa-file-invoice"></i></div>
-                        <div class="content">
-                            <div class="text">تم إضافة فاتورة جديدة للعميل <strong>شركة النور للتجارة</strong></div>
-                            <div class="time">منذ 5 دقائق</div>
-                        </div>
+
+                <div class="panel toplist fade-up" style="animation-delay:.22s">
+                    <div class="head">
+                        <h3><i class="fas fa-crown"></i> أفضل العملاء</h3>
+                        <a href="clients.html">الكل</a>
                     </div>
-                    <div class="item">
-                        <div class="icon gold"><i class="fas fa-coins"></i></div>
-                        <div class="content">
-                            <div class="text">تم تسجيل تحصيل بمبلغ <strong>15,000 ج.م</strong> من العميل <strong>مؤسسة الصفا</strong></div>
-                            <div class="time">منذ 25 دقيقة</div>
-                        </div>
+                    <div class="row">
+                        <div class="rank">1</div>
+                        <div class="info"><div class="n">شركة النور للتجارة</div><div class="bar"><span style="width:92%"></span></div></div>
+                        <div class="amt">48,200</div>
                     </div>
-                    <div class="item">
-                        <div class="icon blue"><i class="fas fa-user-plus"></i></div>
-                        <div class="content">
-                            <div class="text">تم إضافة عميل جديد <strong>شركة الاتحاد للمقاولات</strong></div>
-                            <div class="time">منذ ساعة</div>
-                        </div>
+                    <div class="row">
+                        <div class="rank">2</div>
+                        <div class="info"><div class="n">مؤسسة الصفا</div><div class="bar"><span style="width:74%"></span></div></div>
+                        <div class="amt">35,900</div>
                     </div>
-                    <div class="item">
-                        <div class="icon red"><i class="fas fa-edit"></i></div>
-                        <div class="content">
-                            <div class="text">تم تعديل فاتورة رقم <strong>INV-2026-001</strong></div>
-                            <div class="time">منذ ساعتين</div>
-                        </div>
+                    <div class="row">
+                        <div class="rank">3</div>
+                        <div class="info"><div class="n">شركة الاتحاد للمقاولات</div><div class="bar"><span style="width:58%"></span></div></div>
+                        <div class="amt">27,150</div>
+                    </div>
+                    <div class="row">
+                        <div class="rank">4</div>
+                        <div class="info"><div class="n">مجموعة الفا للدهانات</div><div class="bar"><span style="width:40%"></span></div></div>
+                        <div class="amt">19,400</div>
+                    </div>
+                    <div class="row">
+                        <div class="rank">5</div>
+                        <div class="info"><div class="n">شركة العمران الحديث</div><div class="bar"><span style="width:26%"></span></div></div>
+                        <div class="amt">12,800</div>
                     </div>
                 </div>
             </div>
@@ -1189,83 +696,230 @@
         </div>
     </div>
 
-    <!-- ============================================================
-    JAVASCRIPT - نفس وظائف Hope UI مع بيانات Google Sheets
-    ============================================================ -->
     <script>
-        // ============================================================
-        // SIDEBAR TOGGLE - مثل Hope UI
-        // ============================================================
+        /* ============================================================
+           SIDEBAR TOGGLE
+           Fix: the hamburger button is now always rendered in the
+           header (desktop collapses the rail, mobile opens/closes
+           the drawer) — previously it was hidden entirely on desktop
+           by a min-width media query, so there was no control to
+           toggle the sidebar at all outside mobile widths.
+           ============================================================ */
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebarOverlay');
         const hamburger = document.getElementById('hamburger');
         const main = document.getElementById('main');
-        let isOpen = false;
+        let mobileOpen = false;
 
         function toggleSidebar() {
-            isOpen = !isOpen;
-
             if (window.innerWidth <= 768) {
-                sidebar.classList.toggle('open');
-                overlay.classList.toggle('active');
-                document.body.style.overflow = isOpen ? 'hidden' : '';
-                hamburger.innerHTML = isOpen ? '<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
+                mobileOpen = !mobileOpen;
+                sidebar.classList.toggle('open', mobileOpen);
+                overlay.classList.toggle('active', mobileOpen);
+                document.body.style.overflow = mobileOpen ? 'hidden' : '';
+                hamburger.innerHTML = mobileOpen ? '<i class="fas fa-xmark"></i>' : '<i class="fas fa-bars"></i>';
             } else {
-                sidebar.classList.toggle('collapsed');
-                main.classList.toggle('expanded');
-                hamburger.innerHTML = sidebar.classList.contains('collapsed') ? '<i class="fas fa-bars"></i>' :
-                    '<i class="fas fa-times"></i>';
+                const nowCollapsed = sidebar.classList.toggle('collapsed');
+                main.classList.toggle('expanded', nowCollapsed);
+                hamburger.innerHTML = nowCollapsed ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-bars"></i>';
             }
         }
-
         hamburger.addEventListener('click', toggleSidebar);
-
-        overlay.addEventListener('click', function() {
-            if (window.innerWidth <= 768) toggleSidebar();
+        overlay.addEventListener('click', () => { if (window.innerWidth <= 768 && mobileOpen) toggleSidebar(); });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && window.innerWidth <= 768 && mobileOpen) toggleSidebar();
         });
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                if (window.innerWidth <= 768 && sidebar.classList.contains('open')) toggleSidebar();
-                else if (window.innerWidth > 768 && !sidebar.classList.contains('collapsed')) toggleSidebar();
-            }
-        });
-
-        window.addEventListener('resize', function() {
+        window.addEventListener('resize', () => {
             if (window.innerWidth > 768) {
                 sidebar.classList.remove('open');
                 overlay.classList.remove('active');
                 document.body.style.overflow = '';
+                mobileOpen = false;
                 hamburger.innerHTML = '<i class="fas fa-bars"></i>';
             }
         });
 
-        // ============================================================
-        // NOTIFICATIONS - مثل Hope UI
-        // ============================================================
-        document.getElementById('notifBtn').addEventListener('click', function() {
-            alert('📬 لديك 3 إشعارات جديدة:\n\n' +
-                '1. فاتورة جديدة للعميل شركة النور\n' +
-                '2. تحصيل مبلغ 15,000 ج.م\n' +
-                '3. عميل جديد تم إضافته');
+        document.getElementById('notifBtn').addEventListener('click', function () {
+            alert('📬 لديك 3 إشعارات جديدة:\n\n1. فاتورة جديدة للعميل شركة النور\n2. تحصيل مبلغ 15,000 ج.م\n3. عميل جديد تم إضافته');
         });
 
-        // ============================================================
-        // UPDATE STATS FROM GOOGLE SHEETS
-        // ============================================================
+        function setGoalRing(pct) {
+            const circumference = 2 * Math.PI * 53;
+            const ring = document.getElementById('goalRing');
+            const offset = circumference - (Math.min(pct, 100) / 100) * circumference;
+            ring.style.strokeDashoffset = offset;
+            let cur = 0;
+            const step = () => {
+                cur += Math.max(1, (pct - cur) / 8);
+                if (cur >= pct) cur = pct;
+                document.getElementById('goalPct').textContent = Math.round(cur) + '%';
+                if (cur < pct) requestAnimationFrame(step);
+            };
+            requestAnimationFrame(step);
+        }
+
+        Chart.defaults.font.family = "'Cairo', sans-serif";
+        Chart.defaults.color = '#9a9db0';
+
+        function violetGradient(ctx, chartArea) {
+            const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            g.addColorStop(0, 'rgba(109,93,246,0.30)');
+            g.addColorStop(1, 'rgba(109,93,246,0.02)');
+            return g;
+        }
+
+        const monthsAr = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+        const demoSales   = [42000, 58000, 39000, 71000, 52000, 66000, 48000, 61000, 57000, 73000, 69000, 82000];
+        const demoReturns = [4200, 3100, 5000, 2800, 3900, 3300, 4700, 2600, 3500, 2900, 3100, 2400];
+
+        let salesChart;
+        function renderSalesChart(range) {
+            const n = range || 6;
+            const labels = monthsAr.slice(0, n);
+            const dataSales = demoSales.slice(0, n);
+            const dataReturns = demoReturns.slice(0, n);
+            const ctx = document.getElementById('salesChart').getContext('2d');
+
+            if (salesChart) salesChart.destroy();
+            salesChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'المبيعات',
+                            data: dataSales,
+                            backgroundColor: (c) => {
+                                const { chartArea } = c.chart;
+                                if (!chartArea) return 'rgba(109,93,246,0.6)';
+                                return violetGradient(c.chart.ctx, chartArea);
+                            },
+                            borderColor: '#6d5df6',
+                            borderWidth: 1.6,
+                            borderRadius: 7,
+                            barPercentage: 0.55,
+                            categoryPercentage: 0.7,
+                            order: 2,
+                        },
+                        {
+                            label: 'المرتجعات',
+                            data: dataReturns,
+                            type: 'line',
+                            borderColor: '#f5a623',
+                            backgroundColor: '#f5a623',
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#f5a623',
+                            pointBorderWidth: 2,
+                            tension: 0.4,
+                            order: 1,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#191b28',
+                            titleColor: '#ffffff',
+                            bodyColor: 'rgba(255,255,255,0.8)',
+                            borderColor: 'rgba(109,93,246,0.3)',
+                            borderWidth: 1,
+                            padding: 10,
+                            titleFont: { family: "'Cairo', sans-serif", weight: '700' },
+                            bodyFont: { family: "'Cairo', sans-serif" },
+                            rtl: true,
+                            callbacks: { label: (item) => `${item.dataset.label}: ${item.parsed.y.toLocaleString()} ج.م` }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10.5 } } },
+                        y: {
+                            grid: { color: '#f0f1f7' },
+                            border: { display: false },
+                            ticks: { font: { size: 10.5 }, callback: (v) => (v / 1000) + 'k' }
+                        }
+                    }
+                }
+            });
+        }
+        renderSalesChart(6);
+
+        document.querySelectorAll('.tabs button').forEach(btn => {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                renderSalesChart(parseInt(this.dataset.range, 10));
+            });
+        });
+
+        new Chart(document.getElementById('donutChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['دهانات داخلية', 'دهانات خارجية', 'ورنيش', 'أخرى'],
+                datasets: [{
+                    data: [45, 30, 15, 10],
+                    backgroundColor: ['#6d5df6', '#0fb8a4', '#f5a623', '#2596f0'],
+                    borderColor: '#ffffff',
+                    borderWidth: 3,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#191b28',
+                        titleColor: '#ffffff',
+                        bodyColor: 'rgba(255,255,255,0.8)',
+                        borderColor: 'rgba(109,93,246,0.3)',
+                        borderWidth: 1,
+                        rtl: true,
+                        callbacks: { label: (item) => `${item.label}: ${item.parsed}%` }
+                    }
+                }
+            }
+        });
+
+        function renderSpark(id, data, color) {
+            new Chart(document.getElementById(id).getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: data.map((_, i) => i),
+                    datasets: [{ data, borderColor: color, borderWidth: 1.8, pointRadius: 0, tension: 0.45, fill: false }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    scales: { x: { display: false }, y: { display: false } },
+                    elements: { line: { borderJoinStyle: 'round' } }
+                }
+            });
+        }
+        renderSpark('spark1', [4,6,5,8,7,9,12,10,13], '#6d5df6');
+        renderSpark('spark2', [2,3,3,4,5,5,6,7,8], '#0fb8a4');
+        renderSpark('spark3', [8,8,9,9,10,11,11,12,13], '#2596f0');
+        renderSpark('spark4', [14,13,12,13,11,12,10,11,10], '#f4436c');
+        renderSpark('spark5', [3,4,4,6,5,7,8,7,9], '#f5a623');
+
         function updateStats() {
             const SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
             const SHEET_SALES = 'المبيعات والمرتجعات';
             const SHEET_CLIENTS = 'بيانات العملاء';
             const SHEET_TREASURY = 'الخزينة الرئيسية';
 
-            // جلب المبيعات
-            fetch('https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + SHEET_SALES)
+            fetch('https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(SHEET_SALES))
                 .then(r => r.ok ? r.text() : Promise.reject())
                 .then(csv => {
                     const lines = csv.split('\n').filter(l => l.trim());
-                    let revenue = 0,
-                        invoices = 0;
+                    let revenue = 0, invoices = 0;
                     for (let i = 1; i < lines.length; i++) {
                         const row = lines[i].split(',');
                         if (row.length > 13) {
@@ -1278,12 +932,11 @@
                     document.getElementById('totalInvoices').textContent = invoices.toLocaleString();
                 })
                 .catch(() => {
-                    document.getElementById('totalRevenue').textContent = '12,500 ج.م';
+                    document.getElementById('totalRevenue').textContent = '112,500 ج.م';
                     document.getElementById('totalInvoices').textContent = '48';
                 });
 
-            // جلب العملاء
-            fetch('https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + SHEET_CLIENTS)
+            fetch('https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(SHEET_CLIENTS))
                 .then(r => r.ok ? r.text() : Promise.reject())
                 .then(csv => {
                     const count = csv.split('\n').filter(l => l.trim()).length - 1;
@@ -1291,32 +944,24 @@
                 })
                 .catch(() => document.getElementById('totalClients').textContent = '156');
 
-            // جلب التحصيلات
-            fetch('https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + SHEET_TREASURY)
+            fetch('https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(SHEET_TREASURY))
                 .then(r => r.ok ? r.text() : Promise.reject())
                 .then(csv => {
                     const lines = csv.split('\n').filter(l => l.trim());
                     let collections = 0;
                     for (let i = 1; i < lines.length; i++) {
                         const row = lines[i].split(',');
-                        if (row.length > 5) {
-                            collections += parseFloat(row[5]) || 0;
-                        }
+                        if (row.length > 5) collections += parseFloat(row[5]) || 0;
                     }
                     document.getElementById('totalCollections').textContent = collections.toLocaleString() + ' ج.م';
                 })
                 .catch(() => document.getElementById('totalCollections').textContent = '8,200 ج.م');
 
             document.getElementById('pendingOrders').textContent = '12';
+            setGoalRing(75);
         }
 
-        // ============================================================
-        // INIT
-        // ============================================================
         updateStats();
-        console.log('🏠 الصفحة الرئيسية - مثل Hope UI');
-        console.log('📌 شعار: نظام المبيعات - شركة رولكس');
-        console.log('📌 الألوان: ذهبية بدلاً من الزرقاء');
     </script>
 
 </body>
