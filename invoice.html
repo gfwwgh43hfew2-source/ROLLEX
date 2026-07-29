@@ -244,16 +244,16 @@
             display: none; position: absolute; top: calc(100% + 4px);
             left: 0; right: 0; background: #ffffff;
             border: 1px solid var(--line); border-radius: var(--radius-sm);
-            max-height: 300px; overflow-y: auto; z-index: 100;
+            max-height: 350px; overflow-y: auto; z-index: 100;
             box-shadow: var(--shadow);
         }
         .suggestions-list.show { display: block; }
         .suggestions-list .suggestion-item {
-            padding: 8px 12px; cursor: pointer; transition: 0.15s;
+            padding: 7px 12px; cursor: pointer; transition: 0.1s;
             border-bottom: 1px solid var(--line);
             color: var(--ink-soft); font-size: 0.75rem;
             display: flex; justify-content: space-between; align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
         .suggestions-list .suggestion-item:hover { background: var(--accent-soft); color: var(--accent-ink); }
         .suggestions-list .suggestion-item.active { background: var(--accent-soft); color: var(--accent-ink); }
@@ -913,13 +913,20 @@
         }
 
         // ============================================================
-        // LOAD DATA - استخدام getProducts و getClients
+        // LOAD DATA - جلب من السيرفر فقط، تجاهل LocalStorage
         // ============================================================
         function loadData() {
             var loadedProducts = false;
             var loadedClients = false;
 
-            // جلب المنتجات
+            // مسح LocalStorage القديم
+            try {
+                localStorage.removeItem('rollex_products');
+                localStorage.removeItem('rollex_clients');
+                console.log('✅ تم مسح LocalStorage القديم');
+            } catch(e) {}
+
+            // جلب المنتجات من السيرفر
             fetch(SCRIPT_URL + '?action=getProducts')
                 .then(function(response) {
                     if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
@@ -927,11 +934,23 @@
                 })
                 .then(function(data) {
                     if (data.success && data.data && data.data.products) {
-                        products = data.data.products;
-                        console.log('✅ تم جلب ' + products.length + ' منتج');
-                        try {
-                            localStorage.setItem('rollex_products', JSON.stringify(products));
-                        } catch (e) {}
+                        // فلترة المنتجات لإزالة البيانات غير الصحيحة
+                        var rawProducts = data.data.products;
+                        products = rawProducts.filter(function(p) {
+                            // تخطي المنتجات التي تحتوي على تواريخ أو كلمات غريبة
+                            var name = p.name || '';
+                            if (name.match(/GMT|توقیت|توقيت|EET|EEST|Sun|Mon|Tue|Wed|Thu|Fri|Sat/i)) {
+                                return false;
+                            }
+                            if (name.match(/\d{2}:\d{2}:\d{2}/)) {
+                                return false;
+                            }
+                            if (name.match(/\d{4}-\d{2}-\d{2}/)) {
+                                return false;
+                            }
+                            return true;
+                        });
+                        console.log('✅ تم جلب ' + products.length + ' منتج صحيح (من ' + rawProducts.length + ' إجمالي)');
                     } else {
                         console.log('⚠️ استخدام المنتجات الافتراضية');
                         products = DEFAULT_PRODUCTS;
@@ -946,7 +965,7 @@
                     checkAndSetup();
                 });
 
-            // جلب العملاء
+            // جلب العملاء من السيرفر
             fetch(SCRIPT_URL + '?action=getClients')
                 .then(function(response) {
                     if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
@@ -956,9 +975,6 @@
                     if (data.success && data.data && data.data.clients) {
                         clients = data.data.clients;
                         console.log('✅ تم جلب ' + clients.length + ' عميل');
-                        try {
-                            localStorage.setItem('rollex_clients', JSON.stringify(clients));
-                        } catch (e) {}
                     } else {
                         console.log('⚠️ استخدام العملاء الافتراضيين');
                         clients = DEFAULT_CLIENTS;
@@ -1542,8 +1558,8 @@
         loadData();
 
         console.log('🧾 فاتورة المبيعات - الإصدار النهائي');
+        console.log('📌 تم مسح LocalStorage القديم وجلب البيانات من السيرفر');
         console.log('📌 اكتب اسم المنتج وستظهر جميع الاقتراحات المطابقة');
-        console.log('📌 يتم جلب الكود والوزن والعبوة تلقائياً');
         console.log('🔗 Web App URL:', SCRIPT_URL);
     </script>
 
