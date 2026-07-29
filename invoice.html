@@ -2653,116 +2653,275 @@
          * PRINT INVOICE - WITH SETTINGS
          * ============================================================
          */
-        function printInvoice() {
-            if (items.length === 0) {
-                showToast('⚠️ تنبيه', 'لا توجد أصناف للطباعة', 'error');
-                return;
+        // ============================================================
+// PRINT INVOICE - طباعة الفاتورة مع الإعدادات (محسنة)
+// ============================================================
+function printInvoice() {
+    if (items.length === 0) {
+        showToast('⚠️ تنبيه', 'لا توجد أصناف للطباعة', 'error');
+        return;
+    }
+
+    var client = clientName.value.trim() || 'غير محدد';
+    var invNum = invoiceNumber.value.trim() || '----';
+    var book = bookNumber.value.trim() || '----';
+    var date = invoiceDate.value ? new Date(invoiceDate.value).toLocaleDateString('ar-EG') : '----';
+    var sales = salesman.value.trim() || 'غير محدد';
+    var total = totalAmount.textContent;
+    var net = netAmount.textContent;
+
+    // استخدام الإعدادات
+    var companyName = settings.companyName || 'شركة رولكس للدهانات';
+    var companyAddress = settings.companyAddress || '';
+    var companyPhone = settings.companyPhone || '';
+    var companyEmail = settings.companyEmail || '';
+    var companyWebsite = settings.companyWebsite || '';
+    var companyTaxNumber = settings.companyTaxNumber || '';
+    var companyLogo = settings.companyLogo || '';
+    var footer = settings.invoiceFooter || 'شكراً لثقتكم بنا';
+
+    // فتح نافذة جديدة للطباعة
+    var printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) {
+        showToast('❌ خطأ', 'تم حظر النوافذ المنبثقة، يرجى السماح بها', 'error');
+        return;
+    }
+
+    var htmlContent = `
+    <!DOCTYPE html>
+    <html dir="rtl">
+    <head>
+        <meta charset="UTF-8">
+        <title>فاتورة مبيعات</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: 'Cairo', sans-serif;
+                background: #ffffff;
+                padding: 20px;
+                direction: rtl;
             }
-
-            var client = clientName.value.trim() || 'غير محدد';
-            var invNum = invoiceNumber.value.trim() || '----';
-            var book = bookNumber.value.trim() || '----';
-            var date = invoiceDate.value ? new Date(invoiceDate.value).toLocaleDateString('ar-EG') : '----';
-            var sales = salesman.value.trim() || 'غير محدد';
-            var total = totalAmount.textContent;
-            var net = netAmount.textContent;
-
-            // استخدام الإعدادات
-            var companyName = settings.companyName || 'شركة رولكس للدهانات';
-            var companyAddress = settings.companyAddress || '';
-            var companyPhone = settings.companyPhone || '';
-            var companyEmail = settings.companyEmail || '';
-            var companyWebsite = settings.companyWebsite || '';
-            var companyTaxNumber = settings.companyTaxNumber || '';
-            var companyLogo = settings.companyLogo || '';
-            var footer = settings.invoiceFooter || 'شكراً لثقتكم بنا';
-
-            var html = `
-                <div style="direction:rtl; font-family:Cairo, sans-serif; padding:20px; max-width:800px; margin:0 auto; background:#fff; min-height:100vh;">
-                    <!-- ===== HEADER WITH LOGO ===== -->
-                    <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px; border-bottom:3px solid #121821; padding-bottom:15px;">
-                        ${companyLogo ? `<div style="flex-shrink:0;"><img src="${companyLogo}" style="max-height:70px; max-width:150px;" /></div>` : ''}
-                        <div style="flex:1; text-align:center;">
-                            <h1 style="font-size:1.4rem; font-weight:800; color:#121821; margin:0;">${companyName}</h1>
-                            <p style="font-size:0.65rem; color:#6d7883; margin:2px 0 0;">فاتورة مبيعات</p>
-                            ${companyAddress ? `<p style="font-size:0.6rem; color:#6d7883; margin:0;">${companyAddress}</p>` : ''}
-                            ${companyPhone ? `<p style="font-size:0.6rem; color:#6d7883; margin:0;">📞 ${companyPhone}</p>` : ''}
-                            ${companyEmail ? `<p style="font-size:0.6rem; color:#6d7883; margin:0;">✉️ ${companyEmail}</p>` : ''}
-                            ${companyWebsite ? `<p style="font-size:0.6rem; color:#6d7883; margin:0;">🌐 ${companyWebsite}</p>` : ''}
-                            ${companyTaxNumber ? `<p style="font-size:0.6rem; color:#6d7883; margin:0;">الرقم الضريبي: ${companyTaxNumber}</p>` : ''}
-                        </div>
-                    </div>
-                    
-                    <!-- ===== INVOICE INFO ===== -->
-                    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; background:#f4f6f5; padding:8px 12px; border-radius:6px; margin-bottom:12px; font-size:0.7rem; border:1px solid #dde3e0;">
-                        <div><span style="font-weight:600; color:#6d7883;">رقم الفاتورة:</span> ${invNum}</div>
-                        <div><span style="font-weight:600; color:#6d7883;">الرقم الدفتري:</span> ${book}</div>
-                        <div><span style="font-weight:600; color:#6d7883;">التاريخ:</span> ${date}</div>
-                        <div><span style="font-weight:600; color:#6d7883;">المندوب:</span> ${sales}</div>
-                    </div>
-                    
-                    <!-- ===== CLIENT INFO ===== -->
-                    <div style="background:#f4f6f5; padding:8px 12px; border-radius:6px; margin-bottom:12px; font-size:0.7rem; border:1px solid #dde3e0;">
-                        <div><span style="font-weight:600; color:#6d7883;">العميل:</span> ${client}</div>
-                    </div>
-                    
-                    <!-- ===== ITEMS TABLE ===== -->
-                    <table style="width:100%; border-collapse:collapse; font-size:0.65rem; margin-bottom:12px;">
-                        <thead>
-                            <tr style="background:#121821; color:#ffffff;">
-                                <th style="padding:5px 6px; text-align:center; border:1px solid #121821;">#</th>
-                                <th style="padding:5px 6px; text-align:right; border:1px solid #121821;">المنتج</th>
-                                <th style="padding:5px 6px; text-align:center; border:1px solid #121821;">الكمية</th>
-                                <th style="padding:5px 6px; text-align:center; border:1px solid #121821;">الوحدة</th>
-                                <th style="padding:5px 6px; text-align:center; border:1px solid #121821;">سعر الوحدة</th>
-                                <th style="padding:5px 6px; text-align:center; border:1px solid #121821;">الإجمالي</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-
-            items.forEach(function(item, index) {
-                html += `
-                    <tr>
-                        <td style="padding:4px 6px; text-align:center; border:1px solid #dde3e0;">${index + 1}</td>
-                        <td style="padding:4px 6px; text-align:right; border:1px solid #dde3e0;">${item.name}</td>
-                        <td style="padding:4px 6px; text-align:center; border:1px solid #dde3e0;">${item.qty}</td>
-                        <td style="padding:4px 6px; text-align:center; border:1px solid #dde3e0;">${item.package || item.unit || 'كجم'}</td>
-                        <td style="padding:4px 6px; text-align:center; border:1px solid #dde3e0;">${item.price.toFixed(2)}</td>
-                        <td style="padding:4px 6px; text-align:center; border:1px solid #dde3e0; font-weight:700;">${item.total.toFixed(2)}</td>
-                    </tr>
-                `;
-            });
-
-            html += `
-                        </tbody>
-                    </table>
-                    
-                    <!-- ===== TOTALS ===== -->
-                    <div style="display:flex; justify-content:space-between; border-top:2px solid #121821; padding-top:8px; margin-top:8px;">
-                        <div style="font-size:0.8rem; font-weight:700;">الإجمالي: ${total}</div>
-                        <div style="font-size:0.8rem; font-weight:700; color:#1d7b6c;">الصافي: ${net}</div>
-                    </div>
-                    
-                    <!-- ===== FOOTER ===== -->
-                    ${footer ? `
-                    <div style="text-align:center; margin-top:15px; font-size:0.55rem; color:#6d7883; border-top:1px solid #dde3e0; padding-top:8px;">
-                        ${footer}
-                    </div>
-                    ` : ''}
+            .invoice-container {
+                max-width: 800px;
+                margin: 0 auto;
+                background: #ffffff;
+            }
+            .invoice-header {
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                margin-bottom: 15px;
+                border-bottom: 3px solid #121821;
+                padding-bottom: 15px;
+            }
+            .invoice-header .logo {
+                flex-shrink: 0;
+            }
+            .invoice-header .logo img {
+                max-height: 70px;
+                max-width: 150px;
+            }
+            .invoice-header .company-info {
+                flex: 1;
+                text-align: center;
+            }
+            .invoice-header .company-info h1 {
+                font-size: 1.4rem;
+                font-weight: 800;
+                color: #121821;
+                margin: 0;
+            }
+            .invoice-header .company-info .subtitle {
+                font-size: 0.65rem;
+                color: #6d7883;
+                margin: 2px 0 0;
+            }
+            .invoice-header .company-info .details {
+                font-size: 0.6rem;
+                color: #6d7883;
+                margin: 0;
+            }
+            .invoice-info {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                background: #f4f6f5;
+                padding: 8px 12px;
+                border-radius: 6px;
+                margin-bottom: 12px;
+                font-size: 0.7rem;
+                border: 1px solid #dde3e0;
+            }
+            .invoice-info .item {
+                display: flex;
+                gap: 4px;
+            }
+            .invoice-info .item .label {
+                font-weight: 600;
+                color: #6d7883;
+            }
+            .invoice-info .item .value {
+                font-weight: 700;
+                color: #121821;
+            }
+            .client-info {
+                background: #f4f6f5;
+                padding: 8px 12px;
+                border-radius: 6px;
+                margin-bottom: 12px;
+                font-size: 0.7rem;
+                border: 1px solid #dde3e0;
+            }
+            .client-info .label {
+                font-weight: 600;
+                color: #6d7883;
+            }
+            .client-info .value {
+                font-weight: 700;
+                color: #121821;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.65rem;
+                margin-bottom: 12px;
+            }
+            table thead th {
+                background: #121821;
+                color: #ffffff;
+                padding: 5px 6px;
+                text-align: center;
+                border: 1px solid #121821;
+                font-weight: 700;
+            }
+            table tbody td {
+                padding: 4px 6px;
+                text-align: center;
+                border: 1px solid #dde3e0;
+            }
+            table tbody td.right {
+                text-align: right;
+            }
+            table tbody td.bold {
+                font-weight: 700;
+            }
+            .totals {
+                display: flex;
+                justify-content: space-between;
+                border-top: 2px solid #121821;
+                padding-top: 8px;
+                margin-top: 8px;
+            }
+            .totals .total-item {
+                font-size: 0.8rem;
+                font-weight: 700;
+            }
+            .totals .total-item.net {
+                color: #1d7b6c;
+            }
+            .footer {
+                text-align: center;
+                margin-top: 15px;
+                font-size: 0.55rem;
+                color: #6d7883;
+                border-top: 1px solid #dde3e0;
+                padding-top: 8px;
+            }
+            @media print {
+                body { padding: 10px; }
+                .no-print { display: none; }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="invoice-container">
+            <!-- HEADER -->
+            <div class="invoice-header">
+                ${companyLogo ? `<div class="logo"><img src="${companyLogo}" alt="شعار المؤسسة" /></div>` : ''}
+                <div class="company-info">
+                    <h1>${companyName}</h1>
+                    <div class="subtitle">فاتورة مبيعات</div>
+                    ${companyAddress ? `<div class="details">${companyAddress}</div>` : ''}
+                    ${companyPhone ? `<div class="details">📞 ${companyPhone}</div>` : ''}
+                    ${companyEmail ? `<div class="details">✉️ ${companyEmail}</div>` : ''}
+                    ${companyWebsite ? `<div class="details">🌐 ${companyWebsite}</div>` : ''}
+                    ${companyTaxNumber ? `<div class="details">الرقم الضريبي: ${companyTaxNumber}</div>` : ''}
                 </div>
-            `;
+            </div>
 
-            printArea.innerHTML = html;
+            <!-- INVOICE INFO -->
+            <div class="invoice-info">
+                <div class="item"><span class="label">رقم الفاتورة:</span> <span class="value">${invNum}</span></div>
+                <div class="item"><span class="label">الرقم الدفتري:</span> <span class="value">${book}</span></div>
+                <div class="item"><span class="label">التاريخ:</span> <span class="value">${date}</span></div>
+                <div class="item"><span class="label">المندوب:</span> <span class="value">${sales}</span></div>
+            </div>
 
-            // تأخير بسيط لضمان اكتمال الـ render
-            setTimeout(function() {
+            <!-- CLIENT INFO -->
+            <div class="client-info">
+                <span class="label">العميل:</span> <span class="value">${client}</span>
+            </div>
+
+            <!-- ITEMS TABLE -->
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:30px;">#</th>
+                        <th style="text-align:right;">المنتج</th>
+                        <th style="width:50px;">الكمية</th>
+                        <th style="width:50px;">الوحدة</th>
+                        <th style="width:60px;">سعر الوحدة</th>
+                        <th style="width:70px;">الإجمالي</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    items.forEach(function(item, index) {
+        htmlContent += `
+            <tr>
+                <td>${index + 1}</td>
+                <td class="right">${item.name}</td>
+                <td>${item.qty}</td>
+                <td>${item.package || item.unit || 'كجم'}</td>
+                <td>${item.price.toFixed(2)}</td>
+                <td class="bold">${item.total.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+    htmlContent += `
+                </tbody>
+            </table>
+
+            <!-- TOTALS -->
+            <div class="totals">
+                <div class="total-item">الإجمالي: ${total}</div>
+                <div class="total-item net">الصافي: ${net}</div>
+            </div>
+
+            <!-- FOOTER -->
+            ${footer ? `<div class="footer">${footer}</div>` : ''}
+        </div>
+
+        <script>
+            // طباعة تلقائية بعد التحميل
+            window.onload = function() {
                 window.print();
                 setTimeout(function() {
-                    printArea.innerHTML = '';
-                }, 500);
-            }, 300);
-        }
+                    window.close();
+                }, 1000);
+            };
+        <\/script>
+    </body>
+    </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+}
 
         /**
          * ============================================================
