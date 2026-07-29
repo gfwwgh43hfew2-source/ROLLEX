@@ -113,7 +113,6 @@
             padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface);
         }
 
-        /* Mobile */
         .mobile-nav-overlay {
             display: none; position: fixed; inset: 0; background: rgba(18,24,33,0.35);
             z-index: 999; backdrop-filter: blur(3px); opacity: 0;
@@ -158,7 +157,6 @@
         .mobile-nav-bottom ul li i { font-size: 0.9rem; }
         .mobile-nav-bottom ul li:hover, .mobile-nav-bottom ul li.active { color: var(--accent-ink); }
 
-        /* Main */
         .main-content {
             display: flex; flex: 1; overflow: hidden;
             padding: 14px 18px 16px 18px; gap: 16px;
@@ -241,7 +239,6 @@
             margin: 12px 0 12px 0; flex-shrink: 0;
         }
 
-        /* Suggestions - مبسطة */
         .suggestions-wrapper { position: relative; }
         .suggestions-list {
             display: none; position: absolute; top: calc(100% + 4px);
@@ -795,7 +792,7 @@
         var invoiceCounter = 0;
 
         // ============================================================
-        // CONFIG - رابط Google Apps Script الجديد (تم التحديث)
+        // CONFIG - رابط Google Apps Script
         // ============================================================
         var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyzS1ZvNdSB0oX5HciZTYLHakejadjRYLXTxqaRg3ezOtZ_eSm47TSRYQyNn88PPOcxw/exec';
 
@@ -814,7 +811,8 @@
             { code: '1.1', name: 'فيكس وسط أبيض - عبوة 0.5 كيلو', unit: 'كيلو', weight: 0.5, package: 'عبوة' },
             { code: '1.2', name: 'فيكس وسط أبيض - عبوة 1 كيلو', unit: 'كيلو', weight: 1, package: 'عبوة' },
             { code: '1.3', name: 'فيكس وسط أبيض - جالون 3 كيلو', unit: 'كيلو', weight: 3, package: 'جالون' },
-            { code: '12.31', name: 'فيكس وسط أبيض', unit: 'كجم', weight: 0, package: '' }
+            { code: '2.1', name: 'رول تون 300 - عبوة 0.5 كيلو', unit: 'كيلو', weight: 0.5, package: 'عبوة' },
+            { code: '11.325', name: 'جرافيت - شكارة 25 كيلو', unit: 'كيلو', weight: 25, package: 'شكارة' },
         ];
 
         // ============================================================
@@ -964,7 +962,47 @@
         }
 
         // ============================================================
-        // SUGGESTIONS SYSTEM - مبسطة
+        // دالة البحث عن المنتج بالكود - محسنة
+        // ============================================================
+        function findProductByCode(code) {
+            if (!code) return null;
+            code = code.trim();
+
+            console.log('🔍 البحث عن الكود:', code);
+
+            // 1. تطابق تام (مثل 1.1, 2.222, 11.325)
+            var exact = products.find(function(p) {
+                return p.code && p.code.toString().trim() === code;
+            });
+            if (exact) {
+                console.log('✅ تم العثور بتطابق تام:', exact.code, exact.name);
+                return exact;
+            }
+
+            // 2. يبدأ بـ (code + '.') (مثل 1 → 1.1, 2 → 2.1, 11 → 11.325)
+            var starts = products.find(function(p) {
+                return p.code && p.code.toString().startsWith(code + '.');
+            });
+            if (starts) {
+                console.log('✅ تم العثور ببداية الكود:', starts.code, starts.name);
+                return starts;
+            }
+
+            // 3. يحتوي على الرقم (للبحث عن 325 في 11.325)
+            var contains = products.find(function(p) {
+                return p.code && p.code.toString().includes(code);
+            });
+            if (contains) {
+                console.log('✅ تم العثور باحتواء الكود:', contains.code, contains.name);
+                return contains;
+            }
+
+            console.log('❌ لم يتم العثور على منتج بالكود:', code);
+            return null;
+        }
+
+        // ============================================================
+        // SUGGESTIONS SYSTEM
         // ============================================================
         function setupSuggestions() {
             setupSuggestionInput(clientName, clientSuggestions, clients, null);
@@ -978,43 +1016,36 @@
                 }
             );
 
+            // ============================================================
             // حقل كود المنتج - البحث عند الضغط على Enter
+            // ============================================================
             itemCode.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     var code = this.value.trim();
                     if (code) {
-                        // بحث تطابق تام أولاً
-                        var found = products.find(function(p) { return p.code === code; });
-                        if (!found) {
-                            // بحث عن كود يبدأ بهذا الرقم (للدعم مثل 1 ← 1.1)
-                            found = products.find(function(p) {
-                                return p.code && p.code.startsWith(code + '.');
-                            });
-                        }
+                        var found = findProductByCode(code);
                         if (found) {
                             itemName.value = found.name;
                             fillProductData(found);
                             productSuggestions.classList.remove('show');
                             itemQuantity.focus();
+                            showToast('✅ تم العثور', found.name, 'success');
                         } else {
-                            showToast('⚠️ تنبيه', 'كود المنتج غير موجود', 'error');
+                            showToast('⚠️ تنبيه', 'كود المنتج غير موجود: ' + code, 'error');
                             itemName.focus();
                         }
                     }
                 }
             });
 
+            // ============================================================
             // بحث فوري عند الكتابة في حقل الكود
+            // ============================================================
             itemCode.addEventListener('input', function() {
                 var code = this.value.trim();
                 if (code) {
-                    var found = products.find(function(p) { return p.code === code; });
-                    if (!found) {
-                        found = products.find(function(p) {
-                            return p.code && p.code.startsWith(code + '.');
-                        });
-                    }
+                    var found = findProductByCode(code);
                     if (found) {
                         itemName.value = found.name;
                         fillProductData(found);
@@ -1463,7 +1494,7 @@
                     invoiceData.salesman || '', // 4: المندوب
                     invoiceData.code || '', // 5: كود العميل
                     invoiceData.client || '', // 6: اسم العميل
-                    '', // 7: كود الصنف (حالياً فارغ)
+                    '', // 7: كود الصنف
                     item.name || '', // 8: الصنف
                     item.weight || '', // 9: الوزن
                     item.unit || 'كجم', // 10: الوحده
@@ -1473,7 +1504,7 @@
                     (item.weight * item.qty) || '', // 14: اجمالي الوزن
                     item.color || '', // 15: اللون
                     item.crusherType || '', // 16: نوع الحصوة
-                    item.package || '' // 17: العبوة (تم إضافتها)
+                    item.package || '' // 17: العبوة
                 ];
                 rows.push(row);
             });
@@ -1536,10 +1567,10 @@
         // ============================================================
         loadData();
 
-        console.log('🧾 فاتورة المبيعات — مع حقل العبوة');
-        console.log('📌 اكتب كود المنتج ثم اضغط Enter لملء البيانات تلقائياً');
+        console.log('🧾 فاتورة المبيعات — مع دالة البحث المحسنة');
+        console.log('📌 اكتب كود المنتج (1, 2, 11, 12, 16, 19, 26, 38, 80, 325)');
+        console.log('📌 اضغط Enter لملء البيانات تلقائياً');
         console.log('📌 خيارات الحصوة: ناعم، نص مل، 1 مل، 1.5 مل، 2 مل');
-        console.log('📌 استخدم الأسهم ↑↓ للتنقل بين الاقتراحات');
         console.log('📌 Ctrl+Enter للحفظ');
         console.log('🔗 Web App URL:', SCRIPT_URL);
     </script>
