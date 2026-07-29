@@ -446,7 +446,7 @@
         }
 
         /* ============================================================
-           MAIN CONTENT
+           MAIN CONTENT - تخطيط مرن وثابت
            ============================================================ */
         .main-content {
             display: flex;
@@ -952,7 +952,7 @@
         }
 
         /* ============================================================
-           BOTTOM BAR
+           BOTTOM BAR - تم تثبيت العناصر لمنع الحركة
            ============================================================ */
         .bottom-bar {
             display: flex;
@@ -962,12 +962,16 @@
             padding-top: 10px;
             gap: 12px;
             flex-wrap: wrap;
+            min-height: 70px;
+            position: relative;
         }
+
         .totals-section {
             display: flex;
             border: 1px solid var(--line);
             border-radius: var(--radius-sm);
             overflow: hidden;
+            flex-shrink: 0;
         }
         .totals-section .total-item {
             text-align: center;
@@ -975,6 +979,7 @@
             background: var(--surface-muted);
             min-width: 84px;
             border-left: 1px solid var(--line);
+            flex-shrink: 0;
         }
         .totals-section .total-item:last-child {
             border-left: none;
@@ -1010,7 +1015,9 @@
             gap: 6px;
             align-items: center;
             flex-wrap: wrap;
+            flex-shrink: 0;
         }
+
         .btn-save {
             padding: 6px 20px;
             border-radius: 8px;
@@ -1027,6 +1034,8 @@
             height: 34px;
             justify-content: center;
             font-family: var(--font-display);
+            min-width: 80px;
+            flex-shrink: 0;
         }
         .btn-save i {
             color: var(--accent);
@@ -1057,6 +1066,8 @@
             height: 34px;
             white-space: nowrap;
             font-family: var(--font-display);
+            min-width: 60px;
+            flex-shrink: 0;
         }
         .btn-tool:hover {
             background: var(--surface-muted);
@@ -1092,10 +1103,11 @@
             height: 24px;
             background: var(--line);
             margin: 0 3px;
+            flex-shrink: 0;
         }
 
         /* ============================================================
-           TOAST
+           TOAST - ثابت في الزاوية ولا يؤثر على التخطيط
            ============================================================ */
         .toast-container {
             position: fixed;
@@ -1460,6 +1472,7 @@
             .btn-tool {
                 padding: 4px 10px;
                 height: 30px;
+                min-width: 40px;
             }
             nav {
                 display: none !important;
@@ -1826,6 +1839,9 @@
                         </div>
                     </div>
 
+                    <!-- ============================================================
+                    BOTTOM BAR - تم تثبيت العناصر
+                    ============================================================ -->
                     <div class="bottom-bar">
 
                         <div class="totals-section">
@@ -1995,7 +2011,7 @@
          */
         var FETCH_URL = 'https://script.google.com/macros/s/AKfycbw2N2Xg-o7SeQWFP8WvrsN7801E2gKRe1Tv03Ek_7B9kesR2UFBuT0fB3rIPX1OB3F2Wg/exec';
         var SAVE_URL = 'https://script.google.com/macros/s/AKfycbxD2c73p5CegQdVjFIsFaxN0x7bYr6R-0FS6Co8nHjSKhiS1sjk-4FXUlw8AAOYOklrWQ/exec';
-        var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbwTc4T-KjMlx10njmN_EqcXkkYGu0LzlbRxtMkwAbJYvJNl_eLQbPkgkFthPKi4r8BOAQ/exec';
+        var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbwktOKxOfOBx9fKXB7E2pHKo0NUONQM6XTmjo2BhAdK-4a7_bJeoeHB3wlFGAB5KgDEoA/exec';
         var LAST_NUMBER_URL = 'https://script.google.com/macros/s/AKfycbzJ0YcQMYkprBqm1G6dAMtKj5KxEW1Q5bCZECvgchhFuCGib-6TONctdegdq8UBFBFjsg/exec';
 
         /**
@@ -2156,6 +2172,19 @@
          * ============================================================
          */
         function loadSettings() {
+            // محاولة قراءة الإعدادات من localStorage أولاً (للحصول على سرعة أفضل)
+            var savedSettings = localStorage.getItem('rollex_settings');
+            if (savedSettings) {
+                try {
+                    var parsedSettings = JSON.parse(savedSettings);
+                    settings = parsedSettings;
+                    console.log('✅ تم تحميل الإعدادات من localStorage');
+                } catch (e) {
+                    console.warn('⚠️ خطأ في قراءة الإعدادات من localStorage');
+                }
+            }
+
+            // جلب الإعدادات من السيرفر للتحديث
             fetch(SETTINGS_URL + '?action=getSettings')
                 .then(function(response) {
                     return response.json();
@@ -2163,7 +2192,8 @@
                 .then(function(data) {
                     if (data.success && data.data) {
                         settings = data.data;
-                        console.log('✅ تم جلب الإعدادات');
+                        localStorage.setItem('rollex_settings', JSON.stringify(settings));
+                        console.log('✅ تم تحميل الإعدادات من السيرفر');
                     }
                 })
                 .catch(function(error) {
@@ -2671,7 +2701,7 @@
 
         /**
          * ============================================================
-         * PRINT INVOICE - Professional Design
+         * PRINT INVOICE - Professional Design (with fresh settings)
          * ============================================================
          */
         function printInvoice() {
@@ -2680,6 +2710,31 @@
                 return;
             }
 
+            // جلب الإعدادات من السيرفر قبل الطباعة
+            fetch(SETTINGS_URL + '?action=getSettings')
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (data.success && data.data) {
+                        settings = data.data;
+                        localStorage.setItem('rollex_settings', JSON.stringify(settings));
+                        console.log('✅ تم جلب الإعدادات الجديدة للطباعة');
+                    }
+                    renderPrintInvoice();
+                })
+                .catch(function(error) {
+                    console.error('❌ خطأ في جلب الإعدادات:', error);
+                    renderPrintInvoice();
+                });
+        }
+
+        /**
+         * ============================================================
+         * RENDER PRINT INVOICE
+         * ============================================================
+         */
+        function renderPrintInvoice() {
             var client = clientName.value.trim() || 'غير محدد';
             var invNum = invoiceNumber.value.trim() || '----';
             var book = bookNumber.value.trim() || '----';
@@ -2688,7 +2743,7 @@
             var total = totalAmount.textContent;
             var net = netAmount.textContent;
 
-            // استخدام الإعدادات
+            // استخدام الإعدادات (التي تم جلبها حديثاً)
             var companyName = settings.companyName || 'شركة رولكس للدهانات';
             var companyAddress = settings.companyAddress || '';
             var companyPhone = settings.companyPhone || '';
@@ -3377,7 +3432,7 @@
 
         /**
          * ============================================================
-         * SAVE TO GOOGLE SHEETS
+         * SAVE TO GOOGLE SHEETS - مع طباعة تلقائية بدون حركة الأزرار
          * ============================================================
          */
         function saveInvoiceToSheet(invoiceData) {
@@ -3423,15 +3478,14 @@
                     btnSaveInvoice.disabled = false;
                     btnSaveInvoice.innerHTML = '<i class="fas fa-save"></i> حفظ';
 
-                    showToast('✅ تم الحفظ', 'تم حفظ الفاتورة بنجاح! هل تريد طباعتها?', 'success', [
-                        { label: 'نعم', value: 'print', class: 'btn-yes' },
-                        { label: 'لا', value: 'no', class: 'btn-no' }
-                    ]).then(function(result) {
-                        if (result === 'print') {
-                            printInvoice();
-                        }
+                    // ===== رسالة نجاح بدون أزرار (تختفي تلقائياً) =====
+                    showToast('✅ تم الحفظ', 'تم حفظ الفاتورة بنجاح! سيتم طباعتها الآن.', 'success');
+
+                    // ===== انتظر 1.5 ثانية ثم اطبع =====
+                    setTimeout(function() {
+                        printInvoice();
                         resetForm();
-                    });
+                    }, 1500);
                 })
                 .catch(function(error) {
                     console.error('Error saving invoice:', error);
@@ -3483,6 +3537,8 @@
         console.log('📌 Ctrl+P للطباعة');
         console.log('📌 بحث دقيق (مطابقة تامة)');
         console.log('📌 رسائل Toast عصرية مع أزرار');
+        console.log('📌 يتم جلب الإعدادات قبل الطباعة');
+        console.log('📌 الأزرار ثابتة ولا تتحرك عند الحفظ');
     </script>
 
 </body>
