@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
+        /* ===== نفس الستايلات السابقة مع إضافات للطباعة ===== */
         :root {
             --ink: #121821;
             --ink-soft: #2c3644;
@@ -51,6 +52,197 @@
         ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--ink-mute); }
 
+        /* ============================================================
+           PRINT STYLES - إخفاء كل شيء إلا الفاتورة عند الطباعة
+           ============================================================ */
+        @media print {
+            /* إخفاء كل عناصر الصفحة */
+            body * {
+                visibility: hidden !important;
+            }
+            
+            /* إظهار محتوى الفاتورة فقط */
+            #printArea, #printArea * {
+                visibility: visible !important;
+            }
+            
+            #printArea {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                background: #ffffff !important;
+                padding: 20px !important;
+                overflow: visible !important;
+                z-index: 99999 !important;
+                direction: rtl !important;
+            }
+            
+            #printArea .no-print {
+                display: none !important;
+            }
+            
+            .swatch-stripe, header, .mobile-nav-overlay, .mobile-nav-menu, .mobile-nav-bottom,
+            .toast-container, .main-content .right-panel .form-card .btn-actions-row,
+            .main-content .right-panel .form-card .search-row,
+            .main-content .left-panel .bottom-bar .form-actions,
+            #btnAddItem, #btnClearItem, #btnSaveInvoice, #btnResetAll,
+            .btn-tool, .btn-divider, .btn-actions-row, .form-actions {
+                display: none !important;
+            }
+            
+            .main-content {
+                padding: 0 !important;
+                gap: 0 !important;
+                overflow: visible !important;
+                display: block !important;
+            }
+            
+            .right-panel, .left-panel {
+                flex: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                max-height: none !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+                display: block !important;
+            }
+            
+            .right-panel .form-card, .left-panel .table-card {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 5px !important;
+                border-radius: 0 !important;
+                background: transparent !important;
+            }
+            
+            .section-title, .section-title.alt {
+                border-bottom: 2px solid var(--ink) !important;
+                margin-bottom: 8px !important;
+                padding-bottom: 5px !important;
+            }
+            
+            .section-title .dot, .section-title .count-badge {
+                display: none !important;
+            }
+            
+            .items-table-wrapper {
+                border: 1px solid var(--line) !important;
+                border-radius: 4px !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            
+            .items-table-wrapper .table-scroll {
+                overflow: visible !important;
+                max-height: none !important;
+            }
+            
+            .items-table-wrapper table {
+                font-size: 0.65rem !important;
+            }
+            
+            .items-table-wrapper table thead th {
+                background: var(--ink) !important;
+                color: #ffffff !important;
+                padding: 4px 6px !important;
+                font-size: 0.5rem !important;
+            }
+            
+            .items-table-wrapper table tbody td {
+                padding: 3px 6px !important;
+                font-size: 0.6rem !important;
+            }
+            
+            .items-table-wrapper table tbody td .btn-edit-item,
+            .items-table-wrapper table tbody td .btn-remove {
+                display: none !important;
+            }
+            
+            .bottom-bar {
+                padding-top: 5px !important;
+            }
+            
+            .totals-section {
+                border: 1px solid var(--line) !important;
+            }
+            
+            .totals-section .total-item {
+                padding: 4px 12px !important;
+            }
+            
+            .totals-section .total-item .value {
+                font-size: 0.85rem !important;
+            }
+            
+            .logo-text h1 {
+                font-size: 1.1rem !important;
+            }
+            
+            .logo-text span {
+                font-size: 0.6rem !important;
+            }
+            
+            /* إخفاء الأعمدة غير الضرورية في الطباعة */
+            .items-table-wrapper table thead th:nth-child(3),
+            .items-table-wrapper table tbody td:nth-child(3),
+            .items-table-wrapper table thead th:nth-child(5),
+            .items-table-wrapper table tbody td:nth-child(5),
+            .items-table-wrapper table thead th:nth-child(9),
+            .items-table-wrapper table tbody td:nth-child(9) {
+                display: none !important;
+            }
+            
+            /* عنوان الفاتورة في الطباعة */
+            #printInvoiceTitle {
+                display: block !important;
+                text-align: center;
+                font-size: 1.3rem;
+                font-weight: 800;
+                margin-bottom: 15px;
+                color: var(--ink);
+            }
+            
+            #printInvoiceTitle small {
+                display: block;
+                font-size: 0.7rem;
+                font-weight: 400;
+                color: var(--ink-mute);
+            }
+            
+            .invoice-header-print {
+                display: flex !important;
+                justify-content: space-between;
+                margin-bottom: 10px;
+                padding: 8px 12px;
+                background: var(--surface-muted);
+                border-radius: 6px;
+                border: 1px solid var(--line);
+                font-size: 0.7rem;
+            }
+            
+            .invoice-header-print div {
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .invoice-header-print .label {
+                font-size: 0.5rem;
+                color: var(--ink-mute);
+                font-weight: 600;
+            }
+            
+            .invoice-header-print .value {
+                font-weight: 700;
+                color: var(--ink);
+            }
+        }
+
+        /* ============================================================
+           باقي الستايلات (نفس السابق)
+           ============================================================ */
         .swatch-stripe { height: var(--stripe-height); flex-shrink: 0; display: flex; }
         .swatch-stripe span { flex: 1; }
         .swatch-stripe span:nth-child(1) { background: var(--accent); }
@@ -58,9 +250,6 @@
         .swatch-stripe span:nth-child(3) { background: var(--rust); }
         .swatch-stripe span:nth-child(4) { background: var(--blue); }
 
-        /* ============================================================
-           LOADING SCREEN
-           ============================================================ */
         #loadingScreen {
             position: fixed;
             inset: 0;
@@ -72,71 +261,31 @@
             justify-content: center;
             transition: opacity 0.6s ease;
         }
-        #loadingScreen.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-        #loadingScreen .logo-loading {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 30px;
-        }
+        #loadingScreen.hidden { opacity: 0; pointer-events: none; }
+        #loadingScreen .logo-loading { display: flex; align-items: center; gap: 14px; margin-bottom: 30px; }
         #loadingScreen .logo-loading .logo-mark {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            background: var(--ink);
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-            gap: 4px;
-            padding: 8px;
-            flex-shrink: 0;
+            width: 48px; height: 48px; border-radius: 12px; background: var(--ink);
+            display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+            gap: 4px; padding: 8px; flex-shrink: 0;
         }
         #loadingScreen .logo-loading .logo-mark span { border-radius: 3px; }
         #loadingScreen .logo-loading .logo-mark span:nth-child(1) { background: var(--accent); }
         #loadingScreen .logo-loading .logo-mark span:nth-child(2) { background: var(--teal); }
         #loadingScreen .logo-loading .logo-mark span:nth-child(3) { background: var(--rust); }
         #loadingScreen .logo-loading .logo-mark span:nth-child(4) { background: var(--blue); }
-        #loadingScreen .logo-loading h1 {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: var(--ink);
-        }
-        #loadingScreen .logo-loading span {
-            font-size: 0.75rem;
-            color: var(--ink-mute);
-            display: block;
-            font-weight: 600;
-        }
+        #loadingScreen .logo-loading h1 { font-size: 1.4rem; font-weight: 800; color: var(--ink); }
+        #loadingScreen .logo-loading span { font-size: 0.75rem; color: var(--ink-mute); display: block; font-weight: 600; }
         .spinner {
-            width: 50px;
-            height: 50px;
+            width: 50px; height: 50px;
             border: 4px solid var(--line);
             border-top-color: var(--accent);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        #loadingScreen .loading-text {
-            margin-top: 20px;
-            font-size: 0.85rem;
-            color: var(--ink-mute);
-            font-weight: 600;
-        }
-        #loadingScreen .loading-progress {
-            margin-top: 8px;
-            font-size: 0.7rem;
-            color: var(--ink-mute);
-            font-family: var(--font-mono);
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loadingScreen .loading-text { margin-top: 20px; font-size: 0.85rem; color: var(--ink-mute); font-weight: 600; }
+        #loadingScreen .loading-progress { margin-top: 8px; font-size: 0.7rem; color: var(--ink-mute); font-family: var(--font-mono); }
 
-        /* ============================================================
-           HEADER
-           ============================================================ */
         header {
             position: sticky;
             top: 0;
@@ -236,9 +385,6 @@
         .mobile-nav-bottom ul li i { font-size: 0.9rem; }
         .mobile-nav-bottom ul li:hover, .mobile-nav-bottom ul li.active { color: var(--accent-ink); }
 
-        /* ============================================================
-           MAIN CONTENT
-           ============================================================ */
         .main-content {
             display: flex;
             flex: 1;
@@ -313,6 +459,67 @@
             font-family: var(--font-mono);
             border: 1px solid var(--line);
         }
+
+        /* ===== صف البحث في أعلى الفورم ===== */
+        .search-section {
+            background: var(--accent-soft);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            flex-shrink: 0;
+        }
+        .search-section .search-title {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--accent-ink);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .search-section .search-title i { font-size: 0.7rem; }
+        .search-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .search-row input {
+            flex: 1;
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--line);
+            background: var(--surface);
+            color: var(--ink);
+            font-size: 0.8rem;
+            font-family: var(--font-display);
+            outline: none;
+            height: 36px;
+        }
+        .search-row input:focus {
+            border-color: var(--accent);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(221,159,46,0.15);
+        }
+        .btn-search-invoice {
+            padding: 6px 16px;
+            border-radius: 8px;
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            height: 36px;
+            font-family: var(--font-display);
+            white-space: nowrap;
+        }
+        .btn-search-invoice:hover { background: var(--accent-ink); }
+        .btn-search-invoice i { font-size: 0.8rem; }
 
         .right-panel .form-row {
             display: grid;
@@ -484,53 +691,6 @@
 
         .btn-actions-row { display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; margin-top: 6px; }
 
-        /* ===== زر البحث عن الفاتورة ===== */
-        .btn-search-invoice {
-            padding: 6px 16px;
-            border-radius: 8px;
-            border: 1px solid var(--accent);
-            background: var(--accent-soft);
-            color: var(--accent-ink);
-            font-weight: 700;
-            font-size: 0.7rem;
-            cursor: pointer;
-            transition: 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            height: 34px;
-            font-family: var(--font-display);
-        }
-        .btn-search-invoice:hover {
-            background: var(--accent);
-            color: #fff;
-        }
-        .btn-search-invoice i { font-size: 0.8rem; }
-
-        .search-row {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-            margin-bottom: 9px;
-        }
-        .search-row input {
-            flex: 1;
-            padding: 7px 12px;
-            border-radius: var(--radius-sm);
-            border: 1.5px solid var(--line);
-            background: var(--surface-muted);
-            color: var(--ink);
-            font-size: 0.8rem;
-            font-family: var(--font-display);
-            outline: none;
-            height: 38px;
-        }
-        .search-row input:focus {
-            border-color: var(--accent);
-            background: #ffffff;
-            box-shadow: 0 0 0 3px rgba(221,159,46,0.15);
-        }
-
         .items-table-wrapper {
             flex: 1;
             overflow: hidden;
@@ -689,9 +849,6 @@
         .btn-tool.info:hover { background: #c9ebe3; }
         .btn-divider { width: 1px; height: 24px; background: var(--line); margin: 0 3px; }
 
-        /* ============================================================
-           TOAST - على الجانب الأيمن
-           ============================================================ */
         .toast-container {
             position: fixed;
             top: 80px;
@@ -746,6 +903,16 @@
             font-size: 0.85rem;
             padding: 4px;
             margin-right: auto;
+        }
+
+        #printArea {
+            display: none;
+        }
+
+        @media print {
+            #printArea {
+                display: block !important;
+            }
         }
 
         /* ============================================================
@@ -843,6 +1010,23 @@
                 top: 70px;
                 right: 10px;
                 max-width: 300px;
+            }
+
+            .search-section {
+                padding: 8px 10px;
+            }
+            .search-row input {
+                font-size: 0.7rem;
+                height: 32px;
+                padding: 4px 8px;
+            }
+            .btn-search-invoice {
+                font-size: 0.65rem;
+                height: 32px;
+                padding: 4px 10px;
+            }
+            .btn-search-invoice span {
+                display: none;
             }
         }
 
@@ -961,11 +1145,27 @@
         <!-- Toast Container -->
         <div class="toast-container" id="toastContainer"></div>
 
+        <!-- ===== منطقة الطباعة ===== -->
+        <div id="printArea"></div>
+
         <div class="main-content">
 
             <!-- النصف الأيمن -->
             <div class="right-panel">
                 <div class="form-card">
+
+                    <!-- ===== صف البحث في أعلى الفورم ===== -->
+                    <div class="search-section">
+                        <div class="search-title">
+                            <i class="fas fa-search"></i> البحث عن فاتورة
+                        </div>
+                        <div class="search-row">
+                            <input type="text" id="searchInvoiceInput" placeholder="رقم الفاتورة أو الرقم الدفتري أو اسم العميل..." />
+                            <button class="btn-search-invoice" id="btnSearchInvoice">
+                                <i class="fas fa-search"></i> <span>بحث</span>
+                            </button>
+                        </div>
+                    </div>
 
                     <div class="section-title"><span class="dot"></span> إدخال البيانات</div>
 
@@ -1010,14 +1210,6 @@
                             <label>كود العميل <span class="optional-badge">اختياري</span></label>
                             <input type="text" id="clientCode" placeholder="كود العميل" />
                         </div>
-                    </div>
-
-                    <!-- ===== صف البحث عن الفاتورة ===== -->
-                    <div class="search-row">
-                        <input type="text" id="searchInvoiceInput" placeholder="ابحث برقم الفاتورة أو الرقم الدفتري..." />
-                        <button class="btn-search-invoice" id="btnSearchInvoice">
-                            <i class="fas fa-search"></i> بحث
-                        </button>
                     </div>
 
                     <div class="divider"></div>
@@ -1163,7 +1355,7 @@
                             <button class="btn-tool primary" onclick="resetForm()">
                                 <i class="fas fa-plus"></i> <span>جديد</span>
                             </button>
-                            <button class="btn-tool info" onclick="window.print()">
+                            <button class="btn-tool info" onclick="printInvoice()">
                                 <i class="fas fa-print"></i> <span>طباعة</span>
                             </button>
                             <button class="btn-tool info" onclick="previewInvoice()">
@@ -1258,6 +1450,7 @@
         var loadingProgress = document.getElementById('loadingProgress');
         var searchInvoiceInput = document.getElementById('searchInvoiceInput');
         var btnSearchInvoice = document.getElementById('btnSearchInvoice');
+        var printArea = document.getElementById('printArea');
 
         // ============================================================
         // STATE
@@ -1273,8 +1466,7 @@
         // ============================================================
         // CONFIG - الروابط النهائية
         // ============================================================
-        var FETCH_URL = 'https://script.google.com/macros/s/AKfycbw2N2Xg-o7SeQWFP8WvrsN7801E2gKRe1Tv03Ek_7B9kesR2UFBuT0fB3rIPX1OB3F2Wg/exec';
-        var SAVE_URL = 'https://script.google.com/macros/s/AKfycbxD2c73p5CegQdVjFIsFaxN0x7bYr6R-0FS6Co8nHjSKhiS1sjk-4FXUlw8AAOYOklrWQ/exec';
+        var BASE_URL = 'https://script.google.com/macros/s/AKfycbwUJxAnhOT0AbqHm5neGaJBsZlXUQrXi_pJlUUC50-3w58K9E0XxOhvvVI6TefSZTkKFA/exec';
 
         // ============================================================
         // DEFAULT DATA
@@ -1325,7 +1517,7 @@
         })();
 
         // ============================================================
-        // TOAST - على الجانب الأيمن
+        // TOAST
         // ============================================================
         function showToast(title, message, type) {
             var container = document.getElementById('toastContainer');
@@ -1358,7 +1550,7 @@
             var timeout = setTimeout(function() {
                 if (toast.parentElement) {
                     toast.classList.remove('show');
-                    setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
+                    setTimeout(function() { if (toast.parentElement) toast.remove(); }, 4000);
                 }
             }, 4000);
 
@@ -1393,7 +1585,8 @@
                 }
             }
 
-            fetch(FETCH_URL + '?action=getProducts')
+            // جلب المنتجات
+            fetch(BASE_URL + '?action=getProducts')
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
                     if (data.success && data.data && data.data.products) {
@@ -1411,7 +1604,8 @@
                     updateProgress();
                 });
 
-            fetch(FETCH_URL + '?action=getClients')
+            // جلب العملاء
+            fetch(BASE_URL + '?action=getClients')
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
                     if (data.success && data.data && data.data.clients) {
@@ -1807,23 +2001,95 @@
         }
 
         // ============================================================
-        // PREVIEW INVOICE
+        // PRINT INVOICE - طباعة الفاتورة بشكل احترافي
         // ============================================================
-        function previewInvoice() {
-            if (items.length === 0) { showToast('⚠️ تنبيه', 'لا توجد أصناف للمعاينة', 'error'); return; }
+        function printInvoice() {
+            if (items.length === 0) {
+                showToast('⚠️ تنبيه', 'لا توجد أصناف للطباعة', 'error');
+                return;
+            }
+
             var client = clientName.value.trim() || 'غير محدد';
+            var invNum = invoiceNumber.value.trim() || '----';
+            var book = bookNumber.value.trim() || '----';
+            var date = invoiceDate.value ? new Date(invoiceDate.value).toLocaleDateString('ar-EG') : '----';
+            var sales = salesman.value.trim() || 'غير محدد';
             var total = totalAmount.textContent;
             var net = netAmount.textContent;
-            alert('📋 معاينة الفاتورة\n\n' +
-                'العميل: ' + client + '\n' +
-                'عدد الأصناف: ' + items.length + '\n' +
-                'الإجمالي: ' + total + '\n' +
-                'الصافي: ' + net + '\n\n' +
-                'سيتم طباعة تفاصيل كاملة عند الطباعة');
+
+            var html = `
+                <div style="direction:rtl; font-family:Cairo, sans-serif; padding:20px; max-width:800px; margin:0 auto; background:#fff;">
+                    <div style="text-align:center; margin-bottom:20px; border-bottom:3px solid #121821; padding-bottom:15px;">
+                        <h1 style="font-size:1.5rem; font-weight:800; color:#121821; margin:0;">فاتورة مبيعات</h1>
+                        <p style="font-size:0.7rem; color:#6d7883; margin:5px 0 0;">شركة رولكس للدهانات</p>
+                    </div>
+                    
+                    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; background:#f4f6f5; padding:10px 15px; border-radius:8px; margin-bottom:15px; font-size:0.7rem; border:1px solid #dde3e0;">
+                        <div><span style="font-weight:600; color:#6d7883;">رقم الفاتورة:</span> ${invNum}</div>
+                        <div><span style="font-weight:600; color:#6d7883;">الرقم الدفتري:</span> ${book}</div>
+                        <div><span style="font-weight:600; color:#6d7883;">التاريخ:</span> ${date}</div>
+                        <div><span style="font-weight:600; color:#6d7883;">المندوب:</span> ${sales}</div>
+                    </div>
+                    
+                    <div style="background:#f4f6f5; padding:10px 15px; border-radius:8px; margin-bottom:15px; font-size:0.7rem; border:1px solid #dde3e0;">
+                        <div><span style="font-weight:600; color:#6d7883;">العميل:</span> ${client}</div>
+                    </div>
+                    
+                    <table style="width:100%; border-collapse:collapse; font-size:0.65rem; margin-bottom:15px;">
+                        <thead>
+                            <tr style="background:#121821; color:#ffffff;">
+                                <th style="padding:6px 8px; text-align:center; border:1px solid #121821;">#</th>
+                                <th style="padding:6px 8px; text-align:right; border:1px solid #121821;">المنتج</th>
+                                <th style="padding:6px 8px; text-align:center; border:1px solid #121821;">الكمية</th>
+                                <th style="padding:6px 8px; text-align:center; border:1px solid #121821;">الوحدة</th>
+                                <th style="padding:6px 8px; text-align:center; border:1px solid #121821;">سعر الوحدة</th>
+                                <th style="padding:6px 8px; text-align:center; border:1px solid #121821;">الإجمالي</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            items.forEach(function(item, index) {
+                html += `
+                    <tr>
+                        <td style="padding:5px 8px; text-align:center; border:1px solid #dde3e0;">${index + 1}</td>
+                        <td style="padding:5px 8px; text-align:right; border:1px solid #dde3e0;">${item.name}</td>
+                        <td style="padding:5px 8px; text-align:center; border:1px solid #dde3e0;">${item.qty}</td>
+                        <td style="padding:5px 8px; text-align:center; border:1px solid #dde3e0;">${item.package || item.unit || 'كجم'}</td>
+                        <td style="padding:5px 8px; text-align:center; border:1px solid #dde3e0;">${item.price.toFixed(2)}</td>
+                        <td style="padding:5px 8px; text-align:center; border:1px solid #dde3e0; font-weight:700;">${item.total.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                    
+                    <div style="display:flex; justify-content:space-between; border-top:2px solid #121821; padding-top:10px; margin-top:10px;">
+                        <div style="font-size:0.8rem; font-weight:700;">الإجمالي: ${total}</div>
+                        <div style="font-size:0.8rem; font-weight:700; color:#1d7b6c;">الصافي: ${net}</div>
+                    </div>
+                    
+                    <div style="text-align:center; margin-top:20px; font-size:0.55rem; color:#6d7883; border-top:1px solid #dde3e0; padding-top:10px;">
+                        شكراً لثقتكم بنا - شركة رولكس للدهانات
+                    </div>
+                </div>
+            `;
+
+            printArea.innerHTML = html;
+            
+            // طباعة
+            window.print();
+            
+            // تنظيف بعد الطباعة
+            setTimeout(function() {
+                printArea.innerHTML = '';
+            }, 1000);
         }
 
         // ============================================================
-        // SEARCH INVOICE - البحث عن فاتورة
+        // SEARCH INVOICE - البحث عن فاتورة من السيرفر
         // ============================================================
         function searchInvoice() {
             var searchTerm = searchInvoiceInput.value.trim();
@@ -1832,36 +2098,111 @@
                 return;
             }
 
-            // محاكاة البحث - في الواقع سيتم جلب من السيرفر
-            // هنا سنعرض رسالة توضيحية
-            showToast('🔍 بحث', 'جاري البحث عن الفاتورة: ' + searchTerm, 'warning');
+            showToast('🔍 بحث', 'جاري البحث عن الفاتورة...', 'warning');
+
+            // بحث عن طريق رقم الفاتورة أولاً
+            fetch(BASE_URL + '?action=getInvoice&invoiceNumber=' + encodeURIComponent(searchTerm))
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success && data.data) {
+                        loadInvoiceData(data.data);
+                        showToast('✅ تم العثور', 'تم تحميل الفاتورة بنجاح', 'success');
+                        return;
+                    }
+                    
+                    // إذا لم يتم العثور، جرب البحث بالرقم الدفتري
+                    fetch(BASE_URL + '?action=getInvoice&bookNumber=' + encodeURIComponent(searchTerm))
+                        .then(function(response) { return response.json(); })
+                        .then(function(data2) {
+                            if (data2.success && data2.data) {
+                                loadInvoiceData(data2.data);
+                                showToast('✅ تم العثور', 'تم تحميل الفاتورة بنجاح', 'success');
+                            } else {
+                                // البحث العام
+                                fetch(BASE_URL + '?action=searchInvoices&searchTerm=' + encodeURIComponent(searchTerm))
+                                    .then(function(response) { return response.json(); })
+                                    .then(function(data3) {
+                                        if (data3.success && data3.data && data3.data.length > 0) {
+                                            // عرض نتائج البحث
+                                            var results = data3.data;
+                                            var msg = 'تم العثور على ' + results.length + ' فاتورة:\n\n';
+                                            results.forEach(function(r, i) {
+                                                msg += (i+1) + '. رقم: ' + r.invoiceNumber + ' | العميل: ' + r.clientName + ' | التاريخ: ' + r.date + '\n';
+                                            });
+                                            msg += '\nاضغط OK لتحميل أول فاتورة';
+                                            if (confirm(msg)) {
+                                                // تحميل أول فاتورة
+                                                fetch(BASE_URL + '?action=getInvoice&invoiceNumber=' + encodeURIComponent(results[0].invoiceNumber))
+                                                    .then(function(r) { return r.json(); })
+                                                    .then(function(data4) {
+                                                        if (data4.success && data4.data) {
+                                                            loadInvoiceData(data4.data);
+                                                            showToast('✅ تم التحميل', 'تم تحميل الفاتورة الأولى', 'success');
+                                                        }
+                                                    });
+                                            }
+                                        } else {
+                                            showToast('❌ غير موجود', 'لم يتم العثور على فاتورة مطابقة', 'error');
+                                        }
+                                    });
+                            }
+                        });
+                })
+                .catch(function(error) {
+                    console.error('Error searching invoice:', error);
+                    showToast('❌ خطأ', 'حدث خطأ في البحث عن الفاتورة', 'error');
+                });
+        }
+
+        // ============================================================
+        // LOAD INVOICE DATA - تحميل بيانات الفاتورة إلى النموذج
+        // ============================================================
+        function loadInvoiceData(invoiceData) {
+            // ملء الحقول الأساسية
+            bookNumber.value = invoiceData.bookNumber || '';
+            invoiceNumber.value = invoiceData.invoiceNumber || '';
+            if (invoiceData.date) {
+                var dateObj = new Date(invoiceData.date);
+                invoiceDate.value = dateObj.toISOString().split('T')[0];
+            }
+            salesman.value = invoiceData.salesman || '';
+            clientCode.value = invoiceData.clientCode || '';
+            clientName.value = invoiceData.clientName || '';
+
+            // تحميل الأصناف
+            items = [];
+            if (invoiceData.items && invoiceData.items.length > 0) {
+                invoiceData.items.forEach(function(item) {
+                    items.push({
+                        name: item.name || '',
+                        code: item.code || '',
+                        qty: parseFloat(item.qty) || 0,
+                        price: parseFloat(item.price) || 0,
+                        total: parseFloat(item.total) || 0,
+                        unit: item.unit || 'كجم',
+                        package: item.unit || '',
+                        weight: parseFloat(item.weight) || 0,
+                        color: item.color || '',
+                        crusherType: item.crusherType || ''
+                    });
+                });
+            }
+
+            renderItems();
+            calculateTotals();
+            isEditingInvoice = true;
+            editingInvoiceNumber = invoiceData.invoiceNumber || '';
             
-            // في التطبيق الحقيقي، سيتم جلب البيانات من السيرفر
-            // وإذا تم العثور على الفاتورة، سيتم ملء الحقول
-            // وإذا لم يتم العثور، تظهر رسالة خطأ
-            
-            // محاكاة العثور على فاتورة (للتوضيح)
-            setTimeout(function() {
-                // مثال: ملء البيانات بشكل تجريبي
-                // في الواقع سيتم جلب البيانات من السيرفر
-                var found = confirm('✅ تم العثور على الفاتورة!\n\nرقم الفاتورة: INV-20260729-0001\nالعميل: شركة النور للتجارة\nالمندوب: أحمد محمد\nالإجمالي: 1500.00\n\nهل تريد تحميل هذه الفاتورة؟');
-                if (found) {
-                    // ملء البيانات
-                    bookNumber.value = '12345';
-                    clientName.value = 'شركة النور للتجارة';
-                    salesman.value = 'أحمد محمد';
-                    // إضافة أصناف تجريبية
-                    items = [
-                        { name: 'فيكس وسط أبيض - عبوة 1 كيلو', code: '1.2', qty: 5, price: 50, total: 250, unit: 'كجم', package: 'عبوة', weight: 1, color: '', crusherType: '' },
-                        { name: 'رول تون 300 - عبوة 0.5 كيلو', code: '2.1', qty: 10, price: 30, total: 300, unit: 'كجم', package: 'عبوة', weight: 0.5, color: '', crusherType: '' }
-                    ];
-                    renderItems();
-                    calculateTotals();
-                    isEditingInvoice = true;
-                    editingInvoiceNumber = 'INV-20260729-0001';
-                    showToast('✅ تم التحميل', 'تم تحميل الفاتورة بنجاح', 'success');
-                }
-            }, 1500);
+            // تحديث عنوان الفاتورة
+            showToast('📄 فاتورة', 'تم تحميل الفاتورة رقم: ' + (invoiceData.invoiceNumber || ''), 'success');
+        }
+
+        // ============================================================
+        // PREVIEW INVOICE
+        // ============================================================
+        function previewInvoice() {
+            if (items.length === 0) { showToast('⚠️ تنبيه', 'لا توجد أصناف للمعاينة', 'error'); return; }
+            printInvoice();
         }
 
         // ============================================================
@@ -1978,7 +2319,7 @@
             });
 
             var promises = rows.map(function(row) {
-                return fetch(SAVE_URL, {
+                return fetch(BASE_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
@@ -1992,9 +2333,9 @@
                     btnSaveInvoice.disabled = false;
                     btnSaveInvoice.innerHTML = '<i class="fas fa-save"></i> حفظ';
                     
-                    // ===== سؤال المستخدم عن الطباعة =====
+                    // سؤال المستخدم عن الطباعة
                     if (confirm('✅ تم حفظ الفاتورة بنجاح!\n\nهل تريد طباعة الفاتورة الآن؟')) {
-                        window.print();
+                        printInvoice();
                     }
                     
                     resetForm();
@@ -2022,6 +2363,10 @@
                 e.preventDefault();
                 searchInvoiceInput.focus();
             }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                printInvoice();
+            }
         });
 
         // ============================================================
@@ -2030,11 +2375,12 @@
         loadData();
 
         console.log('🧾 فاتورة المبيعات - الإصدار النهائي');
-        console.log('📌 رابط الجلب:', FETCH_URL);
-        console.log('📌 رابط الحفظ:', SAVE_URL);
+        console.log('📌 رابط السيرفر:', BASE_URL);
         console.log('📌 Ctrl+F للبحث عن فاتورة');
+        console.log('📌 Ctrl+P للطباعة');
         console.log('📌 يتم وضع العبوة في عمود الوحدة عند الحفظ');
         console.log('📌 رسائل Toast على الجانب الأيمن');
+        console.log('📌 طباعة احترافية بدون عناصر الصفحة');
     </script>
 
 </body>
