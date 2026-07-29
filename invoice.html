@@ -2520,7 +2520,6 @@
                     color: color,
                     crusherType: crusherType
                 });
-                // No toast for normal addition (as requested)
             }
 
             renderItems();
@@ -2671,445 +2670,482 @@
 
         /**
          * ============================================================
-         * PRINT INVOICE - Professional Design
+         * PRINT INVOICE - WITH LATEST SETTINGS FROM SERVER
          * ============================================================
          */
-        // ============================================================
-// PRINT INVOICE - مع جلب الإعدادات أولاً
-// ============================================================
-function printInvoice() {
-    if (items.length === 0) {
-        showToast('⚠️ تنبيه', 'لا توجد أصناف للطباعة', 'error');
-        return;
-    }
-
-    // جلب الإعدادات من السيرفر أولاً
-    fetch(SETTINGS_URL + '?action=getSettings')
-        .then(function(response) {
-            return response.json();
-        })
-        .then(function(data) {
-            if (data.success && data.data) {
-                settings = data.data;
-                console.log('✅ تم جلب الإعدادات للطباعة');
-            }
-            // بعد جلب الإعدادات، نقوم بالطباعة
-            renderAndPrintInvoice();
-        })
-        .catch(function(error) {
-            console.error('❌ خطأ في جلب الإعدادات:', error);
-            // استخدام الإعدادات المخزنة محلياً
-            renderAndPrintInvoice();
-        });
-}
-
-// ============================================================
-// RENDER AND PRINT INVOICE
-// ============================================================
-function renderAndPrintInvoice() {
-    var client = clientName.value.trim() || 'غير محدد';
-    var invNum = invoiceNumber.value.trim() || '----';
-    var book = bookNumber.value.trim() || '----';
-    var date = invoiceDate.value ? new Date(invoiceDate.value).toLocaleDateString('ar-EG') : '----';
-    var sales = salesman.value.trim() || 'غير محدد';
-    var total = totalAmount.textContent;
-    var net = netAmount.textContent;
-
-    // استخدام الإعدادات
-    var companyName = settings.companyName || 'شركة رولكس للدهانات';
-    var companyAddress = settings.companyAddress || '';
-    var companyPhone = settings.companyPhone || '';
-    var companyEmail = settings.companyEmail || '';
-    var companyWebsite = settings.companyWebsite || '';
-    var companyTaxNumber = settings.companyTaxNumber || '';
-    var companyLogo = settings.companyLogo || '';
-    var footer = settings.invoiceFooter || 'شكراً لثقتكم بنا';
-
-    // فتح نافذة جديدة للطباعة
-    var printWindow = window.open('', '_blank', 'width=850,height=650');
-    if (!printWindow) {
-        showToast('❌ خطأ', 'تم حظر النوافذ المنبثقة، يرجى السماح بها', 'error');
-        return;
-    }
-
-    var htmlContent = `
-    <!DOCTYPE html>
-    <html dir="rtl">
-    <head>
-        <meta charset="UTF-8">
-        <title>فاتورة مبيعات</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-        <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-                font-family: 'Cairo', sans-serif;
-                background: #f8f9fa;
-                padding: 30px;
-                direction: rtl;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                min-height: 100vh;
-            }
-            .invoice-wrapper {
-                max-width: 820px;
-                width: 100%;
-                background: #ffffff;
-                border-radius: 16px;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-                overflow: hidden;
-                padding: 35px 40px 30px;
-            }
-            
-            /* ===== HEADER ===== */
-            .invoice-header {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                padding-bottom: 20px;
-                border-bottom: 3px solid #121821;
-                margin-bottom: 20px;
-                gap: 20px;
-            }
-            .invoice-header .logo-section {
-                display: flex;
-                align-items: center;
-                gap: 15px;
-                flex-shrink: 0;
-            }
-            .invoice-header .logo-section .logo-box {
-                width: 70px;
-                height: 70px;
-                border-radius: 12px;
-                background: #121821;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                overflow: hidden;
-                flex-shrink: 0;
-                border: 2px solid #dd9f2e;
-            }
-            .invoice-header .logo-section .logo-box img {
-                width: 100%;
-                height: 100%;
-                object-fit: contain;
-                padding: 6px;
-            }
-            .invoice-header .logo-section .logo-box .logo-placeholder {
-                color: #ffffff;
-                font-size: 1.8rem;
-                font-weight: 900;
-                letter-spacing: 1px;
-            }
-            .invoice-header .company-details {
-                flex: 1;
-                text-align: center;
-            }
-            .invoice-header .company-details h1 {
-                font-size: 1.6rem;
-                font-weight: 900;
-                color: #121821;
-                letter-spacing: -0.5px;
-                margin-bottom: 2px;
-            }
-            .invoice-header .company-details .badge {
-                display: inline-block;
-                background: #dd9f2e;
-                color: #ffffff;
-                font-size: 0.55rem;
-                font-weight: 700;
-                padding: 2px 14px;
-                border-radius: 50px;
-                letter-spacing: 0.5px;
-                margin-bottom: 4px;
-            }
-            .invoice-header .company-details .info-row {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 4px 14px;
-                font-size: 0.6rem;
-                color: #6d7883;
-                margin-top: 2px;
-            }
-            .invoice-header .invoice-title-section {
-                text-align: left;
-                flex-shrink: 0;
-                background: #f4f6f5;
-                padding: 8px 18px;
-                border-radius: 10px;
-                border-right: 4px solid #dd9f2e;
-            }
-            .invoice-header .invoice-title-section .title {
-                font-size: 0.9rem;
-                font-weight: 900;
-                color: #121821;
-            }
-            .invoice-header .invoice-title-section .sub {
-                font-size: 0.55rem;
-                color: #6d7883;
-                font-weight: 600;
+        function printInvoice() {
+            if (items.length === 0) {
+                showToast('⚠️ تنبيه', 'لا توجد أصناف للطباعة', 'error');
+                return;
             }
 
-            /* ===== INFO GRID ===== */
-            .info-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 12px;
-                margin-bottom: 18px;
-            }
-            .info-grid .info-card {
-                background: #f8f9fa;
-                border-radius: 10px;
-                padding: 10px 14px;
-                border: 1px solid #eef1ef;
-            }
-            .info-grid .info-card .label {
-                font-size: 0.5rem;
-                font-weight: 700;
-                color: #6d7883;
-                letter-spacing: 0.3px;
-                text-transform: uppercase;
-                display: block;
-                margin-bottom: 2px;
-            }
-            .info-grid .info-card .value {
-                font-size: 0.8rem;
-                font-weight: 700;
-                color: #121821;
-            }
-            .info-grid .info-card.client-card {
-                grid-column: 1 / -1;
-                background: #faead0;
-                border-color: #dd9f2e;
+            // Fetch latest settings from server before printing
+            fetch(SETTINGS_URL + '?action=getSettings')
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (data.success && data.data) {
+                        settings = data.data;
+                        console.log('✅ تم جلب الإعدادات للطباعة');
+                    }
+                    renderAndPrintInvoice();
+                })
+                .catch(function(error) {
+                    console.error('❌ خطأ في جلب الإعدادات:', error);
+                    renderAndPrintInvoice();
+                });
+        }
+
+        /**
+         * ============================================================
+         * RENDER AND PRINT INVOICE
+         * ============================================================
+         */
+        function renderAndPrintInvoice() {
+            var client = clientName.value.trim() || 'غير محدد';
+            var invNum = invoiceNumber.value.trim() || '----';
+            var book = bookNumber.value.trim() || '----';
+            var date = invoiceDate.value ? new Date(invoiceDate.value).toLocaleDateString('ar-EG') : '----';
+            var sales = salesman.value.trim() || 'غير محدد';
+            var total = totalAmount.textContent;
+            var net = netAmount.textContent;
+
+            // استخدام الإعدادات
+            var companyName = settings.companyName || 'شركة رولكس للدهانات';
+            var companyAddress = settings.companyAddress || '';
+            var companyPhone = settings.companyPhone || '';
+            var companyEmail = settings.companyEmail || '';
+            var companyWebsite = settings.companyWebsite || '';
+            var companyTaxNumber = settings.companyTaxNumber || '';
+            var companyLogo = settings.companyLogo || '';
+            var footer = settings.invoiceFooter || 'شكراً لثقتكم بنا';
+
+            // فتح نافذة جديدة للطباعة
+            var printWindow = window.open('', '_blank', 'width=850,height=650');
+            if (!printWindow) {
+                showToast('❌ خطأ', 'تم حظر النوافذ المنبثقة، يرجى السماح بها', 'error');
+                return;
             }
 
-            /* ===== TABLE ===== */
-            .table-wrapper {
-                border-radius: 10px;
-                border: 1px solid #eef1ef;
-                overflow: hidden;
-                margin-bottom: 16px;
-            }
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 0.7rem;
-            }
-            table thead th {
-                background: #121821;
-                color: #ffffff;
-                padding: 8px 10px;
-                text-align: center;
-                font-weight: 700;
-                font-size: 0.55rem;
-                letter-spacing: 0.3px;
-            }
-            table thead th:first-child { text-align: center; }
-            table thead th:nth-child(2) { text-align: right; }
-            table tbody td {
-                padding: 6px 10px;
-                text-align: center;
-                border-bottom: 1px solid #eef1ef;
-                color: #2c3644;
-                font-size: 0.65rem;
-            }
-            table tbody tr:last-child td { border-bottom: none; }
-            table tbody td.right { text-align: right; }
-            table tbody td.bold { font-weight: 700; color: #121821; }
-            table tbody tr:nth-child(even) td { background: #fafbfa; }
+            var htmlContent = `
+            <!DOCTYPE html>
+            <html dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <title>فاتورة مبيعات</title>
+                <link rel="preconnect" href="https://fonts.googleapis.com">
+                <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body {
+                        font-family: 'Cairo', sans-serif;
+                        background: #f8f9fa;
+                        padding: 30px;
+                        direction: rtl;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                    }
+                    .invoice-wrapper {
+                        max-width: 820px;
+                        width: 100%;
+                        background: #ffffff;
+                        border-radius: 16px;
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+                        overflow: hidden;
+                        padding: 35px 40px 30px;
+                    }
+                    
+                    /* ===== HEADER ===== */
+                    .invoice-header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding-bottom: 20px;
+                        border-bottom: 3px solid #121821;
+                        margin-bottom: 20px;
+                        gap: 20px;
+                    }
+                    .invoice-header .logo-section {
+                        display: flex;
+                        align-items: center;
+                        gap: 15px;
+                        flex-shrink: 0;
+                    }
+                    .invoice-header .logo-section .logo-box {
+                        width: 70px;
+                        height: 70px;
+                        border-radius: 12px;
+                        background: #121821;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        overflow: hidden;
+                        flex-shrink: 0;
+                        border: 2px solid #dd9f2e;
+                    }
+                    .invoice-header .logo-section .logo-box img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: contain;
+                        padding: 6px;
+                    }
+                    .invoice-header .logo-section .logo-box .logo-placeholder {
+                        color: #ffffff;
+                        font-size: 1.8rem;
+                        font-weight: 900;
+                        letter-spacing: 1px;
+                    }
+                    .invoice-header .company-details {
+                        flex: 1;
+                        text-align: center;
+                    }
+                    .invoice-header .company-details h1 {
+                        font-size: 1.6rem;
+                        font-weight: 900;
+                        color: #121821;
+                        letter-spacing: -0.5px;
+                        margin-bottom: 2px;
+                    }
+                    .invoice-header .company-details .badge {
+                        display: inline-block;
+                        background: #dd9f2e;
+                        color: #ffffff;
+                        font-size: 0.55rem;
+                        font-weight: 700;
+                        padding: 2px 14px;
+                        border-radius: 50px;
+                        letter-spacing: 0.5px;
+                        margin-bottom: 4px;
+                    }
+                    .invoice-header .company-details .info-row {
+                        display: flex;
+                        flex-wrap: wrap;
+                        justify-content: center;
+                        gap: 4px 14px;
+                        font-size: 0.6rem;
+                        color: #6d7883;
+                        margin-top: 2px;
+                    }
+                    .invoice-header .company-details .info-row span {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 4px;
+                    }
+                    .invoice-header .invoice-title-section {
+                        text-align: left;
+                        flex-shrink: 0;
+                        background: #f4f6f5;
+                        padding: 8px 18px;
+                        border-radius: 10px;
+                        border-right: 4px solid #dd9f2e;
+                    }
+                    .invoice-header .invoice-title-section .title {
+                        font-size: 0.9rem;
+                        font-weight: 900;
+                        color: #121821;
+                    }
+                    .invoice-header .invoice-title-section .sub {
+                        font-size: 0.55rem;
+                        color: #6d7883;
+                        font-weight: 600;
+                    }
 
-            /* ===== TOTALS ===== */
-            .totals-section {
-                display: flex;
-                justify-content: flex-end;
-                gap: 30px;
-                padding-top: 12px;
-                border-top: 2px solid #121821;
-                margin-bottom: 16px;
-            }
-            .totals-section .total-item {
-                text-align: center;
-            }
-            .totals-section .total-item .label {
-                font-size: 0.5rem;
-                font-weight: 700;
-                color: #6d7883;
-                letter-spacing: 0.3px;
-                display: block;
-            }
-            .totals-section .total-item .value {
-                font-size: 1.1rem;
-                font-weight: 900;
-                color: #121821;
-                font-family: 'Courier New', monospace;
-            }
-            .totals-section .total-item.net .value {
-                color: #1d7b6c;
-            }
+                    /* ===== INFO GRID ===== */
+                    .info-grid {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 12px;
+                        margin-bottom: 18px;
+                    }
+                    .info-grid .info-card {
+                        background: #f8f9fa;
+                        border-radius: 10px;
+                        padding: 10px 14px;
+                        border: 1px solid #eef1ef;
+                    }
+                    .info-grid .info-card .label {
+                        font-size: 0.5rem;
+                        font-weight: 700;
+                        color: #6d7883;
+                        letter-spacing: 0.3px;
+                        text-transform: uppercase;
+                        display: block;
+                        margin-bottom: 2px;
+                    }
+                    .info-grid .info-card .value {
+                        font-size: 0.8rem;
+                        font-weight: 700;
+                        color: #121821;
+                    }
+                    .info-grid .info-card.client-card {
+                        grid-column: 1 / -1;
+                        background: #faead0;
+                        border-color: #dd9f2e;
+                    }
+                    .info-grid .info-card.client-card .value {
+                        color: #7a5312;
+                    }
 
-            /* ===== FOOTER ===== */
-            .invoice-footer {
-                text-align: center;
-                padding-top: 14px;
-                border-top: 1px solid #eef1ef;
-                font-size: 0.55rem;
-                color: #6d7883;
-            }
-            .invoice-footer .footer-text {
-                font-weight: 600;
-            }
+                    /* ===== TABLE ===== */
+                    .table-wrapper {
+                        border-radius: 10px;
+                        border: 1px solid #eef1ef;
+                        overflow: hidden;
+                        margin-bottom: 16px;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        font-size: 0.7rem;
+                    }
+                    table thead th {
+                        background: #121821;
+                        color: #ffffff;
+                        padding: 8px 10px;
+                        text-align: center;
+                        font-weight: 700;
+                        font-size: 0.55rem;
+                        letter-spacing: 0.3px;
+                    }
+                    table thead th:first-child { text-align: center; }
+                    table thead th:nth-child(2) { text-align: right; }
+                    table tbody td {
+                        padding: 6px 10px;
+                        text-align: center;
+                        border-bottom: 1px solid #eef1ef;
+                        color: #2c3644;
+                        font-size: 0.65rem;
+                    }
+                    table tbody tr:last-child td { border-bottom: none; }
+                    table tbody td.right { text-align: right; }
+                    table tbody td.bold { font-weight: 700; color: #121821; }
+                    table tbody tr:nth-child(even) td { background: #fafbfa; }
 
-            /* ===== RESPONSIVE ===== */
-            @media print {
-                body { background: #ffffff; padding: 10px; }
-                .invoice-wrapper { box-shadow: none; padding: 20px; }
-                .invoice-header .logo-section .logo-box { border: 1px solid #dd9f2e; }
-            }
-            @media (max-width: 600px) {
-                .invoice-header {
-                    flex-direction: column;
-                    align-items: center;
-                    text-align: center;
-                }
-                .invoice-header .invoice-title-section {
-                    text-align: center;
-                    border-right: none;
-                    border-top: 2px solid #dd9f2e;
-                    padding: 6px 14px;
-                }
-                .info-grid { grid-template-columns: 1fr; }
-                .totals-section {
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 8px;
-                }
-            }
-        </style>
-    </head>
-    <body>
-        <div class="invoice-wrapper">
+                    /* ===== TOTALS ===== */
+                    .totals-section {
+                        display: flex;
+                        justify-content: flex-end;
+                        gap: 30px;
+                        padding-top: 12px;
+                        border-top: 2px solid #121821;
+                        margin-bottom: 16px;
+                    }
+                    .totals-section .total-item {
+                        text-align: center;
+                    }
+                    .totals-section .total-item .label {
+                        font-size: 0.5rem;
+                        font-weight: 700;
+                        color: #6d7883;
+                        letter-spacing: 0.3px;
+                        display: block;
+                    }
+                    .totals-section .total-item .value {
+                        font-size: 1.1rem;
+                        font-weight: 900;
+                        color: #121821;
+                        font-family: 'Courier New', monospace;
+                    }
+                    .totals-section .total-item.net .value {
+                        color: #1d7b6c;
+                    }
 
-            <!-- HEADER -->
-            <div class="invoice-header">
-                <div class="logo-section">
-                    <div class="logo-box">
-                        ${companyLogo ? `<img src="${companyLogo}" alt="شعار المؤسسة" />` : `<span class="logo-placeholder">R</span>`}
+                    /* ===== FOOTER ===== */
+                    .invoice-footer {
+                        text-align: center;
+                        padding-top: 14px;
+                        border-top: 1px solid #eef1ef;
+                        font-size: 0.55rem;
+                        color: #6d7883;
+                    }
+                    .invoice-footer .footer-text {
+                        font-weight: 600;
+                    }
+                    .invoice-footer .footer-thanks {
+                        font-size: 0.6rem;
+                        font-weight: 700;
+                        color: #121821;
+                        margin-top: 2px;
+                    }
+
+                    /* ===== RESPONSIVE ===== */
+                    @media print {
+                        body {
+                            background: #ffffff;
+                            padding: 10px;
+                        }
+                        .invoice-wrapper {
+                            box-shadow: none;
+                            padding: 20px;
+                        }
+                        .info-grid .info-card.client-card {
+                            background: #faead0;
+                        }
+                        .invoice-header .logo-section .logo-box {
+                            border: 1px solid #dd9f2e;
+                        }
+                    }
+                    @media (max-width: 600px) {
+                        .invoice-header {
+                            flex-direction: column;
+                            align-items: center;
+                            text-align: center;
+                        }
+                        .invoice-header .invoice-title-section {
+                            text-align: center;
+                            border-right: none;
+                            border-top: 2px solid #dd9f2e;
+                            padding: 6px 14px;
+                        }
+                        .info-grid {
+                            grid-template-columns: 1fr;
+                        }
+                        .info-grid .info-card.client-card {
+                            grid-column: 1;
+                        }
+                        .totals-section {
+                            flex-direction: column;
+                            align-items: center;
+                            gap: 8px;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="invoice-wrapper">
+
+                    <!-- ============================================================
+                    HEADER
+                    ============================================================ -->
+                    <div class="invoice-header">
+                        <div class="logo-section">
+                            <div class="logo-box">
+                                ${companyLogo ? `<img src="${companyLogo}" alt="شعار المؤسسة" />` : `<span class="logo-placeholder">R</span>`}
+                            </div>
+                            <div>
+                                <div style="font-size:1.1rem; font-weight:900; color:#121821; line-height:1.1;">${companyName}</div>
+                                <div style="font-size:0.5rem; color:#6d7883; font-weight:600;">${companyAddress || 'مصر'}</div>
+                            </div>
+                        </div>
+                        <div class="company-details">
+                            <div class="badge">فاتورة ضريبية</div>
+                            <div class="info-row">
+                                ${companyPhone ? `<span>📞 ${companyPhone}</span>` : ''}
+                                ${companyEmail ? `<span>✉️ ${companyEmail}</span>` : ''}
+                                ${companyWebsite ? `<span>🌐 ${companyWebsite}</span>` : ''}
+                                ${companyTaxNumber ? `<span>🆔 ${companyTaxNumber}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="invoice-title-section">
+                            <div class="title"># ${invNum}</div>
+                            <div class="sub">فاتورة مبيعات</div>
+                        </div>
                     </div>
-                    <div>
-                        <div style="font-size:1.1rem; font-weight:900; color:#121821; line-height:1.1;">${companyName}</div>
-                        <div style="font-size:0.5rem; color:#6d7883; font-weight:600;">${companyAddress || 'مصر'}</div>
-                    </div>
-                </div>
-                <div class="company-details">
-                    <div class="badge">فاتورة ضريبية</div>
-                    <div class="info-row">
-                        ${companyPhone ? `<span>📞 ${companyPhone}</span>` : ''}
-                        ${companyEmail ? `<span>✉️ ${companyEmail}</span>` : ''}
-                        ${companyWebsite ? `<span>🌐 ${companyWebsite}</span>` : ''}
-                        ${companyTaxNumber ? `<span>🆔 ${companyTaxNumber}</span>` : ''}
-                    </div>
-                </div>
-                <div class="invoice-title-section">
-                    <div class="title"># ${invNum}</div>
-                    <div class="sub">فاتورة مبيعات</div>
-                </div>
-            </div>
 
-            <!-- INFO GRID -->
-            <div class="info-grid">
-                <div class="info-card">
-                    <span class="label">رقم الفاتورة</span>
-                    <div class="value">${invNum}</div>
-                </div>
-                <div class="info-card">
-                    <span class="label">الرقم الدفتري</span>
-                    <div class="value">${book}</div>
-                </div>
-                <div class="info-card">
-                    <span class="label">التاريخ</span>
-                    <div class="value">${date}</div>
-                </div>
-                <div class="info-card">
-                    <span class="label">المندوب</span>
-                    <div class="value">${sales}</div>
-                </div>
-                <div class="info-card client-card">
-                    <span class="label">العميل</span>
-                    <div class="value">${client}</div>
-                </div>
-            </div>
+                    <!-- ============================================================
+                    INFO GRID
+                    ============================================================ -->
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <span class="label">رقم الفاتورة</span>
+                            <div class="value">${invNum}</div>
+                        </div>
+                        <div class="info-card">
+                            <span class="label">الرقم الدفتري</span>
+                            <div class="value">${book}</div>
+                        </div>
+                        <div class="info-card">
+                            <span class="label">التاريخ</span>
+                            <div class="value">${date}</div>
+                        </div>
+                        <div class="info-card">
+                            <span class="label">المندوب</span>
+                            <div class="value">${sales}</div>
+                        </div>
+                        <div class="info-card client-card">
+                            <span class="label">العميل</span>
+                            <div class="value">${client}</div>
+                        </div>
+                    </div>
 
-            <!-- ITEMS TABLE -->
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width:35px;">#</th>
-                            <th style="text-align:right;">المنتج</th>
-                            <th style="width:55px;">الكمية</th>
-                            <th style="width:55px;">الوحدة</th>
-                            <th style="width:65px;">سعر الوحدة</th>
-                            <th style="width:75px;">الإجمالي</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                    <!-- ============================================================
+                    ITEMS TABLE
+                    ============================================================ -->
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width:35px;">#</th>
+                                    <th style="text-align:right;">المنتج</th>
+                                    <th style="width:55px;">الكمية</th>
+                                    <th style="width:55px;">الوحدة</th>
+                                    <th style="width:65px;">سعر الوحدة</th>
+                                    <th style="width:75px;">الإجمالي</th>
+                                </tr>
+                            </thead>
+                            <tbody>
             `;
 
-    items.forEach(function(item, index) {
-        htmlContent += `
-            <tr>
-                <td>${index + 1}</td>
-                <td class="right">${item.name}</td>
-                <td>${item.qty}</td>
-                <td>${item.package || item.unit || 'كجم'}</td>
-                <td>${item.price.toFixed(2)}</td>
-                <td class="bold">${item.total.toFixed(2)}</td>
-            </tr>
-        `;
-    });
+            items.forEach(function(item, index) {
+                htmlContent += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td class="right">${item.name}</td>
+                        <td>${item.qty}</td>
+                        <td>${item.package || item.unit || 'كجم'}</td>
+                        <td>${item.price.toFixed(2)}</td>
+                        <td class="bold">${item.total.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
 
-    htmlContent += `
-                    </tbody>
-                </table>
-            </div>
+            htmlContent += `
+                            </tbody>
+                        </table>
+                    </div>
 
-            <!-- TOTALS -->
-            <div class="totals-section">
-                <div class="total-item">
-                    <span class="label">الإجمالي</span>
-                    <span class="value">${total}</span>
+                    <!-- ============================================================
+                    TOTALS
+                    ============================================================ -->
+                    <div class="totals-section">
+                        <div class="total-item">
+                            <span class="label">الإجمالي</span>
+                            <span class="value">${total}</span>
+                        </div>
+                        <div class="total-item net">
+                            <span class="label">الصافي</span>
+                            <span class="value">${net}</span>
+                        </div>
+                    </div>
+
+                    <!-- ============================================================
+                    FOOTER
+                    ============================================================ -->
+                    <div class="invoice-footer">
+                        <div class="footer-text">${footer}</div>
+                        <div class="footer-thanks">شكراً لثقتكم بنا</div>
+                    </div>
+
                 </div>
-                <div class="total-item net">
-                    <span class="label">الصافي</span>
-                    <span class="value">${net}</span>
-                </div>
-            </div>
 
-            <!-- FOOTER -->
-            <div class="invoice-footer">
-                <div class="footer-text">${footer}</div>
-                <div style="font-size:0.6rem; font-weight:700; color:#121821; margin-top:2px;">شكراً لثقتكم بنا</div>
-            </div>
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(function() {
+                            window.close();
+                        }, 1000);
+                    };
+                <\/script>
+            </body>
+            </html>
+            `;
 
-        </div>
-
-        <script>
-            window.onload = function() {
-                window.print();
-                setTimeout(function() {
-                    window.close();
-                }, 1000);
-            };
-        <\/script>
-    </body>
-    </html>
-    `;
-
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-}
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+        }
 
         /**
          * ============================================================
@@ -3480,6 +3516,7 @@ function renderAndPrintInvoice() {
         console.log('📌 Ctrl+P للطباعة');
         console.log('📌 بحث دقيق (مطابقة تامة)');
         console.log('📌 رسائل Toast عصرية مع أزرار');
+        console.log('📌 يتم جلب الإعدادات قبل الطباعة');
     </script>
 
 </body>
