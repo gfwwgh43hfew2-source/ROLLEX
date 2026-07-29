@@ -660,9 +660,9 @@
         var btnResetSettings = document.getElementById('btnResetSettings');
 
         // ============================================================
-        // CONFIG
+        // CONFIG - الرابط الجديد (الإصدار 43)
         // ============================================================
-        var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbw9afQVb4RXG51BJ-ohtg5wBT1UdaAC9z5czgdfltfBTEMGoNkHr_NOdWt20bE9sCyowg/exec';
+        var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbwMCfnX6CfW_LnkyPdazYxMMmr28irC7jnzn_fCdPk4VV9B7FbIv0Zujmd6th7zC6zasQ/exec';
 
         // ============================================================
         // DEFAULT SETTINGS
@@ -742,7 +742,6 @@
                         companyTaxNumber.value = settings.companyTaxNumber || DEFAULT_SETTINGS.companyTaxNumber;
                         invoiceFooter.value = settings.invoiceFooter || DEFAULT_SETTINGS.invoiceFooter;
 
-                        // تحميل الشعار
                         if (settings.companyLogo && settings.companyLogo !== '') {
                             logoImage.src = settings.companyLogo;
                             logoImage.style.display = 'block';
@@ -754,7 +753,6 @@
 
                         console.log('✅ تم تحميل الإعدادات');
                     } else {
-                        // استخدام الإعدادات الافتراضية
                         loadDefaultSettings();
                     }
                 })
@@ -777,32 +775,33 @@
         }
 
         // ============================================================
-        // SAVE SETTINGS
+        // SAVE SETTINGS - باستخدام GET (حل مشكلة CORS)
         // ============================================================
         function saveSettings() {
             var settings = {
-                companyName: companyName.value.trim(),
-                companyAddress: companyAddress.value.trim(),
-                companyPhone: companyPhone.value.trim(),
-                companyEmail: companyEmail.value.trim(),
-                companyWebsite: companyWebsite.value.trim(),
-                companyTaxNumber: companyTaxNumber.value.trim(),
-                companyLogo: logoImage.src || '',
-                invoiceFooter: invoiceFooter.value.trim()
+                companyName: encodeURIComponent(companyName.value.trim()),
+                companyAddress: encodeURIComponent(companyAddress.value.trim()),
+                companyPhone: encodeURIComponent(companyPhone.value.trim()),
+                companyEmail: encodeURIComponent(companyEmail.value.trim()),
+                companyWebsite: encodeURIComponent(companyWebsite.value.trim()),
+                companyTaxNumber: encodeURIComponent(companyTaxNumber.value.trim()),
+                companyLogo: encodeURIComponent(logoImage.src || ''),
+                invoiceFooter: encodeURIComponent(invoiceFooter.value.trim())
             };
 
             btnSaveSettings.disabled = true;
             btnSaveSettings.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
-            fetch(SETTINGS_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'saveSettings',
-                        settings: settings
-                    })
+            var url = SETTINGS_URL + '?action=saveSettings';
+            Object.keys(settings).forEach(function(key) {
+                url += '&' + key + '=' + settings[key];
+            });
+
+            fetch(url)
+                .then(function(response) { 
+                    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
+                    return response.json(); 
                 })
-                .then(function(response) { return response.json(); })
                 .then(function(data) {
                     if (data.success) {
                         showToast('✅ تم الحفظ', 'تم حفظ الإعدادات بنجاح', 'success');
