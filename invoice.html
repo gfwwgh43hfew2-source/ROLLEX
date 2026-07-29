@@ -1185,9 +1185,12 @@
         var invoiceCounter = 0;
 
         // ============================================================
-        // CONFIG - الرابط النهائي (الإصدار 38)
+        // CONFIG - الروابط النهائية
         // ============================================================
-        var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw2N2Xg-o7SeQWFP8WvrsN7801E2gKRe1Tv03Ek_7B9kesR2UFBuT0fB3rIPX1OB3F2Wg/exec';
+        // رابط جلب البيانات (منتجات + عملاء)
+        var FETCH_URL = 'https://script.google.com/macros/s/AKfycbw2N2Xg-o7SeQWFP8WvrsN7801E2gKRe1Tv03Ek_7B9kesR2UFBuT0fB3rIPX1OB3F2Wg/exec';
+        // رابط حفظ الفواتير (منفصل)
+        var SAVE_URL = 'https://script.google.com/macros/s/AKfycbxD2c73p5CegQdVjFIsFaxN0x7bYr6R-0FS6Co8nHjSKhiS1sjk-4FXUlw8AAOYOklrWQ/exec';
 
         // ============================================================
         // DEFAULT DATA
@@ -1307,7 +1310,7 @@
             }
 
             // ===== جلب المنتجات =====
-            fetch(SCRIPT_URL + '?action=getProducts')
+            fetch(FETCH_URL + '?action=getProducts')
                 .then(function(response) {
                     if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
                     return response.json();
@@ -1331,7 +1334,7 @@
                 });
 
             // ===== جلب العملاء =====
-            fetch(SCRIPT_URL + '?action=getClients')
+            fetch(FETCH_URL + '?action=getClients')
                 .then(function(response) {
                     if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
                     return response.json();
@@ -1828,41 +1831,39 @@
         });
 
         // ============================================================
-        // SAVE TO GOOGLE SHEETS
+        // SAVE TO GOOGLE SHEETS - باستخدام رابط الحفظ المنفصل
         // ============================================================
         function saveInvoiceToSheet(invoiceData) {
             btnSaveInvoice.disabled = true;
             btnSaveInvoice.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
-            var WEB_APP_URL = SCRIPT_URL;
-
             var rows = [];
             invoiceData.items.forEach(function(item) {
                 var row = [
-                    invoiceData.book || '',
-                    invoiceData.number || '',
-                    new Date(invoiceData.date).toLocaleString('ar-EG', { month: 'long' }),
-                    invoiceData.date || '',
-                    invoiceData.salesman || '',
-                    invoiceData.code || '',
-                    invoiceData.client || '',
-                    item.code || '',
-                    item.name || '',
-                    item.weight || '',
-                    item.unit || 'كجم',
-                    item.qty || '',
-                    item.price || '',
-                    item.total || '',
-                    (item.weight * item.qty) || '',
-                    item.color || '',
-                    item.crusherType || '',
-                    item.package || ''
+                    invoiceData.book || '',                                    // 0: الرقم الدفتري
+                    invoiceData.number || '',                                  // 1: رقم الفاتورة
+                    new Date(invoiceData.date).toLocaleString('ar-EG', { month: 'long' }), // 2: الشهر
+                    invoiceData.date || '',                                    // 3: التاريخ
+                    invoiceData.salesman || '',                                // 4: المندوب
+                    invoiceData.code || '',                                    // 5: كود العميل
+                    invoiceData.client || '',                                  // 6: اسم العميل
+                    item.code || '',                                           // 7: كود الصنف
+                    item.name || '',                                           // 8: الصنف
+                    item.weight || '',                                         // 9: الوزن
+                    item.unit || 'كجم',                                        // 10: الوحده
+                    item.qty || '',                                            // 11: العدد
+                    item.price || '',                                          // 12: سعر البيع
+                    item.total || '',                                          // 13: اجمالي مبيعات
+                    (item.weight * item.qty) || '',                           // 14: اجمالي الوزن
+                    item.color || '',                                          // 15: اللون
+                    item.crusherType || '',                                   // 16: نوع الحصوة
+                    ''                                                         // 17: ملاحظات
                 ];
                 rows.push(row);
             });
 
             var promises = rows.map(function(row) {
-                return fetch(WEB_APP_URL, {
+                return fetch(SAVE_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
@@ -1920,10 +1921,11 @@
         loadData();
 
         console.log('🧾 فاتورة المبيعات - الإصدار النهائي مع شاشة تحميل');
-        console.log('📌 الرابط النهائي (الإصدار 38)');
+        console.log('📌 رابط الجلب:', FETCH_URL);
+        console.log('📌 رابط الحفظ:', SAVE_URL);
         console.log('📌 يتم جلب البيانات قبل عرض الفورم');
         console.log('📌 تصميم متجاوب مع الكمبيوتر والجوال');
-        console.log('🔗 Web App URL:', SCRIPT_URL);
+        console.log('🔗 Web App URL:', FETCH_URL);
     </script>
 
 </body>
