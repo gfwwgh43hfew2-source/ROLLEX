@@ -642,33 +642,40 @@
         .btn-tool.info:hover { background: #c9ebe3; }
         .btn-divider { width: 1px; height: 24px; background: var(--line); margin: 0 3px; }
 
+        /* ============================================================
+           TOAST - على الجانب الأيمن
+           ============================================================ */
         .toast-container {
             position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 80px;
+            right: 20px;
             z-index: 99999;
-            max-width: 400px;
+            max-width: 380px;
             width: 90%;
             pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
         .toast {
             background: #ffffff;
             border: 1px solid var(--line);
             border-radius: 12px;
-            padding: 12px 18px;
+            padding: 12px 16px;
             display: flex;
             align-items: center;
             gap: 10px;
-            transform: translateY(10px);
-            transition: all 0.3s ease;
+            transform: translateX(20px);
+            transition: all 0.4s ease;
             opacity: 0;
             pointer-events: auto;
             box-shadow: var(--shadow);
             border-right: 4px solid var(--ink);
-            margin-top: 8px;
         }
-        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
         .toast .toast-icon {
             font-size: 1rem;
             width: 30px;
@@ -684,7 +691,15 @@
         .toast .toast-icon.warning { color: var(--accent-ink); background: var(--accent-soft); }
         .toast .toast-title { font-size: 0.82rem; font-weight: 800; color: var(--ink); }
         .toast .toast-message { font-size: 0.72rem; color: var(--ink-mute); margin-top: 1px; }
-        .toast .toast-close { background: none; border: none; color: var(--ink-mute); cursor: pointer; font-size: 0.85rem; padding: 4px; }
+        .toast .toast-close {
+            background: none;
+            border: none;
+            color: var(--ink-mute);
+            cursor: pointer;
+            font-size: 0.85rem;
+            padding: 4px;
+            margin-right: auto;
+        }
 
         /* ============================================================
            RESPONSIVE
@@ -776,6 +791,12 @@
             .mobile-nav-bottom { display: flex !important; }
             .mobile-nav-menu { display: block; }
             .mobile-nav-overlay { display: block; }
+
+            .toast-container {
+                top: 70px;
+                right: 10px;
+                max-width: 300px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -805,6 +826,17 @@
             .items-table-wrapper table tbody td:nth-child(7) {
                 display: none;
             }
+
+            .toast-container {
+                top: 60px;
+                right: 8px;
+                max-width: 260px;
+            }
+            .toast {
+                padding: 10px 12px;
+            }
+            .toast .toast-title { font-size: 0.75rem; }
+            .toast .toast-message { font-size: 0.65rem; }
         }
     </style>
 </head>
@@ -830,7 +862,7 @@
     </div>
 
     <!-- ============================================================
-    المحتوى الرئيسي - مخفي حتى اكتمال التحميل
+    المحتوى الرئيسي
     ============================================================ -->
     <div id="mainApp" style="display:none; flex-direction:column; height:100vh;">
 
@@ -879,6 +911,7 @@
             </ul>
         </nav>
 
+        <!-- ===== Toast Container - على الجانب الأيمن ===== -->
         <div class="toast-container" id="toastContainer"></div>
 
         <div class="main-content">
@@ -1181,9 +1214,7 @@
         // ============================================================
         // CONFIG - الروابط النهائية
         // ============================================================
-        // رابط جلب البيانات (منتجات + عملاء)
         var FETCH_URL = 'https://script.google.com/macros/s/AKfycbw2N2Xg-o7SeQWFP8WvrsN7801E2gKRe1Tv03Ek_7B9kesR2UFBuT0fB3rIPX1OB3F2Wg/exec';
-        // رابط حفظ الفواتير (منفصل)
         var SAVE_URL = 'https://script.google.com/macros/s/AKfycbxD2c73p5CegQdVjFIsFaxN0x7bYr6R-0FS6Co8nHjSKhiS1sjk-4FXUlw8AAOYOklrWQ/exec';
 
         // ============================================================
@@ -1235,7 +1266,7 @@
         })();
 
         // ============================================================
-        // TOAST
+        // TOAST - تظهر على الجانب الأيمن
         // ============================================================
         function showToast(title, message, type) {
             var container = document.getElementById('toastContainer');
@@ -1303,49 +1334,37 @@
                 }
             }
 
-            // جلب المنتجات
             fetch(FETCH_URL + '?action=getProducts')
-                .then(function(response) {
-                    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
-                    return response.json();
-                })
+                .then(function(response) { return response.json(); })
                 .then(function(data) {
                     if (data.success && data.data && data.data.products) {
                         products = data.data.products;
                         console.log('✅ تم جلب ' + products.length + ' منتج');
                     } else {
-                        console.log('⚠️ استخدام المنتجات الافتراضية');
                         products = DEFAULT_PRODUCTS;
                     }
                     loadedProducts = true;
                     updateProgress();
                 })
-                .catch(function(error) {
-                    console.error('❌ خطأ في جلب المنتجات:', error);
+                .catch(function() {
                     products = DEFAULT_PRODUCTS;
                     loadedProducts = true;
                     updateProgress();
                 });
 
-            // جلب العملاء
             fetch(FETCH_URL + '?action=getClients')
-                .then(function(response) {
-                    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
-                    return response.json();
-                })
+                .then(function(response) { return response.json(); })
                 .then(function(data) {
                     if (data.success && data.data && data.data.clients) {
                         clients = data.data.clients;
                         console.log('✅ تم جلب ' + clients.length + ' عميل');
                     } else {
-                        console.log('⚠️ استخدام العملاء الافتراضيين');
                         clients = DEFAULT_CLIENTS;
                     }
                     loadedClients = true;
                     updateProgress();
                 })
-                .catch(function(error) {
-                    console.error('❌ خطأ في جلب العملاء:', error);
+                .catch(function() {
                     clients = DEFAULT_CLIENTS;
                     loadedClients = true;
                     updateProgress();
@@ -1536,7 +1555,7 @@
         }
 
         // ============================================================
-        // ADD ITEM
+        // ADD ITEM - بدون رسالة "تم إضافة المنتج"
         // ============================================================
         itemPrice.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') { e.preventDefault(); addItem(); }
@@ -1578,7 +1597,7 @@
                 };
                 editIndex = -1;
                 btnAddItem.innerHTML = '<i class="fas fa-plus"></i> إضافة';
-                showToast('✏️ تعديل', 'تم تعديل المنتج بنجاح', 'warning');
+                showToast('✏️ تعديل', 'تم تعديل المنتج', 'warning');
             } else {
                 items.push({
                     name: name,
@@ -1592,7 +1611,7 @@
                     color: color,
                     crusherType: crusherType
                 });
-                showToast('✅ إضافة', 'تم إضافة المنتج بنجاح', 'success');
+                // لا توجد رسالة "تم إضافة المنتج"
             }
 
             renderItems();
@@ -1669,7 +1688,7 @@
             items.splice(index, 1);
             renderItems();
             calculateTotals();
-            showToast('🗑️ حذف', 'تم حذف المنتج بنجاح', 'warning');
+            showToast('🗑️ حذف', 'تم حذف المنتج', 'warning');
         }
 
         // ============================================================
@@ -1704,10 +1723,9 @@
         }
 
         // ============================================================
-        // RESET FORM
+        // RESET FORM - بدون رسالة تأكيد
         // ============================================================
         function resetForm() {
-            if (items.length > 0 && !confirm('هل أنت متأكد من إلغاء كل البيانات؟')) return;
             items = [];
             renderItems();
             calculateTotals();
@@ -1755,7 +1773,6 @@
         });
 
         btnResetAll.addEventListener('click', function() {
-            if (items.length > 0 && !confirm('هل أنت متأكد من إلغاء كل البيانات؟')) return;
             items = [];
             renderItems();
             calculateTotals();
@@ -1814,7 +1831,7 @@
         });
 
         // ============================================================
-        // SAVE TO GOOGLE SHEETS - باستخدام رابط الحفظ المنفصل
+        // SAVE TO GOOGLE SHEETS
         // ============================================================
         function saveInvoiceToSheet(invoiceData) {
             btnSaveInvoice.disabled = true;
@@ -1823,24 +1840,24 @@
             var rows = [];
             invoiceData.items.forEach(function(item) {
                 var row = [
-                    invoiceData.book || '',                                    // 0: الرقم الدفتري
-                    invoiceData.number || '',                                  // 1: رقم الفاتورة
-                    new Date(invoiceData.date).toLocaleString('ar-EG', { month: 'long' }), // 2: الشهر
-                    invoiceData.date || '',                                    // 3: التاريخ
-                    invoiceData.salesman || '',                                // 4: المندوب
-                    invoiceData.code || '',                                    // 5: كود العميل
-                    invoiceData.client || '',                                  // 6: اسم العميل
-                    item.code || '',                                           // 7: كود الصنف
-                    item.name || '',                                           // 8: الصنف
-                    item.weight || '',                                         // 9: الوزن
-                    item.package || item.unit || 'كجم',                        // 10: الوحده (سيتم وضع العبوة هنا)
-                    item.qty || '',                                            // 11: العدد
-                    item.price || '',                                          // 12: سعر البيع
-                    item.total || '',                                          // 13: اجمالي مبيعات
-                    (item.weight * item.qty) || '',                           // 14: اجمالي الوزن
-                    item.color || '',                                          // 15: اللون
-                    item.crusherType || '',                                   // 16: نوع الحصوة
-                    ''                                                         // 17: ملاحظات
+                    invoiceData.book || '',
+                    invoiceData.number || '',
+                    new Date(invoiceData.date).toLocaleString('ar-EG', { month: 'long' }),
+                    invoiceData.date || '',
+                    invoiceData.salesman || '',
+                    invoiceData.code || '',
+                    invoiceData.client || '',
+                    item.code || '',
+                    item.name || '',
+                    item.weight || '',
+                    item.package || item.unit || 'كجم',
+                    item.qty || '',
+                    item.price || '',
+                    item.total || '',
+                    (item.weight * item.qty) || '',
+                    item.color || '',
+                    item.crusherType || '',
+                    ''
                 ];
                 rows.push(row);
             });
@@ -1891,7 +1908,7 @@
         console.log('📌 رابط الجلب:', FETCH_URL);
         console.log('📌 رابط الحفظ:', SAVE_URL);
         console.log('📌 يتم وضع العبوة في عمود الوحدة عند الحفظ');
-        console.log('🔗 Web App URL:', FETCH_URL);
+        console.log('📌 رسائل Toast على الجانب الأيمن');
     </script>
 
 </body>
