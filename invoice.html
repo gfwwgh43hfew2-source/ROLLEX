@@ -687,7 +687,7 @@
         .toast .toast-close { background: none; border: none; color: var(--ink-mute); cursor: pointer; font-size: 0.85rem; padding: 4px; }
 
         /* ============================================================
-           RESPONSIVE - تصميم الجوال
+           RESPONSIVE
            ============================================================ */
         @media (min-width: 769px) {
             .mobile-nav-bottom, .mobile-nav-overlay, .mobile-nav-menu, .hamburger { display: none !important; }
@@ -699,7 +699,6 @@
         }
 
         @media (max-width: 768px) {
-            /* ===== جعل التصميم عمودياً بالكامل ===== */
             .main-content {
                 flex-direction: column;
                 padding: 10px;
@@ -726,7 +725,6 @@
                 padding: 12px;
             }
 
-            /* ===== تعديل صفوف النموذج للجوال ===== */
             .right-panel .form-row.invoice-numbers { grid-template-columns: 1fr 1fr; }
             .right-panel .form-row { grid-template-columns: 1fr 1fr; gap: 6px; }
             .right-panel .form-row.product-row { grid-template-columns: 1fr; }
@@ -742,12 +740,10 @@
                 height: 34px;
             }
 
-            /* ===== تعديل الجدول للجوال ===== */
             .items-table-wrapper table { font-size: 0.6rem; }
             .items-table-wrapper table thead th,
             .items-table-wrapper table tbody td { padding: 4px 5px; }
             
-            /* ===== إخفاء بعض الأعمدة في الجوال ===== */
             .items-table-wrapper table thead th:nth-child(3),
             .items-table-wrapper table tbody td:nth-child(3),
             .items-table-wrapper table thead th:nth-child(5),
@@ -757,7 +753,6 @@
                 display: none;
             }
 
-            /* ===== تعديل الإجماليات ===== */
             .bottom-bar {
                 flex-direction: column;
                 align-items: stretch;
@@ -804,7 +799,6 @@
             .btn-save { font-size: 0.7rem; height: 32px; padding: 4px 14px; }
             .btn-add { font-size: 0.7rem; height: 30px; padding: 4px 12px; }
             
-            /* إخفاء المزيد من الأعمدة في الجوال الصغير */
             .items-table-wrapper table thead th:nth-child(6),
             .items-table-wrapper table tbody td:nth-child(6),
             .items-table-wrapper table thead th:nth-child(7),
@@ -889,7 +883,7 @@
 
         <div class="main-content">
 
-            <!-- النصف الأيمن - نموذج الإدخال -->
+            <!-- النصف الأيمن -->
             <div class="right-panel">
                 <div class="form-card">
 
@@ -1015,7 +1009,7 @@
                 </div>
             </div>
 
-            <!-- النصف الأيسر - جدول الأصناف -->
+            <!-- النصف الأيسر -->
             <div class="left-panel">
                 <div class="table-card">
 
@@ -1288,7 +1282,7 @@
         }
 
         // ============================================================
-        // LOAD DATA - مع شاشة التحميل
+        // LOAD DATA
         // ============================================================
         function loadData() {
             var loadedProducts = false;
@@ -1309,7 +1303,7 @@
                 }
             }
 
-            // ===== جلب المنتجات =====
+            // جلب المنتجات
             fetch(FETCH_URL + '?action=getProducts')
                 .then(function(response) {
                     if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
@@ -1318,7 +1312,7 @@
                 .then(function(data) {
                     if (data.success && data.data && data.data.products) {
                         products = data.data.products;
-                        console.log('✅ تم جلب ' + products.length + ' منتج من السيرفر');
+                        console.log('✅ تم جلب ' + products.length + ' منتج');
                     } else {
                         console.log('⚠️ استخدام المنتجات الافتراضية');
                         products = DEFAULT_PRODUCTS;
@@ -1333,7 +1327,7 @@
                     updateProgress();
                 });
 
-            // ===== جلب العملاء =====
+            // جلب العملاء
             fetch(FETCH_URL + '?action=getClients')
                 .then(function(response) {
                     if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
@@ -1342,7 +1336,7 @@
                 .then(function(data) {
                     if (data.success && data.data && data.data.clients) {
                         clients = data.data.clients;
-                        console.log('✅ تم جلب ' + clients.length + ' عميل من السيرفر');
+                        console.log('✅ تم جلب ' + clients.length + ' عميل');
                     } else {
                         console.log('⚠️ استخدام العملاء الافتراضيين');
                         clients = DEFAULT_CLIENTS;
@@ -1357,7 +1351,6 @@
                     updateProgress();
                 });
 
-            // تحديث النسبة المبدئية
             updateProgress();
         }
 
@@ -1365,10 +1358,8 @@
         // SUGGESTIONS SYSTEM
         // ============================================================
         function setupSuggestions() {
-            // اقتراحات العملاء
             setupSuggestionInput(clientName, clientSuggestions, clients, null);
 
-            // اقتراحات المنتجات
             setupSuggestionInput(itemName, productSuggestions, products.map(function(p) { return p.name; }),
                 function(selectedName) {
                     var found = products.find(function(p) { return p.name === selectedName; });
@@ -1401,12 +1392,8 @@
         // ============================================================
         function fillProductData(product) {
             itemCode.value = product.code || '';
-            if (product.weight) {
-                itemWeight.value = product.weight;
-            }
-            if (product.package) {
-                itemPackage.value = product.package;
-            }
+            if (product.weight) itemWeight.value = product.weight;
+            if (product.package) itemPackage.value = product.package;
             if (product.unit) {
                 var unitOptions = document.getElementById('itemUnit').options;
                 for (var i = 0; i < unitOptions.length; i++) {
@@ -1711,20 +1698,16 @@
         function calculateTotals() {
             var total = 0;
             items.forEach(function(item) { total += item.total; });
-
-            var discount = 0;
-            var net = total - discount;
-
             totalAmount.textContent = total.toFixed(2);
-            discountAmount.textContent = discount.toFixed(2);
-            netAmount.textContent = net.toFixed(2);
+            discountAmount.textContent = '0.00';
+            netAmount.textContent = total.toFixed(2);
         }
 
         // ============================================================
         // RESET FORM
         // ============================================================
         function resetForm() {
-            if (items.length > 0) { if (!confirm('هل أنت متأكد من إلغاء كل البيانات؟')) return; }
+            if (items.length > 0 && !confirm('هل أنت متأكد من إلغاء كل البيانات؟')) return;
             items = [];
             renderItems();
             calculateTotals();
@@ -1772,7 +1755,7 @@
         });
 
         btnResetAll.addEventListener('click', function() {
-            if (items.length > 0) { if (!confirm('هل أنت متأكد من إلغاء كل البيانات؟')) return; }
+            if (items.length > 0 && !confirm('هل أنت متأكد من إلغاء كل البيانات؟')) return;
             items = [];
             renderItems();
             calculateTotals();
@@ -1850,7 +1833,7 @@
                     item.code || '',                                           // 7: كود الصنف
                     item.name || '',                                           // 8: الصنف
                     item.weight || '',                                         // 9: الوزن
-                    item.unit || 'كجم',                                        // 10: الوحده
+                    item.package || item.unit || 'كجم',                        // 10: الوحده (سيتم وضع العبوة هنا)
                     item.qty || '',                                            // 11: العدد
                     item.price || '',                                          // 12: سعر البيع
                     item.total || '',                                          // 13: اجمالي مبيعات
@@ -1876,23 +1859,7 @@
                     showToast('✅ تم الحفظ', 'تم حفظ الفاتورة بنجاح', 'success');
                     btnSaveInvoice.disabled = false;
                     btnSaveInvoice.innerHTML = '<i class="fas fa-save"></i> حفظ';
-
-                    items = [];
-                    renderItems();
-                    calculateTotals();
-                    clearItemFields();
-                    editIndex = -1;
-                    btnAddItem.innerHTML = '<i class="fas fa-plus"></i> إضافة';
-                    clientName.value = '';
-                    clientCode.value = '';
-                    salesman.value = '';
-                    invoiceType.value = 'مبيعات';
-                    bookNumber.value = '';
-                    var today = new Date();
-                    invoiceDate.value = today.toISOString().split('T')[0];
-                    generateInvoiceNumber();
-                    clientSuggestions.classList.remove('show');
-                    productSuggestions.classList.remove('show');
+                    resetForm();
                 })
                 .catch(function(error) {
                     console.error('Error saving invoice:', error);
@@ -1920,11 +1887,10 @@
         // ============================================================
         loadData();
 
-        console.log('🧾 فاتورة المبيعات - الإصدار النهائي مع شاشة تحميل');
+        console.log('🧾 فاتورة المبيعات - الإصدار النهائي');
         console.log('📌 رابط الجلب:', FETCH_URL);
         console.log('📌 رابط الحفظ:', SAVE_URL);
-        console.log('📌 يتم جلب البيانات قبل عرض الفورم');
-        console.log('📌 تصميم متجاوب مع الكمبيوتر والجوال');
+        console.log('📌 يتم وضع العبوة في عمود الوحدة عند الحفظ');
         console.log('🔗 Web App URL:', FETCH_URL);
     </script>
 
