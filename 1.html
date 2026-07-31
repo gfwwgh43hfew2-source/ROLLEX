@@ -340,16 +340,15 @@
         }
         .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px -10px rgba(33,29,26,0.2); }
         .stat-card .bar { height: 3px; background: var(--swatch, var(--ink)); }
-        .stat-card .body { padding: 17px 18px 15px; }
+        .stat-card .body { padding: 17px 18px; }
         .stat-card .label { font-size: 0.71rem; color: var(--ink-3); font-weight: 600; display: flex; align-items: center; gap: 7px; }
-        .stat-card .label i { font-size: 0.72rem; color: var(--swatch, var(--ink-3)); width: 13px; text-align: center; }
-        .stat-card .number { font-family: var(--display); font-size: 1.5rem; font-weight: 700; margin-top: 9px; letter-spacing: -0.2px; color: var(--ink); }
-        .stat-card .spark-wrap { width: 100%; height: 40px; margin-top: 12px; position: relative; }
-        .stat-card .foot { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+        .stat-card .label i { font-size: 0.72rem; color: var(--swatch, var(--ink-3)); }
+        .stat-card .number { font-family: var(--display); font-size: 1.48rem; font-weight: 700; margin-top: 9px; letter-spacing: -0.2px; color: var(--ink); }
+        .stat-card .foot { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
         .stat-card .change { display: inline-flex; align-items: center; gap: 4px; font-size: 0.68rem; font-weight: 700; }
         .stat-card .change.up   { color: var(--viridian); }
         .stat-card .change.down { color: var(--oxide); }
-        .stat-card .foot .period { font-size: 0.64rem; color: var(--ink-3); font-weight: 500; }
+        .stat-card .spark { width: 50px; height: 20px; }
 
         /* ==========================================================
            CHART PANEL
@@ -546,10 +545,9 @@
                     <div class="body">
                         <div class="label"><i class="fas fa-wallet"></i> إجمالي الإيرادات</div>
                         <div class="number" id="totalRevenue">0</div>
-                        <div class="spark-wrap"><canvas id="spark1"></canvas></div>
                         <div class="foot">
                             <div class="change up"><i class="fas fa-arrow-up"></i> 12.5%</div>
-                            <div class="period">آخر 9 أيام</div>
+                            <div class="spark"><canvas id="spark1"></canvas></div>
                         </div>
                     </div>
                 </div>
@@ -558,10 +556,9 @@
                     <div class="body">
                         <div class="label"><i class="fas fa-file-invoice"></i> إجمالي الفواتير</div>
                         <div class="number" id="totalInvoices">0</div>
-                        <div class="spark-wrap"><canvas id="spark2"></canvas></div>
                         <div class="foot">
                             <div class="change up"><i class="fas fa-arrow-up"></i> 8.2%</div>
-                            <div class="period">آخر 9 أيام</div>
+                            <div class="spark"><canvas id="spark2"></canvas></div>
                         </div>
                     </div>
                 </div>
@@ -570,10 +567,9 @@
                     <div class="body">
                         <div class="label"><i class="fas fa-users"></i> إجمالي العملاء</div>
                         <div class="number" id="totalClients">0</div>
-                        <div class="spark-wrap"><canvas id="spark3"></canvas></div>
                         <div class="foot">
                             <div class="change up"><i class="fas fa-arrow-up"></i> 5.7%</div>
-                            <div class="period">آخر 9 أيام</div>
+                            <div class="spark"><canvas id="spark3"></canvas></div>
                         </div>
                     </div>
                 </div>
@@ -582,10 +578,9 @@
                     <div class="body">
                         <div class="label"><i class="fas fa-clock"></i> طلبات قيد التنفيذ</div>
                         <div class="number" id="pendingOrders">0</div>
-                        <div class="spark-wrap"><canvas id="spark4"></canvas></div>
                         <div class="foot">
                             <div class="change down"><i class="fas fa-arrow-down"></i> 2.1%</div>
-                            <div class="period">آخر 9 أيام</div>
+                            <div class="spark"><canvas id="spark4"></canvas></div>
                         </div>
                     </div>
                 </div>
@@ -594,10 +589,9 @@
                     <div class="body">
                         <div class="label"><i class="fas fa-hand-holding-dollar"></i> إجمالي التحصيلات</div>
                         <div class="number" id="totalCollections">0</div>
-                        <div class="spark-wrap"><canvas id="spark5"></canvas></div>
                         <div class="foot">
                             <div class="change up"><i class="fas fa-arrow-up"></i> 15.3%</div>
-                            <div class="period">آخر 9 أيام</div>
+                            <div class="spark"><canvas id="spark5"></canvas></div>
                         </div>
                     </div>
                 </div>
@@ -837,54 +831,25 @@
         });
 
         function renderSpark(id, data, color) {
-            const canvas = document.getElementById(id);
-            const ctx = canvas.getContext('2d');
-            new Chart(ctx, {
+            new Chart(document.getElementById(id).getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: data.map((_, i) => i),
-                    datasets: [{
-                        data,
-                        borderColor: color,
-                        borderWidth: 2,
-                        pointRadius: (c) => c.dataIndex === data.length - 1 ? 3 : 0,
-                        pointHoverRadius: 0,
-                        pointBackgroundColor: color,
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 1.5,
-                        cubicInterpolationMode: 'monotone',
-                        tension: 0.35,
-                        fill: true,
-                        backgroundColor: (c) => {
-                            const { chartArea } = c.chart;
-                            if (!chartArea) return 'transparent';
-                            const g = c.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                            g.addColorStop(0, color + '33');
-                            g.addColorStop(1, color + '00');
-                            return g;
-                        }
-                    }]
+                    datasets: [{ data, borderColor: color, borderWidth: 1.6, pointRadius: 0, tension: 0.4, fill: false }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    devicePixelRatio: Math.max(window.devicePixelRatio || 1, 2),
-                    layout: { padding: { top: 4, bottom: 2, left: 2, right: 4 } },
+                    responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                    scales: {
-                        x: { display: false },
-                        y: { display: false, grace: '12%' }
-                    },
-                    elements: { line: { borderJoinStyle: 'round', borderCapStyle: 'round' } },
-                    animation: { duration: 700, easing: 'easeOutQuart' }
+                    scales: { x: { display: false }, y: { display: false } },
+                    elements: { line: { borderJoinStyle: 'round' } }
                 }
             });
         }
-        renderSpark('spark1', [38,41,39,45,43,49,52,50,58,55,62,66], '#1f4e6b');
-        renderSpark('spark2', [12,13,12,15,14,16,17,16,19,20,19,22], '#8f857a');
-        renderSpark('spark3', [80,82,81,85,88,90,89,93,96,98,101,104], '#2e7a5c');
-        renderSpark('spark4', [22,20,21,18,19,16,17,15,14,15,13,12], '#a63a31');
-        renderSpark('spark5', [30,33,31,36,34,39,41,40,45,47,46,51], '#b98a1e');
+        renderSpark('spark1', [4,6,5,8,7,9,12,10,13], '#1f4e6b');
+        renderSpark('spark2', [2,3,3,4,5,5,6,7,8], '#a69c90');
+        renderSpark('spark3', [8,8,9,9,10,11,11,12,13], '#2e7a5c');
+        renderSpark('spark4', [14,13,12,13,11,12,10,11,10], '#a63a31');
+        renderSpark('spark5', [3,4,4,6,5,7,8,7,9], '#b98a1e');
 
         function updateStats() {
             const SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
