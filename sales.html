@@ -589,7 +589,7 @@
         }
 
         /* ============================================================
-           TABLE - إخفاء عمود رقم الفاتورة + توسيع التاريخ
+           TABLE - إخفاء الأعمدة: رقم الفاتورة، الشهر، المندوب، كود العميل، كود الصنف
            ============================================================ */
         .table-wrapper {
             background: var(--surface);
@@ -603,7 +603,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.65rem;
-            min-width: 1200px;
+            min-width: 900px;
         }
 
         th {
@@ -648,35 +648,50 @@
             font-weight: 700;
         }
 
-        /* ===== إخفاء عمود رقم الفاتورة ===== */
+        td.col-item-name {
+            color: var(--ink);
+            font-weight: 600;
+        }
+
+        td.col-date {
+            color: var(--ink);
+            font-weight: 600;
+        }
+
+        /* ===== إخفاء الأعمدة ===== */
         .col-invoice-number,
-        td.col-invoice-number {
+        td.col-invoice-number,
+        .col-month,
+        td.col-month,
+        .col-salesman,
+        td.col-salesman,
+        .col-client-code,
+        td.col-client-code,
+        .col-item-code,
+        td.col-item-code {
             display: none;
         }
 
-        /* ===== توسيع عمود التاريخ ===== */
+        /* ===== توسيع الأعمدة المتبقية ===== */
         th.col-date,
         td.col-date {
             min-width: 110px;
             width: 130px;
-            font-weight: 600;
-            color: var(--ink);
-        }
-
-        /* ===== أعمدة أخرى محسنة ===== */
-        th.col-salesman,
-        td.col-salesman {
-            min-width: 85px;
         }
 
         th.col-client-name,
         td.col-client-name {
-            min-width: 120px;
+            min-width: 140px;
         }
 
         th.col-item-name,
         td.col-item-name {
-            min-width: 130px;
+            min-width: 150px;
+        }
+
+        th.col-book-number,
+        td.col-book-number {
+            min-width: 60px;
         }
 
         tr:hover td {
@@ -798,7 +813,7 @@
             }
             .table-wrapper table {
                 font-size: 0.55rem;
-                min-width: 800px;
+                min-width: 650px;
             }
             .table-wrapper table thead th,
             .table-wrapper table tbody td {
@@ -808,6 +823,14 @@
             td.col-date {
                 min-width: 90px;
                 width: 100px;
+            }
+            th.col-client-name,
+            td.col-client-name {
+                min-width: 100px;
+            }
+            th.col-item-name,
+            td.col-item-name {
+                min-width: 100px;
             }
         }
 
@@ -825,12 +848,20 @@
             }
             .table-wrapper table {
                 font-size: 0.5rem;
-                min-width: 600px;
+                min-width: 500px;
             }
             th.col-date,
             td.col-date {
                 min-width: 75px;
                 width: 85px;
+            }
+            th.col-client-name,
+            td.col-client-name {
+                min-width: 80px;
+            }
+            th.col-item-name,
+            td.col-item-name {
+                min-width: 80px;
             }
         }
     </style>
@@ -946,12 +977,12 @@
                     <tr>
                         <th class="col-book-number">الرقم الدفتري</th>
                         <th class="col-invoice-number">رقم الفاتورة</th>
-                        <th>الشهر</th>
+                        <th class="col-month">الشهر</th>
                         <th class="col-date">التاريخ</th>
                         <th class="col-salesman">المندوب</th>
-                        <th>كود العميل</th>
+                        <th class="col-client-code">كود العميل</th>
                         <th class="col-client-name">اسم العميل</th>
-                        <th>كود الصنف</th>
+                        <th class="col-item-code">كود الصنف</th>
                         <th class="col-item-name">الصنف</th>
                         <th style="text-align:center;">الوزن</th>
                         <th style="text-align:center;">الوحده</th>
@@ -1181,12 +1212,12 @@
                 html += '<tr>' +
                     '<td class="col-book-number">' + (row[0] || '-') + '</td>' +
                     '<td class="col-invoice-number">' + (row[1] || '-') + '</td>' +
-                    '<td>' + (row[2] || '-') + '</td>' +
+                    '<td class="col-month">' + (row[2] || '-') + '</td>' +
                     '<td class="col-date">' + (row[3] || '-') + '</td>' +
                     '<td class="col-salesman">' + (row[4] || '-') + '</td>' +
-                    '<td>' + (row[5] || '-') + '</td>' +
+                    '<td class="col-client-code">' + (row[5] || '-') + '</td>' +
                     '<td class="col-client-name">' + (row[6] || '-') + '</td>' +
-                    '<td>' + (row[7] || '-') + '</td>' +
+                    '<td class="col-item-code">' + (row[7] || '-') + '</td>' +
                     '<td class="col-item-name">' + (row[8] || '-') + '</td>' +
                     '<td style="text-align:center;">' + formatNumber(cleanNumber(row[9])) + '</td>' +
                     '<td style="text-align:center;">' + (row[10] || '-') + '</td>' +
@@ -1263,7 +1294,7 @@
             console.log('🚀 صفحة المبيعات والمرتجعات - تم التحميل');
             console.log('📅 الفترة: من ' + filterDateFrom.value + ' إلى ' + filterDateTo.value);
             console.log('📌 ترتيب تنازلي حسب الرقم الدفتري');
-            console.log('📌 تم إخفاء عمود رقم الفاتورة وتوسيع عمود التاريخ');
+            console.log('📌 تم إخفاء الأعمدة: رقم الفاتورة، الشهر، المندوب، كود العميل، كود الصنف');
         })();
 
         // تحديث البيانات كل 5 دقائق
