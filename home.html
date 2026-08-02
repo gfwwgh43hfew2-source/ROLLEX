@@ -422,6 +422,16 @@
 
         .fade-up { opacity: 0; transform: translateY(8px); animation: fadeUp .55s var(--ease) forwards; }
         @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+        /* ============================================================
+           SPARKLINE CUSTOM STYLES — Premium smooth sparklines
+           بدون نقاط، خط رفيع وناعم، تدرج خفيف جداً
+           ============================================================ */
+        .spark-wrap canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+        }
     </style>
 </head>
 <body>
@@ -836,55 +846,133 @@
             });
         });
 
+        /* ============================================================
+           SPARKLINE RENDER — Premium smooth sparklines
+           خط رفيع وناعم، بدون نقاط، تدرج خفيف جداً،
+           يبدأ من يسار البطاقة وينتهي عند يمينها، قريب من الأسفل.
+           ============================================================ */
         function renderSpark(id, data, color) {
             const canvas = document.getElementById(id);
+            if (!canvas) return;
+            
+            // تأكد من أن حجم canvas مناسب
+            const wrap = canvas.parentElement;
+            canvas.width = wrap.clientWidth || 200;
+            canvas.height = wrap.clientHeight || 40;
+            
             const ctx = canvas.getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.map((_, i) => i),
-                    datasets: [{
-                        data,
-                        borderColor: color,
-                        borderWidth: 2,
-                        pointRadius: (c) => c.dataIndex === data.length - 1 ? 3 : 0,
-                        pointHoverRadius: 0,
-                        pointBackgroundColor: color,
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 1.5,
-                        cubicInterpolationMode: 'monotone',
-                        tension: 0.35,
-                        fill: true,
-                        backgroundColor: (c) => {
-                            const { chartArea } = c.chart;
-                            if (!chartArea) return 'transparent';
-                            const g = c.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                            g.addColorStop(0, color + '33');
-                            g.addColorStop(1, color + '00');
-                            return g;
-                        }
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    devicePixelRatio: Math.max(window.devicePixelRatio || 1, 2),
-                    layout: { padding: { top: 4, bottom: 2, left: 2, right: 4 } },
-                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                    scales: {
-                        x: { display: false },
-                        y: { display: false, grace: '12%' }
-                    },
-                    elements: { line: { borderJoinStyle: 'round', borderCapStyle: 'round' } },
-                    animation: { duration: 700, easing: 'easeOutQuart' }
+            
+            // مسح الرسم السابق
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const width = canvas.width;
+            const height = canvas.height;
+            const padding = 4;
+            const chartWidth = width - padding * 2;
+            const chartHeight = height - padding * 2;
+            
+            // حساب القيم
+            const min = Math.min(...data) * 0.85;
+            const max = Math.max(...data) * 1.15;
+            const range = max - min || 1;
+            
+            // إنشاء نقاط الخط
+            const points = data.map((val, i) => {
+                const x = padding + (i / (data.length - 1)) * chartWidth;
+                const y = padding + chartHeight - ((val - min) / range) * chartHeight;
+                return { x, y, val };
+            });
+            
+            // رسم التدرج (gradient fill) — خفيف جداً
+            const grad = ctx.createLinearGradient(0, padding, 0, height);
+            const alpha = 0.12; // خفيف جداً
+            grad.addColorStop(0, color + '00');
+            grad.addColorStop(0.3, color + '08');
+            grad.addColorStop(0.7, color + '12');
+            grad.addColorStop(1, color + '1a');
+            
+            // بداية التدرج من أسفل الخط
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, height - padding);
+            points.forEach((p, i) => {
+                if (i === 0) {
+                    ctx.lineTo(p.x, p.y);
+                } else {
+                    // منحنى سلس بين النقاط
+                    const prev = points[i - 1];
+                    const cp1x = prev.x + (p.x - prev.x) * 0.5;
+                    const cp1y = prev.y;
+                    const cp2x = p.x - (p.x - prev.x) * 0.5;
+                    const cp2y = p.y;
+                    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p.x, p.y);
                 }
             });
+            ctx.lineTo(points[points.length - 1].x, height - padding);
+            ctx.lineTo(points[0].x, height - padding);
+            ctx.closePath();
+            ctx.fillStyle = grad;
+            ctx.fill();
+            
+            // رسم الخط الرئيسي — رفيع وناعم
+            ctx.beginPath();
+            points.forEach((p, i) => {
+                if (i === 0) {
+                    ctx.moveTo(p.x, p.y);
+                } else {
+                    const prev = points[i - 1];
+                    const cp1x = prev.x + (p.x - prev.x) * 0.5;
+                    const cp1y = prev.y;
+                    const cp2x = p.x - (p.x - prev.x) * 0.5;
+                    const cp2y = p.y;
+                    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p.x, p.y);
+                }
+            });
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.8;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+            
+            // لا نقاط (markers) مطلقاً
         }
-        renderSpark('spark1', [38,41,39,45,43,49,52,50,58,55,62,66], '#1f4e6b');
-        renderSpark('spark2', [12,13,12,15,14,16,17,16,19,20,19,22], '#8f857a');
-        renderSpark('spark3', [80,82,81,85,88,90,89,93,96,98,101,104], '#2e7a5c');
-        renderSpark('spark4', [22,20,21,18,19,16,17,15,14,15,13,12], '#a63a31');
-        renderSpark('spark5', [30,33,31,36,34,39,41,40,45,47,46,51], '#b98a1e');
+
+        // تهيئة الـ Sparklines
+        function initSparklines() {
+            // بيانات الـ Sparklines — موجات هادئة وأنيقة
+            const sparkData = {
+                spark1: [38, 41, 39, 45, 43, 49, 52, 50, 58, 55, 62, 66],
+                spark2: [12, 13, 12, 15, 14, 16, 17, 16, 19, 20, 19, 22],
+                spark3: [80, 82, 81, 85, 88, 90, 89, 93, 96, 98, 101, 104],
+                spark4: [22, 20, 21, 18, 19, 16, 17, 15, 14, 15, 13, 12],
+                spark5: [30, 33, 31, 36, 34, 39, 41, 40, 45, 47, 46, 51]
+            };
+            
+            const colors = {
+                spark1: '#1f4e6b',  // prussian
+                spark2: '#8f857a',  // ink-3
+                spark3: '#2e7a5c',  // viridian
+                spark4: '#a63a31',  // oxide
+                spark5: '#b98a1e'   // ochre
+            };
+            
+            // تأخير بسيط للتأكد من أن canvas قد أخذ حجمه
+            setTimeout(() => {
+                Object.keys(sparkData).forEach((id) => {
+                    renderSpark(id, sparkData[id], colors[id]);
+                });
+            }, 100);
+            
+            // إعادة الرسم عند تغيير حجم النافذة
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    Object.keys(sparkData).forEach((id) => {
+                        renderSpark(id, sparkData[id], colors[id]);
+                    });
+                }, 200);
+            });
+        }
 
         function updateStats() {
             const SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
@@ -938,7 +1026,9 @@
             setGoal(75);
         }
 
+        // تهيئة كل شيء
         updateStats();
+        initSparklines();
     </script>
 
 </body>
