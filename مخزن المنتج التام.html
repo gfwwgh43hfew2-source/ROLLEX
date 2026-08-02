@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>مخزن الإنتاج التام - شركة رولكس للدهانات</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet" />
+    <style>
+        /* ============================================================
+           ROOT VARIABLES
+           ============================================================ */
+        :root {
+            --canvas:      #f6f3ec;
+            --surface:     #ffffff;
+            --surface-2:   #fbf9f4;
+            --line:        rgba(33,29,26,0.11);
+            --line-soft:   rgba(33,29,26,0.06);
+
+            --ink:         #211d1a;
+            --ink-2:       #4a3f35;
+            --ink-3:       #8a7e72;
+            --ink-4:       #c5b9ab;
+
+            --prussian:      #1f4e6b;
+            --prussian-light:#3a7a9e;
+            --terracotta:    #b14b2b;
+            --ochre:         #b98a1e;
+            --viridian:      #2e7a5c;
+            --oxide:         #a63a31;
+            --neon-green:    #39ff14;
+
+            --sidebar-w:   270px;
+            --header-h:    68px;
+            --r-lg:        18px;
+            --r-md:        12px;
+            --r-sm:        8px;
+            --ease:        cubic-bezier(0.22, 1, 0.36, 1);
+
+            --display:     'Bricolage Grotesque', 'Cairo', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', 'Segoe UI', system-ui, sans-serif;
+            background: var(--canvas);
+            color: var(--ink);
+            direction: rtl;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--ink-4);
+            border-radius: 10px;
+        }
+
+        /* ============================================================
+           HEADER
+           ============================================================ */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 10px 0;
+            background: rgba(246,243,236,0.88);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--line);
+        }
+
+        header .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            background: var(--ink);
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 900;
+            color: #fff;
+            position: relative;
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: -3px;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--terracotta);
+            border: 2px solid var(--surface-2);
+        }
+
+        .logo-text h1 {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--ink);
+            line-height: 1.2;
+        }
+
+        .logo-text span {
+            font-size: 0.5rem;
+            color: var(--ink-3);
+            display: block;
+            font-weight: 600;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        nav a {
+            color: var(--ink-2);
+            font-weight: 600;
+            font-size: 0.82rem;
+            transition: 0.3s;
+            position: relative;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            right: 0;
+            width: 0;
+            height: 2px;
+            background: var(--prussian);
+            transition: 0.3s;
+            border-radius: 10px;
+        }
+
+        nav a:hover {
+            color: var(--ink);
+        }
+        nav a:hover::after {
+            width: 100%;
+        }
+        nav a.active {
+            color: var(--ink);
+            font-weight: 700;
+        }
+        nav a.active::after {
+            width: 100%;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-actions button {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-2);
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+        }
+
+        .header-actions button:hover {
+            border-color: var(--ink-3);
+            color: var(--ink);
+        }
+
+        .hamburger {
+            display: none;
+            font-size: 1.2rem;
+            color: var(--ink-2);
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--line);
+            background: var(--surface);
+            transition: 0.3s;
+            z-index: 1001;
+        }
+
+        .hamburger:hover {
+            border-color: var(--ink-3);
+            color: var(--ink);
+        }
+
+        /* ============================================================
+           MOBILE NAV
+           ============================================================ */
+        .mobile-nav-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(33,29,26,0.4);
+            z-index: 999;
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .mobile-nav-overlay.active {
+            opacity: 1;
+        }
+
+        .mobile-nav-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: -280px;
+            width: 280px;
+            height: 100vh;
+            background: var(--surface-2);
+            border-left: 1px solid var(--line);
+            z-index: 1000;
+            padding: 80px 24px 30px;
+            transition: right 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+            overflow-y: auto;
+            box-shadow: -10px 0 40px rgba(33,29,26,0.15);
+        }
+
+        .mobile-nav-menu.open {
+            right: 0;
+        }
+
+        .mobile-nav-menu .close-btn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            font-size: 1.4rem;
+            color: var(--ink-3);
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--line);
+            background: var(--surface);
+            transition: 0.3s;
+        }
+
+        .mobile-nav-menu .close-btn:hover {
+            background: var(--terracotta-tint);
+            color: var(--terracotta);
+        }
+
+        .mobile-nav-menu .menu-header {
+            margin-bottom: 30px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .mobile-nav-menu .menu-items {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .mobile-nav-menu .menu-items a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: var(--r-sm);
+            color: var(--ink-2);
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .mobile-nav-menu .menu-items a i {
+            width: 20px;
+            color: var(--ink-3);
+            font-size: 0.95rem;
+        }
+
+        .mobile-nav-menu .menu-items a:hover {
+            background: rgba(33,29,26,0.04);
+            color: var(--ink);
+        }
+
+        .mobile-nav-menu .menu-items a.active {
+            background: rgba(33,29,26,0.04);
+            color: var(--ink);
+            font-weight: 700;
+        }
+
+        .mobile-nav-bottom {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 998;
+            background: var(--surface-2);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--line);
+            padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+        }
+
+        .mobile-nav-bottom ul {
+            display: flex;
+            justify-content: space-around;
+            list-style: none;
+        }
+
+        .mobile-nav-bottom ul li {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            font-size: 0.5rem;
+            color: var(--ink-3);
+            transition: 0.3s;
+            padding: 4px 12px;
+            border-radius: var(--r-sm);
+        }
+
+        .mobile-nav-bottom ul li i {
+            font-size: 1rem;
+        }
+
+        .mobile-nav-bottom ul li:hover,
+        .mobile-nav-bottom ul li.active {
+            color: var(--ink);
+        }
+
+        .mobile-nav-bottom ul li a {
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+        }
+
+        /* ============================================================
+           PAGE HEADER
+           ============================================================ */
+        .page-header {
+            padding: 24px 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .page-header h1 {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--ink);
+            letter-spacing: -0.5px;
+        }
+
+        .page-header h1 i {
+            color: var(--prussian);
+            margin-left: 8px;
+        }
+
+        .page-header p {
+            color: var(--ink-3);
+            font-size: 0.85rem;
+            margin-top: 2px;
+        }
+
+        /* ============================================================
+           SUMMARY
+           ============================================================ */
+        .summary-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 12px 20px;
+            background: var(--surface);
+            border-radius: var(--r-md);
+            border: 1px solid var(--line);
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .summary-bar .total {
+            font-size: 0.85rem;
+            color: var(--ink-2);
+        }
+
+        .summary-bar .total span {
+            color: var(--ink);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .summary-bar .count {
+            font-size: 0.8rem;
+            color: var(--ink-3);
+        }
+
+        .summary-bar .count span {
+            color: var(--ink);
+            font-weight: 700;
+        }
+
+        /* ============================================================
+           TABLE
+           ============================================================ */
+        .table-wrapper {
+            background: var(--surface);
+            border-radius: var(--r-md);
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            padding: 0 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.65rem;
+            min-width: 1100px;
+        }
+
+        th {
+            background: var(--surface-2);
+            color: var(--ink-2);
+            padding: 8px 6px;
+            text-align: right;
+            font-weight: 700;
+            white-space: nowrap;
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            border-bottom: 2px solid var(--line);
+        }
+
+        th:first-child {
+            text-align: center;
+        }
+
+        td {
+            padding: 6px 6px;
+            border-bottom: 1px solid var(--line-soft);
+            color: var(--ink);
+            font-size: 0.6rem;
+        }
+
+        td:first-child {
+            text-align: center;
+            font-weight: 700;
+            color: var(--ink-2);
+        }
+
+        td.col-code {
+            font-weight: 700;
+            color: var(--prussian);
+        }
+
+        td.col-name {
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        td.col-balance {
+            font-weight: 700;
+            color: var(--prussian);
+        }
+
+        td.col-total-cost {
+            font-weight: 800;
+            color: var(--prussian);
+            font-size: 0.65rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--ink-4);
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+            opacity: 0.3;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .empty-state p {
+            font-size: 0.85rem;
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--prussian);
+        }
+
+        .loading-state i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
+        @media (min-width: 769px) {
+            .mobile-nav-bottom {
+                display: none !important;
+            }
+            .mobile-nav-overlay {
+                display: none !important;
+            }
+            .mobile-nav-menu {
+                display: none !important;
+            }
+            .hamburger {
+                display: none !important;
+            }
+            nav {
+                display: flex !important;
+            }
+            .container {
+                padding: 0 24px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                display: none !important;
+            }
+            .hamburger {
+                display: flex !important;
+            }
+            .mobile-nav-bottom {
+                display: flex !important;
+            }
+            .mobile-nav-menu {
+                display: block;
+            }
+            .mobile-nav-overlay {
+                display: block;
+            }
+            .mobile-nav-menu.open {
+                right: 0;
+            }
+            .mobile-nav-overlay.active {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            .page-header h1 {
+                font-size: 1.3rem;
+            }
+            .page-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .summary-bar {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 6px;
+            }
+            .container {
+                padding: 0 14px;
+            }
+            .table-wrapper table {
+                font-size: 0.55rem;
+                min-width: 700px;
+            }
+            .table-wrapper table thead th,
+            .table-wrapper table tbody td {
+                padding: 4px 4px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .page-header h1 {
+                font-size: 1.1rem;
+            }
+            .table-wrapper table {
+                font-size: 0.5rem;
+                min-width: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================
+    HEADER
+    ============================================================ -->
+    <header id="header">
+        <div class="container">
+            <div class="logo">
+                <div class="logo-icon">R</div>
+                <div class="logo-text">
+                    <h1>مخزن الإنتاج التام</h1>
+                    <span>شركة رولكس للدهانات</span>
+                </div>
+            </div>
+            <nav>
+                <a href="treasury.html">الخزينة</a>
+                <a href="sales.html">المبيعات</a>
+                <a href="inventory.html" class="active">المخزن</a>
+                <a href="#">التقارير</a>
+            </nav>
+            <div class="header-actions">
+                <button aria-label="بحث"><i class="fas fa-search"></i></button>
+                <button aria-label="إشعارات"><i class="fas fa-bell"></i></button>
+                <div class="hamburger" id="navToggle"><i class="fas fa-bars"></i></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================================================
+    MOBILE NAV
+    ============================================================ -->
+    <div class="mobile-nav-overlay" id="mobileOverlay"></div>
+    <div class="mobile-nav-menu" id="mobileMenu">
+        <div class="close-btn" id="closeMenu"><i class="fas fa-times"></i></div>
+        <div class="menu-header">
+            <div class="logo-text">
+                <h1 style="font-size:1.2rem; color:var(--ink);">مخزن الإنتاج التام</h1>
+                <span style="font-size:0.6rem; color:var(--ink-3); display:block;">شركة رولكس للدهانات</span>
+            </div>
+        </div>
+        <div class="menu-items">
+            <a href="treasury.html"><i class="fas fa-coins"></i> الخزينة</a>
+            <a href="sales.html"><i class="fas fa-chart-line"></i> المبيعات</a>
+            <a href="#" class="active"><i class="fas fa-warehouse"></i> المخزن</a>
+            <a href="#"><i class="fas fa-chart-pie"></i> التقارير</a>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    MOBILE BOTTOM NAV
+    ============================================================ -->
+    <nav class="mobile-nav-bottom" id="mobileNavBottom">
+        <ul>
+            <li><a href="treasury.html"><i class="fas fa-coins"></i><span>الخزينة</span></a></li>
+            <li><a href="sales.html"><i class="fas fa-chart-line"></i><span>المبيعات</span></a></li>
+            <li class="active"><a href="#"><i class="fas fa-warehouse"></i><span>المخزن</span></a></li>
+            <li><a href="#"><i class="fas fa-chart-pie"></i><span>التقارير</span></a></li>
+        </ul>
+    </nav>
+
+    <!-- ============================================================
+    PAGE CONTENT
+    ============================================================ -->
+    <div class="container">
+
+        <!-- ===== PAGE HEADER ===== -->
+        <div class="page-header">
+            <div>
+                <h1><i class="fas fa-warehouse"></i> مخزن الإنتاج التام</h1>
+                <p>عرض أرصدة المنتجات النهائية - يتم جلب البيانات من شيت المنتجات والمبيعات</p>
+            </div>
+        </div>
+
+        <!-- ===== SUMMARY ===== -->
+        <div class="summary-bar" id="summaryBar">
+            <div class="total">إجمالي المنتجات: <span id="totalProducts">0</span></div>
+            <div class="count">إجمالي قيمة المخزون: <span id="totalInventoryValue">0</span></div>
+        </div>
+
+        <!-- ===== TABLE ===== -->
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:40px;">م</th>
+                        <th>كود المنتج</th>
+                        <th>اسم المنتج</th>
+                        <th>الوحده</th>
+                        <th style="text-align:center;">الرصيد الافتتاحي</th>
+                        <th style="text-align:center;">الوارد</th>
+                        <th style="text-align:center;">الصادر</th>
+                        <th style="text-align:center;">الرصيد الحالي</th>
+                        <th style="text-align:center;">التكلفه</th>
+                        <th style="text-align:center;">اجمالي التكلفه</th>
+                    </tr>
+                </thead>
+                <tbody id="entriesBody">
+                    <tr>
+                        <td colspan="10">
+                            <div class="loading-state">
+                                <i class="fas fa-spinner"></i>
+                                <p>جاري تحميل البيانات...</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- ============================================================
+    JAVASCRIPT
+    ============================================================ -->
+    <script>
+        // ============================================================
+        // HEADER SCROLL
+        // ============================================================
+        var header = document.getElementById('header');
+        window.addEventListener('scroll', function() {
+            if (window.pageYOffset > 10) {
+                header.style.background = 'rgba(246,243,236,0.95)';
+                header.style.borderBottom = '1px solid rgba(33,29,26,0.11)';
+            } else {
+                header.style.background = 'rgba(246,243,236,0.88)';
+                header.style.borderBottom = '1px solid rgba(33,29,26,0.11)';
+            }
+        });
+
+        // ============================================================
+        // MOBILE NAV
+        // ============================================================
+        var navToggle = document.getElementById('navToggle');
+        var mobileMenu = document.getElementById('mobileMenu');
+        var mobileOverlay = document.getElementById('mobileOverlay');
+        var closeMenu = document.getElementById('closeMenu');
+
+        function openMenu() {
+            mobileMenu.classList.add('open');
+            mobileOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            navToggle.innerHTML = '<i class="fas fa-times"></i>';
+            navToggle.classList.add('open');
+        }
+
+        function closeMenuFn() {
+            mobileMenu.classList.remove('open');
+            mobileOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+            navToggle.innerHTML = '<i class="fas fa-bars"></i>';
+            navToggle.classList.remove('open');
+        }
+
+        navToggle.addEventListener('click', function() {
+            if (mobileMenu.classList.contains('open')) {
+                closeMenuFn();
+            } else {
+                openMenu();
+            }
+        });
+
+        closeMenu.addEventListener('click', closeMenuFn);
+        mobileOverlay.addEventListener('click', closeMenuFn);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('open')) {
+                closeMenuFn();
+            }
+        });
+
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768 && mobileMenu.classList.contains('open')) {
+                closeMenuFn();
+            }
+        });
+
+        // ============================================================
+        // CONFIGURATION
+        // ============================================================
+        var SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
+        var SHEET_PRODUCTS = 'المنتجات';
+        var SHEET_SALES = 'المبيعات والمرتجعات';
+
+        // ============================================================
+        // DOM REFS
+        // ============================================================
+        var entriesBody = document.getElementById('entriesBody');
+        var totalProducts = document.getElementById('totalProducts');
+        var totalInventoryValue = document.getElementById('totalInventoryValue');
+
+        // ============================================================
+        // دالة تنسيق الأرقام
+        // ============================================================
+        function formatNumber(num) {
+            if (num === undefined || num === null || isNaN(num)) return '0';
+            var rounded = Math.round(num);
+            return rounded.toString();
+        }
+
+        function formatNumberWithCommas(num) {
+            if (num === undefined || num === null || isNaN(num)) return '0';
+            return Math.round(num).toLocaleString('ar-EG');
+        }
+
+        function cleanNumber(value) {
+            if (!value) return 0;
+            if (typeof value === 'number') return value;
+            var cleaned = String(value).replace(/[^0-9.]/g, '');
+            return parseFloat(cleaned) || 0;
+        }
+
+        // ============================================================
+        // FETCH PRODUCTS FROM GOOGLE SHEETS
+        // ============================================================
+        function fetchProducts() {
+            var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + SHEET_PRODUCTS;
+            return fetch(url)
+                .then(function(response) {
+                    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
+                    return response.text();
+                })
+                .then(function(csvText) {
+                    var lines = csvText.split('\n').filter(function(line) {
+                        return line.trim() !== '';
+                    });
+                    var products = [];
+                    for (var i = 1; i < lines.length; i++) {
+                        var row = parseCSVLine(lines[i]);
+                        if (row.length < 6) continue;
+                        var code = row[0] ? row[0].trim() : '';
+                        var name1 = row[1] ? row[1].trim() : '';
+                        var name2 = row[2] ? row[2].trim() : '';
+                        var packageType = row[3] ? row[3].trim() : '';
+                        var weight = row[4] ? cleanNumber(row[4]) : 0;
+                        var unit = row[5] ? row[5].trim() : 'كجم';
+                        var openingBalance = row[6] ? cleanNumber(row[6]) : 0;
+                        var cost = row[7] ? cleanNumber(row[7]) : 0;
+
+                        // تنقية كود المنتج
+                        if (!code || code === '' || code === 'كود المنتج') continue;
+                        if (code.match(/Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/i)) continue;
+                        if (code.match(/202[0-9]/)) continue;
+                        if (code.match(/^(Thu|Fri|Sat|Sun|Mon|Tue|Wed)/i)) continue;
+                        if (code.match(/GMT|توقیت|توقيت|EET|EEST/i)) continue;
+                        if (code.match(/\d{2}:\d{2}:\d{2}/)) continue;
+
+                        var fullName = name1;
+                        if (name2 && name2 !== '') {
+                            fullName = fullName + ' - ' + name2;
+                        }
+                        if (!fullName || fullName === '') continue;
+
+                        products.push({
+                            code: code,
+                            name: fullName,
+                            unit: unit || 'كجم',
+                            weight: weight,
+                            package: packageType || '',
+                            openingBalance: openingBalance,
+                            cost: cost
+                        });
+                    }
+                    return products;
+                });
+        }
+
+        // ============================================================
+        // PARSE CSV LINE (مع دعم النصوص بين علامات التنصيص)
+        // ============================================================
+        function parseCSVLine(line) {
+            var row = [];
+            var current = '';
+            var insideQuotes = false;
+            for (var i = 0; i < line.length; i++) {
+                var char = line[i];
+                if (char === '"') {
+                    insideQuotes = !insideQuotes;
+                } else if (char === ',' && !insideQuotes) {
+                    row.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            row.push(current.trim());
+            return row;
+        }
+
+        // ============================================================
+        // FETCH SALES DATA (لحساب الصادرات)
+        // ============================================================
+        function fetchSalesData() {
+            var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + SHEET_SALES;
+            return fetch(url)
+                .then(function(response) {
+                    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
+                    return response.text();
+                })
+                .then(function(csvText) {
+                    var lines = csvText.split('\n').filter(function(line) {
+                        return line.trim() !== '';
+                    });
+                    var salesMap = {};
+                    for (var i = 1; i < lines.length; i++) {
+                        var row = parseCSVLine(lines[i]);
+                        if (row.length < 12) continue;
+                        var productCode = row[7] ? row[7].trim() : '';
+                        var quantity = row[11] ? cleanNumber(row[11]) : 0;
+                        if (productCode && productCode !== '' && productCode !== 'كود الصنف') {
+                            if (!salesMap[productCode]) salesMap[productCode] = 0;
+                            salesMap[productCode] += quantity;
+                        }
+                    }
+                    return salesMap;
+                });
+        }
+
+        // ============================================================
+        // LOAD INVENTORY DATA
+        // ============================================================
+        function loadInventory() {
+            entriesBody.innerHTML = '<tr><td colspan="10"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
+
+            Promise.all([fetchProducts(), fetchSalesData()])
+                .then(function(results) {
+                    var products = results[0];
+                    var salesMap = results[1];
+
+                    if (!products || products.length === 0) {
+                        entriesBody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>لا توجد منتجات</p></div></td></tr>';
+                        return;
+                    }
+
+                    var html = '';
+                    var totalProductsCount = products.length;
+                    var totalInventoryValueSum = 0;
+
+                    products.forEach(function(product, index) {
+                        var openingBalance = product.openingBalance || 0;
+                        var soldQuantity = salesMap[product.code] || 0;
+                        var currentBalance = openingBalance - soldQuantity;
+                        if (currentBalance < 0) currentBalance = 0;
+                        var totalCost = currentBalance * product.cost;
+
+                        totalInventoryValueSum += totalCost;
+
+                        html += '<tr>' +
+                            '<td>' + (index + 1) + '</td>' +
+                            '<td class="col-code">' + (product.code || '-') + '</td>' +
+                            '<td class="col-name">' + (product.name || '-') + '</td>' +
+                            '<td>' + (product.unit || 'كجم') + '</td>' +
+                            '<td style="text-align:center;">' + formatNumber(openingBalance) + '</td>' +
+                            '<td style="text-align:center;color:var(--viridian);">0</td>' +
+                            '<td style="text-align:center;color:var(--oxide);">' + formatNumber(soldQuantity) + '</td>' +
+                            '<td style="text-align:center;color:var(--prussian);font-weight:700;">' + formatNumber(
+                                currentBalance) + '</td>' +
+                            '<td style="text-align:center;">' + formatNumber(product.cost) + '</td>' +
+                            '<td style="text-align:center;color:var(--prussian);font-weight:800;font-size:0.65rem;">' +
+                            formatNumberWithCommas(totalCost) + '</td>' +
+                            '</tr>';
+                    });
+
+                    entriesBody.innerHTML = html;
+                    totalProducts.textContent = totalProductsCount;
+                    totalInventoryValue.textContent = formatNumberWithCommas(totalInventoryValueSum);
+
+                    console.log('✅ تم تحميل المخزن - ' + totalProductsCount + ' منتج');
+                })
+                .catch(function(error) {
+                    console.error('Error loading inventory:', error);
+                    entriesBody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات<br><small style="color:var(--ink-4);">' +
+                        error.message + '</small></p></div></td></tr>';
+                });
+        }
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        (function init() {
+            loadInventory();
+            console.log('🏭 مخزن الإنتاج التام - تم التحميل');
+        })();
+
+        // تحديث البيانات كل 5 دقائق
+        setInterval(function() {
+            loadInventory();
+        }, 300000);
+    </script>
+
+</body>
+</html>
