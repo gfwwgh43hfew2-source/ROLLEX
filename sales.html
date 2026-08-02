@@ -335,6 +335,11 @@
            ============================================================ */
         .page-header {
             padding: 20px 0 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         .page-header h1 {
@@ -349,6 +354,33 @@
             color: rgba(255, 255, 255, 0.5);
             font-size: 0.9rem;
             margin-top: 4px;
+        }
+
+        .btn-new-invoice {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 24px;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #f5c842, #d4a020);
+            border: none;
+            color: #0a0f1f;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.3s;
+            text-decoration: none;
+            white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(245, 200, 66, 0.25);
+        }
+
+        .btn-new-invoice:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(245, 200, 66, 0.4);
+        }
+
+        .btn-new-invoice i {
+            font-size: 0.9rem;
         }
 
         /* ============================================================
@@ -490,7 +522,7 @@
         }
 
         /* ============================================================
-           TABLE - تم إخفاء عمود رقم الفاتورة وتوسيع عمود التاريخ
+           TABLE
            ============================================================ */
         .table-wrapper {
             background: linear-gradient(145deg, #121a2e, #0e1525);
@@ -528,35 +560,6 @@
 
         tr:hover td {
             background: rgba(245, 200, 66, 0.02);
-        }
-
-        /* ===== إخفاء عمود رقم الفاتورة ===== */
-        .col-invoice-number,
-        td.col-invoice-number {
-            display: none;
-        }
-
-        /* ===== توسيع عمود التاريخ ===== */
-        th.col-date,
-        td.col-date {
-            min-width: 100px;
-            width: 120px;
-        }
-
-        /* ===== الأعمدة الأخرى ===== */
-        th.col-salesman,
-        td.col-salesman {
-            min-width: 80px;
-        }
-
-        th.col-client-name,
-        td.col-client-name {
-            min-width: 100px;
-        }
-
-        th.col-item-name,
-        td.col-item-name {
-            min-width: 120px;
         }
 
         .empty-state {
@@ -642,6 +645,14 @@
             .page-header h1 {
                 font-size: 1.4rem;
             }
+            .page-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn-new-invoice {
+                width: 100%;
+                justify-content: center;
+            }
             .filters-section {
                 flex-direction: column;
                 align-items: stretch;
@@ -689,11 +700,6 @@
             .table-wrapper table {
                 font-size: 0.5rem;
                 min-width: 600px;
-            }
-            th.col-date,
-            td.col-date {
-                min-width: 80px;
-                width: 90px;
             }
         }
     </style>
@@ -765,8 +771,13 @@
 
         <!-- ===== PAGE HEADER ===== -->
         <div class="page-header">
-            <h1>📊 المبيعات والمرتجعات</h1>
-            <p>عرض جميع فواتير المبيعات والمرتجعات من Google Sheets</p>
+            <div>
+                <h1>📊 المبيعات والمرتجعات</h1>
+                <p>عرض جميع فواتير المبيعات والمرتجعات من Google Sheets</p>
+            </div>
+            <a href="invoice.html" class="btn-new-invoice">
+                <i class="fas fa-plus"></i> فاتورة جديدة
+            </a>
         </div>
 
         <!-- ===== FILTERS ===== -->
@@ -797,20 +808,20 @@
             <div class="count">عدد الفواتير: <span id="totalCount">0</span></div>
         </div>
 
-        <!-- ===== TABLE - تم إخفاء عمود رقم الفاتورة ===== -->
+        <!-- ===== TABLE ===== -->
         <div class="table-wrapper">
             <table>
                 <thead>
                     <tr>
                         <th>الرقم الدفتري</th>
-                        <th class="col-invoice-number">رقم الفاتورة</th>
+                        <th>رقم الفاتورة</th>
                         <th>الشهر</th>
-                        <th class="col-date">التاريخ</th>
-                        <th class="col-salesman">المندوب</th>
+                        <th>التاريخ</th>
+                        <th>المندوب</th>
                         <th>كود العميل</th>
-                        <th class="col-client-name">اسم العميل</th>
+                        <th>اسم العميل</th>
                         <th>كود الصنف</th>
-                        <th class="col-item-name">الصنف</th>
+                        <th>الصنف</th>
                         <th style="text-align:center;">الوزن</th>
                         <th style="text-align:center;">الوحده</th>
                         <th style="text-align:center;">العدد</th>
@@ -903,7 +914,7 @@
         });
 
         // ============================================================
-        // CONFIGURATION - نفس ID الشيت
+        // CONFIGURATION
         // ============================================================
         var SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
         var SHEET_NAME = 'المبيعات والمرتجعات';
@@ -1007,7 +1018,7 @@
         }
 
         // ============================================================
-        // DISPLAY ROWS - مع إخفاء عمود رقم الفاتورة
+        // DISPLAY ROWS
         // ============================================================
         function displayRows(rows) {
             var filtered = filterRows(rows);
@@ -1015,7 +1026,7 @@
             var total = filtered.length;
             var totalSalesAmt = 0;
             filtered.forEach(function(row) {
-                var sales = cleanNumber(row[13]); // اجمالي مبيعات (index 13)
+                var sales = cleanNumber(row[13]);
                 totalSalesAmt += sales;
             });
 
@@ -1028,32 +1039,31 @@
             }
 
             var html = '';
-            // ترتيب حسب التاريخ (الأحدث أولاً) - التاريخ في index 3
             var sorted = filtered.slice().sort(function(a, b) {
                 return (b[3] || '').localeCompare(a[3] || '');
             });
 
             sorted.forEach(function(row) {
                 html += '<tr>' +
-                    '<td>' + (row[0] || '-') + '</td>' + // الرقم الدفتري (0)
-                    '<td class="col-invoice-number">' + (row[1] || '-') + '</td>' + // رقم الفاتورة (1) - مخفي
-                    '<td>' + (row[2] || '-') + '</td>' + // الشهر (2)
-                    '<td class="col-date">' + (row[3] || '-') + '</td>' + // التاريخ (3) - موسع
-                    '<td class="col-salesman">' + (row[4] || '-') + '</td>' + // المندوب (4)
-                    '<td>' + (row[5] || '-') + '</td>' + // كود العميل (5)
-                    '<td class="col-client-name" style="color:#f5c842;font-weight:600;">' + (row[6] || '-') + '</td>' + // اسم العميل (6)
-                    '<td>' + (row[7] || '-') + '</td>' + // كود الصنف (7)
-                    '<td class="col-item-name">' + (row[8] || '-') + '</td>' + // الصنف (8)
-                    '<td style="text-align:center;">' + formatNumber(cleanNumber(row[9])) + '</td>' + // الوزن (9)
-                    '<td style="text-align:center;">' + (row[10] || '-') + '</td>' + // الوحده (10)
-                    '<td style="text-align:center;">' + formatNumber(cleanNumber(row[11])) + '</td>' + // العدد (11)
-                    '<td style="text-align:center;">' + formatNumber(cleanNumber(row[12])) + '</td>' + // سعر البيع (12)
+                    '<td>' + (row[0] || '-') + '</td>' +
+                    '<td>' + (row[1] || '-') + '</td>' +
+                    '<td>' + (row[2] || '-') + '</td>' +
+                    '<td>' + (row[3] || '-') + '</td>' +
+                    '<td>' + (row[4] || '-') + '</td>' +
+                    '<td>' + (row[5] || '-') + '</td>' +
+                    '<td style="color:#f5c842;font-weight:600;">' + (row[6] || '-') + '</td>' +
+                    '<td>' + (row[7] || '-') + '</td>' +
+                    '<td>' + (row[8] || '-') + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(cleanNumber(row[9])) + '</td>' +
+                    '<td style="text-align:center;">' + (row[10] || '-') + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(cleanNumber(row[11])) + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(cleanNumber(row[12])) + '</td>' +
                     '<td style="text-align:center;color:#f5c842;font-weight:700;">' + formatNumber(cleanNumber(row[
-                        13])) + '</td>' + // اجمالي مبيعات (13)
-                    '<td style="text-align:center;">' + formatNumber(cleanNumber(row[14])) + '</td>' + // اجمالي الوزن (14)
-                    '<td>' + (row[15] || '-') + '</td>' + // اللون (15)
-                    '<td>' + (row[16] || '-') + '</td>' + // نوع الحصوة (16)
-                    '<td style="font-size:0.55rem;color:rgba(255,255,255,0.5);">' + (row[17] || '-') + '</td>' + // ملاحظات (17)
+                        13])) + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(cleanNumber(row[14])) + '</td>' +
+                    '<td>' + (row[15] || '-') + '</td>' +
+                    '<td>' + (row[16] || '-') + '</td>' +
+                    '<td style="font-size:0.55rem;color:rgba(255,255,255,0.5);">' + (row[17] || '-') + '</td>' +
                     '</tr>';
             });
 
@@ -1070,18 +1080,15 @@
             var salesman = filterSalesman.value.trim().toLowerCase();
 
             return rows.filter(function(row) {
-                // فلتر التاريخ (العمود 3)
                 var date = row[3] || '';
                 if (fromDate && date < fromDate) return false;
                 if (toDate && date > toDate) return false;
 
-                // فلتر العميل (العمود 6 - اسم العميل)
                 if (client) {
                     var clientName = (row[6] || '').toLowerCase();
                     if (!clientName.includes(client)) return false;
                 }
 
-                // فلتر المندوب (العمود 4)
                 if (salesman) {
                     var salesmanName = (row[4] || '').toLowerCase();
                     if (!salesmanName.includes(salesman)) return false;
@@ -1121,7 +1128,6 @@
 
             console.log('🚀 صفحة المبيعات والمرتجعات - تم التحميل');
             console.log('📅 الفترة: من ' + filterDateFrom.value + ' إلى ' + filterDateTo.value);
-            console.log('📌 تم إخفاء عمود رقم الفاتورة وتوسيع عمود التاريخ');
         })();
 
         // تحديث البيانات كل 5 دقائق
