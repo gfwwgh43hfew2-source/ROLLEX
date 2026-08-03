@@ -2250,42 +2250,46 @@
             updateProgress();
         }
 
-        /**
-         * ============================================================
-         * SUGGESTIONS SYSTEM
-         * ============================================================
-         */
-        function setupSuggestions() {
-            // إعداد اقتراحات العملاء
-            setupSuggestionInput(clientName, clientSuggestions, clients, null);
+     /**
+ * ============================================================
+ * SUGGESTIONS SYSTEM - إصلاح عرض الاقتراحات
+ * ============================================================
+ */
+function setupSuggestions() {
+    // ===== اقتراحات العملاء =====
+    setupSuggestionInput(clientName, clientSuggestions, clients, null);
 
-            // إعداد اقتراحات المنتجات
-            setupSuggestionInput(itemName, productSuggestions, products.map(function(p) { return p.name; }),
-                function(selectedName) {
-                    var found = products.find(function(p) { return p.name === selectedName; });
-                    if (found) {
-                        fillProductData(found);
-                        showToast('✅ تم العثور', found.name, 'success');
-                    }
-                },
-                function(query) {
-                    if (!query || query.trim() === '') {
-                        return [];
-                    }
-                    var results = products.filter(function(p) {
-                        return p.name.toLowerCase().includes(query.toLowerCase());
-                    });
-                    return results.map(function(p) {
-                        return {
-                            display: p.name,
-                            value: p.name,
-                            extra: '<span class="suggestion-code">' + p.code + ' | ' + (p.weight || 0) +
-                                ' ' + (p.unit || 'كجم') + ' | ' + (p.package || '—') + '</span>'
-                        };
-                    });
-                }
-            );
+    // ===== اقتراحات المنتجات =====
+    setupSuggestionInput(itemName, productSuggestions, products.map(function(p) { return p.name; }),
+        function(selectedName) {
+            var found = products.find(function(p) { return p.name === selectedName; });
+            if (found) {
+                fillProductData(found);
+                showToast('✅ تم العثور', found.name, 'success');
+            }
+        },
+        function(query) {
+            if (!query || query.trim() === '') {
+                return [];
+            }
+            var results = products.filter(function(p) {
+                return p.name && p.name.toLowerCase().includes(query.toLowerCase());
+            });
+            return results.map(function(p) {
+                return {
+                    display: p.name,
+                    value: p.name,
+                    extra: '<span class="suggestion-code">' + p.code + ' | ' + (p.weight || 0) +
+                        ' ' + (p.unit || 'كجم') + ' | ' + (p.package || '—') + '</span>'
+                };
+            });
         }
+    );
+
+    console.log('✅ تم إعداد نظام الاقتراحات');
+    console.log('📦 عدد المنتجات المتاحة:', products.length);
+    console.log('👤 عدد العملاء المتاحين:', clients.length);
+}
 
         /**
          * ============================================================
