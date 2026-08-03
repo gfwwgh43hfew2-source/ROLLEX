@@ -1993,16 +1993,16 @@
          * CONFIGURATION - API ENDPOINTS (تم تحديثها بالروابط الجديدة)
          * ============================================================
          */
-        // رابط جلب العملاء (الإصدار 50)
+        // رابط جلب العملاء (الإصدار 2 - يعمل)
         var CLIENTS_URL = 'https://script.google.com/macros/s/AKfycbyikI2cFy0KWW_ujWUJ0avnIJIP53eFjJW9RhFcbcYbXMz_QA2HtM4DbexXOhyuO_zH/exec';
-        // رابط جلب المنتجات (الإصدار 52)
-       var PRODUCTS_URL = 'https://script.google.com/macros/s/AKfycbwKmfa4HdA8hex0ZIu3bIrEaTV8Y3jn6z9E-Pgrze1PeX62EOiQXeOx1PeunlvyB8nEKQ/exec';
+        // رابط جلب المنتجات (الإصدار 55 - يعمل)
+        var PRODUCTS_URL = 'https://script.google.com/macros/s/AKfycbwKmfa4HdA8hex0ZIu3bIrEaTV8Y3jn6z9E-Pgrze1PeX62EOiQXeOx1PeunlvyB8nEKQ/exec';
         // رابط حفظ الفواتير
         var SAVE_URL = 'https://script.google.com/macros/s/AKfycbxD2c73p5CegQdVjFIsFaxN0x7bYr6R-0FS6Co8nHjSKhiS1sjk-4FXUlw8AAOYOklrWQ/exec';
         // رابط الإعدادات
         var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbwktOKxOfOBx9fKXB7E2pHKo0NUONQM6XTmjo2BhAdK-4a7_bJeoeHB3wlFGAB5KgDEoA/exec';
-        // رابط آخر رقم فاتورة
-        var LAST_NUMBER_URL = 'https://script.google.com/macros/s/AKfycbyLDf34hM2m6kES_SjCd-IsSXW_TFntC9bX1QdflLcIkfsafhR8_uuiWp2JSRtGzYyp5g/exec';
+        // رابط آخر رقم فاتورة (الإصدار 3 - يعمل)
+        var LAST_NUMBER_URL = 'https://script.google.com/macros/s/AKfycbxk2PW4QaQgJcHb-IUYLcJXZKcpnVV1y5xCEoNxqCyOBPER3Fuu-di2WPA1TzmGqUs9/exec';
 
         // متغير FETCH_URL القديم للتوافق مع البحث عن الفواتير (يستخدم نفس رابط جلب البيانات)
         var FETCH_URL = CLIENTS_URL;
@@ -2250,46 +2250,46 @@
             updateProgress();
         }
 
-     /**
- * ============================================================
- * SUGGESTIONS SYSTEM - إصلاح عرض الاقتراحات
- * ============================================================
- */
-function setupSuggestions() {
-    // ===== اقتراحات العملاء =====
-    setupSuggestionInput(clientName, clientSuggestions, clients, null);
+        /**
+         * ============================================================
+         * SUGGESTIONS SYSTEM - إصلاح عرض الاقتراحات
+         * ============================================================
+         */
+        function setupSuggestions() {
+            // ===== اقتراحات العملاء =====
+            setupSuggestionInput(clientName, clientSuggestions, clients, null);
 
-    // ===== اقتراحات المنتجات =====
-    setupSuggestionInput(itemName, productSuggestions, products.map(function(p) { return p.name; }),
-        function(selectedName) {
-            var found = products.find(function(p) { return p.name === selectedName; });
-            if (found) {
-                fillProductData(found);
-                showToast('✅ تم العثور', found.name, 'success');
-            }
-        },
-        function(query) {
-            if (!query || query.trim() === '') {
-                return [];
-            }
-            var results = products.filter(function(p) {
-                return p.name && p.name.toLowerCase().includes(query.toLowerCase());
-            });
-            return results.map(function(p) {
-                return {
-                    display: p.name,
-                    value: p.name,
-                    extra: '<span class="suggestion-code">' + p.code + ' | ' + (p.weight || 0) +
-                        ' ' + (p.unit || 'كجم') + ' | ' + (p.package || '—') + '</span>'
-                };
-            });
+            // ===== اقتراحات المنتجات =====
+            setupSuggestionInput(itemName, productSuggestions, products.map(function(p) { return p.name; }),
+                function(selectedName) {
+                    var found = products.find(function(p) { return p.name === selectedName; });
+                    if (found) {
+                        fillProductData(found);
+                        showToast('✅ تم العثور', found.name, 'success');
+                    }
+                },
+                function(query) {
+                    if (!query || query.trim() === '') {
+                        return [];
+                    }
+                    var results = products.filter(function(p) {
+                        return p.name && p.name.toLowerCase().includes(query.toLowerCase());
+                    });
+                    return results.map(function(p) {
+                        return {
+                            display: p.name,
+                            value: p.name,
+                            extra: '<span class="suggestion-code">' + p.code + ' | ' + (p.weight || 0) +
+                                ' ' + (p.unit || 'كجم') + ' | ' + (p.package || '—') + '</span>'
+                        };
+                    });
+                }
+            );
+
+            console.log('✅ تم إعداد نظام الاقتراحات');
+            console.log('📦 عدد المنتجات المتاحة:', products.length);
+            console.log('👤 عدد العملاء المتاحين:', clients.length);
         }
-    );
-
-    console.log('✅ تم إعداد نظام الاقتراحات');
-    console.log('📦 عدد المنتجات المتاحة:', products.length);
-    console.log('👤 عدد العملاء المتاحين:', clients.length);
-}
 
         /**
          * ============================================================
