@@ -1990,18 +1990,11 @@
 
         /**
          * ============================================================
-         * CONFIGURATION - API ENDPOINTS
+         * CONFIGURATION - Supabase
          * ============================================================
          */
-      var BASE_URL = 'https://script.google.com/macros/s/AKfycbzDkYTpsWKYjxq98yDd-JIYr1X9lcVI5os21gi4HH4Q3vqBBCLPU4nt_EEO9TDbaNaG7g/exec';
-
-        // جميع الروابط تستخدم نفس الرابط المتكامل
-        var CLIENTS_URL = BASE_URL;
-        var PRODUCTS_URL = BASE_URL;
-        var SETTINGS_URL = BASE_URL;
-        var LAST_NUMBER_URL = BASE_URL;
-        var FETCH_URL = BASE_URL;
-        var SAVE_URL = BASE_URL;
+        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
+        var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlra2hrZ2Fqenl4c2dvYW10bW5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5OTY4MDcsImV4cCI6MjA2NTU3MjgwN30.0VJ-6K5qvfXxFQoBQxVC7R5xEa5uZrUJqXZ5oXVtQGQ';
 
         /**
          * ============================================================
@@ -2024,28 +2017,36 @@
 
         /**
          * ============================================================
-         * FETCH LAST INVOICE NUMBER
+         * FETCH LAST INVOICE NUMBER FROM SUPABASE
          * ============================================================
          */
         function fetchLastInvoiceNumber() {
-            return fetch(LAST_NUMBER_URL + '?action=getLastInvoiceNumber')
-                .then(function(response) {
-                    return response.json();
-                })
-                .then(function(data) {
-                    if (data.success) {
-                        return data.lastNumber || 0;
+            return fetch(SUPABASE_URL + '/rest/v1/invoices?select=invoice_number&order=id.desc&limit=1', {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                }
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data && data.length > 0 && data[0].invoice_number) {
+                    var match = data[0].invoice_number.match(/INV-\d{8}-(\d{4})/);
+                    if (match) {
+                        return parseInt(match[1]);
                     }
-                    return 0;
-                })
-                .catch(function() {
-                    return 0;
-                });
+                }
+                return 0;
+            })
+            .catch(function() {
+                return 0;
+            });
         }
 
         /**
          * ============================================================
-         * INVOICE NUMBER GENERATOR (Based on last number from server)
+         * INVOICE NUMBER GENERATOR (Based on last number from Supabase)
          * ============================================================
          */
         function generateInvoiceNumber() {
@@ -2161,24 +2162,93 @@
          * ============================================================
          */
         function loadSettings() {
-            fetch(SETTINGS_URL + '?action=getSettings')
-                .then(function(response) {
-                    return response.json();
-                })
-                .then(function(data) {
-                    if (data.success && data.data) {
-                        settings = data.data;
-                        console.log('✅ تم جلب الإعدادات');
-                    }
-                })
-                .catch(function(error) {
-                    console.error('❌ خطأ في جلب الإعدادات:', error);
-                });
+            fetch(SUPABASE_URL + '/rest/v1/settings?select=*&limit=1', {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                }
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data && data.length > 0) {
+                    var settingsData = data[0];
+                    settings.companyName = settingsData.company_name || settings.companyName;
+                    settings.companyAddress = settingsData.company_address || settings.companyAddress;
+                    settings.companyPhone = settingsData.company_phone || settings.companyPhone;
+                    settings.companyEmail = settingsData.company_email || settings.companyEmail;
+                    settings.companyWebsite = settingsData.company_website || settings.companyWebsite;
+                    settings.companyTaxNumber = settingsData.company_tax_number || settings.companyTaxNumber;
+                    settings.companyLogo = settingsData.company_logo || settings.companyLogo;
+                    settings.invoiceFooter = settingsData.invoice_footer || settings.invoiceFooter;
+                    console.log('✅ تم جلب الإعدادات من Supabase');
+                }
+            })
+            .catch(function(error) {
+                console.error('❌ خطأ في جلب الإعدادات:', error);
+            });
         }
 
         /**
          * ============================================================
-         * LOAD DATA (Products & Clients) - باستخدام الروابط المنفصلة
+         * FETCH CLIENTS FROM SUPABASE
+         * ============================================================
+         */
+        function fetchClientsFromSupabase() {
+            return fetch(SUPABASE_URL + '/rest/v1/clients?select=name,code&order=name.asc', {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                }
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                clients = data.map(function(client) {
+                    return client.name;
+                });
+                console.log('✅ تم جلب ' + clients.length + ' عميل من Supabase');
+                return clients;
+            })
+            .catch(function(error) {
+                console.error('❌ خطأ في جلب العملاء:', error);
+                clients = DEFAULT_CLIENTS;
+                return clients;
+            });
+        }
+
+        /**
+         * ============================================================
+         * FETCH PRODUCTS FROM SUPABASE
+         * ============================================================
+         */
+        function fetchProductsFromSupabase() {
+            return fetch(SUPABASE_URL + '/rest/v1/products?select=code,name,package,weight,unit&order=name.asc', {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                }
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                products = data;
+                console.log('✅ تم جلب ' + products.length + ' منتج من Supabase');
+                return products;
+            })
+            .catch(function(error) {
+                console.error('❌ خطأ في جلب المنتجات:', error);
+                products = DEFAULT_PRODUCTS;
+                return products;
+            });
+        }
+
+        /**
+         * ============================================================
+         * LOAD DATA (Products & Clients) - من Supabase
          * ============================================================
          */
         function loadData() {
@@ -2201,49 +2271,19 @@
                 }
             }
 
-            // ===== جلب المنتجات من السكريبت الجديد =====
-            fetch(PRODUCTS_URL + '?action=getProductsDetails')
-                .then(function(response) {
-                    return response.json();
-                })
-                .then(function(data) {
-                    if (data.success && data.data && data.data.products) {
-                        products = data.data.products;
-                        console.log('✅ تم جلب ' + products.length + ' منتج');
-                    } else {
-                        products = DEFAULT_PRODUCTS;
-                    }
-                    loadedProducts = true;
-                    updateProgress();
-                })
-                .catch(function() {
-                    products = DEFAULT_PRODUCTS;
-                    loadedProducts = true;
-                    updateProgress();
-                });
-
-            // ===== جلب العملاء من السكريبت الجديد =====
-            fetch(CLIENTS_URL + '?action=getClientNames')
-                .then(function(response) {
-                    return response.json();
-                })
-                .then(function(data) {
-                    if (data.success && data.data && data.data.clients) {
-                        clients = data.data.clients;
-                        console.log('✅ تم جلب ' + clients.length + ' عميل');
-                    } else {
-                        clients = DEFAULT_CLIENTS;
-                    }
-                    loadedClients = true;
-                    updateProgress();
-                })
-                .catch(function() {
-                    clients = DEFAULT_CLIENTS;
+            // جلب العملاء من Supabase
+            fetchClientsFromSupabase()
+                .then(function() {
                     loadedClients = true;
                     updateProgress();
                 });
 
-            updateProgress();
+            // جلب المنتجات من Supabase
+            fetchProductsFromSupabase()
+                .then(function() {
+                    loadedProducts = true;
+                    updateProgress();
+                });
         }
 
         /**
@@ -2693,22 +2733,7 @@
                 return;
             }
 
-            // جلب الإعدادات من السيرفر قبل الطباعة
-            fetch(SETTINGS_URL + '?action=getSettings')
-                .then(function(response) {
-                    return response.json();
-                })
-                .then(function(data) {
-                    if (data.success && data.data) {
-                        settings = data.data;
-                        console.log('✅ تم جلب الإعدادات الجديدة للطباعة');
-                    }
-                    renderPrintInvoice();
-                })
-                .catch(function(error) {
-                    console.error('❌ خطأ في جلب الإعدادات:', error);
-                    renderPrintInvoice();
-                });
+            renderPrintInvoice();
         }
 
         /**
@@ -2725,7 +2750,7 @@
             var total = totalAmount.textContent;
             var net = netAmount.textContent;
 
-            // استخدام الإعدادات (التي تم جلبها حديثاً)
+            // استخدام الإعدادات
             var companyName = settings.companyName || 'شركة رولكس للدهانات';
             var companyAddress = settings.companyAddress || '';
             var companyPhone = settings.companyPhone || '';
@@ -3178,90 +3203,105 @@
 
             showToast('🔍 بحث', 'جاري البحث عن الفاتورة...', 'warning');
 
-            // 1. بحث برقم الفاتورة (مطابقة تامة)
-            fetch(FETCH_URL + '?action=getInvoice&invoiceNumber=' + encodeURIComponent(searchTerm))
+            // بحث برقم الفاتورة في Supabase
+            fetch(SUPABASE_URL + '/rest/v1/invoices?select=*&invoice_number=eq.' + encodeURIComponent(searchTerm), {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                }
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data && data.length > 0) {
+                    loadInvoiceData(data[0]);
+                    showToast('✅ تم العثور', 'تم تحميل الفاتورة بنجاح', 'success');
+                    return;
+                }
+
+                // بحث بالرقم الدفتري
+                fetch(SUPABASE_URL + '/rest/v1/invoices?select=*&book_number=eq.' + encodeURIComponent(searchTerm), {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                    }
+                })
                 .then(function(response) {
                     return response.json();
                 })
-                .then(function(data) {
-                    if (data.success && data.data) {
-                        loadInvoiceData(data.data);
+                .then(function(data2) {
+                    if (data2 && data2.length > 0) {
+                        loadInvoiceData(data2[0]);
                         showToast('✅ تم العثور', 'تم تحميل الفاتورة بنجاح', 'success');
                         return;
                     }
 
-                    // 2. بحث بالرقم الدفتري (مطابقة تامة)
-                    fetch(FETCH_URL + '?action=getInvoice&bookNumber=' + encodeURIComponent(searchTerm))
-                        .then(function(response) {
-                            return response.json();
-                        })
-                        .then(function(data2) {
-                            if (data2.success && data2.data) {
-                                loadInvoiceData(data2.data);
-                                showToast('✅ تم العثور', 'تم تحميل الفاتورة بنجاح', 'success');
-                                return;
-                            }
+                    // بحث عام في الأعمدة
+                    fetch(SUPABASE_URL + '/rest/v1/invoices?select=*&or=(invoice_number.ilike.%' + encodeURIComponent(searchTerm) + '%,book_number.ilike.%' + encodeURIComponent(searchTerm) + '%,client_name.ilike.%' + encodeURIComponent(searchTerm) + '%)&limit=10', {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                        }
+                    })
+                    .then(function(response) {
+                        return response.json();
+                    })
+                    .then(function(data3) {
+                        if (data3 && data3.length > 0) {
+                            var results = data3;
+                            var msg = 'تم العثور على ' + results.length + ' فاتورة';
+                            var buttons = [];
 
-                            // 3. بحث عام (عرض النتائج مع إمكانية الاختيار)
-                            fetch(FETCH_URL + '?action=searchInvoices&searchTerm=' + encodeURIComponent(searchTerm))
-                                .then(function(response) {
-                                    return response.json();
-                                })
-                                .then(function(data3) {
-                                    if (data3.success && data3.data && data3.data.results && data3.data.results.length > 0) {
-                                        var results = data3.data.results;
-                                        var msg = 'تم العثور على ' + results.length + ' فاتورة';
-                                        var buttons = [];
-
-                                        results.slice(0, 5).forEach(function(r, i) {
-                                            buttons.push({
-                                                label: (i + 1) + '. ' + r.invoiceNumber,
-                                                value: r.invoiceNumber,
-                                                class: 'btn-yes'
-                                            });
-                                        });
-
-                                        buttons.push({
-                                            label: 'إلغاء',
-                                            value: 'cancel',
-                                            class: 'btn-no'
-                                        });
-
-                                        showToast('🔍 نتائج البحث', msg, 'warning', buttons).then(function(selected) {
-                                            if (selected && selected !== 'cancel') {
-                                                fetch(FETCH_URL + '?action=getInvoice&invoiceNumber=' +
-                                                        encodeURIComponent(selected))
-                                                    .then(function(r) {
-                                                        return r.json();
-                                                    })
-                                                    .then(function(data4) {
-                                                        if (data4.success && data4.data) {
-                                                            loadInvoiceData(data4.data);
-                                                            showToast('✅ تم التحميل',
-                                                                'تم تحميل الفاتورة بنجاح',
-                                                                'success');
-                                                        }
-                                                    });
-                                            }
-                                        });
-                                    } else {
-                                        showToast('❌ غير موجود', 'لم يتم العثور على فاتورة مطابقة',
-                                        'error');
-                                    }
-                                })
-                                .catch(function() {
-                                    showToast('❌ غير موجود', 'لم يتم العثور على فاتورة مطابقة',
-                                    'error');
+                            results.slice(0, 5).forEach(function(r, i) {
+                                buttons.push({
+                                    label: (i + 1) + '. ' + r.invoice_number,
+                                    value: r.invoice_number,
+                                    class: 'btn-yes'
                                 });
-                        })
-                        .catch(function() {
+                            });
+
+                            buttons.push({
+                                label: 'إلغاء',
+                                value: 'cancel',
+                                class: 'btn-no'
+                            });
+
+                            showToast('🔍 نتائج البحث', msg, 'warning', buttons).then(function(selected) {
+                                if (selected && selected !== 'cancel') {
+                                    fetch(SUPABASE_URL + '/rest/v1/invoices?select=*&invoice_number=eq.' + encodeURIComponent(selected), {
+                                        headers: {
+                                            'apikey': SUPABASE_ANON_KEY,
+                                            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                                        }
+                                    })
+                                    .then(function(r) {
+                                        return r.json();
+                                    })
+                                    .then(function(data4) {
+                                        if (data4 && data4.length > 0) {
+                                            loadInvoiceData(data4[0]);
+                                            showToast('✅ تم التحميل', 'تم تحميل الفاتورة بنجاح', 'success');
+                                        }
+                                    });
+                                }
+                            });
+                        } else {
                             showToast('❌ غير موجود', 'لم يتم العثور على فاتورة مطابقة', 'error');
-                        });
+                        }
+                    })
+                    .catch(function() {
+                        showToast('❌ غير موجود', 'لم يتم العثور على فاتورة مطابقة', 'error');
+                    });
                 })
-                .catch(function(error) {
-                    console.error('Error searching invoice:', error);
-                    showToast('❌ خطأ', 'حدث خطأ في البحث عن الفاتورة', 'error');
+                .catch(function() {
+                    showToast('❌ غير موجود', 'لم يتم العثور على فاتورة مطابقة', 'error');
                 });
+            })
+            .catch(function(error) {
+                console.error('Error searching invoice:', error);
+                showToast('❌ خطأ', 'حدث خطأ في البحث عن الفاتورة', 'error');
+            });
         }
 
         /**
@@ -3270,15 +3310,15 @@
          * ============================================================
          */
         function loadInvoiceData(invoiceData) {
-            bookNumber.value = invoiceData.bookNumber || '';
-            invoiceNumber.value = invoiceData.invoiceNumber || '';
+            bookNumber.value = invoiceData.book_number || '';
+            invoiceNumber.value = invoiceData.invoice_number || '';
             if (invoiceData.date) {
                 var dateObj = new Date(invoiceData.date);
                 invoiceDate.value = dateObj.toISOString().split('T')[0];
             }
             salesman.value = invoiceData.salesman || '';
-            clientCode.value = invoiceData.clientCode || '';
-            clientName.value = invoiceData.clientName || '';
+            clientCode.value = invoiceData.client_code || '';
+            clientName.value = invoiceData.client_name || '';
 
             items = [];
             if (invoiceData.items && invoiceData.items.length > 0) {
@@ -3301,7 +3341,7 @@
             renderItems();
             calculateTotals();
             isEditingInvoice = true;
-            editingInvoiceNumber = invoiceData.invoiceNumber || '';
+            editingInvoiceNumber = invoiceData.invoice_number || '';
         }
 
         /**
@@ -3396,86 +3436,93 @@
             localStorage.setItem('rollex_book_counter', book);
 
             var invoiceData = {
-                number: number,
-                book: book,
+                invoice_number: number,
+                book_number: book,
                 date: date,
-                client: client,
-                code: code,
                 salesman: sales,
+                client_code: code,
+                client_name: client,
                 type: type,
                 items: items,
                 total: parseFloat(totalAmount.textContent),
-                discount: parseFloat(discountAmount.textContent),
                 net: parseFloat(netAmount.textContent)
             };
 
-            saveInvoiceToSheet(invoiceData);
+            saveInvoiceToSupabase(invoiceData);
         });
 
         /**
          * ============================================================
-         * SAVE TO GOOGLE SHEETS
+         * SAVE TO SUPABASE
          * ============================================================
          */
-        function saveInvoiceToSheet(invoiceData) {
+        function saveInvoiceToSupabase(invoiceData) {
             btnSaveInvoice.disabled = true;
             btnSaveInvoice.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
-            var rows = [];
-            invoiceData.items.forEach(function(item) {
-                var row = [
-                    invoiceData.book || '',
-                    invoiceData.number || '',
-                    new Date(invoiceData.date).toLocaleString('ar-EG', { month: 'long' }),
-                    invoiceData.date || '',
-                    invoiceData.salesman || '',
-                    invoiceData.code || '',
-                    invoiceData.client || '',
-                    item.code || '',
-                    item.name || '',
-                    item.weight || '',
-                    item.package || item.unit || 'كجم',
-                    item.qty || '',
-                    item.price || '',
-                    item.total || '',
-                    (item.weight * item.qty) || '',
-                    item.color || '',
-                    item.crusherType || '',
-                    ''
-                ];
-                rows.push(row);
+            // تحويل items إلى JSON
+            var itemsJson = invoiceData.items.map(function(item) {
+                return {
+                    code: item.code || '',
+                    name: item.name || '',
+                    weight: item.weight || 0,
+                    unit: item.unit || 'كجم',
+                    qty: item.qty || 0,
+                    price: item.price || 0,
+                    total: item.total || 0,
+                    color: item.color || '',
+                    crusherType: item.crusherType || ''
+                };
             });
 
-            var promises = rows.map(function(row) {
-                return fetch(SAVE_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sheetName: 'المبيعات والمرتجعات', row: row })
+            var payload = {
+                invoice_number: invoiceData.invoice_number,
+                book_number: invoiceData.book_number,
+                date: invoiceData.date,
+                salesman: invoiceData.salesman,
+                client_code: invoiceData.client_code,
+                client_name: invoiceData.client_name,
+                type: invoiceData.type,
+                items: itemsJson,
+                total: invoiceData.total,
+                net: invoiceData.net
+            };
+
+            fetch(SUPABASE_URL + '/rest/v1/invoices', {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('فشل في حفظ الفاتورة');
+                }
+                return response.json();
+            })
+            .then(function() {
+                btnSaveInvoice.disabled = false;
+                btnSaveInvoice.innerHTML = '<i class="fas fa-save"></i> حفظ';
+
+                showToast('✅ تم الحفظ', 'تم حفظ الفاتورة بنجاح! هل تريد طباعتها?', 'success', [
+                    { label: 'نعم', value: 'print', class: 'btn-yes' },
+                    { label: 'لا', value: 'no', class: 'btn-no' }
+                ]).then(function(result) {
+                    if (result === 'print') {
+                        printInvoice();
+                    }
+                    resetForm();
                 });
+            })
+            .catch(function(error) {
+                console.error('Error saving invoice:', error);
+                showToast('❌ خطأ', 'حدث خطأ في حفظ الفاتورة: ' + error.message, 'error');
+                btnSaveInvoice.disabled = false;
+                btnSaveInvoice.innerHTML = '<i class="fas fa-save"></i> حفظ';
             });
-
-            Promise.all(promises)
-                .then(function() {
-                    btnSaveInvoice.disabled = false;
-                    btnSaveInvoice.innerHTML = '<i class="fas fa-save"></i> حفظ';
-
-                    showToast('✅ تم الحفظ', 'تم حفظ الفاتورة بنجاح! هل تريد طباعتها?', 'success', [
-                        { label: 'نعم', value: 'print', class: 'btn-yes' },
-                        { label: 'لا', value: 'no', class: 'btn-no' }
-                    ]).then(function(result) {
-                        if (result === 'print') {
-                            printInvoice();
-                        }
-                        resetForm();
-                    });
-                })
-                .catch(function(error) {
-                    console.error('Error saving invoice:', error);
-                    showToast('❌ خطأ', 'حدث خطأ في حفظ الفاتورة', 'error');
-                    btnSaveInvoice.disabled = false;
-                    btnSaveInvoice.innerHTML = '<i class="fas fa-save"></i> حفظ';
-                });
         }
 
         /**
@@ -3511,13 +3558,13 @@
          */
         loadData();
 
-        console.log('🧾 فاتورة المبيعات - الإصدار المتكامل');
-        console.log('📌 الرابط المتكامل:', BASE_URL);
+        console.log('🧾 فاتورة المبيعات - الإصدار مع Supabase');
+        console.log('📌 Supabase URL:', SUPABASE_URL);
         console.log('📌 Ctrl+F للبحث عن فاتورة');
         console.log('📌 Ctrl+P للطباعة');
         console.log('📌 بحث دقيق (مطابقة تامة)');
         console.log('📌 رسائل Toast عصرية مع أزرار');
-        console.log('📌 يتم جلب الإعدادات قبل الطباعة');
+        console.log('📌 يتم جلب الإعدادات من Supabase');
         console.log('📌 اقتراحات العملاء والمنتجات تعمل بشكل منفصل');
     </script>
 
