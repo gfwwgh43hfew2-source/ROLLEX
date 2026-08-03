@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8" />
@@ -715,7 +715,7 @@
         }
 
         /* ============================================================
-           SUGGESTIONS
+           SUGGESTIONS - تم إصلاح عرض الاقتراحات
            ============================================================ */
         .suggestions-wrapper {
             position: relative;
@@ -1990,13 +1990,22 @@
 
         /**
          * ============================================================
-         * CONFIGURATION - API ENDPOINTS
+         * CONFIGURATION - API ENDPOINTS (تم تحديثها بالروابط الجديدة)
          * ============================================================
          */
-        var FETCH_URL = 'https://script.google.com/macros/s/AKfycbw2N2Xg-o7SeQWFP8WvrsN7801E2gKRe1Tv03Ek_7B9kesR2UFBuT0fB3rIPX1OB3F2Wg/exec';
+        // رابط جلب العملاء (الإصدار 50)
+        var CLIENTS_URL = 'https://script.google.com/macros/s/AKfycbzxLlu0_bOdXdt2oEN4zmvgjgd_OMwrVeVcKP16jlx9H9ODf_ffi02bv75-N82PYvVVUg/exec';
+        // رابط جلب المنتجات (الإصدار 52)
+        var PRODUCTS_URL = 'https://script.google.com/macros/s/AKfycbz_AuBwP6Y1b4XWOeOjSJISm66lwtYEpfA6_OWesGnRGyjDQWNKPKxdXuchOl9nRRolbg/exec';
+        // رابط حفظ الفواتير
         var SAVE_URL = 'https://script.google.com/macros/s/AKfycbxD2c73p5CegQdVjFIsFaxN0x7bYr6R-0FS6Co8nHjSKhiS1sjk-4FXUlw8AAOYOklrWQ/exec';
-        var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbwTc4T-KjMlx10njmN_EqcXkkYGu0LzlbRxtMkwAbJYvJNl_eLQbPkgkFthPKi4r8BOAQ/exec';
+        // رابط الإعدادات
+        var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbwktOKxOfOBx9fKXB7E2pHKo0NUONQM6XTmjo2BhAdK-4a7_bJeoeHB3wlFGAB5KgDEoA/exec';
+        // رابط آخر رقم فاتورة
         var LAST_NUMBER_URL = 'https://script.google.com/macros/s/AKfycbzJ0YcQMYkprBqm1G6dAMtKj5KxEW1Q5bCZECvgchhFuCGib-6TONctdegdq8UBFBFjsg/exec';
+
+        // متغير FETCH_URL القديم للتوافق مع البحث عن الفواتير (يستخدم نفس رابط جلب البيانات)
+        var FETCH_URL = CLIENTS_URL;
 
         /**
          * ============================================================
@@ -2173,7 +2182,7 @@
 
         /**
          * ============================================================
-         * LOAD DATA (Products & Clients)
+         * LOAD DATA (Products & Clients) - باستخدام الروابط المنفصلة
          * ============================================================
          */
         function loadData() {
@@ -2196,7 +2205,8 @@
                 }
             }
 
-            fetch(FETCH_URL + '?action=getProducts')
+            // ===== جلب المنتجات من السكريبت الجديد =====
+            fetch(PRODUCTS_URL + '?action=getProductsDetails')
                 .then(function(response) {
                     return response.json();
                 })
@@ -2216,7 +2226,8 @@
                     updateProgress();
                 });
 
-            fetch(FETCH_URL + '?action=getClients')
+            // ===== جلب العملاء من السكريبت الجديد =====
+            fetch(CLIENTS_URL + '?action=getClientNames')
                 .then(function(response) {
                     return response.json();
                 })
@@ -2245,8 +2256,10 @@
          * ============================================================
          */
         function setupSuggestions() {
+            // إعداد اقتراحات العملاء
             setupSuggestionInput(clientName, clientSuggestions, clients, null);
 
+            // إعداد اقتراحات المنتجات
             setupSuggestionInput(itemName, productSuggestions, products.map(function(p) { return p.name; }),
                 function(selectedName) {
                     var found = products.find(function(p) { return p.name === selectedName; });
@@ -2680,6 +2693,30 @@
                 return;
             }
 
+            // جلب الإعدادات من السيرفر قبل الطباعة
+            fetch(SETTINGS_URL + '?action=getSettings')
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (data.success && data.data) {
+                        settings = data.data;
+                        console.log('✅ تم جلب الإعدادات الجديدة للطباعة');
+                    }
+                    renderPrintInvoice();
+                })
+                .catch(function(error) {
+                    console.error('❌ خطأ في جلب الإعدادات:', error);
+                    renderPrintInvoice();
+                });
+        }
+
+        /**
+         * ============================================================
+         * RENDER PRINT INVOICE
+         * ============================================================
+         */
+        function renderPrintInvoice() {
             var client = clientName.value.trim() || 'غير محدد';
             var invNum = invoiceNumber.value.trim() || '----';
             var book = bookNumber.value.trim() || '----';
@@ -2688,7 +2725,7 @@
             var total = totalAmount.textContent;
             var net = netAmount.textContent;
 
-            // استخدام الإعدادات
+            // استخدام الإعدادات (التي تم جلبها حديثاً)
             var companyName = settings.companyName || 'شركة رولكس للدهانات';
             var companyAddress = settings.companyAddress || '';
             var companyPhone = settings.companyPhone || '';
@@ -3142,7 +3179,7 @@
             showToast('🔍 بحث', 'جاري البحث عن الفاتورة...', 'warning');
 
             // 1. بحث برقم الفاتورة (مطابقة تامة)
-            fetch(FETCH_URL + '?action=getInvoice&invoiceNumber=' + encodeURIComponent(searchTerm))
+            fetch(CLIENTS_URL + '?action=getInvoice&invoiceNumber=' + encodeURIComponent(searchTerm))
                 .then(function(response) {
                     return response.json();
                 })
@@ -3154,7 +3191,7 @@
                     }
 
                     // 2. بحث بالرقم الدفتري (مطابقة تامة)
-                    fetch(FETCH_URL + '?action=getInvoice&bookNumber=' + encodeURIComponent(searchTerm))
+                    fetch(CLIENTS_URL + '?action=getInvoice&bookNumber=' + encodeURIComponent(searchTerm))
                         .then(function(response) {
                             return response.json();
                         })
@@ -3166,13 +3203,13 @@
                             }
 
                             // 3. بحث عام (عرض النتائج مع إمكانية الاختيار)
-                            fetch(FETCH_URL + '?action=searchInvoices&searchTerm=' + encodeURIComponent(searchTerm))
+                            fetch(CLIENTS_URL + '?action=searchInvoices&searchTerm=' + encodeURIComponent(searchTerm))
                                 .then(function(response) {
                                     return response.json();
                                 })
                                 .then(function(data3) {
-                                    if (data3.success && data3.data && data3.data.length > 0) {
-                                        var results = data3.data;
+                                    if (data3.success && data3.data && data3.data.results && data3.data.results.length > 0) {
+                                        var results = data3.data.results;
                                         var msg = 'تم العثور على ' + results.length + ' فاتورة';
                                         var buttons = [];
 
@@ -3192,7 +3229,7 @@
 
                                         showToast('🔍 نتائج البحث', msg, 'warning', buttons).then(function(selected) {
                                             if (selected && selected !== 'cancel') {
-                                                fetch(FETCH_URL + '?action=getInvoice&invoiceNumber=' +
+                                                fetch(CLIENTS_URL + '?action=getInvoice&invoiceNumber=' +
                                                         encodeURIComponent(selected))
                                                     .then(function(r) {
                                                         return r.json();
@@ -3475,14 +3512,17 @@
         loadData();
 
         console.log('🧾 فاتورة المبيعات - الإصدار النهائي');
-        console.log('📌 رابط الجلب:', FETCH_URL);
-        console.log('📌 رابط الحفظ:', SAVE_URL);
+        console.log('📌 رابط جلب العملاء:', CLIENTS_URL);
+        console.log('📌 رابط جلب المنتجات:', PRODUCTS_URL);
+        console.log('📌 رابط حفظ الفواتير:', SAVE_URL);
         console.log('📌 رابط الإعدادات:', SETTINGS_URL);
         console.log('📌 رابط آخر رقم فاتورة:', LAST_NUMBER_URL);
         console.log('📌 Ctrl+F للبحث عن فاتورة');
         console.log('📌 Ctrl+P للطباعة');
         console.log('📌 بحث دقيق (مطابقة تامة)');
         console.log('📌 رسائل Toast عصرية مع أزرار');
+        console.log('📌 يتم جلب الإعدادات قبل الطباعة');
+        console.log('📌 اقتراحات العملاء والمنتجات تعمل بشكل منفصل');
     </script>
 
 </body>
