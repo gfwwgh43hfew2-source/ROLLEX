@@ -1990,22 +1990,18 @@
 
         /**
          * ============================================================
-         * CONFIGURATION - API ENDPOINTS (تم تحديثها بالروابط الجديدة)
+         * CONFIGURATION - API ENDPOINTS
          * ============================================================
          */
-        // رابط جلب العملاء (الإصدار 2 - يعمل)
-        var CLIENTS_URL = 'https://script.google.com/macros/s/AKfycbyikI2cFy0KWW_ujWUJ0avnIJIP53eFjJW9RhFcbcYbXMz_QA2HtM4DbexXOhyuO_zH/exec';
-        // رابط جلب المنتجات (الإصدار 55 - يعمل)
-        var PRODUCTS_URL = 'https://script.google.com/macros/s/AKfycbxH88eM648FqI8p8zodIufFwsvGJ7IKILdQ29hv2DdhGleoQ7OC_KQtzl5aOphTyIuRAA/exec';
-        // رابط حفظ الفواتير
-        var SAVE_URL = 'https://script.google.com/macros/s/AKfycbxD2c73p5CegQdVjFIsFaxN0x7bYr6R-0FS6Co8nHjSKhiS1sjk-4FXUlw8AAOYOklrWQ/exec';
-        // رابط الإعدادات
-        var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbyrefXqvXO1k3MAewkB4QuJ4IuPM02RzCDaD_Gwl21WJAW47hsd-DKt7Xll4puweaTwpQ/exec';
-        // رابط آخر رقم فاتورة (الإصدار 3 - يعمل)
-        var LAST_NUMBER_URL = 'https://script.google.com/macros/s/AKfycbyEvlSu7XeADGbhzzBfHSL8RHuu-HrbvGj9aoXGdXj1AWPiNBYMnW5cc9Kqg7foFas5BQ/exec';
+        var BASE_URL = 'https://script.google.com/macros/s/AKfycbxgKZWegCSdz4slu1_Rj4MtuxTFKiIihM7iWra5mTXvgm5dY1KpOx-zuf3wfqRUnmayRQ/exec';
 
-        // متغير FETCH_URL القديم للتوافق مع البحث عن الفواتير (يستخدم نفس رابط جلب البيانات)
-        var FETCH_URL = CLIENTS_URL;
+        // جميع الروابط تستخدم نفس الرابط المتكامل
+        var CLIENTS_URL = BASE_URL;
+        var PRODUCTS_URL = BASE_URL;
+        var SETTINGS_URL = BASE_URL;
+        var LAST_NUMBER_URL = BASE_URL;
+        var FETCH_URL = BASE_URL;
+        var SAVE_URL = BASE_URL;
 
         /**
          * ============================================================
@@ -3183,7 +3179,7 @@
             showToast('🔍 بحث', 'جاري البحث عن الفاتورة...', 'warning');
 
             // 1. بحث برقم الفاتورة (مطابقة تامة)
-            fetch(CLIENTS_URL + '?action=getInvoice&invoiceNumber=' + encodeURIComponent(searchTerm))
+            fetch(FETCH_URL + '?action=getInvoice&invoiceNumber=' + encodeURIComponent(searchTerm))
                 .then(function(response) {
                     return response.json();
                 })
@@ -3195,7 +3191,7 @@
                     }
 
                     // 2. بحث بالرقم الدفتري (مطابقة تامة)
-                    fetch(CLIENTS_URL + '?action=getInvoice&bookNumber=' + encodeURIComponent(searchTerm))
+                    fetch(FETCH_URL + '?action=getInvoice&bookNumber=' + encodeURIComponent(searchTerm))
                         .then(function(response) {
                             return response.json();
                         })
@@ -3207,7 +3203,7 @@
                             }
 
                             // 3. بحث عام (عرض النتائج مع إمكانية الاختيار)
-                            fetch(CLIENTS_URL + '?action=searchInvoices&searchTerm=' + encodeURIComponent(searchTerm))
+                            fetch(FETCH_URL + '?action=searchInvoices&searchTerm=' + encodeURIComponent(searchTerm))
                                 .then(function(response) {
                                     return response.json();
                                 })
@@ -3233,7 +3229,7 @@
 
                                         showToast('🔍 نتائج البحث', msg, 'warning', buttons).then(function(selected) {
                                             if (selected && selected !== 'cancel') {
-                                                fetch(CLIENTS_URL + '?action=getInvoice&invoiceNumber=' +
+                                                fetch(FETCH_URL + '?action=getInvoice&invoiceNumber=' +
                                                         encodeURIComponent(selected))
                                                     .then(function(r) {
                                                         return r.json();
@@ -3515,12 +3511,8 @@
          */
         loadData();
 
-        console.log('🧾 فاتورة المبيعات - الإصدار النهائي');
-        console.log('📌 رابط جلب العملاء:', CLIENTS_URL);
-        console.log('📌 رابط جلب المنتجات:', PRODUCTS_URL);
-        console.log('📌 رابط حفظ الفواتير:', SAVE_URL);
-        console.log('📌 رابط الإعدادات:', SETTINGS_URL);
-        console.log('📌 رابط آخر رقم فاتورة:', LAST_NUMBER_URL);
+        console.log('🧾 فاتورة المبيعات - الإصدار المتكامل');
+        console.log('📌 الرابط المتكامل:', BASE_URL);
         console.log('📌 Ctrl+F للبحث عن فاتورة');
         console.log('📌 Ctrl+P للطباعة');
         console.log('📌 بحث دقيق (مطابقة تامة)');
