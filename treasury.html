@@ -2003,338 +2003,328 @@
             }
         }
 
-        // ============================================================
-        // DISPLAY TREASURY DATA
-        // ============================================================
-        function displayTreasuryData(transactions) {
-            var container = document.getElementById('treasuryContainer');
+       function displayTreasuryData(transactions) {
+    var container = document.getElementById('treasuryContainer');
 
-            if (!transactions || transactions.length === 0) {
-                container.innerHTML = '<div class="error">❌ لا توجد بيانات في الخزينة</div>';
-                return;
-            }
+    console.log('🔍 displayTreasuryData called with:', transactions);
+    console.log('📊 عدد الحركات المستلمة:', transactions ? transactions.length : 0);
 
-            // تحديث اسم الخزنة والرصيد الافتتاحي
-            document.getElementById('treasuryNameDisplay').textContent = treasuryName;
-            document.getElementById('openingBalanceDisplay').textContent = openingBalance.toLocaleString() + ' ج.م';
+    if (!transactions || transactions.length === 0) {
+        container.innerHTML = '<div class="error">❌ لا توجد حركات في الخزينة</div>';
+        return;
+    }
 
-            // IDX constants
-            var IDX_DATE = 'date';
-            var IDX_NUMBER = 'voucher_number';
-            var IDX_TYPE = 'transaction_type';
-            var IDX_DESCRIPTION = 'description';
-            var IDX_INCOMING = 'incoming';
-            var IDX_OUTGOING = 'outgoing';
-            var IDX_NOTES = 'notes';
-            var IDX_GENERAL_TAB = 'general_tab';
-            var IDX_PRIVATE_TAB = 'private_tab';
+    // تحديث اسم الخزنة والرصيد الافتتاحي
+    document.getElementById('treasuryNameDisplay').textContent = treasuryName;
+    document.getElementById('openingBalanceDisplay').textContent = openingBalance.toLocaleString() + ' ج.م';
 
-            // ترتيب الصفوف حسب التاريخ
-            var sortedRows = transactions.slice().sort(function(a, b) {
-                var dateA = a[IDX_DATE] || '';
-                var dateB = b[IDX_DATE] || '';
-                if (dateA < dateB) return -1;
-                if (dateA > dateB) return 1;
-                return 0;
+    // حساب الإجماليات
+    var totalIncomingAll = 0;
+    var totalOutgoingAll = 0;
+    var validRows = 0;
+
+    transactions.forEach(function(row) {
+        var incoming = cleanNumber(row.incoming);
+        var outgoing = cleanNumber(row.outgoing);
+        if (incoming === 0 && outgoing === 0) return;
+        validRows++;
+        totalIncomingAll += incoming;
+        totalOutgoingAll += outgoing;
+    });
+
+    var totalBalance = openingBalance + totalIncomingAll - totalOutgoingAll;
+
+    document.getElementById('totalBalance').textContent = totalBalance.toLocaleString() + ' ج.م';
+    document.getElementById('totalIncoming').textContent = totalIncomingAll.toLocaleString() + ' ج.م';
+    document.getElementById('totalOutgoing').textContent = totalOutgoingAll.toLocaleString() + ' ج.م';
+    document.getElementById('totalTransactions').textContent = validRows;
+
+    // ترتيب الحركات حسب التاريخ
+    var sortedRows = transactions.slice().sort(function(a, b) {
+        var dateA = a.date || '';
+        var dateB = b.date || '';
+        if (dateA < dateB) return -1;
+        if (dateA > dateB) return 1;
+        return 0;
+    });
+
+    // تجميع الحركات حسب اليوم
+    var runningBalance = openingBalance;
+    var currentDate = '';
+    var dayTotalIncoming = 0;
+    var dayTotalOutgoing = 0;
+    var groupedRows = [];
+
+    sortedRows.forEach(function(row) {
+        var date = row.date || '';
+        var incoming = cleanNumber(row.incoming);
+        var outgoing = cleanNumber(row.outgoing);
+        
+        if (incoming === 0 && outgoing === 0 && !row.description) return;
+
+        if (date !== currentDate && currentDate !== '') {
+            groupedRows.push({
+                isTotal: true,
+                date: currentDate,
+                totalIncoming: dayTotalIncoming,
+                totalOutgoing: dayTotalOutgoing,
+                runningBalance: runningBalance
             });
-
-            // تجميع الحركات حسب اليوم
-            var runningBalance = openingBalance;
-            var currentDate = '';
-            var dayTotalIncoming = 0;
-            var dayTotalOutgoing = 0;
-            var groupedRows = [];
-
-            sortedRows.forEach(function(row) {
-                var date = row[IDX_DATE] || '';
-                var incoming = cleanNumber(row[IDX_INCOMING]);
-                var outgoing = cleanNumber(row[IDX_OUTGOING]);
-                
-                if (incoming === 0 && outgoing === 0 && !row[IDX_DESCRIPTION]) return;
-
-                if (date !== currentDate && currentDate !== '') {
-                    groupedRows.push({
-                        isTotal: true,
-                        date: currentDate,
-                        totalIncoming: dayTotalIncoming,
-                        totalOutgoing: dayTotalOutgoing,
-                        runningBalance: runningBalance
-                    });
-                    runningBalance = runningBalance + dayTotalIncoming - dayTotalOutgoing;
-                    groupedRows.push({
-                        isDayEnd: true,
-                        date: currentDate,
-                        runningBalance: runningBalance
-                    });
-                    dayTotalIncoming = 0;
-                    dayTotalOutgoing = 0;
-                    groupedRows.push({
-                        isDayStart: true,
-                        date: date,
-                        runningBalance: runningBalance
-                    });
-                }
-
-                if (currentDate === '') {
-                    groupedRows.push({
-                        isDayStart: true,
-                        date: date,
-                        runningBalance: runningBalance
-                    });
-                }
-
-                groupedRows.push({
-                    isTransaction: true,
-                    row: row,
-                    date: date,
-                    incoming: incoming,
-                    outgoing: outgoing
-                });
-
-                dayTotalIncoming += incoming;
-                dayTotalOutgoing += outgoing;
-                currentDate = date;
+            runningBalance = runningBalance + dayTotalIncoming - dayTotalOutgoing;
+            groupedRows.push({
+                isDayEnd: true,
+                date: currentDate,
+                runningBalance: runningBalance
             });
-
-            if (currentDate !== '') {
-                groupedRows.push({
-                    isTotal: true,
-                    date: currentDate,
-                    totalIncoming: dayTotalIncoming,
-                    totalOutgoing: dayTotalOutgoing,
-                    runningBalance: runningBalance
-                });
-                runningBalance = runningBalance + dayTotalIncoming - dayTotalOutgoing;
-                groupedRows.push({
-                    isDayEnd: true,
-                    date: currentDate,
-                    runningBalance: runningBalance
-                });
-            }
-
-            // تجميع الأيام
-            var days = [];
-            var currentDay = null;
-            var dayBuffer = [];
-
-            groupedRows.forEach(function(item) {
-                if (item.isDayStart) {
-                    if (currentDay !== null) {
-                        days.push(dayBuffer);
-                    }
-                    currentDay = item.date;
-                    dayBuffer = [item];
-                } else {
-                    dayBuffer.push(item);
-                }
+            dayTotalIncoming = 0;
+            dayTotalOutgoing = 0;
+            groupedRows.push({
+                isDayStart: true,
+                date: date,
+                runningBalance: runningBalance
             });
-            if (dayBuffer.length > 0) {
+        }
+
+        if (currentDate === '') {
+            groupedRows.push({
+                isDayStart: true,
+                date: date,
+                runningBalance: runningBalance
+            });
+        }
+
+        groupedRows.push({
+            isTransaction: true,
+            row: row,
+            date: date,
+            incoming: incoming,
+            outgoing: outgoing
+        });
+
+        dayTotalIncoming += incoming;
+        dayTotalOutgoing += outgoing;
+        currentDate = date;
+    });
+
+    if (currentDate !== '') {
+        groupedRows.push({
+            isTotal: true,
+            date: currentDate,
+            totalIncoming: dayTotalIncoming,
+            totalOutgoing: dayTotalOutgoing,
+            runningBalance: runningBalance
+        });
+        runningBalance = runningBalance + dayTotalIncoming - dayTotalOutgoing;
+        groupedRows.push({
+            isDayEnd: true,
+            date: currentDate,
+            runningBalance: runningBalance
+        });
+    }
+
+    // تجميع الأيام
+    var days = [];
+    var currentDay = null;
+    var dayBuffer = [];
+
+    groupedRows.forEach(function(item) {
+        if (item.isDayStart) {
+            if (currentDay !== null) {
                 days.push(dayBuffer);
             }
-
-            var reversedDays = days.reverse();
-
-            // حساب الإجماليات الكلية
-            var totalIncomingAll = 0;
-            var totalOutgoingAll = 0;
-            var validRows = 0;
-
-            transactions.forEach(function(row) {
-                var incoming = cleanNumber(row[IDX_INCOMING]);
-                var outgoing = cleanNumber(row[IDX_OUTGOING]);
-                if (incoming === 0 && outgoing === 0) return;
-                validRows++;
-                totalIncomingAll += incoming;
-                totalOutgoingAll += outgoing;
-            });
-
-            var totalBalance = openingBalance + totalIncomingAll - totalOutgoingAll;
-
-            document.getElementById('totalBalance').textContent = totalBalance.toLocaleString() + ' ج.م';
-            document.getElementById('totalIncoming').textContent = totalIncomingAll.toLocaleString() + ' ج.م';
-            document.getElementById('totalOutgoing').textContent = totalOutgoingAll.toLocaleString() + ' ج.م';
-            document.getElementById('totalTransactions').textContent = validRows;
-
-            // ===== CARDS (Mobile) =====
-            var cardsHTML = '<div class="cards-container">';
-            reversedDays.forEach(function(dayItems) {
-                dayItems.forEach(function(item) {
-                    if (item.isDayStart) {
-                        var dayName = getArabicDay(item.date);
-                        var dayLabel = dayName ? ' ' + dayName + ' ' : ' ';
-                        cardsHTML +=
-                            '<div style="background:rgba(43,138,62,0.08);border-radius:12px;padding:8px 12px;border:1px solid #4caf50;text-align:center;margin:4px 0;">' +
-                            '<span style="color:#4caf50;font-weight:700;font-size:0.8rem;">📌 رصيد بداية يوم' + dayLabel +
-                            item.date + ' : <span style="background:rgba(76,175,80,0.15);padding:2px 10px;border-radius:4px;border:1px solid rgba(76,175,80,0.2);margin-right:6px;display:inline-block;">' +
-                            item.runningBalance.toLocaleString() + ' ج.م</span></span>' +
-                            '</div>';
-                    } else if (item.isTotal) {
-                        cardsHTML +=
-                            '<div style="background:rgba(245,200,66,0.08);border-radius:12px;padding:8px 12px;border:1px solid #f5c842;text-align:center;margin:4px 0;">' +
-                            '<span style="color:#f5c842;font-weight:700;font-size:0.75rem;">📊 إجمالي يوم ' + item.date +
-                            '</span>' +
-                            '<div style="display:flex;justify-content:center;gap:16px;margin-top:4px;">' +
-                            '<span style="color:#4caf50;font-weight:700;font-size:0.7rem;">وارد: ' + item.totalIncoming.toLocaleString() + '</span>' +
-                            '<span style="color:#ef5350;font-weight:700;font-size:0.7rem;">صادر: ' + item.totalOutgoing.toLocaleString() + '</span>' +
-                            '</div></div>';
-                    } else if (item.isDayEnd) {
-                        var dayName = getArabicDay(item.date);
-                        var dayLabel = dayName ? ' ' + dayName + ' ' : ' ';
-                        cardsHTML +=
-                            '<div style="background:rgba(33,150,243,0.08);border-radius:12px;padding:8px 12px;border:1px solid #2196f3;text-align:center;margin:4px 0;">' +
-                            '<span style="color:#2196f3;font-weight:700;font-size:0.8rem;">🏁 رصيد نهاية يوم' + dayLabel +
-                            item.date + ' : <span style="background:rgba(33,150,243,0.15);padding:2px 10px;border-radius:4px;border:1px solid rgba(33,150,243,0.2);margin-right:6px;display:inline-block;">' +
-                            item.runningBalance.toLocaleString() + ' ج.م</span></span>' +
-                            '</div>';
-                    } else if (item.isTransaction) {
-                        var row = item.row;
-                        var date = row[IDX_DATE] || '-';
-                        var number = row[IDX_NUMBER] || '-';
-                        var type = row[IDX_TYPE] || '-';
-                        var description = row[IDX_DESCRIPTION] || '-';
-                        var notes = row[IDX_NOTES] || '';
-                        var generalTab = row[IDX_GENERAL_TAB] || '-';
-                        var privateTab = row[IDX_PRIVATE_TAB] || '-';
-                        var incoming = item.incoming;
-                        var outgoing = item.outgoing;
-
-                        var amountDisplay = '-';
-                        var amountColor = 'rgba(255,255,255,0.8)';
-                        if (incoming > 0) {
-                            amountDisplay = '+ ' + incoming.toLocaleString() + ' ج.م';
-                            amountColor = '#4caf50';
-                        } else if (outgoing > 0) {
-                            amountDisplay = '- ' + outgoing.toLocaleString() + ' ج.م';
-                            amountColor = '#ef5350';
-                        }
-
-                        cardsHTML +=
-                            '<div class="booking-card">' +
-                            '<div class="card-header">' +
-                            '<span class="name">' + description + '</span>' +
-                            '<span class="number">#' + number + '</span>' +
-                            '</div>' +
-                            '<div class="card-row">' +
-                            '<span class="card-label">التاريخ</span>' +
-                            '<span class="card-value">' + date + '</span>' +
-                            '</div>' +
-                            '<div class="card-row">' +
-                            '<span class="card-label">نوع الحركة</span>' +
-                            '<span class="card-value"><span class="badge badge-type">' + type + '</span></span>' +
-                            '</div>' +
-                            '<div class="card-row">' +
-                            '<span class="card-label">المبلغ</span>' +
-                            '<span class="card-value" style="color:' + amountColor + ';font-weight:700;">' +
-                            amountDisplay + '</span>' +
-                            '</div>';
-                        if (notes) {
-                            cardsHTML +=
-                                '<div class="card-row">' +
-                                '<span class="card-label">ملاحظات</span>' +
-                                '<span class="card-value" style="font-size:0.6rem;color:rgba(255,255,255,0.3);">' +
-                                notes + '</span>' +
-                                '</div>';
-                        }
-                        cardsHTML +=
-                            '<div class="card-row">' +
-                            '<span class="card-label">التبويب العام</span>' +
-                            '<span class="card-value tab-cell">' + generalTab + '</span>' +
-                            '</div>' +
-                            '<div class="card-row" style="border-bottom:none;">' +
-                            '<span class="card-label">التبويب الخاص</span>' +
-                            '<span class="card-value tab-cell">' + privateTab + '</span>' +
-                            '</div>' +
-                            '</div>';
-                    }
-                });
-            });
-            cardsHTML += '</div>';
-
-            // ===== TABLE (Desktop) =====
-            var tableRows = '';
-            var TOTAL_COLS = 9;
-
-            reversedDays.forEach(function(dayItems) {
-                dayItems.forEach(function(item) {
-                    if (item.isDayStart) {
-                        var dayName = getArabicDay(item.date);
-                        var dayLabel = dayName ? ' ' + dayName + ' ' : ' ';
-                        tableRows += '<tr class="row-day-start">' +
-                            '<td colspan="' + TOTAL_COLS + '" style="text-align:center;">📌 رصيد بداية يوم' +
-                            dayLabel + item.date + ' : <span class="balance-amount">' + item.runningBalance.toLocaleString() + ' ج.م</span></td>' +
-                            '</tr>';
-                    } else if (item.isTotal) {
-                        tableRows += '<tr class="row-total">' +
-                            '<td colspan="4" style="text-align:center;">📊 إجمالي يوم ' + item.date + '</td>' +
-                            '<td style="text-align:center; color:#4caf50; font-weight:700;">' + item.totalIncoming.toLocaleString() + '</td>' +
-                            '<td style="text-align:center; color:#ef5350; font-weight:700;">' + item.totalOutgoing.toLocaleString() + '</td>' +
-                            '<td colspan="3"></td>' +
-                            '</tr>';
-                    } else if (item.isDayEnd) {
-                        var dayName = getArabicDay(item.date);
-                        var dayLabel = dayName ? ' ' + dayName + ' ' : ' ';
-                        tableRows += '<tr class="row-day-end">' +
-                            '<td colspan="' + TOTAL_COLS + '" style="text-align:center;">🏁 رصيد نهاية يوم' +
-                            dayLabel + item.date + ' : <span class="balance-amount">' + item.runningBalance.toLocaleString() + ' ج.م</span></td>' +
-                            '</tr>';
-                    } else if (item.isTransaction) {
-                        var row = item.row;
-                        var date = row[IDX_DATE] || '-';
-                        var number = row[IDX_NUMBER] || '-';
-                        var type = row[IDX_TYPE] || '-';
-                        var description = row[IDX_DESCRIPTION] || '-';
-                        var notes = row[IDX_NOTES] || '';
-                        var generalTab = row[IDX_GENERAL_TAB] || '-';
-                        var privateTab = row[IDX_PRIVATE_TAB] || '-';
-                        var incoming = item.incoming;
-                        var outgoing = item.outgoing;
-
-                        var amountDisplay = '-';
-                        var amountColor = 'rgba(255,255,255,0.6)';
-                        if (incoming > 0) {
-                            amountDisplay = incoming.toLocaleString();
-                            amountColor = '#4caf50';
-                        } else if (outgoing > 0) {
-                            amountDisplay = outgoing.toLocaleString();
-                            amountColor = '#ef5350';
-                        }
-
-                        tableRows += '<tr>' +
-                            '<td>' + date + '</td>' +
-                            '<td>' + number + '</td>' +
-                            '<td><span class="badge badge-type">' + type + '</span></td>' +
-                            '<td>' + description + '</td>' +
-                            '<td style="color:' + amountColor + ';font-weight:700;text-align:center;">' + (incoming > 0 ? amountDisplay : '-') + '</td>' +
-                            '<td style="color:' + amountColor + ';font-weight:700;text-align:center;">' + (outgoing > 0 ? amountDisplay : '-') + '</td>' +
-                            '<td style="font-size:0.6rem;color:rgba(255,255,255,0.3);">' + notes + '</td>' +
-                            '<td class="tab-cell">' + generalTab + '</td>' +
-                            '<td class="tab-cell">' + privateTab + '</td>' +
-                            '</tr>';
-                    }
-                });
-            });
-
-            var tableHTML = '' +
-                '<div class="table-wrapper">' +
-                '<table>' +
-                '<thead><tr>' +
-                '<th>التاريخ</th>' +
-                '<th>رقم السند</th>' +
-                '<th>نوع الحركة</th>' +
-                '<th>البيان</th>' +
-                '<th style="text-align:center;">وارد</th>' +
-                '<th style="text-align:center;">صادر</th>' +
-                '<th>ملاحظات</th>' +
-                '<th>التبويب العام</th>' +
-                '<th>التبويب الخاص</th>' +
-                '</tr></thead>' +
-                '<tbody>' + (tableRows || '<tr><td colspan="9" style="text-align:center;color:rgba(255,255,255,0.15);padding:25px;">لا توجد حركات</td></tr>') + '</tbody>' +
-                '</table>' +
-                '</div>' +
-                '<div class="table-note">🟢 رصيد بداية اليوم · 🟡 إجمالي اليوم · 🔵 رصيد نهاية اليوم</div>';
-
-            container.innerHTML = tableHTML + cardsHTML;
+            currentDay = item.date;
+            dayBuffer = [item];
+        } else {
+            dayBuffer.push(item);
         }
+    });
+    if (dayBuffer.length > 0) {
+        days.push(dayBuffer);
+    }
+
+    var reversedDays = days.reverse();
+
+    // ===== CARDS (Mobile) =====
+    var cardsHTML = '<div class="cards-container">';
+    reversedDays.forEach(function(dayItems) {
+        dayItems.forEach(function(item) {
+            if (item.isDayStart) {
+                var dayName = getArabicDay(item.date);
+                var dayLabel = dayName ? ' ' + dayName + ' ' : ' ';
+                cardsHTML +=
+                    '<div style="background:rgba(43,138,62,0.08);border-radius:12px;padding:8px 12px;border:1px solid #4caf50;text-align:center;margin:4px 0;">' +
+                    '<span style="color:#4caf50;font-weight:700;font-size:0.8rem;">📌 رصيد بداية يوم' + dayLabel +
+                    item.date + ' : <span style="background:rgba(76,175,80,0.15);padding:2px 10px;border-radius:4px;border:1px solid rgba(76,175,80,0.2);margin-right:6px;display:inline-block;">' +
+                    item.runningBalance.toLocaleString() + ' ج.م</span></span>' +
+                    '</div>';
+            } else if (item.isTotal) {
+                cardsHTML +=
+                    '<div style="background:rgba(245,200,66,0.08);border-radius:12px;padding:8px 12px;border:1px solid #f5c842;text-align:center;margin:4px 0;">' +
+                    '<span style="color:#f5c842;font-weight:700;font-size:0.75rem;">📊 إجمالي يوم ' + item.date +
+                    '</span>' +
+                    '<div style="display:flex;justify-content:center;gap:16px;margin-top:4px;">' +
+                    '<span style="color:#4caf50;font-weight:700;font-size:0.7rem;">وارد: ' + item.totalIncoming.toLocaleString() + '</span>' +
+                    '<span style="color:#ef5350;font-weight:700;font-size:0.7rem;">صادر: ' + item.totalOutgoing.toLocaleString() + '</span>' +
+                    '</div></div>';
+            } else if (item.isDayEnd) {
+                var dayName = getArabicDay(item.date);
+                var dayLabel = dayName ? ' ' + dayName + ' ' : ' ';
+                cardsHTML +=
+                    '<div style="background:rgba(33,150,243,0.08);border-radius:12px;padding:8px 12px;border:1px solid #2196f3;text-align:center;margin:4px 0;">' +
+                    '<span style="color:#2196f3;font-weight:700;font-size:0.8rem;">🏁 رصيد نهاية يوم' + dayLabel +
+                    item.date + ' : <span style="background:rgba(33,150,243,0.15);padding:2px 10px;border-radius:4px;border:1px solid rgba(33,150,243,0.2);margin-right:6px;display:inline-block;">' +
+                    item.runningBalance.toLocaleString() + ' ج.م</span></span>' +
+                    '</div>';
+            } else if (item.isTransaction) {
+                var row = item.row;
+                var date = row.date || '-';
+                var number = row.voucher_number || '-';
+                var type = row.transaction_type || '-';
+                var description = row.description || '-';
+                var notes = row.notes || '';
+                var generalTab = row.general_tab || '-';
+                var privateTab = row.private_tab || '-';
+                var incoming = item.incoming;
+                var outgoing = item.outgoing;
+
+                var amountDisplay = '-';
+                var amountColor = 'rgba(255,255,255,0.8)';
+                if (incoming > 0) {
+                    amountDisplay = '+ ' + incoming.toLocaleString() + ' ج.م';
+                    amountColor = '#4caf50';
+                } else if (outgoing > 0) {
+                    amountDisplay = '- ' + outgoing.toLocaleString() + ' ج.م';
+                    amountColor = '#ef5350';
+                }
+
+                cardsHTML +=
+                    '<div class="booking-card">' +
+                    '<div class="card-header">' +
+                    '<span class="name">' + description + '</span>' +
+                    '<span class="number">#' + number + '</span>' +
+                    '</div>' +
+                    '<div class="card-row">' +
+                    '<span class="card-label">التاريخ</span>' +
+                    '<span class="card-value">' + date + '</span>' +
+                    '</div>' +
+                    '<div class="card-row">' +
+                    '<span class="card-label">نوع الحركة</span>' +
+                    '<span class="card-value"><span class="badge badge-type">' + type + '</span></span>' +
+                    '</div>' +
+                    '<div class="card-row">' +
+                    '<span class="card-label">المبلغ</span>' +
+                    '<span class="card-value" style="color:' + amountColor + ';font-weight:700;">' +
+                    amountDisplay + '</span>' +
+                    '</div>';
+                if (notes) {
+                    cardsHTML +=
+                        '<div class="card-row">' +
+                        '<span class="card-label">ملاحظات</span>' +
+                        '<span class="card-value" style="font-size:0.6rem;color:rgba(255,255,255,0.3);">' +
+                        notes + '</span>' +
+                        '</div>';
+                }
+                cardsHTML +=
+                    '<div class="card-row">' +
+                    '<span class="card-label">التبويب العام</span>' +
+                    '<span class="card-value tab-cell">' + generalTab + '</span>' +
+                    '</div>' +
+                    '<div class="card-row" style="border-bottom:none;">' +
+                    '<span class="card-label">التبويب الخاص</span>' +
+                    '<span class="card-value tab-cell">' + privateTab + '</span>' +
+                    '</div>' +
+                    '</div>';
+            }
+        });
+    });
+    cardsHTML += '</div>';
+
+    // ===== TABLE (Desktop) =====
+    var tableRows = '';
+    var TOTAL_COLS = 9;
+
+    reversedDays.forEach(function(dayItems) {
+        dayItems.forEach(function(item) {
+            if (item.isDayStart) {
+                var dayName = getArabicDay(item.date);
+                var dayLabel = dayName ? ' ' + dayName + ' ' : ' ';
+                tableRows += '<tr class="row-day-start">' +
+                    '<td colspan="' + TOTAL_COLS + '" style="text-align:center;">📌 رصيد بداية يوم' +
+                    dayLabel + item.date + ' : <span class="balance-amount">' + item.runningBalance.toLocaleString() + ' ج.م</span></td>' +
+                    '</tr>';
+            } else if (item.isTotal) {
+                tableRows += '<tr class="row-total">' +
+                    '<td colspan="4" style="text-align:center;">📊 إجمالي يوم ' + item.date + '</td>' +
+                    '<td style="text-align:center; color:#4caf50; font-weight:700;">' + item.totalIncoming.toLocaleString() + '</td>' +
+                    '<td style="text-align:center; color:#ef5350; font-weight:700;">' + item.totalOutgoing.toLocaleString() + '</td>' +
+                    '<td colspan="3"></td>' +
+                    '</tr>';
+            } else if (item.isDayEnd) {
+                var dayName = getArabicDay(item.date);
+                var dayLabel = dayName ? ' ' + dayName + ' ' : ' ';
+                tableRows += '<tr class="row-day-end">' +
+                    '<td colspan="' + TOTAL_COLS + '" style="text-align:center;">🏁 رصيد نهاية يوم' +
+                    dayLabel + item.date + ' : <span class="balance-amount">' + item.runningBalance.toLocaleString() + ' ج.م</span></td>' +
+                    '</tr>';
+            } else if (item.isTransaction) {
+                var row = item.row;
+                var date = row.date || '-';
+                var number = row.voucher_number || '-';
+                var type = row.transaction_type || '-';
+                var description = row.description || '-';
+                var notes = row.notes || '';
+                var generalTab = row.general_tab || '-';
+                var privateTab = row.private_tab || '-';
+                var incoming = item.incoming;
+                var outgoing = item.outgoing;
+
+                var amountDisplay = '-';
+                var amountColor = 'rgba(255,255,255,0.6)';
+                if (incoming > 0) {
+                    amountDisplay = incoming.toLocaleString();
+                    amountColor = '#4caf50';
+                } else if (outgoing > 0) {
+                    amountDisplay = outgoing.toLocaleString();
+                    amountColor = '#ef5350';
+                }
+
+                tableRows += '<tr>' +
+                    '<td>' + date + '</td>' +
+                    '<td>' + number + '</td>' +
+                    '<td><span class="badge badge-type">' + type + '</span></td>' +
+                    '<td>' + description + '</td>' +
+                    '<td style="color:' + amountColor + ';font-weight:700;text-align:center;">' + (incoming > 0 ? amountDisplay : '-') + '</td>' +
+                    '<td style="color:' + amountColor + ';font-weight:700;text-align:center;">' + (outgoing > 0 ? amountDisplay : '-') + '</td>' +
+                    '<td style="font-size:0.6rem;color:rgba(255,255,255,0.3);">' + notes + '</td>' +
+                    '<td class="tab-cell">' + generalTab + '</td>' +
+                    '<td class="tab-cell">' + privateTab + '</td>' +
+                    '</tr>';
+            }
+        });
+    });
+
+    var tableHTML = '' +
+        '<div class="table-wrapper">' +
+        '<table>' +
+        '<thead><tr>' +
+        '<th>التاريخ</th>' +
+        '<th>رقم السند</th>' +
+        '<th>نوع الحركة</th>' +
+        '<th>البيان</th>' +
+        '<th style="text-align:center;">وارد</th>' +
+        '<th style="text-align:center;">صادر</th>' +
+        '<th>ملاحظات</th>' +
+        '<th>التبويب العام</th>' +
+        '<th>التبويب الخاص</th>' +
+        '</tr></thead>' +
+        '<tbody>' + (tableRows || '<tr><td colspan="9" style="text-align:center;color:rgba(255,255,255,0.15);padding:25px;">لا توجد حركات</td></tr>') + '</tbody>' +
+        '</table>' +
+        '</div>' +
+        '<div class="table-note">🟢 رصيد بداية اليوم · 🟡 إجمالي اليوم · 🔵 رصيد نهاية اليوم</div>';
+
+    container.innerHTML = tableHTML + cardsHTML;
+    console.log('✅ تم عرض البيانات بنجاح!');
+}
 
         // ============================================================
         // LOAD DATA FROM SUPABASE
