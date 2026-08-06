@@ -1075,70 +1075,48 @@
             }
         }
 
-        // ============================================================
-        // UPDATE OPENING BALANCE
-        // ============================================================
-        async function updateOpeningBalance(newBalance) {
-            var btn = document.getElementById('btnUpdateBalance');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
+       async function updateOpeningBalance(newBalance) {
+    var btn = document.getElementById('btnUpdateBalance');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
 
-            try {
-                if (!settingsId) {
-                    var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_settings', {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            treasury_name: 'الخزينة الرئيسية',
-                            opening_balance: newBalance,
-                            opening_balance_date: new Date().toISOString().split('T')[0]
-                        })
-                    });
+    try {
+        // تحديث السجل الموجود مباشرة (id = 1)
+        var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_settings?id=eq.1', {
+            method: 'PATCH',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                opening_balance: newBalance,
+                updated_at: new Date().toISOString()
+            })
+        });
 
-                    if (!response.ok) throw new Error('فشل في إنشاء الرصيد');
-                    var data = await response.json();
-                    if (data && data.length > 0) {
-                        settingsId = data[0].id;
-                        openingBalance = cleanNumber(data[0].opening_balance);
-                    }
-                } else {
-                    var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_settings?id=eq.' + settingsId, {
-                        method: 'PATCH',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            opening_balance: newBalance,
-                            updated_at: new Date().toISOString()
-                        })
-                    });
-
-                    if (!response.ok) throw new Error('فشل في تحديث الرصيد');
-                    openingBalance = newBalance;
-                }
-
-                showToast('✅ تم التحديث', 'تم تحديث الرصيد الافتتاحي بنجاح إلى ' + formatNumber(newBalance) + ' ج.م', 'success');
-
-                await loadTreasuryData();
-
-                document.getElementById('openingBalanceInput').value = '';
-                document.getElementById('currentBalanceDisplay').textContent = formatNumber(openingBalance) + ' ج.م';
-
-            } catch (error) {
-                console.error('❌ خطأ في تحديث الرصيد:', error);
-                showToast('❌ خطأ', 'حدث خطأ في تحديث الرصيد: ' + error.message, 'error');
-            }
-
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save"></i> تحديث الرصيد';
+        if (!response.ok) {
+            var errorText = await response.text();
+            throw new Error('HTTP ' + response.status + ': ' + errorText);
         }
 
+        openingBalance = newBalance;
+
+        showToast('✅ تم التحديث', 'تم تحديث الرصيد الافتتاحي بنجاح إلى ' + formatNumber(newBalance) + ' ج.م', 'success');
+
+        await loadTreasuryData();
+
+        document.getElementById('openingBalanceInput').value = '';
+        document.getElementById('currentBalanceDisplay').textContent = formatNumber(openingBalance) + ' ج.م';
+
+    } catch (error) {
+        console.error('❌ خطأ في تحديث الرصيد:', error);
+        showToast('❌ خطأ', 'حدث خطأ في تحديث الرصيد: ' + error.message, 'error');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> تحديث الرصيد';
+}
         // ============================================================
         // FETCH TREASURY TRANSACTIONS FROM SUPABASE
         // ============================================================
