@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>إنشاء حساب - رولكس</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            direction: rtl;
+        }
+        .register-box {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .register-box .logo {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+        }
+        .register-box h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #1a2332;
+        }
+        .register-box p {
+            color: #8a96a8;
+            font-size: 0.85rem;
+            margin-bottom: 24px;
+        }
+        .register-box input {
+            width: 100%;
+            padding: 12px 14px;
+            margin-bottom: 12px;
+            border: 1.5px solid #e8ecf1;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: 'Cairo', sans-serif;
+            outline: none;
+            transition: 0.3s;
+            background: #f8f9fb;
+        }
+        .register-box input:focus {
+            border-color: #c9a84c;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(201,168,76,0.06);
+        }
+        .register-box .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #c9a84c, #b8942a);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: 'Cairo', sans-serif;
+            margin-top: 6px;
+        }
+        .register-box .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(201,168,76,0.25);
+        }
+        .register-box .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .register-box .error-msg {
+            color: #dc3545;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            display: none;
+        }
+        .register-box .error-msg.show {
+            display: block;
+        }
+        .register-box .success-msg {
+            color: #28a745;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            display: none;
+        }
+        .register-box .success-msg.show {
+            display: block;
+        }
+        .register-box .footer-text {
+            margin-top: 16px;
+            font-size: 0.75rem;
+            color: #8a96a8;
+        }
+        .register-box .footer-text a {
+            color: #c9a84c;
+            text-decoration: none;
+            font-weight: 700;
+        }
+        .register-box .footer-text a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="register-box">
+        <div class="logo">🏛️</div>
+        <h1>إنشاء حساب جديد</h1>
+        <p>أنشئ حسابك الأول كمدير للنظام</p>
+
+        <form id="registerForm">
+            <input type="text" id="name" placeholder="الاسم الكامل" required />
+            <input type="email" id="email" placeholder="البريد الإلكتروني" required />
+            <input type="password" id="password" placeholder="كلمة السر (6 أحرف على الأقل)" required minlength="6" />
+            <input type="text" id="companyName" placeholder="اسم الشركة" required />
+            <button type="submit" class="btn" id="registerBtn">✅ إنشاء الحساب</button>
+        </form>
+
+        <div class="error-msg" id="errorMsg">❌ حدث خطأ، حاول مرة أخرى</div>
+        <div class="success-msg" id="successMsg">✅ تم إنشاء الحساب بنجاح! سيتم تحويلك...</div>
+
+        <div class="footer-text">
+            لديك حساب بالفعل؟ <a href="login.html">تسجيل الدخول</a>
+        </div>
+    </div>
+
+    <script>
+        // ===== إعدادات Supabase =====
+        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
+        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
+
+        // ===== إنشاء حساب جديد =====
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            var name = document.getElementById('name').value;
+            var email = document.getElementById('email').value;
+            var password = document.getElementById('password').value;
+            var companyName = document.getElementById('companyName').value;
+
+            var btn = document.getElementById('registerBtn');
+            var errorMsg = document.getElementById('errorMsg');
+            var successMsg = document.getElementById('successMsg');
+
+            btn.disabled = true;
+            btn.innerHTML = '⏳ جاري إنشاء الحساب...';
+            errorMsg.classList.remove('show');
+            successMsg.classList.remove('show');
+
+            try {
+                // 1. إنشاء المستخدم في Supabase Auth
+                var response = await fetch(SUPABASE_URL + '/auth/v1/signup', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        data: {
+                            name: name,
+                            company_name: companyName,
+                            role: 'admin'
+                        }
+                    })
+                });
+
+                var data = await response.json();
+
+                if (response.ok) {
+                    // 2. حفظ الجلسة
+                    localStorage.setItem('rollex_session', JSON.stringify(data));
+
+                    // 3. إضافة المدير في جدول profiles
+                    await fetch(SUPABASE_URL + '/rest/v1/profiles', {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + data.access_token,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            id: data.user.id,
+                            name: name,
+                            role: 'admin',
+                            company_name: companyName
+                        })
+                    });
+
+                    successMsg.classList.add('show');
+
+                    // التوجيه بعد 2 ثانية
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 2000);
+
+                } else {
+                    errorMsg.textContent = '❌ ' + (data.msg || 'حدث خطأ في إنشاء الحساب');
+                    errorMsg.classList.add('show');
+                }
+
+            } catch (error) {
+                errorMsg.textContent = '❌ حدث خطأ في الاتصال بقاعدة البيانات';
+                errorMsg.classList.add('show');
+                console.error(error);
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '✅ إنشاء الحساب';
+        });
+    </script>
+
+</body>
+</html>
