@@ -451,6 +451,7 @@
             display: flex;
             gap: 8px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .table-header .actions .btn-tool {
@@ -473,6 +474,17 @@
             background: var(--gray-50);
             border-color: var(--secondary);
             color: var(--secondary);
+        }
+
+        .table-header .actions .btn-tool.import {
+            background: rgba(40, 167, 69, 0.06);
+            border-color: rgba(40, 167, 69, 0.12);
+            color: var(--success);
+        }
+
+        .table-header .actions .btn-tool.import:hover {
+            background: rgba(40, 167, 69, 0.1);
+            border-color: var(--success);
         }
 
         .table-wrapper {
@@ -539,6 +551,9 @@
             border: 1px solid var(--gray-200);
             display: inline-block;
         }
+
+        .badge-type.deposit { background: rgba(40, 167, 69, 0.08); color: var(--success); border-color: rgba(40, 167, 69, 0.08); }
+        .badge-type.withdraw { background: rgba(220, 53, 69, 0.08); color: var(--danger); border-color: rgba(220, 53, 69, 0.08); }
 
         .amount-in { color: var(--success); font-weight: 700; }
         .amount-out { color: var(--danger); font-weight: 700; }
@@ -1007,6 +1022,10 @@
                     <span class="count" id="transactionsCount">0 حركة</span>
                 </div>
                 <div class="actions">
+                    <button class="btn-tool import" onclick="document.getElementById('importFileInput').click()">
+                        <i class="fas fa-file-import"></i> استيراد
+                    </button>
+                    <input type="file" id="importFileInput" accept=".csv" style="display:none;" />
                     <button class="btn-tool" onclick="exportCSV()">
                         <i class="fas fa-file-export"></i> تصدير CSV
                     </button>
@@ -1086,7 +1105,7 @@
         var tableName = 'treasury_driver';
 
         // ============================================================
-        // FORMAT NUMBER - بدون علامات عشرية وبدون آلاف
+        // FORMAT NUMBER
         // ============================================================
         function formatNumber(value) {
             if (!value && value !== 0) return '0';
@@ -1338,6 +1357,165 @@
         }
 
         // ============================================================
+        // IMPORT CSV
+        // ============================================================
+        document.getElementById('importFileInput').addEventListener('change', function(e) {
+            if (this.files.length === 0) return;
+            var file = this.files[0];
+
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showToast('❌ خطأ', 'يرجى اختيار ملف CSV فقط', 'error');
+                this.value = '';
+                return;
+            }
+
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    var text = event.target.result;
+                    var lines = text.split('\n').filter(function(line) { return line.trim() !== ''; });
+
+                    if (lines.length < 2) {
+                        showToast('❌ خطأ', 'الملف فارغ أو لا يحتوي على بيانات', 'error');
+                        return;
+                    }
+
+                    // قراءة رأس الأعمدة
+                    var headers = parseCSVLine(lines[0]);
+
+                    // تحديد موقع الأعمدة المطلوبة
+                    var colMap = {};
+                    headers.forEach(function(h, i) {
+                        var key = h.trim().toLowerCase();
+                        if (key === 'التاريخ' || key === 'date') colMap.date = i;
+                        else if (key === 'رقم السند' || key === 'voucher_number') colMap.voucher_number = i;
+                        else if (key === 'نوع الحركة' || key === 'transaction_type') colMap.transaction_type = i;
+                        else if (key === 'البيان' || key === 'description') colMap.description = i;
+                        else if (key === 'وارد' || key === 'incoming') colMap.incoming = i;
+                        else if (key === 'صادر' || key === 'outgoing') colMap.outgoing = i;
+                        else if (key === 'ملاحظات' || key === 'notes') colMap.notes = i;
+                        else if (key === 'التبويب العام' || key === 'general_tab') colMap.general_tab = i;
+                        else if (key === 'التبويب الخاص' || key === 'private_tab') colMap.private_tab = i;
+                    });
+
+                    // التحقق من الأعمدة المطلوبة
+                    if (colMap.date === undefined || colMap.description === undefined) {
+                        showToast('❌ خطأ', 'الملف لا يحتوي على الأعمدة المطلوبة: التاريخ والبيان', 'error');
+                        return;
+                    }
+
+                    var imported = 0;
+                    var errors = 0;
+                    var total = lines.length - 1;
+
+                    showToast('🔄 جاري الاستيراد', 'جاري استيراد ' + total + ' حركة...', 'warning');
+
+                    for (var i = 1; i < lines.length; i++) {
+                        var values = parseCSVLine(lines[i]);
+                        if (values.length === 0) continue;
+
+                        var incoming = parseFloat(values[colMap.incoming]) || 0;
+                        var outgoing = parseFloat(values[colMap.outgoing]) || 0;
+
+                        // تحديد نوع الحركة
+                        var type = values[colMap.transaction_type] || '';
+                        if (!type) {
+                            if (incoming > 0 && outgoing === 0) type = 'إيداع';
+                            else if (outgoing > 0 && incoming === 0) type = 'سحب';
+                            else type = 'مصاريف';
+                        }
+
+                        var entry = {
+                            date: values[colMap.date] || new Date().toISOString().split('T')[0],
+                            number: values[colMap.voucher_number] || '',
+                            type: type,
+                            description: values[colMap.description] || '',
+                            amount: incoming > 0 ? incoming : outgoing,
+                            generalTab: values[colMap.general_tab] || '',
+                            privateTab: values[colMap.private_tab] || '',
+                            notes: values[colMap.notes] || ''
+                        };
+
+                        // حفظ في localStorage
+                        var entries = getEntries();
+                        entries.push(entry);
+                        saveEntries(entries);
+                        imported++;
+                    }
+
+                    renderEntries();
+                    updateSidebarStats();
+
+                    showToast('✅ تم الاستيراد', 'تم استيراد ' + imported + ' حركة بنجاح' + (errors > 0 ? '، فشل ' + errors +
+                        ' حركة' : ''), 'success');
+
+                    document.getElementById('importFileInput').value = '';
+
+                } catch (error) {
+                    console.error('❌ خطأ في الاستيراد:', error);
+                    showToast('❌ خطأ', 'حدث خطأ في استيراد الملف: ' + error.message, 'error');
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        });
+
+        function parseCSVLine(line) {
+            var result = [];
+            var current = '';
+            var insideQuotes = false;
+            for (var i = 0; i < line.length; i++) {
+                var char = line[i];
+                if (char === '"') {
+                    insideQuotes = !insideQuotes;
+                } else if (char === ',' && !insideQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current.trim());
+            return result;
+        }
+
+        // ============================================================
+        // GET / SAVE ENTRIES (Local Storage)
+        // ============================================================
+        function getEntries() {
+            try {
+                var data = localStorage.getItem('rollex_treasury_driver_entries');
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveEntries(entries) {
+            localStorage.setItem('rollex_treasury_driver_entries', JSON.stringify(entries));
+        }
+
+        // ============================================================
+        // UPDATE SIDEBAR STATS
+        // ============================================================
+        function updateSidebarStats() {
+            var entries = getEntries();
+            var totalIn = 0;
+            var totalOut = 0;
+
+            entries.forEach(function(entry) {
+                if (entry.type === 'إيداع') totalIn += entry.amount || 0;
+                else if (entry.type === 'سحب' || entry.type === 'مصاريف') totalOut += entry.amount || 0;
+            });
+
+            var balance = openingBalance + totalIn - totalOut;
+
+            document.getElementById('sidebarOpeningBalance').textContent = openingBalance.toLocaleString() + ' ج.م';
+            document.getElementById('sidebarTotalIncoming').textContent = totalIn.toLocaleString() + ' ج.م';
+            document.getElementById('sidebarTotalOutgoing').textContent = totalOut.toLocaleString() + ' ج.م';
+            document.getElementById('sidebarCurrentBalance').textContent = balance.toLocaleString() + ' ج.م';
+        }
+
+        // ============================================================
         // DISPLAY DATA
         // ============================================================
         function displayTreasuryData(transactions) {
@@ -1346,14 +1524,13 @@
             console.log('🔍 displayTreasuryData called with', transactions ? transactions.length : 0, 'transactions');
             console.log('💰 الرصيد الافتتاحي:', openingBalance);
 
-            // ===== تحديث الرصيد الافتتاحي دائماً (حتى لو لا توجد حركات) =====
+            // ===== تحديث الرصيد الافتتاحي دائماً =====
             document.getElementById('treasuryNameDisplay').textContent = treasuryName;
             document.getElementById('openingBalanceDisplay').textContent = formatNumber(openingBalance) + ' ج.م';
             document.getElementById('currentBalanceDisplay').textContent = formatNumber(openingBalance) + ' ج.م';
             document.getElementById('lastUpdateDisplay').textContent = new Date().toLocaleDateString('ar-EG');
 
             if (!transactions || transactions.length === 0) {
-                // عرض رسالة مع الرصيد الافتتاحي
                 container.innerHTML = `
                     <div style="text-align:center;padding:60px 20px;background:var(--white);border-radius:var(--radius-lg);border:1px solid var(--gray-200);">
                         <div style="font-size:4rem;margin-bottom:16px;">🚛</div>
@@ -1695,10 +1872,34 @@
                     settingsId = settings.id;
                 }
 
-                if (transactions && transactions.length > 0) {
-                    displayTreasuryData(transactions);
+                // دمج البيانات من Supabase مع البيانات المحلية
+                var localEntries = getEntries();
+                var allTransactions = transactions || [];
+
+                // إضافة البيانات المحلية (إذا لم تكن موجودة في Supabase)
+                localEntries.forEach(function(entry) {
+                    // تحقق إذا كانت موجودة بالفعل (حسب رقم السند والتاريخ)
+                    var exists = allTransactions.some(function(t) {
+                        return t.voucher_number === entry.number && t.date === entry.date;
+                    });
+                    if (!exists) {
+                        allTransactions.push({
+                            date: entry.date,
+                            voucher_number: entry.number,
+                            transaction_type: entry.type,
+                            description: entry.description,
+                            incoming: entry.type === 'إيداع' ? entry.amount : 0,
+                            outgoing: (entry.type === 'سحب' || entry.type === 'مصاريف') ? entry.amount : 0,
+                            notes: entry.notes || '',
+                            general_tab: entry.generalTab || '',
+                            private_tab: entry.privateTab || ''
+                        });
+                    }
+                });
+
+                if (allTransactions && allTransactions.length > 0) {
+                    displayTreasuryData(allTransactions);
                 } else {
-                    // عرض الرصيد الافتتاحي حتى لو لا توجد حركات
                     displayTreasuryData([]);
                 }
             } catch (error) {
