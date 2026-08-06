@@ -208,11 +208,11 @@
         }
 
         /* ============================================================
-           STATS CARDS
+           STATS CARDS - 3 بطاقات فقط (بدون إجمالي المعاملات)
            ============================================================ */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 16px;
             margin: 16px 0 20px;
         }
@@ -248,7 +248,6 @@
         .stat-card .icon-box.gold { background: rgba(201, 168, 76, 0.08); color: var(--secondary); }
         .stat-card .icon-box.green { background: rgba(40, 167, 69, 0.08); color: var(--success); }
         .stat-card .icon-box.blue { background: rgba(23, 162, 184, 0.08); color: var(--info); }
-        .stat-card .icon-box.red { background: rgba(220, 53, 69, 0.08); color: var(--danger); }
 
         .stat-card .info .label {
             font-size: 0.6rem;
@@ -366,7 +365,7 @@
         }
 
         /* ============================================================
-           KPI - 3 بطاقات
+           KPI - 3 بطاقات فقط (بدون إجمالي المعاملات)
            ============================================================ */
         .kpi-grid {
             display: grid;
@@ -413,7 +412,7 @@
         }
 
         /* ============================================================
-           TABLE - احترافي
+           TABLE
            ============================================================ */
         .table-section {
             padding-bottom: 40px;
@@ -916,7 +915,7 @@
     </section>
 
     <!-- ============================================================
-    STATS
+    STATS - 3 بطاقات فقط (بدون إجمالي المعاملات)
     ============================================================ -->
     <section>
         <div class="container">
@@ -940,13 +939,6 @@
                     <div class="info">
                         <div class="label">آخر تحديث</div>
                         <div class="value" id="lastUpdateDisplay">-</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon-box red"><i class="fas fa-exchange-alt"></i></div>
-                    <div class="info">
-                        <div class="label">إجمالي المعاملات</div>
-                        <div class="value" id="totalTransactionsDisplay">0</div>
                     </div>
                 </div>
             </div>
@@ -978,7 +970,7 @@
     </section>
 
     <!-- ============================================================
-    KPI
+    KPI - 3 بطاقات فقط (بدون إجمالي المعاملات)
     ============================================================ -->
     <section>
         <div class="container">
@@ -1091,7 +1083,7 @@
         var settingsId = null;
 
         // ============================================================
-        // FORMAT NUMBER - بدون علامات عشرية وبدون آلاف
+        // FORMAT NUMBER
         // ============================================================
         function formatNumber(value) {
             if (!value && value !== 0) return '0';
@@ -1130,7 +1122,7 @@
         }
 
         // ============================================================
-        // TOAST SYSTEM
+        // TOAST
         // ============================================================
         function showToast(title, message, type) {
             var container = document.getElementById('toastContainer');
@@ -1166,7 +1158,7 @@
         }
 
         // ============================================================
-        // FETCH SETTINGS - جلب الإعدادات
+        // FETCH SETTINGS
         // ============================================================
         async function fetchTreasurySettings() {
             try {
@@ -1197,7 +1189,7 @@
         }
 
         // ============================================================
-        // UPDATE OPENING BALANCE - تحديث الرصيد الافتتاحي (مع جلب id تلقائياً)
+        // UPDATE OPENING BALANCE
         // ============================================================
         async function updateOpeningBalance(newBalance) {
             var btn = document.getElementById('btnUpdateBalance');
@@ -1205,7 +1197,6 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
 
             try {
-                // 1. جلب السجل الحالي أولاً
                 var fetchResponse = await fetch(SUPABASE_URL + '/rest/v1/treasury_settings?limit=1', {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
@@ -1222,7 +1213,6 @@
                 var recordId, method, url, body;
 
                 if (existingData && existingData.length > 0) {
-                    // تحديث السجل الموجود
                     recordId = existingData[0].id;
                     method = 'PATCH';
                     url = SUPABASE_URL + '/rest/v1/treasury_settings?id=eq.' + recordId;
@@ -1232,7 +1222,6 @@
                     });
                     console.log('📝 تحديث السجل ID:', recordId);
                 } else {
-                    // إنشاء سجل جديد
                     method = 'POST';
                     url = SUPABASE_URL + '/rest/v1/treasury_settings';
                     body = JSON.stringify({
@@ -1243,7 +1232,6 @@
                     console.log('📝 إنشاء سجل جديد');
                 }
 
-                // 2. تنفيذ التحديث
                 var response = await fetch(url, {
                     method: method,
                     headers: {
@@ -1263,7 +1251,6 @@
                 var result = await response.json();
                 console.log('✅ نتيجة التحديث:', result);
 
-                // 3. تحديث المتغيرات المحلية
                 if (result && result.length > 0) {
                     openingBalance = cleanNumber(result[0].opening_balance);
                     settingsId = result[0].id;
@@ -1273,7 +1260,6 @@
 
                 showToast('✅ تم التحديث', 'تم تحديث الرصيد الافتتاحي بنجاح إلى ' + formatNumber(newBalance) + ' ج.م', 'success');
 
-                // 4. إعادة تحميل البيانات
                 await loadTreasuryData();
 
                 document.getElementById('openingBalanceInput').value = '';
@@ -1349,7 +1335,7 @@
         }
 
         // ============================================================
-        // DISPLAY DATA - عرض البيانات
+        // DISPLAY DATA
         // ============================================================
         function displayTreasuryData(transactions) {
             var container = document.getElementById('treasuryContainer');
@@ -1361,7 +1347,6 @@
                 return;
             }
 
-            // تحديث الإحصائيات
             document.getElementById('treasuryNameDisplay').textContent = treasuryName;
             document.getElementById('openingBalanceDisplay').textContent = formatNumber(openingBalance) + ' ج.م';
             document.getElementById('currentBalanceDisplay').textContent = formatNumber(openingBalance) + ' ج.م';
@@ -1382,10 +1367,8 @@
             document.getElementById('totalBalance').textContent = formatNumber(totalBalance) + ' ج.م';
             document.getElementById('totalIncoming').textContent = formatNumber(totalIncomingAll) + ' ج.م';
             document.getElementById('totalOutgoing').textContent = formatNumber(totalOutgoingAll) + ' ج.م';
-            document.getElementById('totalTransactionsDisplay').textContent = transactions.length;
             document.getElementById('transactionsCount').textContent = transactions.length + ' حركة';
 
-            // ترتيب وتجميع الحركات
             var sortedRows = transactions.slice().sort(function(a, b) {
                 if (a.date < b.date) return -1;
                 if (a.date > b.date) return 1;
@@ -1672,7 +1655,7 @@
         }
 
         // ============================================================
-        // LOAD DATA - تحميل البيانات
+        // LOAD DATA
         // ============================================================
         async function loadTreasuryData() {
             var container = document.getElementById('treasuryContainer');
@@ -1727,11 +1710,9 @@
         window.exportCSV = exportCSV;
 
         // ============================================================
-        // INIT - تحميل البيانات عند فتح الصفحة
+        // INIT
         // ============================================================
         loadTreasuryData();
-
-        // تحديث تلقائي كل 5 دقائق
         setInterval(loadTreasuryData, 300000);
     </script>
 </body>
