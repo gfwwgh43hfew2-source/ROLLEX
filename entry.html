@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ============================================================
            CSS VARIABLES - الثيم الفاتح الاحترافي
@@ -1016,7 +1017,7 @@
     </section>
 
     <!-- ============================================================
-    JAVASCRIPT - النسخة المُعدّلة (بدون sub_treasury)
+    JAVASCRIPT - النسخة المُعدّلة مع user_id
     ============================================================ -->
     <script>
         // ============================================================
@@ -1027,6 +1028,11 @@
         var TABLE_NAME = 'treasury';
 
         var STORAGE_KEY = 'rollex_treasury_entries';
+
+        // ============================================================
+        // INIT SUPABASE CLIENT
+        // ============================================================
+        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ============================================================
         // DOM REFS
@@ -1118,9 +1124,18 @@
         }
 
         // ============================================================
-        // SAVE TO SUPABASE - بدون sub_treasury
+        // SAVE TO SUPABASE - مع user_id
         // ============================================================
         async function saveToSupabase(entry) {
+            // جلب المستخدم الحالي
+            var { data: userData, error: userError } = await supabase.auth.getUser();
+            
+            if (userError || !userData.user) {
+                throw new Error('❌ يرجى تسجيل الدخول أولاً');
+            }
+            
+            var userId = userData.user.id;
+            
             var payload = {
                 date: entry.date,
                 voucher_number: entry.number,
@@ -1130,8 +1145,8 @@
                 outgoing: (entry.type === 'سحب' || entry.type === 'تحويل' || entry.type === 'مصاريف') ? entry.amount : 0,
                 notes: entry.notes || '',
                 general_tab: entry.generalTab || '',
-                private_tab: entry.privateTab || ''
-                // تم حذف sub_treasury نهائياً
+                private_tab: entry.privateTab || '',
+                user_id: userId  // <-- العمود الجديد
             };
 
             console.log('📤 محاولة الحفظ في Supabase:', JSON.stringify(payload, null, 2));
@@ -1178,78 +1193,6 @@
                 return JSON.parse(responseText);
             } catch (e) {
                 return responseText;
-            }
-        }
-
-        // ============================================================
-        // CREATE TABLE IF NOT EXISTS
-        // ============================================================
-        async function ensureTableExists() {
-            try {
-                var testPayload = {
-                    date: new Date().toISOString().split('T')[0],
-                    voucher_number: 'TEST_' + Date.now(),
-                    transaction_type: 'اختبار',
-                    description: 'سجل اختبار للتحقق من وجود الجدول',
-                    incoming: 0,
-                    outgoing: 0,
-                    notes: 'تم الإنشاء تلقائياً',
-                    general_tab: 'اختبار',
-                    private_tab: 'اختبار'
-                };
-
-                var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify(testPayload)
-                });
-
-                if (response.ok) {
-                    console.log('✅ الجدول موجود ويعمل بشكل صحيح');
-                    return true;
-                }
-
-                var errorText = await response.text();
-                console.log('⚠️ الجدول قد لا يكون موجوداً، الخطأ:', errorText);
-
-                showToast('⚠️ تنبيه', 'الجدول غير موجود في قاعدة البيانات. يرجى إنشاؤه يدوياً في Supabase.', 'warning');
-
-                console.log('📋 لإنشاء الجدول، استخدم SQL التالي في Supabase SQL Editor:');
-                console.log(`
-                CREATE TABLE IF NOT EXISTS treasury (
-                    id BIGSERIAL PRIMARY KEY,
-                    date DATE NOT NULL,
-                    voucher_number TEXT NOT NULL,
-                    transaction_type TEXT NOT NULL,
-                    description TEXT NOT NULL,
-                    incoming NUMERIC DEFAULT 0,
-                    outgoing NUMERIC DEFAULT 0,
-                    notes TEXT,
-                    general_tab TEXT,
-                    private_tab TEXT,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                );
-
-                ALTER TABLE treasury ENABLE ROW LEVEL SECURITY;
-
-                DROP POLICY IF EXISTS "Allow all" ON treasury;
-                CREATE POLICY "Allow all" ON treasury
-                    FOR ALL
-                    USING (true)
-                    WITH CHECK (true);
-                `);
-
-                return false;
-
-            } catch (error) {
-                console.error('❌ خطأ في التحقق من الجدول:', error);
-                return false;
             }
         }
 
@@ -1384,27 +1327,8 @@
             submitBtn.disabled = true;
             submitBtn.className = 'btn-submit loading';
 
-            // 1. التحقق من وجود الجدول
-            var tableExists = await ensureTableExists();
-            if (!tableExists) {
-                var entries = getEntries();
-                entries.push(entry);
-                saveEntries(entries);
-
-                showToast(
-                    '⚠️ حفظ محلي فقط',
-                    'الجدول غير موجود في قاعدة البيانات. تم حفظ البيانات محلياً.',
-                    'warning'
-                );
-
-                submitBtn.disabled = false;
-                submitBtn.className = 'btn-submit';
-                clearForm();
-                return;
-            }
-
-            // 2. محاولة الحفظ في Supabase
             try {
+                // محاولة الحفظ في Supabase مع user_id
                 var result = await saveToSupabase(entry);
                 console.log('✅ تم الحفظ في Supabase:', result);
 
@@ -1416,7 +1340,7 @@
                 clearForm();
 
             } catch (error) {
-                console.error('❌ خطأ في الحفظ في Supabase:', error);
+                console.error('❌ خطأ في الحفظ:', error);
 
                 var entries = getEntries();
                 entries.push(entry);
@@ -1424,12 +1348,10 @@
 
                 var errorMsg = error.message || 'خطأ غير معروف';
                 showToast(
-                    '❌ فشل الحفظ في السحابة',
-                    'تم الحفظ محلياً. السبب: ' + errorMsg.substring(0, 150),
+                    '❌ فشل الحفظ',
+                    errorMsg,
                     'error'
                 );
-
-                clearForm();
             }
 
             submitBtn.disabled = false;
@@ -1567,10 +1489,11 @@
         })();
 
         // ============================================================
-        // TEST CONNECTION
+        // TEST CONNECTION & AUTH
         // ============================================================
         async function testConnection() {
             try {
+                // 1. اختبار الاتصال
                 var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME + '?limit=1', {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
@@ -1578,16 +1501,30 @@
                     }
                 });
 
-                if (response.ok) {
-                    console.log('✅ الاتصال بـ Supabase ناجح');
-                    return true;
-                } else {
-                    var text = await response.text();
-                    console.error('❌ فشل الاتصال بـ Supabase:', response.status, text);
+                if (!response.ok) {
+                    console.error('❌ فشل الاتصال بـ Supabase:', response.status);
+                    showToast('⚠️ تنبيه', 'فشل الاتصال بقاعدة البيانات', 'warning');
                     return false;
                 }
+
+                console.log('✅ الاتصال بـ Supabase ناجح');
+
+                // 2. التحقق من تسجيل الدخول
+                var { data: userData, error: userError } = await supabase.auth.getUser();
+                
+                if (userError || !userData.user) {
+                    console.warn('⚠️ المستخدم غير مسجل الدخول');
+                    showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول لإضافة حركات', 'warning');
+                    return false;
+                }
+
+                console.log('✅ المستخدم مسجل:', userData.user.email);
+                showToast('✅ متصل', 'مرحباً ' + (userData.user.email || 'مستخدم'), 'success');
+                return true;
+
             } catch (error) {
                 console.error('❌ خطأ في الاتصال:', error);
+                showToast('⚠️ تنبيه', 'فشل الاتصال بقاعدة البيانات', 'warning');
                 return false;
             }
         }
@@ -1600,13 +1537,7 @@
         console.log('📊 جدول البيانات:', TABLE_NAME);
         console.log('💾 مفتاح التخزين المحلي:', STORAGE_KEY);
 
-        testConnection().then(function(connected) {
-            if (connected) {
-                showToast('✅ متصل', 'الاتصال بقاعدة البيانات ناجح', 'success');
-            } else {
-                showToast('⚠️ تنبيه', 'فشل الاتصال بقاعدة البيانات، سيتم الحفظ محلياً فقط', 'warning');
-            }
-        });
+        testConnection();
 
         setTimeout(function() {
             showToast('👋 مرحباً', 'نموذج إدخال الخزينة الرئيسية جاهز للاستخدام', 'success');
