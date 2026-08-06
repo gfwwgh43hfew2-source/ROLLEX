@@ -265,7 +265,7 @@
         }
 
         /* ============================================================
-           SETTINGS
+           SETTINGS BAR
            ============================================================ */
         .settings-bar {
             background: var(--white);
@@ -366,7 +366,7 @@
         }
 
         /* ============================================================
-           KPI - 3 بطاقات فقط
+           KPI - 3 بطاقات
            ============================================================ */
         .kpi-grid {
             display: grid;
@@ -403,7 +403,6 @@
             font-size: 2rem;
             font-weight: 900;
             color: var(--gray-900);
-            /* الرقم بدون علامات عشرية */
         }
 
         .kpi-card .label {
@@ -414,7 +413,7 @@
         }
 
         /* ============================================================
-           TABLE
+           TABLE - احترافي
            ============================================================ */
         .table-section {
             padding-bottom: 40px;
@@ -1089,7 +1088,7 @@
 
         var treasuryName = 'الخزينة الرئيسية';
         var openingBalance = 0;
-        var settingsId = 1;
+        var settingsId = null;
 
         // ============================================================
         // FORMAT NUMBER - بدون علامات عشرية وبدون آلاف
@@ -1131,7 +1130,7 @@
         }
 
         // ============================================================
-        // TOAST
+        // TOAST SYSTEM
         // ============================================================
         function showToast(title, message, type) {
             var container = document.getElementById('toastContainer');
@@ -1167,7 +1166,7 @@
         }
 
         // ============================================================
-        // FETCH SETTINGS
+        // FETCH SETTINGS - جلب الإعدادات
         // ============================================================
         async function fetchTreasurySettings() {
             try {
@@ -1181,11 +1180,13 @@
                 if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
                 var data = await response.json();
 
+                console.log('📋 إعدادات الخزينة:', data);
+
                 if (data && data.length > 0) {
                     var settings = data[0];
                     treasuryName = settings.treasury_name || 'الخزينة الرئيسية';
                     openingBalance = cleanNumber(settings.opening_balance);
-                    settingsId = settings.id || 1;
+                    settingsId = settings.id;
                     return settings;
                 }
                 return null;
@@ -1196,7 +1197,7 @@
         }
 
         // ============================================================
-        // UPDATE OPENING BALANCE
+        // UPDATE OPENING BALANCE - تحديث الرصيد الافتتاحي (مع جلب id تلقائياً)
         // ============================================================
         async function updateOpeningBalance(newBalance) {
             var btn = document.getElementById('btnUpdateBalance');
@@ -1204,17 +1205,54 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
 
             try {
-                var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_settings?id=eq.' + settingsId, {
-                    method: 'PATCH',
+                // 1. جلب السجل الحالي أولاً
+                var fetchResponse = await fetch(SUPABASE_URL + '/rest/v1/treasury_settings?limit=1', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                    }
+                });
+
+                if (!fetchResponse.ok) {
+                    var errorText = await fetchResponse.text();
+                    throw new Error('فشل في جلب الإعدادات: ' + errorText);
+                }
+
+                var existingData = await fetchResponse.json();
+                var recordId, method, url, body;
+
+                if (existingData && existingData.length > 0) {
+                    // تحديث السجل الموجود
+                    recordId = existingData[0].id;
+                    method = 'PATCH';
+                    url = SUPABASE_URL + '/rest/v1/treasury_settings?id=eq.' + recordId;
+                    body = JSON.stringify({
+                        opening_balance: newBalance,
+                        updated_at: new Date().toISOString()
+                    });
+                    console.log('📝 تحديث السجل ID:', recordId);
+                } else {
+                    // إنشاء سجل جديد
+                    method = 'POST';
+                    url = SUPABASE_URL + '/rest/v1/treasury_settings';
+                    body = JSON.stringify({
+                        treasury_name: 'الخزينة الرئيسية',
+                        opening_balance: newBalance,
+                        opening_balance_date: new Date().toISOString().split('T')[0]
+                    });
+                    console.log('📝 إنشاء سجل جديد');
+                }
+
+                // 2. تنفيذ التحديث
+                var response = await fetch(url, {
+                    method: method,
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
                     },
-                    body: JSON.stringify({
-                        opening_balance: newBalance,
-                        updated_at: new Date().toISOString()
-                    })
+                    body: body
                 });
 
                 if (!response.ok) {
@@ -1222,10 +1260,20 @@
                     throw new Error('HTTP ' + response.status + ': ' + errorText);
                 }
 
-                openingBalance = newBalance;
+                var result = await response.json();
+                console.log('✅ نتيجة التحديث:', result);
+
+                // 3. تحديث المتغيرات المحلية
+                if (result && result.length > 0) {
+                    openingBalance = cleanNumber(result[0].opening_balance);
+                    settingsId = result[0].id;
+                } else {
+                    openingBalance = newBalance;
+                }
 
                 showToast('✅ تم التحديث', 'تم تحديث الرصيد الافتتاحي بنجاح إلى ' + formatNumber(newBalance) + ' ج.م', 'success');
 
+                // 4. إعادة تحميل البيانات
                 await loadTreasuryData();
 
                 document.getElementById('openingBalanceInput').value = '';
@@ -1301,7 +1349,7 @@
         }
 
         // ============================================================
-        // DISPLAY DATA
+        // DISPLAY DATA - عرض البيانات
         // ============================================================
         function displayTreasuryData(transactions) {
             var container = document.getElementById('treasuryContainer');
@@ -1624,7 +1672,7 @@
         }
 
         // ============================================================
-        // LOAD DATA
+        // LOAD DATA - تحميل البيانات
         // ============================================================
         async function loadTreasuryData() {
             var container = document.getElementById('treasuryContainer');
@@ -1639,7 +1687,7 @@
                 if (settings) {
                     treasuryName = settings.treasury_name || 'الخزينة الرئيسية';
                     openingBalance = cleanNumber(settings.opening_balance);
-                    settingsId = settings.id || 1;
+                    settingsId = settings.id;
                 }
 
                 if (transactions && transactions.length > 0) {
@@ -1679,9 +1727,11 @@
         window.exportCSV = exportCSV;
 
         // ============================================================
-        // INIT
+        // INIT - تحميل البيانات عند فتح الصفحة
         // ============================================================
         loadTreasuryData();
+
+        // تحديث تلقائي كل 5 دقائق
         setInterval(loadTreasuryData, 300000);
     </script>
 </body>
