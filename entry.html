@@ -628,6 +628,40 @@
         }
 
         /* ============================================================
+           BREADCRUMB
+           ============================================================ */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.7rem;
+            color: var(--gray-500);
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .breadcrumb a {
+            color: var(--secondary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .breadcrumb a:hover {
+            color: var(--secondary-dark);
+            text-decoration: underline;
+        }
+
+        .breadcrumb .separator {
+            color: var(--gray-300);
+        }
+
+        .breadcrumb .current {
+            color: var(--gray-700);
+            font-weight: 600;
+        }
+
+        /* ============================================================
            RESPONSIVE
            ============================================================ */
         @media (max-width: 992px) {
@@ -784,40 +818,6 @@
             .toast-container {
                 display: none;
             }
-        }
-
-        /* ============================================================
-           BREADCRUMB
-           ============================================================ */
-        .breadcrumb {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.7rem;
-            color: var(--gray-500);
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
-
-        .breadcrumb a {
-            color: var(--secondary);
-            text-decoration: none;
-            font-weight: 600;
-            transition: var(--transition);
-        }
-
-        .breadcrumb a:hover {
-            color: var(--secondary-dark);
-            text-decoration: underline;
-        }
-
-        .breadcrumb .separator {
-            color: var(--gray-300);
-        }
-
-        .breadcrumb .current {
-            color: var(--gray-700);
-            font-weight: 600;
         }
     </style>
 </head>
@@ -979,21 +979,6 @@
                             <input type="text" id="entryPrivateTab" placeholder="مثال: نقدي" required />
                         </div>
 
-                        <!-- ===== الخزينة الفرعية ===== -->
-                        <div class="form-group">
-                            <label for="entrySubTreasury">
-                                <i class="fas fa-truck"></i>
-                                الخزينة الفرعية
-                                <span class="optional">(اختياري)</span>
-                            </label>
-                            <select id="entrySubTreasury">
-                                <option value="">بدون خزينة فرعية</option>
-                                <option value="خزينة المحاسب">خزينة المحاسب</option>
-                                <option value="خزينة السائق">خزينة السائق</option>
-                                <option value="خزينة المبيعات">خزينة المبيعات</option>
-                            </select>
-                        </div>
-
                         <!-- ===== ملاحظات ===== -->
                         <div class="form-group full-width">
                             <label for="entryNotes">
@@ -1031,7 +1016,7 @@
     </section>
 
     <!-- ============================================================
-    JAVASCRIPT - النسخة المحسنة مع تشخيص الأخطاء
+    JAVASCRIPT - النسخة المُعدّلة (بدون sub_treasury)
     ============================================================ -->
     <script>
         // ============================================================
@@ -1055,7 +1040,6 @@
         var outgoingInput = document.getElementById('entryOutgoing');
         var generalTabInput = document.getElementById('entryGeneralTab');
         var privateTabInput = document.getElementById('entryPrivateTab');
-        var subTreasurySelect = document.getElementById('entrySubTreasury');
         var notesInput = document.getElementById('entryNotes');
         var editIndexInput = document.getElementById('editIndex');
         var submitBtn = document.getElementById('submitBtn');
@@ -1134,11 +1118,74 @@
         }
 
         // ============================================================
+        // SAVE TO SUPABASE - بدون sub_treasury
+        // ============================================================
+        async function saveToSupabase(entry) {
+            var payload = {
+                date: entry.date,
+                voucher_number: entry.number,
+                transaction_type: entry.type,
+                description: entry.description,
+                incoming: entry.type === 'إيداع' ? entry.amount : 0,
+                outgoing: (entry.type === 'سحب' || entry.type === 'تحويل' || entry.type === 'مصاريف') ? entry.amount : 0,
+                notes: entry.notes || '',
+                general_tab: entry.generalTab || '',
+                private_tab: entry.privateTab || ''
+                // تم حذف sub_treasury نهائياً
+            };
+
+            console.log('📤 محاولة الحفظ في Supabase:', JSON.stringify(payload, null, 2));
+
+            var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME, {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            var responseText = await response.text();
+
+            if (!response.ok) {
+                console.error('❌ استجابة Supabase:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: responseText
+                });
+
+                var errorMessage = 'HTTP ' + response.status;
+                try {
+                    var errorJson = JSON.parse(responseText);
+                    if (errorJson.message) {
+                        errorMessage += ': ' + errorJson.message;
+                    }
+                    if (errorJson.details) {
+                        errorMessage += ' (تفاصيل: ' + errorJson.details + ')';
+                    }
+                } catch (e) {
+                    if (responseText) {
+                        errorMessage += ': ' + responseText.substring(0, 200);
+                    }
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            try {
+                return JSON.parse(responseText);
+            } catch (e) {
+                return responseText;
+            }
+        }
+
+        // ============================================================
         // CREATE TABLE IF NOT EXISTS
         // ============================================================
         async function ensureTableExists() {
             try {
-                // محاولة إدراج سجل اختباري للتحقق من وجود الجدول
                 var testPayload = {
                     date: new Date().toISOString().split('T')[0],
                     voucher_number: 'TEST_' + Date.now(),
@@ -1170,11 +1217,8 @@
                 var errorText = await response.text();
                 console.log('⚠️ الجدول قد لا يكون موجوداً، الخطأ:', errorText);
 
-                // محاولة إنشاء الجدول عبر SQL (في Supabase يتم ذلك يدوياً)
-                // لذلك نعرض رسالة للمستخدم
                 showToast('⚠️ تنبيه', 'الجدول غير موجود في قاعدة البيانات. يرجى إنشاؤه يدوياً في Supabase.', 'warning');
 
-                // عرض تعليمات الإنشاء
                 console.log('📋 لإنشاء الجدول، استخدم SQL التالي في Supabase SQL Editor:');
                 console.log(`
                 CREATE TABLE IF NOT EXISTS treasury (
@@ -1188,15 +1232,13 @@
                     notes TEXT,
                     general_tab TEXT,
                     private_tab TEXT,
-                    sub_treasury TEXT,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
                 );
 
-                -- تفعيل RLS
                 ALTER TABLE treasury ENABLE ROW LEVEL SECURITY;
 
-                -- سياسة للسماح بكل العمليات (للتطوير)
+                DROP POLICY IF EXISTS "Allow all" ON treasury;
                 CREATE POLICY "Allow all" ON treasury
                     FOR ALL
                     USING (true)
@@ -1208,74 +1250,6 @@
             } catch (error) {
                 console.error('❌ خطأ في التحقق من الجدول:', error);
                 return false;
-            }
-        }
-
-        // ============================================================
-        // SAVE TO SUPABASE - مع تشخيص متقدم
-        // ============================================================
-        async function saveToSupabase(entry) {
-            var payload = {
-                date: entry.date,
-                voucher_number: entry.number,
-                transaction_type: entry.type,
-                description: entry.description,
-                incoming: entry.type === 'إيداع' ? entry.amount : 0,
-                outgoing: (entry.type === 'سحب' || entry.type === 'تحويل' || entry.type === 'مصاريف') ? entry.amount :
-                0,
-                notes: entry.notes || '',
-                general_tab: entry.generalTab || '',
-                private_tab: entry.privateTab || '',
-                sub_treasury: entry.subTreasury || ''
-            };
-
-            console.log('📤 محاولة الحفظ في Supabase:', JSON.stringify(payload, null, 2));
-
-            var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME, {
-                method: 'POST',
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=representation'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            // قراءة نص الخطأ بالكامل
-            var responseText = await response.text();
-
-            if (!response.ok) {
-                console.error('❌ استجابة Supabase:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    body: responseText
-                });
-
-                // تحليل الخطأ
-                var errorMessage = 'HTTP ' + response.status;
-                try {
-                    var errorJson = JSON.parse(responseText);
-                    if (errorJson.message) {
-                        errorMessage += ': ' + errorJson.message;
-                    }
-                    if (errorJson.details) {
-                        errorMessage += ' (تفاصيل: ' + errorJson.details + ')';
-                    }
-                } catch (e) {
-                    if (responseText) {
-                        errorMessage += ': ' + responseText.substring(0, 200);
-                    }
-                }
-
-                throw new Error(errorMessage);
-            }
-
-            // محاولة تحليل الاستجابة
-            try {
-                return JSON.parse(responseText);
-            } catch (e) {
-                return responseText;
             }
         }
 
@@ -1296,7 +1270,6 @@
             outgoingInput.style.opacity = '1';
             generalTabInput.value = '';
             privateTabInput.value = '';
-            subTreasurySelect.value = '';
             notesInput.value = '';
             editIndexInput.value = '-1';
 
@@ -1377,7 +1350,7 @@
         }
 
         // ============================================================
-        // SUBMIT HANDLER - مع تشخيص متقدم
+        // SUBMIT HANDLER
         // ============================================================
         form.addEventListener('submit', async function(event) {
             event.preventDefault();
@@ -1395,7 +1368,6 @@
             var amount = incoming > 0 ? incoming : outgoing;
             var generalTab = generalTabInput.value.trim();
             var privateTab = privateTabInput.value.trim();
-            var subTreasury = subTreasurySelect.value;
             var notes = notesInput.value.trim();
 
             var entry = {
@@ -1406,7 +1378,6 @@
                 amount: amount,
                 generalTab: generalTab,
                 privateTab: privateTab,
-                subTreasury: subTreasury,
                 notes: notes
             };
 
@@ -1416,14 +1387,13 @@
             // 1. التحقق من وجود الجدول
             var tableExists = await ensureTableExists();
             if (!tableExists) {
-                // الجدول غير موجود، نعرض رسالة واضحة ونحفظ محلياً فقط
                 var entries = getEntries();
                 entries.push(entry);
                 saveEntries(entries);
 
                 showToast(
                     '⚠️ حفظ محلي فقط',
-                    'الجدول غير موجود في قاعدة البيانات. تم حفظ البيانات محلياً. يرجى إنشاء الجدول في Supabase.',
+                    'الجدول غير موجود في قاعدة البيانات. تم حفظ البيانات محلياً.',
                     'warning'
                 );
 
@@ -1438,7 +1408,6 @@
                 var result = await saveToSupabase(entry);
                 console.log('✅ تم الحفظ في Supabase:', result);
 
-                // 3. حفظ في LocalStorage كنسخة احتياطية
                 var entries = getEntries();
                 entries.push(entry);
                 saveEntries(entries);
@@ -1449,16 +1418,14 @@
             } catch (error) {
                 console.error('❌ خطأ في الحفظ في Supabase:', error);
 
-                // حفظ محلي في حالة فشل Supabase
                 var entries = getEntries();
                 entries.push(entry);
                 saveEntries(entries);
 
-                // عرض رسالة خطأ مفصلة
                 var errorMsg = error.message || 'خطأ غير معروف';
                 showToast(
                     '❌ فشل الحفظ في السحابة',
-                    'تم الحفظ محلياً. السبب: ' + errorMsg.substring(0, 100),
+                    'تم الحفظ محلياً. السبب: ' + errorMsg.substring(0, 150),
                     'error'
                 );
 
@@ -1613,8 +1580,6 @@
 
                 if (response.ok) {
                     console.log('✅ الاتصال بـ Supabase ناجح');
-                    var data = await response.json();
-                    console.log('📊 عدد السجلات:', data.length);
                     return true;
                 } else {
                     var text = await response.text();
@@ -1635,7 +1600,6 @@
         console.log('📊 جدول البيانات:', TABLE_NAME);
         console.log('💾 مفتاح التخزين المحلي:', STORAGE_KEY);
 
-        // اختبار الاتصال
         testConnection().then(function(connected) {
             if (connected) {
                 showToast('✅ متصل', 'الاتصال بقاعدة البيانات ناجح', 'success');
@@ -1644,7 +1608,6 @@
             }
         });
 
-        // عرض رسالة ترحيب
         setTimeout(function() {
             showToast('👋 مرحباً', 'نموذج إدخال الخزينة الرئيسية جاهز للاستخدام', 'success');
         }, 1000);
