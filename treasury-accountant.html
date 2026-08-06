@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <style>
         /* ============================================================
-           CSS VARIABLES
+           CSS VARIABLES - الثيم الفاتح الاحترافي
            ============================================================ */
         :root {
             --primary: #1a2332;
@@ -35,6 +35,7 @@
             --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
             --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.06);
             --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.08);
+            --shadow-xl: 0 12px 60px rgba(0, 0, 0, 0.12);
             --radius-sm: 8px;
             --radius-md: 12px;
             --radius-lg: 16px;
@@ -888,7 +889,8 @@
             </div>
             <div class="nav-links">
                 <a href="index.html">الرئيسية</a>
-                <a href="treasury.html" class="active">الخزينة</a>
+                <a href="treasury.html">الخزينة الرئيسية</a>
+                <a href="#" class="active">خزينة المحاسب</a>
                 <a href="#">التقارير</a>
             </div>
             <div class="header-actions">
@@ -1080,10 +1082,10 @@
         var treasuryName = 'خزينة المحاسب';
         var openingBalance = 0;
         var settingsId = null;
-        var tableName = 'treasury_accountant'; // جدول منفصل لخزينة المحاسب
+        var tableName = 'treasury_accountant';
 
         // ============================================================
-        // FORMAT NUMBER
+        // FORMAT NUMBER - بدون علامات عشرية وبدون آلاف
         // ============================================================
         function formatNumber(value) {
             if (!value && value !== 0) return '0';
@@ -1341,17 +1343,35 @@
             var container = document.getElementById('treasuryContainer');
 
             console.log('🔍 displayTreasuryData called with', transactions ? transactions.length : 0, 'transactions');
+            console.log('💰 الرصيد الافتتاحي:', openingBalance);
 
-            if (!transactions || transactions.length === 0) {
-                container.innerHTML = '<div class="error">❌ لا توجد حركات في خزينة المحاسب</div>';
-                return;
-            }
-
+            // ===== تحديث الرصيد الافتتاحي دائماً (حتى لو لا توجد حركات) =====
             document.getElementById('treasuryNameDisplay').textContent = treasuryName;
             document.getElementById('openingBalanceDisplay').textContent = formatNumber(openingBalance) + ' ج.م';
             document.getElementById('currentBalanceDisplay').textContent = formatNumber(openingBalance) + ' ج.م';
             document.getElementById('lastUpdateDisplay').textContent = new Date().toLocaleDateString('ar-EG');
 
+            if (!transactions || transactions.length === 0) {
+                // عرض رسالة مع الرصيد الافتتاحي
+                container.innerHTML = `
+                    <div style="text-align:center;padding:60px 20px;background:var(--white);border-radius:var(--radius-lg);border:1px solid var(--gray-200);">
+                        <div style="font-size:4rem;margin-bottom:16px;">📭</div>
+                        <div style="font-size:1.2rem;font-weight:800;color:var(--gray-800);">لا توجد حركات في خزينة المحاسب</div>
+                        <div style="font-size:0.9rem;color:var(--gray-500);margin-top:6px;">
+                            الرصيد الافتتاحي: <span style="font-weight:700;color:var(--secondary);">${formatNumber(openingBalance)} ج.م</span>
+                        </div>
+                        <div style="margin-top:20px;">
+                            <a href="entry-accountant.html" style="display:inline-block;padding:10px 32px;background:linear-gradient(135deg,var(--secondary),var(--secondary-dark));color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:0.9rem;box-shadow:0 4px 16px rgba(201,168,76,0.25);">
+                                <i class="fas fa-plus"></i> إضافة حركة
+                            </a>
+                        </div>
+                    </div>
+                `;
+                console.log('✅ تم عرض الرصيد الافتتاحي (لا توجد حركات)');
+                return;
+            }
+
+            // ===== حساب الإجماليات =====
             var totalIncomingAll = 0;
             var totalOutgoingAll = 0;
 
@@ -1369,6 +1389,7 @@
             document.getElementById('totalOutgoing').textContent = formatNumber(totalOutgoingAll) + ' ج.م';
             document.getElementById('transactionsCount').textContent = transactions.length + ' حركة';
 
+            // ===== ترتيب وتجميع الحركات =====
             var sortedRows = transactions.slice().sort(function(a, b) {
                 if (a.date < b.date) return -1;
                 if (a.date > b.date) return 1;
@@ -1467,7 +1488,7 @@
 
             var reversedDays = days.reverse();
 
-            // CARDS (Mobile)
+            // ===== CARDS (Mobile) =====
             var cardsHTML = '<div class="cards-container">';
 
             reversedDays.forEach(function(dayItems) {
@@ -1564,7 +1585,7 @@
 
             cardsHTML += '</div>';
 
-            // TABLE
+            // ===== TABLE =====
             var tableRows = '';
             var TOTAL_COLS = 9;
 
@@ -1676,7 +1697,8 @@
                 if (transactions && transactions.length > 0) {
                     displayTreasuryData(transactions);
                 } else {
-                    container.innerHTML = '<div class="error">❌ لا توجد حركات في خزينة المحاسب</div>';
+                    // عرض الرصيد الافتتاحي حتى لو لا توجد حركات
+                    displayTreasuryData([]);
                 }
             } catch (error) {
                 console.error('❌ خطأ في تحميل بيانات خزينة المحاسب:', error);
