@@ -347,16 +347,6 @@
             border-radius: 50px;
         }
 
-        .table-header .title .badge-local {
-            font-size: 0.5rem;
-            color: var(--warning);
-            font-weight: 700;
-            background: rgba(255, 193, 7, 0.1);
-            padding: 2px 10px;
-            border-radius: 50px;
-            border: 1px solid rgba(255, 193, 7, 0.15);
-        }
-
         .table-header .actions {
             display: flex;
             gap: 8px;
@@ -400,18 +390,6 @@
             color: var(--white);
         }
 
-        .table-header .actions .btn-tool.sync {
-            background: rgba(23, 162, 184, 0.06);
-            border-color: rgba(23, 162, 184, 0.12);
-            color: var(--info);
-        }
-
-        .table-header .actions .btn-tool.sync:hover {
-            background: rgba(23, 162, 184, 0.1);
-            border-color: var(--info);
-            color: var(--info);
-        }
-
         .table-wrapper {
             background: var(--white);
             border-radius: var(--radius-lg);
@@ -429,7 +407,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.7rem;
-            min-width: 800px;
+            min-width: 900px;
         }
 
         thead {
@@ -457,6 +435,9 @@
         thead th:nth-child(4) {
             text-align: right;
         }
+        thead th:last-child {
+            min-width: 120px;
+        }
 
         tbody td {
             padding: 10px 10px;
@@ -464,6 +445,7 @@
             color: var(--gray-700);
             font-size: 0.65rem;
             text-align: center;
+            vertical-align: middle;
         }
 
         tbody td:first-child {
@@ -478,16 +460,6 @@
 
         tbody tr:hover td {
             background: var(--gray-50);
-        }
-
-        tbody tr.local-row td {
-            background: rgba(255, 193, 7, 0.03);
-        }
-
-        tbody tr.local-row td:last-child::after {
-            content: ' 📱';
-            font-size: 0.5rem;
-            opacity: 0.5;
         }
 
         .badge-type {
@@ -525,24 +497,56 @@
             font-weight: 700;
         }
 
-        .status-local {
-            display: inline-block;
-            font-size: 0.45rem;
-            color: var(--warning);
-            background: rgba(255, 193, 7, 0.08);
-            padding: 1px 8px;
-            border-radius: 50px;
-            border: 1px solid rgba(255, 193, 7, 0.08);
+        /* ============================================================
+           ACTION BUTTONS
+           ============================================================ */
+        .action-btns {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+            flex-wrap: wrap;
         }
 
-        .status-cloud {
-            display: inline-block;
-            font-size: 0.45rem;
-            color: var(--success);
-            background: rgba(40, 167, 69, 0.08);
-            padding: 1px 8px;
-            border-radius: 50px;
-            border: 1px solid rgba(40, 167, 69, 0.08);
+        .action-btns .btn-action {
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--gray-200);
+            background: var(--white);
+            font-size: 0.6rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-family: var(--font);
+            font-weight: 600;
+        }
+
+        .action-btns .btn-action.edit {
+            color: var(--info);
+            border-color: rgba(23, 162, 184, 0.15);
+            background: rgba(23, 162, 184, 0.04);
+        }
+
+        .action-btns .btn-action.edit:hover {
+            background: rgba(23, 162, 184, 0.08);
+            border-color: var(--info);
+        }
+
+        .action-btns .btn-action.delete {
+            color: var(--danger);
+            border-color: rgba(220, 53, 69, 0.15);
+            background: rgba(220, 53, 69, 0.04);
+        }
+
+        .action-btns .btn-action.delete:hover {
+            background: rgba(220, 53, 69, 0.08);
+            border-color: var(--danger);
+        }
+
+        .action-btns .btn-action:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
         }
 
         /* ============================================================
@@ -560,10 +564,6 @@
             padding: 16px;
             border: 1px solid var(--gray-200);
             box-shadow: var(--shadow-sm);
-        }
-
-        .booking-card.local {
-            border-color: rgba(255, 193, 7, 0.2);
         }
 
         .booking-card .card-header {
@@ -613,13 +613,275 @@
         }
 
         /* ============================================================
+           MODAL
+           ============================================================ */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 99999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-box {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 32px;
+            box-shadow: var(--shadow-xl);
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                transform: scale(0.95) translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-box .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .modal-box .modal-header h3 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-box .modal-header h3 i {
+            color: var(--secondary);
+        }
+
+        .modal-box .modal-header .close-modal {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--gray-200);
+            background: var(--gray-50);
+            color: var(--gray-500);
+            cursor: pointer;
+            font-size: 1rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-box .modal-header .close-modal:hover {
+            background: var(--gray-200);
+            color: var(--gray-900);
+        }
+
+        .modal-box .form-group {
+            margin-bottom: 14px;
+        }
+
+        .modal-box .form-group label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--gray-700);
+            margin-bottom: 4px;
+        }
+
+        .modal-box .form-group label .required {
+            color: var(--danger);
+        }
+
+        .modal-box .form-group input,
+        .modal-box .form-group select,
+        .modal-box .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--gray-200);
+            font-size: 0.85rem;
+            font-family: var(--font);
+            transition: var(--transition);
+            background: var(--gray-50);
+            color: var(--gray-900);
+            outline: none;
+        }
+
+        .modal-box .form-group input:focus,
+        .modal-box .form-group select:focus,
+        .modal-box .form-group textarea:focus {
+            border-color: var(--secondary);
+            background: var(--white);
+            box-shadow: 0 0 0 4px rgba(201, 168, 76, 0.06);
+        }
+
+        .modal-box .form-group textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+
+        .modal-box .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .modal-box .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .modal-box .form-actions .btn-save {
+            padding: 10px 28px;
+            background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
+            color: var(--white);
+            border: none;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: var(--font);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-box .form-actions .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(201, 168, 76, 0.25);
+        }
+
+        .modal-box .form-actions .btn-save:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .modal-box .form-actions .btn-cancel {
+            padding: 10px 24px;
+            background: var(--gray-50);
+            color: var(--gray-600);
+            border: 1px solid var(--gray-200);
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: var(--font);
+        }
+
+        .modal-box .form-actions .btn-cancel:hover {
+            background: var(--gray-100);
+        }
+
+        /* ============================================================
+           CONFIRM MODAL
+           ============================================================ */
+        .confirm-modal .modal-box {
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .confirm-modal .modal-box .icon-warning {
+            font-size: 3rem;
+            color: var(--warning);
+            margin-bottom: 12px;
+        }
+
+        .confirm-modal .modal-box h3 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .confirm-modal .modal-box p {
+            color: var(--gray-500);
+            font-size: 0.85rem;
+            margin: 6px 0 16px;
+        }
+
+        .confirm-modal .modal-box .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .confirm-modal .modal-box .btn-group .btn-confirm {
+            padding: 10px 28px;
+            background: var(--danger);
+            color: var(--white);
+            border: none;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: var(--font);
+        }
+
+        .confirm-modal .modal-box .btn-group .btn-confirm:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .confirm-modal .modal-box .btn-group .btn-confirm:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .confirm-modal .modal-box .btn-group .btn-cancel {
+            padding: 10px 24px;
+            background: var(--gray-50);
+            color: var(--gray-600);
+            border: 1px solid var(--gray-200);
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: var(--font);
+        }
+
+        .confirm-modal .modal-box .btn-group .btn-cancel:hover {
+            background: var(--gray-100);
+        }
+
+        /* ============================================================
            TOAST
            ============================================================ */
         .toast-container {
             position: fixed;
             top: 80px;
             right: 24px;
-            z-index: 9999;
+            z-index: 999999;
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -921,9 +1183,23 @@
             .table-header .actions {
                 justify-content: flex-start;
             }
-            .table-header .actions .btn-tool {
-                font-size: 0.55rem;
-                padding: 4px 10px;
+            .modal-box {
+                padding: 20px;
+                margin: 10px;
+            }
+            .modal-box .form-row {
+                grid-template-columns: 1fr;
+            }
+            .modal-box .form-actions {
+                flex-direction: column;
+            }
+            .modal-box .form-actions .btn-save {
+                width: 100%;
+                justify-content: center;
+            }
+            .modal-box .form-actions .btn-cancel {
+                width: 100%;
+                justify-content: center;
             }
         }
 
@@ -950,6 +1226,9 @@
             .toast {
                 padding: 12px 16px;
                 font-size: 0.7rem;
+            }
+            .modal-box {
+                padding: 14px;
             }
         }
     </style>
@@ -1043,15 +1322,11 @@
                     <i class="fas fa-table"></i>
                     سجل حركات الخزينة
                     <span class="count" id="transactionsCount">0 حركة</span>
-                    <span class="badge-local" id="localBadge" style="display:none;">📱 محلي</span>
                 </div>
                 <div class="actions">
                     <a href="entry.html" class="btn-tool add">
                         <i class="fas fa-plus"></i> إضافة حركة
                     </a>
-                    <button class="btn-tool sync" onclick="syncLocalToSupabase()">
-                        <i class="fas fa-sync-alt"></i> مزامنة
-                    </button>
                     <button class="btn-tool" onclick="window.location.reload()">
                         <i class="fas fa-sync-alt"></i> تحديث
                     </button>
@@ -1062,6 +1337,99 @@
             </div>
         </div>
     </section>
+
+    <!-- ============================================================
+    EDIT MODAL
+    ============================================================ -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> تعديل الحركة</h3>
+                <button class="close-modal" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="editForm">
+                <input type="hidden" id="editId" value="" />
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>التاريخ <span class="required">*</span></label>
+                        <input type="date" id="editDate" required />
+                    </div>
+                    <div class="form-group">
+                        <label>رقم السند <span class="required">*</span></label>
+                        <input type="text" id="editNumber" required />
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>نوع الحركة <span class="required">*</span></label>
+                        <select id="editType" required>
+                            <option value="إيداع">💰 إيداع</option>
+                            <option value="سحب">🏦 سحب</option>
+                            <option value="تحويل">🔄 تحويل</option>
+                            <option value="مصاريف">🧾 مصاريف</option>
+                            <option value="إيرادات">📈 إيرادات</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>التبويب العام <span class="required">*</span></label>
+                        <input type="text" id="editGeneralTab" required />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>البيان <span class="required">*</span></label>
+                    <input type="text" id="editDescription" required maxlength="200" />
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>إيداع</label>
+                        <input type="number" id="editIncoming" placeholder="0.00" min="0" step="0.01" />
+                    </div>
+                    <div class="form-group">
+                        <label>سحب</label>
+                        <input type="number" id="editOutgoing" placeholder="0.00" min="0" step="0.01" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>التبويب الخاص <span class="required">*</span></label>
+                    <input type="text" id="editPrivateTab" required />
+                </div>
+
+                <div class="form-group">
+                    <label>ملاحظات</label>
+                    <textarea id="editNotes" maxlength="300"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-save" id="editSubmitBtn">
+                        <i class="fas fa-save"></i> حفظ التعديلات
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="closeEditModal()">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    CONFIRM DELETE MODAL
+    ============================================================ -->
+    <div class="modal-overlay confirm-modal" id="confirmModal">
+        <div class="modal-box">
+            <div class="icon-warning"><i class="fas fa-exclamation-triangle"></i></div>
+            <h3>تأكيد الحذف</h3>
+            <p>هل أنت متأكد من حذف هذه الحركة؟<br />لا يمكن التراجع عن هذا الإجراء.</p>
+            <div class="btn-group">
+                <button class="btn-confirm" id="confirmDeleteBtn" onclick="confirmDelete()">
+                    <i class="fas fa-trash-alt"></i> حذف
+                </button>
+                <button class="btn-cancel" onclick="closeConfirmModal()">إلغاء</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ============================================================
     FLOATING ADD BUTTON
@@ -1122,7 +1490,8 @@
         var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
         var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
         var TABLE_NAME = 'treasury';
-        var STORAGE_KEY = 'rollex_treasury_entries';
+
+        var deleteTargetId = null;
 
         // ============================================================
         // TOAST SYSTEM
@@ -1161,7 +1530,7 @@
                         if (toast.parentElement) toast.remove();
                     }, 400);
                 }
-            }, 5000);
+            }, 4000);
 
             toast.querySelector('.close').addEventListener('click', function() {
                 clearTimeout(timeout);
@@ -1173,21 +1542,9 @@
         }
 
         // ============================================================
-        // GET LOCAL ENTRIES
+        // FETCH DATA
         // ============================================================
-        function getLocalEntries() {
-            try {
-                var data = localStorage.getItem(STORAGE_KEY);
-                return data ? JSON.parse(data) : [];
-            } catch (e) {
-                return [];
-            }
-        }
-
-        // ============================================================
-        // FETCH FROM SUPABASE
-        // ============================================================
-        async function fetchFromSupabase() {
+        async function fetchData() {
             try {
                 var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME + '?select=*&order=date.desc', {
                     headers: {
@@ -1202,199 +1559,84 @@
 
                 return await response.json();
             } catch (error) {
-                console.error('❌ خطأ في جلب البيانات من Supabase:', error);
+                console.error('❌ خطأ في جلب البيانات:', error);
                 return [];
             }
         }
 
         // ============================================================
-        // SYNC LOCAL TO SUPABASE
+        // DELETE ENTRY
         // ============================================================
-        async function syncLocalToSupabase() {
-            var localEntries = getLocalEntries();
-
-            if (localEntries.length === 0) {
-                showToast('📋 معلومات', 'لا توجد بيانات محلية للمزامنة', 'warning');
-                return;
-            }
-
-            showToast('🔄 جاري المزامنة', 'جاري مزامنة ' + localEntries.length + ' حركة...', 'warning');
-
-            var synced = 0;
-            var failed = 0;
-
-            for (var i = 0; i < localEntries.length; i++) {
-                var entry = localEntries[i];
-
-                // تحقق إذا كانت موجودة بالفعل في Supabase
-                var exists = await checkIfExists(entry);
-
-                if (exists) {
-                    synced++;
-                    continue;
-                }
-
-                var payload = {
-                    date: entry.date,
-                    voucher_number: entry.number,
-                    transaction_type: entry.type,
-                    description: entry.description,
-                    incoming: entry.type === 'إيداع' ? entry.amount : 0,
-                    outgoing: (entry.type === 'سحب' || entry.type === 'تحويل' || entry.type === 'مصاريف') ? entry
-                        .amount : 0,
-                    notes: entry.notes || '',
-                    general_tab: entry.generalTab || '',
-                    private_tab: entry.privateTab || ''
-                };
-
-                try {
-                    var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME, {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'return=representation'
-                        },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (response.ok) {
-                        synced++;
-                    } else {
-                        failed++;
-                        console.error('❌ فشل مزامنة الحركة:', entry);
+        async function deleteEntry(id) {
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME + '?id=eq.' + id, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
                     }
-                } catch (error) {
-                    failed++;
-                    console.error('❌ خطأ في مزامنة الحركة:', error);
+                });
+
+                if (!response.ok) {
+                    var text = await response.text();
+                    throw new Error('HTTP ' + response.status + ': ' + text);
                 }
-            }
 
-            // حذف البيانات المحلية بعد المزامنة
-            if (failed === 0) {
-                localStorage.removeItem(STORAGE_KEY);
-                showToast('✅ تمت المزامنة', 'تم مزامنة ' + synced + ' حركة بنجاح', 'success');
-            } else {
-                showToast('⚠️ مزامنة جزئية', 'تم مزامنة ' + synced + ' حركة، فشل ' + failed + ' حركة', 'warning');
+                return true;
+            } catch (error) {
+                console.error('❌ خطأ في الحذف:', error);
+                return false;
             }
-
-            // إعادة تحميل البيانات
-            loadTreasuryData();
         }
 
         // ============================================================
-        // CHECK IF ENTRY EXISTS
+        // UPDATE ENTRY
         // ============================================================
-        async function checkIfExists(entry) {
-            try {
-                var response = await fetch(
-                    SUPABASE_URL + '/rest/v1/' + TABLE_NAME +
-                    '?voucher_number=eq.' + encodeURIComponent(entry.number) +
-                    '&date=eq.' + entry.date +
-                    '&select=id',
-                    {
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-                        }
-                    }
-                );
+        async function updateEntry(id, data) {
+            var payload = {
+                date: data.date,
+                voucher_number: data.voucher_number,
+                transaction_type: data.transaction_type,
+                description: data.description,
+                incoming: data.incoming || 0,
+                outgoing: data.outgoing || 0,
+                notes: data.notes || '',
+                general_tab: data.general_tab || '',
+                private_tab: data.private_tab || '',
+                updated_at: new Date().toISOString()
+            };
 
-                if (!response.ok) return false;
-                var data = await response.json();
-                return data && data.length > 0;
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME + '?id=eq.' + id, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    var text = await response.text();
+                    throw new Error('HTTP ' + response.status + ': ' + text);
+                }
+
+                return await response.json();
             } catch (error) {
-                return false;
+                console.error('❌ خطأ في التعديل:', error);
+                return null;
             }
         }
 
         // ============================================================
         // DISPLAY DATA
         // ============================================================
-        function displayTreasuryData(cloudData, localData) {
+        function displayData(data) {
             var container = document.getElementById('treasuryContainer');
 
-            // دمج البيانات
-            var allData = [];
-
-            // إضافة بيانات السحابة
-            cloudData.forEach(function(item) {
-                allData.push({
-                    id: item.id,
-                    date: item.date,
-                    voucher_number: item.voucher_number,
-                    transaction_type: item.transaction_type,
-                    description: item.description,
-                    incoming: parseFloat(item.incoming) || 0,
-                    outgoing: parseFloat(item.outgoing) || 0,
-                    notes: item.notes || '',
-                    general_tab: item.general_tab || '',
-                    private_tab: item.private_tab || '',
-                    source: 'cloud'
-                });
-            });
-
-            // إضافة البيانات المحلية (التي ليست في السحابة)
-            localData.forEach(function(item) {
-                // تحقق إذا كانت موجودة بالفعل في السحابة
-                var exists = allData.some(function(d) {
-                    return d.voucher_number === item.number && d.date === item.date;
-                });
-
-                if (!exists) {
-                    allData.push({
-                        id: null,
-                        date: item.date,
-                        voucher_number: item.number,
-                        transaction_type: item.type,
-                        description: item.description,
-                        incoming: item.type === 'إيداع' ? item.amount : 0,
-                        outgoing: (item.type === 'سحب' || item.type === 'تحويل' || item.type === 'مصاريف') ? item
-                            .amount : 0,
-                        notes: item.notes || '',
-                        general_tab: item.generalTab || '',
-                        private_tab: item.privateTab || '',
-                        source: 'local'
-                    });
-                }
-            });
-
-            // ترتيب البيانات (الأحدث أولاً)
-            allData.sort(function(a, b) {
-                if (a.date > b.date) return -1;
-                if (a.date < b.date) return 1;
-                return 0;
-            });
-
-            // تحديث الإحصائيات
-            var totalIn = 0;
-            var totalOut = 0;
-
-            allData.forEach(function(item) {
-                totalIn += item.incoming;
-                totalOut += item.outgoing;
-            });
-
-            var balance = totalIn - totalOut;
-
-            document.getElementById('totalBalance').textContent = balance.toLocaleString() + ' ج.م';
-            document.getElementById('totalIncoming').textContent = totalIn.toLocaleString() + ' ج.م';
-            document.getElementById('totalOutgoing').textContent = totalOut.toLocaleString() + ' ج.م';
-            document.getElementById('totalTransactions').textContent = allData.length;
-            document.getElementById('transactionsCount').textContent = allData.length + ' حركة';
-
-            // إظهار/إخفاء علامة البيانات المحلية
-            var localCount = allData.filter(function(item) { return item.source === 'local'; }).length;
-            var localBadge = document.getElementById('localBadge');
-            if (localCount > 0) {
-                localBadge.style.display = 'inline-block';
-                localBadge.textContent = '📱 ' + localCount + ' محلي';
-            } else {
-                localBadge.style.display = 'none';
-            }
-
-            if (allData.length === 0) {
+            if (!data || data.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
@@ -1402,36 +1644,60 @@
                         <p>قم بإضافة حركة جديدة باستخدام زر "إضافة حركة"</p>
                     </div>
                 `;
+                document.getElementById('totalTransactions').textContent = '0';
+                document.getElementById('transactionsCount').textContent = '0 حركة';
                 return;
             }
 
-            // ===== بناء الجدول =====
-            var tableRows = '';
+            // حساب الإحصائيات
+            var totalIn = 0;
+            var totalOut = 0;
 
-            allData.forEach(function(item) {
+            data.forEach(function(item) {
+                totalIn += parseFloat(item.incoming) || 0;
+                totalOut += parseFloat(item.outgoing) || 0;
+            });
+
+            var balance = totalIn - totalOut;
+
+            document.getElementById('totalBalance').textContent = balance.toLocaleString() + ' ج.م';
+            document.getElementById('totalIncoming').textContent = totalIn.toLocaleString() + ' ج.م';
+            document.getElementById('totalOutgoing').textContent = totalOut.toLocaleString() + ' ج.م';
+            document.getElementById('totalTransactions').textContent = data.length;
+            document.getElementById('transactionsCount').textContent = data.length + ' حركة';
+
+            // بناء الجدول
+            var rows = '';
+            data.forEach(function(item) {
                 var badgeClass = 'badge-type';
                 if (item.transaction_type === 'إيداع') badgeClass += ' deposit';
                 else if (item.transaction_type === 'سحب') badgeClass += ' withdraw';
                 else if (item.transaction_type === 'تحويل') badgeClass += ' transfer';
 
-                var rowClass = item.source === 'local' ? 'local-row' : '';
+                var incoming = parseFloat(item.incoming) || 0;
+                var outgoing = parseFloat(item.outgoing) || 0;
 
-                var sourceStatus = item.source === 'local' ?
-                    '<span class="status-local">📱 محلي</span>' :
-                    '<span class="status-cloud">☁️ سحابة</span>';
-
-                tableRows += `
-                    <tr class="${rowClass}">
+                rows += `
+                    <tr>
                         <td>${item.date || '-'}</td>
                         <td>${item.voucher_number || '-'}</td>
                         <td><span class="${badgeClass}">${item.transaction_type || '-'}</span></td>
                         <td style="text-align:right;">${item.description || '-'}</td>
-                        <td class="amount-in">${item.incoming > 0 ? item.incoming.toLocaleString() : '-'}</td>
-                        <td class="amount-out">${item.outgoing > 0 ? item.outgoing.toLocaleString() : '-'}</td>
+                        <td class="amount-in">${incoming > 0 ? incoming.toLocaleString() : '-'}</td>
+                        <td class="amount-out">${outgoing > 0 ? outgoing.toLocaleString() : '-'}</td>
                         <td style="font-size:0.55rem;color:var(--gray-500);">${item.notes || ''}</td>
                         <td style="font-weight:600;color:var(--gray-800);">${item.general_tab || '-'}</td>
                         <td style="font-weight:600;color:var(--gray-800);">${item.private_tab || '-'}</td>
-                        <td>${sourceStatus}</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="btn-action edit" onclick="openEditModal('${item.id}')">
+                                    <i class="fas fa-edit"></i> تعديل
+                                </button>
+                                <button class="btn-action delete" onclick="openConfirmModal('${item.id}')">
+                                    <i class="fas fa-trash-alt"></i> حذف
+                                </button>
+                            </div>
+                        </td>
                     </tr>
                 `;
             });
@@ -1451,36 +1717,33 @@
                                     <th>ملاحظات</th>
                                     <th>التبويب العام</th>
                                     <th>التبويب الخاص</th>
-                                    <th>المصدر</th>
+                                    <th>إجراءات</th>
                                 </tr>
                             </thead>
-                            <tbody>${tableRows}</tbody>
+                            <tbody>${rows}</tbody>
                         </table>
                     </div>
                 </div>
-                <div style="text-align:center;color:var(--gray-400);font-size:0.5rem;padding:6px 0;">
-                    📱 محلي · ☁️ سحابة
-                </div>
             `;
 
-            // ===== بناء البطاقات (للجوال) =====
+            // بطاقات للجوال
             var cardsHTML = '<div class="cards-container">';
-
-            allData.forEach(function(item) {
-                var cardClass = item.source === 'local' ? 'booking-card local' : 'booking-card';
+            data.forEach(function(item) {
+                var incoming = parseFloat(item.incoming) || 0;
+                var outgoing = parseFloat(item.outgoing) || 0;
 
                 var amountDisplay = '-';
                 var amountColor = 'var(--gray-800)';
-                if (item.incoming > 0) {
-                    amountDisplay = '+ ' + item.incoming.toLocaleString() + ' ج.م';
+                if (incoming > 0) {
+                    amountDisplay = '+ ' + incoming.toLocaleString() + ' ج.م';
                     amountColor = '#28a745';
-                } else if (item.outgoing > 0) {
-                    amountDisplay = '- ' + item.outgoing.toLocaleString() + ' ج.م';
+                } else if (outgoing > 0) {
+                    amountDisplay = '- ' + outgoing.toLocaleString() + ' ج.م';
                     amountColor = '#dc3545';
                 }
 
                 cardsHTML += `
-                    <div class="${cardClass}">
+                    <div class="booking-card">
                         <div class="card-header">
                             <span class="name">${item.description || '-'}</span>
                             <span class="number">#${item.voucher_number || '-'}</span>
@@ -1505,114 +1768,224 @@
                             <span class="card-label">التبويب الخاص</span>
                             <span class="card-value" style="font-weight:600;">${item.private_tab || '-'}</span>
                         </div>
-                        <div style="margin-top:6px;font-size:0.5rem;color:var(--gray-400);text-align:left;">
-                            ${item.source === 'local' ? '📱 محلي' : '☁️ سحابة'}
+                        <div style="margin-top:8px;display:flex;gap:6px;justify-content:flex-end;border-top:1px solid var(--gray-100);padding-top:8px;">
+                            <button class="btn-action edit" onclick="openEditModal('${item.id}')" style="padding:4px 12px;border-radius:var(--radius-sm);border:1px solid rgba(23,162,184,0.15);background:rgba(23,162,184,0.04);color:var(--info);font-size:0.6rem;cursor:pointer;">
+                                <i class="fas fa-edit"></i> تعديل
+                            </button>
+                            <button class="btn-action delete" onclick="openConfirmModal('${item.id}')" style="padding:4px 12px;border-radius:var(--radius-sm);border:1px solid rgba(220,53,69,0.15);background:rgba(220,53,69,0.04);color:var(--danger);font-size:0.6rem;cursor:pointer;">
+                                <i class="fas fa-trash-alt"></i> حذف
+                            </button>
                         </div>
                     </div>
                 `;
             });
-
             cardsHTML += '</div>';
 
             container.innerHTML = tableHTML + cardsHTML;
-            console.log('✅ تم عرض ' + allData.length + ' حركة');
         }
 
         // ============================================================
         // LOAD DATA
         // ============================================================
-        async function loadTreasuryData() {
+        async function loadData() {
             var container = document.getElementById('treasuryContainer');
-            container.innerHTML = '<div class="loading"><i class="fas fa-spinner"></i> جاري تحميل بيانات الخزينة...</div>';
+            container.innerHTML = '<div class="loading"><i class="fas fa-spinner"></i> جاري تحميل البيانات...</div>';
+
+            var data = await fetchData();
+            displayData(data);
+        }
+
+        // ============================================================
+        // EDIT MODAL
+        // ============================================================
+        var currentEditId = null;
+
+        async function openEditModal(id) {
+            currentEditId = id;
+            document.getElementById('editId').value = id;
 
             try {
-                // جلب البيانات من Supabase
-                var cloudData = await fetchFromSupabase();
-                console.log('☁️ بيانات من Supabase:', cloudData.length, 'حركة');
+                var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME + '?id=eq.' + id, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                    }
+                });
 
-                // جلب البيانات المحلية
-                var localData = getLocalEntries();
-                console.log('📱 بيانات محلية:', localData.length, 'حركة');
+                if (!response.ok) {
+                    showToast('❌ خطأ', 'فشل في جلب بيانات الحركة', 'error');
+                    return;
+                }
 
-                // عرض البيانات المدمجة
-                displayTreasuryData(cloudData, localData);
+                var data = await response.json();
+
+                if (!data || data.length === 0) {
+                    showToast('❌ خطأ', 'الحركة غير موجودة', 'error');
+                    return;
+                }
+
+                var item = data[0];
+
+                document.getElementById('editDate').value = item.date || '';
+                document.getElementById('editNumber').value = item.voucher_number || '';
+                document.getElementById('editType').value = item.transaction_type || 'إيداع';
+                document.getElementById('editDescription').value = item.description || '';
+                document.getElementById('editIncoming').value = item.incoming || '';
+                document.getElementById('editOutgoing').value = item.outgoing || '';
+                document.getElementById('editGeneralTab').value = item.general_tab || '';
+                document.getElementById('editPrivateTab').value = item.private_tab || '';
+                document.getElementById('editNotes').value = item.notes || '';
+
+                document.getElementById('editModal').classList.add('active');
+                document.body.style.overflow = 'hidden';
 
             } catch (error) {
-                console.error('❌ خطأ في تحميل البيانات:', error);
-                container.innerHTML =
-                    '<div class="error">❌ حدث خطأ في تحميل البيانات</div>';
+                console.error('❌ خطأ:', error);
+                showToast('❌ خطأ', 'حدث خطأ في جلب البيانات', 'error');
             }
         }
 
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+            document.body.style.overflow = '';
+            currentEditId = null;
+        }
+
         // ============================================================
-        // AUTO SYNC ON LOAD
+        // EDIT FORM SUBMIT
         // ============================================================
-        async function autoSync() {
-            var localData = getLocalEntries();
-            if (localData.length > 0) {
-                // محاولة المزامنة التلقائية
-                try {
-                    var synced = 0;
-                    for (var i = 0; i < localData.length; i++) {
-                        var entry = localData[i];
-                        var exists = await checkIfExists(entry);
-                        if (!exists) {
-                            var payload = {
-                                date: entry.date,
-                                voucher_number: entry.number,
-                                transaction_type: entry.type,
-                                description: entry.description,
-                                incoming: entry.type === 'إيداع' ? entry.amount : 0,
-                                outgoing: (entry.type === 'سحب' || entry.type === 'تحويل' || entry.type === 'مصاريف') ?
-                                    entry.amount : 0,
-                                notes: entry.notes || '',
-                                general_tab: entry.generalTab || '',
-                                private_tab: entry.privateTab || ''
-                            };
+        document.getElementById('editForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
 
-                            var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME, {
-                                method: 'POST',
-                                headers: {
-                                    'apikey': SUPABASE_ANON_KEY,
-                                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                                    'Content-Type': 'application/json',
-                                    'Prefer': 'return=representation'
-                                },
-                                body: JSON.stringify(payload)
-                            });
+            var id = document.getElementById('editId').value;
+            var date = document.getElementById('editDate').value;
+            var number = document.getElementById('editNumber').value.trim();
+            var type = document.getElementById('editType').value;
+            var description = document.getElementById('editDescription').value.trim();
+            var incoming = parseFloat(document.getElementById('editIncoming').value) || 0;
+            var outgoing = parseFloat(document.getElementById('editOutgoing').value) || 0;
+            var generalTab = document.getElementById('editGeneralTab').value.trim();
+            var privateTab = document.getElementById('editPrivateTab').value.trim();
+            var notes = document.getElementById('editNotes').value.trim();
 
-                            if (response.ok) synced++;
-                        }
-                    }
+            if (!date || !number || !description || !generalTab || !privateTab) {
+                showToast('⚠️ تحقق من البيانات', 'يرجى ملء جميع الحقول المطلوبة', 'error');
+                return;
+            }
 
-                    if (synced > 0) {
-                        localStorage.removeItem(STORAGE_KEY);
-                        showToast('🔄 مزامنة تلقائية', 'تم مزامنة ' + synced + ' حركة محلية', 'success');
-                        loadTreasuryData();
-                    }
-                } catch (error) {
-                    console.error('❌ خطأ في المزامنة التلقائية:', error);
+            if (incoming === 0 && outgoing === 0) {
+                showToast('⚠️ تحقق من البيانات', 'يرجى إدخال إيداع أو سحب', 'error');
+                return;
+            }
+
+            if (incoming > 0 && outgoing > 0) {
+                showToast('⚠️ تحقق من البيانات', 'لا يمكن إدخال إيداع وسحب معاً', 'error');
+                return;
+            }
+
+            var btn = document.getElementById('editSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+
+            var data = {
+                date: date,
+                voucher_number: number,
+                transaction_type: type,
+                description: description,
+                incoming: incoming,
+                outgoing: outgoing,
+                general_tab: generalTab,
+                private_tab: privateTab,
+                notes: notes
+            };
+
+            var result = await updateEntry(id, data);
+
+            if (result) {
+                showToast('✅ تم التعديل', 'تم تعديل الحركة بنجاح', 'success');
+                closeEditModal();
+                loadData();
+            } else {
+                showToast('❌ فشل التعديل', 'حدث خطأ في تعديل الحركة', 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> حفظ التعديلات';
+        });
+
+        // ============================================================
+        // CONFIRM DELETE MODAL
+        // ============================================================
+        function openConfirmModal(id) {
+            deleteTargetId = id;
+            document.getElementById('confirmModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.remove('active');
+            document.body.style.overflow = '';
+            deleteTargetId = null;
+        }
+
+        async function confirmDelete() {
+            if (!deleteTargetId) return;
+
+            var btn = document.getElementById('confirmDeleteBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحذف...';
+
+            var success = await deleteEntry(deleteTargetId);
+
+            if (success) {
+                showToast('✅ تم الحذف', 'تم حذف الحركة بنجاح', 'success');
+                closeConfirmModal();
+                loadData();
+            } else {
+                showToast('❌ فشل الحذف', 'حدث خطأ في حذف الحركة', 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash-alt"></i> حذف';
+        }
+
+        // ============================================================
+        // CLOSE MODALS ON ESCAPE
+        // ============================================================
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (document.getElementById('editModal').classList.contains('active')) {
+                    closeEditModal();
+                }
+                if (document.getElementById('confirmModal').classList.contains('active')) {
+                    closeConfirmModal();
                 }
             }
-        }
+        });
+
+        // ============================================================
+        // CLOSE MODALS ON OVERLAY CLICK
+        // ============================================================
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+
+        document.getElementById('confirmModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeConfirmModal();
+            }
+        });
 
         // ============================================================
         // INIT
         // ============================================================
         console.log('🏛️ الخزينة الرئيسية - شركة رولكس');
-        console.log('🔗 Supabase URL:', SUPABASE_URL);
-
-        // تحميل البيانات
-        loadTreasuryData();
-
-        // محاولة المزامنة التلقائية بعد 2 ثانية
-        setTimeout(autoSync, 2000);
+        loadData();
 
         // تحديث تلقائي كل 30 ثانية
-        setInterval(loadTreasuryData, 30000);
-
-        // جعل syncLocalToSupabase متاحة عالمياً
-        window.syncLocalToSupabase = syncLocalToSupabase;
+        setInterval(loadData, 30000);
     </script>
 
 </body>
