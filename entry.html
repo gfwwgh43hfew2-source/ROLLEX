@@ -1031,7 +1031,7 @@
     </section>
 
     <!-- ============================================================
-    JAVASCRIPT
+    JAVASCRIPT - النسخة المحسنة مع تشخيص الأخطاء
     ============================================================ -->
     <script>
         // ============================================================
@@ -1089,12 +1089,10 @@
 
             container.appendChild(toast);
 
-            // إظهار التوست مع تأخير بسيط
             requestAnimationFrame(function() {
                 toast.classList.add('show');
             });
 
-            // إخفاء تلقائي بعد 5 ثواني
             var timeout = setTimeout(function() {
                 if (toast.parentElement) {
                     toast.classList.remove('show');
@@ -1104,7 +1102,6 @@
                 }
             }, 5000);
 
-            // إغلاق يدوي
             toast.querySelector('.close').addEventListener('click', function() {
                 clearTimeout(timeout);
                 toast.classList.remove('show');
@@ -1137,7 +1134,85 @@
         }
 
         // ============================================================
-        // SAVE TO SUPABASE
+        // CREATE TABLE IF NOT EXISTS
+        // ============================================================
+        async function ensureTableExists() {
+            try {
+                // محاولة إدراج سجل اختباري للتحقق من وجود الجدول
+                var testPayload = {
+                    date: new Date().toISOString().split('T')[0],
+                    voucher_number: 'TEST_' + Date.now(),
+                    transaction_type: 'اختبار',
+                    description: 'سجل اختبار للتحقق من وجود الجدول',
+                    incoming: 0,
+                    outgoing: 0,
+                    notes: 'تم الإنشاء تلقائياً',
+                    general_tab: 'اختبار',
+                    private_tab: 'اختبار'
+                };
+
+                var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(testPayload)
+                });
+
+                if (response.ok) {
+                    console.log('✅ الجدول موجود ويعمل بشكل صحيح');
+                    return true;
+                }
+
+                var errorText = await response.text();
+                console.log('⚠️ الجدول قد لا يكون موجوداً، الخطأ:', errorText);
+
+                // محاولة إنشاء الجدول عبر SQL (في Supabase يتم ذلك يدوياً)
+                // لذلك نعرض رسالة للمستخدم
+                showToast('⚠️ تنبيه', 'الجدول غير موجود في قاعدة البيانات. يرجى إنشاؤه يدوياً في Supabase.', 'warning');
+
+                // عرض تعليمات الإنشاء
+                console.log('📋 لإنشاء الجدول، استخدم SQL التالي في Supabase SQL Editor:');
+                console.log(`
+                CREATE TABLE IF NOT EXISTS treasury (
+                    id BIGSERIAL PRIMARY KEY,
+                    date DATE NOT NULL,
+                    voucher_number TEXT NOT NULL,
+                    transaction_type TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    incoming NUMERIC DEFAULT 0,
+                    outgoing NUMERIC DEFAULT 0,
+                    notes TEXT,
+                    general_tab TEXT,
+                    private_tab TEXT,
+                    sub_treasury TEXT,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                );
+
+                -- تفعيل RLS
+                ALTER TABLE treasury ENABLE ROW LEVEL SECURITY;
+
+                -- سياسة للسماح بكل العمليات (للتطوير)
+                CREATE POLICY "Allow all" ON treasury
+                    FOR ALL
+                    USING (true)
+                    WITH CHECK (true);
+                `);
+
+                return false;
+
+            } catch (error) {
+                console.error('❌ خطأ في التحقق من الجدول:', error);
+                return false;
+            }
+        }
+
+        // ============================================================
+        // SAVE TO SUPABASE - مع تشخيص متقدم
         // ============================================================
         async function saveToSupabase(entry) {
             var payload = {
@@ -1154,6 +1229,8 @@
                 sub_treasury: entry.subTreasury || ''
             };
 
+            console.log('📤 محاولة الحفظ في Supabase:', JSON.stringify(payload, null, 2));
+
             var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME, {
                 method: 'POST',
                 headers: {
@@ -1165,12 +1242,41 @@
                 body: JSON.stringify(payload)
             });
 
+            // قراءة نص الخطأ بالكامل
+            var responseText = await response.text();
+
             if (!response.ok) {
-                var errorText = await response.text();
-                throw new Error('HTTP ' + response.status + ': ' + errorText);
+                console.error('❌ استجابة Supabase:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: responseText
+                });
+
+                // تحليل الخطأ
+                var errorMessage = 'HTTP ' + response.status;
+                try {
+                    var errorJson = JSON.parse(responseText);
+                    if (errorJson.message) {
+                        errorMessage += ': ' + errorJson.message;
+                    }
+                    if (errorJson.details) {
+                        errorMessage += ' (تفاصيل: ' + errorJson.details + ')';
+                    }
+                } catch (e) {
+                    if (responseText) {
+                        errorMessage += ': ' + responseText.substring(0, 200);
+                    }
+                }
+
+                throw new Error(errorMessage);
             }
 
-            return await response.json();
+            // محاولة تحليل الاستجابة
+            try {
+                return JSON.parse(responseText);
+            } catch (e) {
+                return responseText;
+            }
         }
 
         // ============================================================
@@ -1194,7 +1300,6 @@
             notesInput.value = '';
             editIndexInput.value = '-1';
 
-            // إعادة زر الحفظ إلى حالته الأصلية
             submitBtn.innerHTML =
                 '<span class="btn-icon"><i class="fas fa-save"></i></span>' +
                 '<span class="btn-text">حفظ الحركة</span>' +
@@ -1202,7 +1307,6 @@
             submitBtn.className = 'btn-submit';
             submitBtn.disabled = false;
 
-            // إعادة عدادات الأحرف
             descCounter.textContent = '0 / 200';
             notesCounter.textContent = '0 / 300';
             descCounter.className = 'char-counter';
@@ -1219,7 +1323,6 @@
             var generalTab = generalTabInput.value.trim();
             var privateTab = privateTabInput.value.trim();
 
-            // التحقق من الحقول المطلوبة
             if (!date) {
                 showToast('⚠️ تحقق من البيانات', 'يرجى تحديد التاريخ', 'error');
                 dateInput.focus();
@@ -1256,7 +1359,6 @@
                 return false;
             }
 
-            // التحقق من المبالغ
             if (incoming === 0 && outgoing === 0) {
                 showToast('⚠️ تحقق من البيانات', 'يرجى إدخال إيداع أو سحب', 'error');
                 incomingInput.focus();
@@ -1275,17 +1377,15 @@
         }
 
         // ============================================================
-        // SUBMIT HANDLER
+        // SUBMIT HANDLER - مع تشخيص متقدم
         // ============================================================
         form.addEventListener('submit', async function(event) {
             event.preventDefault();
 
-            // التحقق من صحة البيانات
             if (!validateForm()) {
                 return;
             }
 
-            // جمع البيانات
             var date = dateInput.value;
             var number = numberInput.value.trim();
             var type = typeSelect.value;
@@ -1310,36 +1410,61 @@
                 notes: notes
             };
 
-            // تعطيل الزر أثناء المعالجة
             submitBtn.disabled = true;
             submitBtn.className = 'btn-submit loading';
 
-            try {
-                // 1. محاولة الحفظ في Supabase
-                var result = await saveToSupabase(entry);
-                console.log('✅ تم الحفظ في Supabase:', result);
-
-                // 2. حفظ في LocalStorage كنسخة احتياطية
+            // 1. التحقق من وجود الجدول
+            var tableExists = await ensureTableExists();
+            if (!tableExists) {
+                // الجدول غير موجود، نعرض رسالة واضحة ونحفظ محلياً فقط
                 var entries = getEntries();
                 entries.push(entry);
                 saveEntries(entries);
 
-                showToast('✅ تم الحفظ', 'تم حفظ الحركة رقم ' + number + ' بنجاح', 'success');
+                showToast(
+                    '⚠️ حفظ محلي فقط',
+                    'الجدول غير موجود في قاعدة البيانات. تم حفظ البيانات محلياً. يرجى إنشاء الجدول في Supabase.',
+                    'warning'
+                );
+
+                submitBtn.disabled = false;
+                submitBtn.className = 'btn-submit';
+                clearForm();
+                return;
+            }
+
+            // 2. محاولة الحفظ في Supabase
+            try {
+                var result = await saveToSupabase(entry);
+                console.log('✅ تم الحفظ في Supabase:', result);
+
+                // 3. حفظ في LocalStorage كنسخة احتياطية
+                var entries = getEntries();
+                entries.push(entry);
+                saveEntries(entries);
+
+                showToast('✅ تم الحفظ', 'تم حفظ الحركة رقم ' + number + ' بنجاح في قاعدة البيانات', 'success');
                 clearForm();
 
             } catch (error) {
-                console.error('❌ خطأ في الحفظ:', error);
+                console.error('❌ خطأ في الحفظ في Supabase:', error);
 
                 // حفظ محلي في حالة فشل Supabase
                 var entries = getEntries();
                 entries.push(entry);
                 saveEntries(entries);
 
-                showToast('💾 حفظ محلي', 'تم الحفظ محلياً (سيتم المزامنة مع السحابة لاحقاً)', 'warning');
+                // عرض رسالة خطأ مفصلة
+                var errorMsg = error.message || 'خطأ غير معروف';
+                showToast(
+                    '❌ فشل الحفظ في السحابة',
+                    'تم الحفظ محلياً. السبب: ' + errorMsg.substring(0, 100),
+                    'error'
+                );
+
                 clearForm();
             }
 
-            // إعادة تمكين الزر
             submitBtn.disabled = false;
             submitBtn.className = 'btn-submit';
         });
@@ -1369,7 +1494,6 @@
             var maxLength = 200;
             descCounter.textContent = length + ' / ' + maxLength;
 
-            // تغيير اللون عند الاقتراب من الحد الأقصى
             descCounter.className = 'char-counter';
             if (length > maxLength * 0.9) {
                 descCounter.classList.add('warning');
@@ -1397,13 +1521,11 @@
         // KEYBOARD SHORTCUTS
         // ============================================================
         document.addEventListener('keydown', function(event) {
-            // Ctrl + Enter: حفظ
             if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
                 event.preventDefault();
                 form.dispatchEvent(new Event('submit'));
             }
 
-            // Escape: تفريغ النموذج
             if (event.key === 'Escape') {
                 var activeElement = document.activeElement;
                 if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'SELECT' ||
@@ -1458,11 +1580,9 @@
             var todayEntries = entries.filter(function(entry) {
                 return entry.date === today;
             });
-            var nextNumber = todayEntries.length + 1;
-            return nextNumber;
+            return todayEntries.length + 1;
         }
 
-        // عند التركيز على حقل رقم السند، إذا كان فارغاً نضع رقماً مقترحاً
         numberInput.addEventListener('focus', function() {
             if (this.value.trim() === '') {
                 this.value = generateVoucherNumber();
@@ -1480,6 +1600,34 @@
         })();
 
         // ============================================================
+        // TEST CONNECTION
+        // ============================================================
+        async function testConnection() {
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME + '?limit=1', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                    }
+                });
+
+                if (response.ok) {
+                    console.log('✅ الاتصال بـ Supabase ناجح');
+                    var data = await response.json();
+                    console.log('📊 عدد السجلات:', data.length);
+                    return true;
+                } else {
+                    var text = await response.text();
+                    console.error('❌ فشل الاتصال بـ Supabase:', response.status, text);
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ خطأ في الاتصال:', error);
+                return false;
+            }
+        }
+
+        // ============================================================
         // INIT
         // ============================================================
         console.log('🏛️ تطبيق إدخال الخزينة الرئيسية - شركة رولكس');
@@ -1487,10 +1635,19 @@
         console.log('📊 جدول البيانات:', TABLE_NAME);
         console.log('💾 مفتاح التخزين المحلي:', STORAGE_KEY);
 
+        // اختبار الاتصال
+        testConnection().then(function(connected) {
+            if (connected) {
+                showToast('✅ متصل', 'الاتصال بقاعدة البيانات ناجح', 'success');
+            } else {
+                showToast('⚠️ تنبيه', 'فشل الاتصال بقاعدة البيانات، سيتم الحفظ محلياً فقط', 'warning');
+            }
+        });
+
         // عرض رسالة ترحيب
         setTimeout(function() {
             showToast('👋 مرحباً', 'نموذج إدخال الخزينة الرئيسية جاهز للاستخدام', 'success');
-        }, 500);
+        }, 1000);
     </script>
 
 </body>
