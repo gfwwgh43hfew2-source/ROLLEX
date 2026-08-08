@@ -114,6 +114,15 @@
         .register-box .footer-text a:hover {
             text-decoration: underline;
         }
+        .register-box .admin-msg {
+            font-size: 0.7rem;
+            color: #8a96a8;
+            margin-top: 8px;
+            display: none;
+        }
+        .register-box .admin-msg.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -133,6 +142,7 @@
 
         <div class="error-msg" id="errorMsg">❌ حدث خطأ، حاول مرة أخرى</div>
         <div class="success-msg" id="successMsg">✅ تم إنشاء الحساب بنجاح! سيتم تحويلك...</div>
+        <div class="admin-msg" id="adminMsg">⚠️ تم إنشاء حساب المدير بالفعل. التسجيل غير متاح.</div>
 
         <div class="footer-text">
             لديك حساب بالفعل؟ <a href="login.html">تسجيل الدخول</a>
@@ -144,31 +154,44 @@
         var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
         var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
 
-        // ===== التحقق من وجود مدير في النظام =====
-        async function checkIfAdminExists() {
+        // ============================================================
+        // التحقق من وجود مدير
+        // ============================================================
+        async function checkAdminExists() {
             try {
                 var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?role=eq.admin&select=id', {
                     headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                        'apikey': SUPABASE_ANON_KEY
                     }
                 });
 
                 if (!response.ok) {
-                    console.warn('⚠️ فشل في التحقق من وجود مدير، نسمح بالتسجيل مؤقتاً');
+                    console.warn('⚠️ فشل في التحقق من وجود مدير');
                     return false;
                 }
 
                 var data = await response.json();
                 return data && data.length > 0;
             } catch (error) {
-                console.error('❌ خطأ في التحقق من وجود مدير:', error);
-                // في حالة الخطأ، نسمح بالتسجيل (للتجربة)
+                console.error('❌ خطأ في التحقق:', error);
                 return false;
             }
         }
 
-        // ===== إنشاء حساب جديد =====
+        // ============================================================
+        // منع فتح الصفحة لو فيه مدير
+        // ============================================================
+        async function redirectIfAdminExists() {
+            var adminExists = await checkAdminExists();
+            if (adminExists) {
+                document.getElementById('adminMsg').classList.add('show');
+                document.getElementById('registerBtn').disabled = true;
+            }
+        }
+
+        // ============================================================
+        // إنشاء حساب جديد
+        // ============================================================
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -187,8 +210,8 @@
             successMsg.classList.remove('show');
 
             try {
-                // 1. التحقق من وجود مدير في النظام
-                var adminExists = await checkIfAdminExists();
+                // 1. التحقق من وجود مدير
+                var adminExists = await checkAdminExists();
 
                 if (adminExists) {
                     errorMsg.textContent = '❌ عذراً، تم إنشاء حساب المدير بالفعل. لا يمكن التسجيل مرة أخرى.';
@@ -269,6 +292,13 @@
 
             btn.disabled = false;
             btn.innerHTML = '✅ إنشاء الحساب';
+        });
+
+        // ============================================================
+        // تنفيذ عند تحميل الصفحة
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            redirectIfAdminExists();
         });
     </script>
 
