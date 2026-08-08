@@ -647,6 +647,15 @@
                         ⚠️ تم إنشاء حساب المدير بالفعل. التسجيل غير متاح.
                     </div>
 
+                    <!-- ===== رسائل النجاح والخطأ ===== -->
+                    <div id="successMsg" style="display:none; color: #28a745; font-size: 0.85rem; margin-top: 12px; text-align: center;">
+                        ✅ تم إنشاء الحساب بنجاح! جاري التحويل...
+                    </div>
+                    
+                    <div id="errorMsg" style="display:none; color: #dc3545; font-size: 0.85rem; margin-top: 12px; text-align: center;">
+                        ❌ حدث خطأ، حاول مرة أخرى
+                    </div>
+
                     <div id="message" class="message"></div>
                 </form>
 
@@ -815,28 +824,41 @@
             var successMsg = document.getElementById('successMsg');
 
             if (!name || !email || !password || !companyName) {
-                showMessage('❌ الرجاء ملء جميع الحقول', 'error');
+                if (errorMsg) {
+                    errorMsg.textContent = '❌ الرجاء ملء جميع الحقول';
+                    errorMsg.style.display = 'block';
+                    setTimeout(function() {
+                        errorMsg.style.display = 'none';
+                    }, 5000);
+                }
                 return;
             }
 
             if (password.length < 6) {
-                showMessage('❌ كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
+                if (errorMsg) {
+                    errorMsg.textContent = '❌ كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+                    errorMsg.style.display = 'block';
+                    setTimeout(function() {
+                        errorMsg.style.display = 'none';
+                    }, 5000);
+                }
                 return;
             }
 
             btn.disabled = true;
             btn.innerHTML = '⏳ جاري إنشاء الحساب...';
-            errorMsg.classList.remove('show');
-            successMsg.classList.remove('show');
-            hideMessage();
+            if (errorMsg) errorMsg.style.display = 'none';
+            if (successMsg) successMsg.style.display = 'none';
 
             try {
                 // 1. التحقق من وجود مدير
                 var adminExists = await checkAdminExists();
 
                 if (adminExists) {
-                    errorMsg.textContent = '❌ عذراً، تم إنشاء حساب المدير بالفعل. لا يمكن التسجيل مرة أخرى.';
-                    errorMsg.classList.add('show');
+                    if (errorMsg) {
+                        errorMsg.textContent = '❌ عذراً، تم إنشاء حساب المدير بالفعل. لا يمكن التسجيل مرة أخرى.';
+                        errorMsg.style.display = 'block';
+                    }
                     btn.disabled = false;
                     btn.innerHTML = '✅ إنشاء الحساب';
                     return;
@@ -934,7 +956,9 @@
                     console.error('❌ فشل إضافة البروفايل:', profileData);
                 }
 
-                showMessage('✅ تم إنشاء الحساب بنجاح! جاري التحويل...', 'success');
+                if (successMsg) {
+                    successMsg.style.display = 'block';
+                }
 
                 setTimeout(function() {
                     window.location.href = 'index.html';
@@ -942,30 +966,18 @@
 
             } catch (error) {
                 console.error('❌ خطأ في التسجيل:', error);
-                showMessage('❌ ' + error.message, 'error');
+                if (errorMsg) {
+                    errorMsg.textContent = '❌ ' + error.message;
+                    errorMsg.style.display = 'block';
+                    setTimeout(function() {
+                        errorMsg.style.display = 'none';
+                    }, 5000);
+                }
             }
 
             btn.disabled = false;
             btn.innerHTML = '✅ إنشاء الحساب';
         });
-
-        /**
-         * ============================================================
-         * دوال مساعدة
-         * ============================================================
-         */
-        function showMessage(text, type) {
-            var icon = type === 'success'
-                ? '<svg class="checkmark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3 3 7-7"/></svg>'
-                : '<i class="fas fa-circle-exclamation"></i>';
-            messageDiv.innerHTML = icon + '<span>' + text + '</span>';
-            messageDiv.className = 'message ' + type;
-        }
-
-        function hideMessage() {
-            messageDiv.className = 'message';
-            messageDiv.innerHTML = '';
-        }
 
         /**
          * ============================================================
