@@ -738,108 +738,6 @@
 
         /**
          * ============================================================
-         * نموذج إنشاء حساب - Supabase
-         * ============================================================
-         */
-        var registerForm = document.getElementById('registerForm');
-        var messageDiv = document.getElementById('message');
-        var loadingSpinner = document.getElementById('loadingSpinner');
-
-        registerForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            var name = document.getElementById('name').value.trim();
-            var email = document.getElementById('email').value.trim();
-            var password = document.getElementById('password').value;
-            var companyName = document.getElementById('companyName').value.trim();
-
-            if (!name || !email || !password || !companyName) {
-                showMessage('الرجاء ملء جميع الحقول', 'error');
-                return;
-            }
-
-            if (password.length < 6) {
-                showMessage('كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
-                return;
-            }
-
-            registerBtn.style.display = 'none';
-            loadingSpinner.style.display = 'flex';
-            hideMessage();
-
-            try {
-                // 1. إنشاء المستخدم في Supabase Auth
-                var response = await fetch(SUPABASE_URL + '/auth/v1/signup', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password,
-                        data: {
-                            name: name,
-                            company_name: companyName,
-                            role: 'admin'
-                        }
-                    })
-                });
-
-                var data = await response.json();
-
-                if (!response.ok) {
-                    var errorMsg = data.msg || data.message || 'حدث خطأ في إنشاء الحساب';
-                    if (errorMsg.includes('already registered')) {
-                        errorMsg = 'هذا البريد الإلكتروني مسجل بالفعل. يرجى استخدام بريد آخر.';
-                    }
-                    throw new Error(errorMsg);
-                }
-
-                // 2. حفظ الجلسة
-                localStorage.setItem('rollex_session', JSON.stringify(data));
-
-                // 3. إضافة المدير في جدول profiles
-                var profilePayload = {
-                    id: data.user.id,
-                    name: name,
-                    role: 'admin',
-                    company_name: companyName,
-                    email: email
-                };
-
-                var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + data.access_token,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify(profilePayload)
-                });
-
-                if (!profileResponse.ok) {
-                    console.warn('⚠️ فشل إضافة البروفايل، لكن الحساب تم إنشاؤه');
-                }
-
-                showMessage('✅ تم إنشاء الحساب بنجاح! جاري التحويل...', 'success');
-
-                setTimeout(function() {
-                    window.location.href = 'index.html';
-                }, 900);
-
-            } catch (error) {
-                console.error('❌ خطأ:', error);
-                showMessage('❌ ' + error.message, 'error');
-            }
-
-            registerBtn.style.display = 'flex';
-            loadingSpinner.style.display = 'none';
-        });
-
-        /**
-         * ============================================================
          * التحقق من وجود مدير
          * ============================================================
          */
@@ -889,6 +787,178 @@
                 if (registerBtn) registerBtn.disabled = false;
             }
         }
+
+        /**
+         * ============================================================
+         * إنشاء حساب جديد - مع إضافة الشركة
+         * ============================================================
+         */
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            var name = document.getElementById('name').value.trim();
+            var email = document.getElementById('email').value.trim();
+            var password = document.getElementById('password').value;
+            var companyName = document.getElementById('companyName').value.trim();
+
+            var btn = document.getElementById('registerBtn');
+            var errorMsg = document.getElementById('errorMsg');
+            var successMsg = document.getElementById('successMsg');
+
+            if (!name || !email || !password || !companyName) {
+                showMessage('❌ الرجاء ملء جميع الحقول', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showMessage('❌ كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '⏳ جاري إنشاء الحساب...';
+            errorMsg.classList.remove('show');
+            successMsg.classList.remove('show');
+            hideMessage();
+
+            try {
+                // 1. التحقق من وجود مدير
+                var adminExists = await checkAdminExists();
+
+                if (adminExists) {
+                    errorMsg.textContent = '❌ عذراً، تم إنشاء حساب المدير بالفعل. لا يمكن التسجيل مرة أخرى.';
+                    errorMsg.classList.add('show');
+                    btn.disabled = false;
+                    btn.innerHTML = '✅ إنشاء الحساب';
+                    return;
+                }
+
+                // 2. إنشاء المستخدم في Supabase Auth
+                console.log('📝 جاري إنشاء المستخدم...');
+                var response = await fetch(SUPABASE_URL + '/auth/v1/signup', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        data: {
+                            name: name,
+                            company_name: companyName,
+                            role: 'admin'
+                        }
+                    })
+                });
+
+                var data = await response.json();
+                console.log('📡 استجابة التسجيل:', response.status);
+
+                if (!response.ok) {
+                    var errorMessage = data.msg || data.message || 'حدث خطأ في إنشاء الحساب';
+                    if (errorMessage.includes('already registered')) {
+                        errorMessage = 'هذا البريد الإلكتروني مسجل بالفعل. يرجى استخدام بريد آخر.';
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                console.log('✅ تم إنشاء المستخدم:', data.user.id);
+
+                // 3. حفظ الجلسة
+                localStorage.setItem('rollex_session', JSON.stringify(data));
+
+                // 4. إضافة الشركة في جدول companies
+                console.log('📝 جاري إضافة الشركة...');
+                var companyPayload = {
+                    name: companyName,
+                    subdomain: email.split('@')[1]
+                };
+
+                var companyResponse = await fetch(SUPABASE_URL + '/rest/v1/companies', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + data.access_token,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(companyPayload)
+                });
+
+                var companyData = await companyResponse.json();
+                console.log('📡 استجابة إضافة الشركة:', companyResponse.status);
+
+                if (!companyResponse.ok) {
+                    console.error('❌ فشل إضافة الشركة:', companyData);
+                    // نكمل حتى لو فشلت إضافة الشركة
+                }
+
+                var companyId = companyData && companyData.length > 0 ? companyData[0].id : null;
+                console.log('🏢 company_id:', companyId);
+
+                // 5. إضافة المدير في جدول profiles مع company_id
+                console.log('📝 جاري إضافة المدير في profiles...');
+                var profilePayload = {
+                    id: data.user.id,
+                    name: name,
+                    role: 'admin',
+                    company_name: companyName,
+                    email: email,
+                    company_id: companyId
+                };
+
+                var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + data.access_token,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(profilePayload)
+                });
+
+                var profileData = await profileResponse.text();
+                console.log('📡 استجابة إضافة profiles:', profileResponse.status);
+
+                if (!profileResponse.ok) {
+                    console.error('❌ فشل إضافة البروفايل:', profileData);
+                    // نجرب من غير Authorization
+                    console.log('🔄 محاولة الإضافة من غير Authorization...');
+                    
+                    var profileResponse2 = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=representation'
+                        },
+                        body: JSON.stringify(profilePayload)
+                    });
+
+                    var profileData2 = await profileResponse2.text();
+                    console.log('📡 استجابة إضافة profiles (محاولة 2):', profileResponse2.status);
+
+                    if (!profileResponse2.ok) {
+                        console.error('❌ فشل إضافة البروفايل (محاولة 2):', profileData2);
+                    }
+                }
+
+                showMessage('✅ تم إنشاء الحساب بنجاح! جاري التحويل...', 'success');
+
+                setTimeout(function() {
+                    window.location.href = 'index.html';
+                }, 1500);
+
+            } catch (error) {
+                console.error('❌ خطأ في التسجيل:', error);
+                showMessage('❌ ' + error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '✅ إنشاء الحساب';
+        });
 
         /**
          * ============================================================
