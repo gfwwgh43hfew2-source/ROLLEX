@@ -111,7 +111,7 @@
             100% { transform: translateY(-8vh) scale(1); opacity: 0; }
         }
 
-        /* ===== الحاوية الرئيسية - عرض أكبر ===== */
+        /* ===== الحاوية الرئيسية ===== */
         .register-wrapper {
             position: relative;
             z-index: 2;
@@ -126,7 +126,7 @@
             100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* ===== البطاقة الزجاجية - عرض أكبر ===== */
+        /* ===== البطاقة الزجاجية ===== */
         .register-container {
             background: rgba(255, 255, 255, 0.025);
             backdrop-filter: blur(36px);
@@ -840,6 +840,58 @@
 
         /**
          * ============================================================
+         * التحقق من وجود مدير
+         * ============================================================
+         */
+        async function checkAdminExists() {
+            try {
+                console.log('🔍 جاري التحقق من وجود مدير...');
+                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?role=eq.admin&select=id', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY
+                    }
+                });
+
+                console.log('📡 استجابة التحقق:', response.status);
+
+                if (!response.ok) {
+                    var errorText = await response.text();
+                    console.warn('⚠️ فشل في التحقق من وجود مدير:', errorText);
+                    return false;
+                }
+
+                var data = await response.json();
+                console.log('📊 بيانات المديرين:', data);
+                var count = data ? data.length : 0;
+                console.log('📊 عدد المديرين:', count);
+                return count > 0;
+            } catch (error) {
+                console.error('❌ خطأ في التحقق:', error);
+                return false;
+            }
+        }
+
+        /**
+         * ============================================================
+         * منع فتح الصفحة لو فيه مدير
+         * ============================================================
+         */
+        async function redirectIfAdminExists() {
+            var adminExists = await checkAdminExists();
+            var adminMsg = document.getElementById('adminMsg');
+            var registerBtn = document.getElementById('registerBtn');
+
+            if (adminExists) {
+                if (adminMsg) adminMsg.classList.add('show');
+                if (registerBtn) registerBtn.disabled = true;
+            } else {
+                if (adminMsg) adminMsg.classList.remove('show');
+                if (registerBtn) registerBtn.disabled = false;
+            }
+        }
+
+        /**
+         * ============================================================
          * دوال مساعدة
          * ============================================================
          */
@@ -864,6 +916,14 @@
         console.log('🏢 نظام إدارة الشركات - إنشاء حساب');
         console.log('🔗 Supabase URL:', SUPABASE_URL);
         console.log('✅ النظام جاهز للعمل');
+
+        // ============================================================
+        // تنفيذ عند تحميل الصفحة
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 تم تحميل صفحة التسجيل');
+            redirectIfAdminExists();
+        });
     </script>
 
 </body>
