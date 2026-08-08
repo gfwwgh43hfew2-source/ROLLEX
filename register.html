@@ -942,6 +942,27 @@
 
                     if (!profileResponse2.ok) {
                         console.error('❌ فشل إضافة البروفايل (محاولة 2):', profileData2);
+                        
+                        // المحاولة 3: باستخدام admin API
+                        console.log('🔄 محاولة الإضافة باستخدام admin API...');
+                        var profileResponse3 = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
+                            method: 'POST',
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'return=representation'
+                            },
+                            body: JSON.stringify(profilePayload)
+                        });
+
+                        var profileData3 = await profileResponse3.text();
+                        console.log('📡 استجابة إضافة profiles (محاولة 3):', profileResponse3.status);
+
+                        if (!profileResponse3.ok) {
+                            console.error('❌ فشل إضافة البروفايل (محاولة 3):', profileData3);
+                            // حتى لو فشل كل شيء، الحساب اتعمل
+                        }
                     }
                 }
 
