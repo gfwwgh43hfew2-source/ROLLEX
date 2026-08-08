@@ -564,7 +564,7 @@
         }
 
         // ============================================================
-        // RENDER EMPLOYEES - تم التعديل هنا
+        // RENDER EMPLOYEES
         // ============================================================
         async function renderEmployees(employees) {
             var tbody = document.getElementById('employeesBody');
@@ -581,7 +581,6 @@
                 return;
             }
 
-            // جلب المستخدم الحالي بطريقة صحيحة
             var { data: { user } } = await supabase.auth.getUser();
             var currentUserId = user?.id;
 
@@ -606,7 +605,7 @@
         }
 
         // ============================================================
-        // ADD EMPLOYEE
+        // ADD EMPLOYEE - تم التعديل هنا
         // ============================================================
         document.getElementById('addEmployeeForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -620,12 +619,16 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
 
             try {
-                // 1. تسجيل المستخدم في Auth
-                var { data: authData, error: authError } = await supabase.auth.admin.createUser({
+                // 1. تسجيل المستخدم في Auth باستخدام signUp
+                var { data: authData, error: authError } = await supabase.auth.signUp({
                     email: email,
                     password: password,
-                    email_confirm: true,
-                    user_metadata: { name: name, role: role }
+                    options: {
+                        data: {
+                            name: name,
+                            role: role
+                        }
+                    }
                 });
 
                 if (authError) {
@@ -639,9 +642,17 @@
                     return;
                 }
 
+                // 2. التحقق من إنشاء المستخدم
+                if (!authData.user) {
+                    showToast('❌ خطأ', 'فشل إنشاء المستخدم', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
+                    return;
+                }
+
                 var userId = authData.user.id;
 
-                // 2. إضافة في profiles
+                // 3. إضافة في profiles
                 var { error: profileError } = await supabase.from('profiles').insert({
                     id: userId,
                     name: name,
@@ -662,6 +673,7 @@
                 loadEmployees();
 
             } catch (error) {
+                console.error('❌ خطأ:', error);
                 showToast('❌ خطأ', error.message, 'error');
             }
 
@@ -676,16 +688,25 @@
             if (!confirm('هل أنت متأكد من حذف هذا الموظف؟')) return;
 
             try {
+                // 1. حذف من profiles
                 var { error: pError } = await supabase.from('profiles').delete().eq('id', userId);
-                if (pError) { showToast('❌ خطأ', 'فشل حذف الموظف', 'error'); return; }
+                if (pError) { 
+                    showToast('❌ خطأ', 'فشل حذف الموظف من البيانات', 'error'); 
+                    return; 
+                }
 
+                // 2. حذف من auth.users باستخدام admin API
                 var { error: aError } = await supabase.auth.admin.deleteUser(userId);
-                if (aError) { console.error(aError); }
+                if (aError) { 
+                    console.error('❌ فشل حذف من auth:', aError);
+                    // نكمل حتى لو فشل الحذف من auth
+                }
 
                 showToast('✅ تم الحذف', 'تم حذف الموظف بنجاح', 'success');
                 loadEmployees();
 
             } catch (error) {
+                console.error('❌ خطأ:', error);
                 showToast('❌ خطأ', error.message, 'error');
             }
         }
