@@ -642,12 +642,11 @@
                         <span class="label">جاري إنشاء الحساب...</span>
                     </div>
 
-                    <!-- ===== رسالة منع التسجيل ===== -->
+                    <!-- ===== رسائل الحالة ===== -->
                     <div id="adminMsg" style="display:none; color: #ff6b6b; font-size: 0.8rem; margin-top: 10px; text-align: center;">
-                        ⚠️ تم إنشاء حساب المدير بالفعل. التسجيل غير متاح.
+                        ⚠️ هذه الشركة أو البريد الإلكتروني مسجل بالفعل.
                     </div>
 
-                    <!-- ===== رسائل النجاح والخطأ ===== -->
                     <div id="successMsg" style="display:none; color: #28a745; font-size: 0.85rem; margin-top: 12px; text-align: center;">
                         ✅ تم إنشاء الحساب بنجاح! جاري التحويل...
                     </div>
@@ -752,57 +751,62 @@
 
         /**
          * ============================================================
-         * التحقق من وجود مدير
+         * التحقق من وجود شركة أو بريد مسجل
          * ============================================================
          */
-        async function checkAdminExists() {
+        async function checkCompanyOrEmailExists(companyName, email) {
             try {
-                console.log('🔍 جاري التحقق من وجود مدير...');
-                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?role=eq.admin&select=id', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY
-                    }
+                // 1. نتحقق من وجود شركة بنفس الاسم
+                var companyResponse = await fetch(SUPABASE_URL + '/rest/v1/companies?name=eq.' + encodeURIComponent(companyName), {
+                    headers: { 'apikey': SUPABASE_ANON_KEY }
                 });
-
-                console.log('📡 استجابة التحقق:', response.status);
-
-                if (!response.ok) {
-                    var errorText = await response.text();
-                    console.warn('⚠️ فشل في التحقق من وجود مدير:', errorText);
-                    return false;
+                var companyData = await companyResponse.json();
+                if (companyData && companyData.length > 0) {
+                    return { exists: true, reason: 'هذه الشركة مسجلة بالفعل' };
                 }
 
-                var data = await response.json();
-                console.log('📊 بيانات المديرين:', data);
-                var count = data ? data.length : 0;
-                console.log('📊 عدد المديرين:', count);
-                return count > 0;
+                // 2. نتحقق من وجود مستخدم بنفس البريد
+                var emailResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?email=eq.' + encodeURIComponent(email), {
+                    headers: { 'apikey': SUPABASE_ANON_KEY }
+                });
+                var emailData = await emailResponse.json();
+                if (emailData && emailData.length > 0) {
+                    return { exists: true, reason: 'هذا البريد الإلكتروني مسجل بالفعل' };
+                }
+
+                return { exists: false };
             } catch (error) {
                 console.error('❌ خطأ في التحقق:', error);
-                return false;
+                return { exists: false };
             }
         }
 
         /**
          * ============================================================
-         * منع فتح الصفحة لو فيه مدير
+         * منع فتح الصفحة لو فيه مدير (مؤقتاً للاختبار)
          * ============================================================
          */
         async function redirectIfAdminExists() {
             try {
-                var adminExists = await checkAdminExists();
+                // نفحص بس وجود أي شركة، مش بنمنع التسجيل
+                var response = await fetch(SUPABASE_URL + '/rest/v1/companies?limit=1', {
+                    headers: { 'apikey': SUPABASE_ANON_KEY }
+                });
+                var data = await response.json();
+                var hasCompanies = data && data.length > 0;
+                
+                // مجرد إشعار، مش منع
                 var adminMsg = document.getElementById('adminMsg');
-                var registerBtn = document.getElementById('registerBtn');
-
-                if (adminExists) {
-                    if (adminMsg) adminMsg.style.display = 'block';
-                    if (registerBtn) registerBtn.disabled = true;
-                } else {
-                    if (adminMsg) adminMsg.style.display = 'none';
-                    if (registerBtn) registerBtn.disabled = false;
+                if (hasCompanies && adminMsg) {
+                    adminMsg.textContent = 'ℹ️ يوجد شركات مسجلة بالفعل. يمكنك التسجيل كشركة جديدة.';
+                    adminMsg.style.display = 'block';
+                    adminMsg.style.color = '#ffc107';
+                    setTimeout(function() {
+                        adminMsg.style.display = 'none';
+                    }, 5000);
                 }
             } catch (error) {
-                console.error('❌ خطأ في redirectIfAdminExists:', error);
+                console.error('❌ خطأ:', error);
             }
         }
 
@@ -822,14 +826,13 @@
             var btn = document.getElementById('registerBtn');
             var errorMsg = document.getElementById('errorMsg');
             var successMsg = document.getElementById('successMsg');
+            var adminMsg = document.getElementById('adminMsg');
 
             if (!name || !email || !password || !companyName) {
                 if (errorMsg) {
                     errorMsg.textContent = '❌ الرجاء ملء جميع الحقول';
                     errorMsg.style.display = 'block';
-                    setTimeout(function() {
-                        errorMsg.style.display = 'none';
-                    }, 5000);
+                    setTimeout(function() { errorMsg.style.display = 'none'; }, 5000);
                 }
                 return;
             }
@@ -838,9 +841,7 @@
                 if (errorMsg) {
                     errorMsg.textContent = '❌ كلمة المرور يجب أن تكون 6 أحرف على الأقل';
                     errorMsg.style.display = 'block';
-                    setTimeout(function() {
-                        errorMsg.style.display = 'none';
-                    }, 5000);
+                    setTimeout(function() { errorMsg.style.display = 'none'; }, 5000);
                 }
                 return;
             }
@@ -849,15 +850,18 @@
             btn.innerHTML = '⏳ جاري إنشاء الحساب...';
             if (errorMsg) errorMsg.style.display = 'none';
             if (successMsg) successMsg.style.display = 'none';
+            if (adminMsg) adminMsg.style.display = 'none';
 
             try {
-                // 1. التحقق من وجود مدير
-                var adminExists = await checkAdminExists();
+                // 1. التحقق من وجود شركة أو بريد مسجل
+                var checkResult = await checkCompanyOrEmailExists(companyName, email);
 
-                if (adminExists) {
-                    if (errorMsg) {
-                        errorMsg.textContent = '❌ عذراً، تم إنشاء حساب المدير بالفعل. لا يمكن التسجيل مرة أخرى.';
-                        errorMsg.style.display = 'block';
+                if (checkResult.exists) {
+                    if (adminMsg) {
+                        adminMsg.textContent = '⚠️ ' + checkResult.reason;
+                        adminMsg.style.display = 'block';
+                        adminMsg.style.color = '#ff6b6b';
+                        setTimeout(function() { adminMsg.style.display = 'none'; }, 5000);
                     }
                     btn.disabled = false;
                     btn.innerHTML = '✅ إنشاء الحساب';
@@ -969,9 +973,7 @@
                 if (errorMsg) {
                     errorMsg.textContent = '❌ ' + error.message;
                     errorMsg.style.display = 'block';
-                    setTimeout(function() {
-                        errorMsg.style.display = 'none';
-                    }, 5000);
+                    setTimeout(function() { errorMsg.style.display = 'none'; }, 5000);
                 }
             }
 
@@ -984,9 +986,9 @@
          * رسالة الترحيب في Console
          * ============================================================
          */
-        console.log('🏢 نظام إدارة الشركات - إنشاء حساب');
+        console.log('🏢 نظام إدارة الشركات - إنشاء حساب (Multi-Tenant)');
         console.log('🔗 Supabase URL:', SUPABASE_URL);
-        console.log('✅ النظام جاهز للعمل');
+        console.log('✅ النظام جاهز للعمل - كل شركة تسجل بشكل مستقل');
 
         // ============================================================
         // تنفيذ عند تحميل الصفحة
