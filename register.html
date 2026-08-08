@@ -644,7 +644,6 @@
 
                     <!-- ===== رسائل الحالة ===== -->
                     <div id="adminMsg" style="display:none; color: #ff6b6b; font-size: 0.8rem; margin-top: 10px; text-align: center;">
-                        ⚠️ هذه الشركة أو البريد الإلكتروني مسجل بالفعل.
                     </div>
 
                     <div id="successMsg" style="display:none; color: #28a745; font-size: 0.85rem; margin-top: 12px; text-align: center;">
@@ -757,11 +756,17 @@
         async function checkCompanyOrEmailExists(companyName, email) {
             try {
                 // 1. نتحقق من وجود شركة بنفس الاسم
-                var companyResponse = await fetch(SUPABASE_URL + '/rest/v1/companies?name=eq.' + encodeURIComponent(companyName), {
+                var companyResponse = await fetch(SUPABASE_URL + '/rest/v1/companies?select=name', {
                     headers: { 'apikey': SUPABASE_ANON_KEY }
                 });
-                var companyData = await companyResponse.json();
-                if (companyData && companyData.length > 0) {
+                var allCompanies = await companyResponse.json();
+                
+                var companyExists = allCompanies.some(function(c) {
+                    if (!c || !c.name) return false;
+                    return c.name.trim().toLowerCase() === companyName.trim().toLowerCase();
+                });
+                
+                if (companyExists) {
                     return { exists: true, reason: 'هذه الشركة مسجلة بالفعل' };
                 }
 
@@ -783,36 +788,7 @@
 
         /**
          * ============================================================
-         * منع فتح الصفحة لو فيه مدير (مؤقتاً للاختبار)
-         * ============================================================
-         */
-        async function redirectIfAdminExists() {
-            try {
-                // نفحص بس وجود أي شركة، مش بنمنع التسجيل
-                var response = await fetch(SUPABASE_URL + '/rest/v1/companies?limit=1', {
-                    headers: { 'apikey': SUPABASE_ANON_KEY }
-                });
-                var data = await response.json();
-                var hasCompanies = data && data.length > 0;
-                
-                // مجرد إشعار، مش منع
-                var adminMsg = document.getElementById('adminMsg');
-                if (hasCompanies && adminMsg) {
-                    adminMsg.textContent = 'ℹ️ يوجد شركات مسجلة بالفعل. يمكنك التسجيل كشركة جديدة.';
-                    adminMsg.style.display = 'block';
-                    adminMsg.style.color = '#ffc107';
-                    setTimeout(function() {
-                        adminMsg.style.display = 'none';
-                    }, 5000);
-                }
-            } catch (error) {
-                console.error('❌ خطأ:', error);
-            }
-        }
-
-        /**
-         * ============================================================
-         * إنشاء حساب جديد - مع إضافة الشركة
+         * إنشاء حساب جديد - مع إضافة الشركة والبروفايل
          * ============================================================
          */
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
@@ -903,7 +879,7 @@
                 // 3. حفظ الجلسة
                 localStorage.setItem('rollex_session', JSON.stringify(data));
 
-                // 4. إضافة الشركة في جدول companies
+                // 4. إضافة الشركة في جدول companies (باستخدام apikey فقط)
                 console.log('📝 جاري إضافة الشركة...');
                 var companyPayload = {
                     name: companyName,
@@ -914,7 +890,6 @@
                     method: 'POST',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + data.access_token,
                         'Content-Type': 'application/json',
                         'Prefer': 'return=representation'
                     },
@@ -926,12 +901,14 @@
 
                 if (!companyResponse.ok) {
                     console.error('❌ فشل إضافة الشركة:', companyData);
+                    // نرمي خطأ عشان نوقف التنفيذ
+                    throw new Error('فشل إضافة الشركة: ' + (companyData.message || 'خطأ غير معروف'));
                 }
 
                 var companyId = companyData && companyData.length > 0 ? companyData[0].id : null;
                 console.log('🏢 company_id:', companyId);
 
-                // 5. إضافة المدير في جدول profiles مع company_id
+                // 5. إضافة المدير في جدول profiles مع company_id (باستخدام apikey فقط)
                 console.log('📝 جاري إضافة المدير في profiles...');
                 var profilePayload = {
                     id: data.user.id,
@@ -946,7 +923,6 @@
                     method: 'POST',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + data.access_token,
                         'Content-Type': 'application/json',
                         'Prefer': 'return=representation'
                     },
@@ -958,7 +934,10 @@
 
                 if (!profileResponse.ok) {
                     console.error('❌ فشل إضافة البروفايل:', profileData);
+                    throw new Error('فشل إضافة البروفايل: ' + (profileData || 'خطأ غير معروف'));
                 }
+
+                console.log('✅ تم كل شيء بنجاح!');
 
                 if (successMsg) {
                     successMsg.style.display = 'block';
@@ -995,7 +974,6 @@
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 تم تحميل صفحة التسجيل');
-            redirectIfAdminExists();
         });
     </script>
 
