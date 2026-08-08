@@ -159,19 +159,26 @@
         // ============================================================
         async function checkAdminExists() {
             try {
+                console.log('🔍 جاري التحقق من وجود مدير...');
                 var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?role=eq.admin&select=id', {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY
                     }
                 });
 
+                console.log('📡 استجابة التحقق:', response.status);
+
                 if (!response.ok) {
-                    console.warn('⚠️ فشل في التحقق من وجود مدير');
+                    var errorText = await response.text();
+                    console.warn('⚠️ فشل في التحقق من وجود مدير:', errorText);
                     return false;
                 }
 
                 var data = await response.json();
-                return data && data.length > 0;
+                console.log('📊 بيانات المديرين:', data);
+                var count = data ? data.length : 0;
+                console.log('📊 عدد المديرين:', count);
+                return count > 0;
             } catch (error) {
                 console.error('❌ خطأ في التحقق:', error);
                 return false;
@@ -186,6 +193,9 @@
             if (adminExists) {
                 document.getElementById('adminMsg').classList.add('show');
                 document.getElementById('registerBtn').disabled = true;
+            } else {
+                document.getElementById('adminMsg').classList.remove('show');
+                document.getElementById('registerBtn').disabled = false;
             }
         }
 
@@ -222,6 +232,7 @@
                 }
 
                 // 2. إنشاء المستخدم في Supabase Auth
+                console.log('📝 جاري إنشاء المستخدم...');
                 var response = await fetch(SUPABASE_URL + '/auth/v1/signup', {
                     method: 'POST',
                     headers: {
@@ -240,12 +251,16 @@
                 });
 
                 var data = await response.json();
+                console.log('📡 استجابة التسجيل:', response.status);
 
                 if (response.ok) {
+                    console.log('✅ تم إنشاء المستخدم:', data.user.id);
+
                     // 3. حفظ الجلسة
                     localStorage.setItem('rollex_session', JSON.stringify(data));
 
                     // 4. إضافة المدير في جدول profiles
+                    console.log('📝 جاري إضافة المدير في profiles...');
                     var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
                         method: 'POST',
                         headers: {
@@ -262,42 +277,51 @@
                         })
                     });
 
-                    if (!profileResponse.ok) {
-                        var profileError = await profileResponse.text();
-                        console.error('❌ فشل إضافة المدير في profiles:', profileError);
-                        // نحاول نكمل حتى لو فشل إضافة الـ profile
+                    var profileData = await profileResponse.text();
+                    console.log('📡 استجابة إضافة profiles:', profileResponse.status);
+                    console.log('📝 بيانات الاستجابة:', profileData);
+
+                    if (profileResponse.ok) {
+                        console.log('✅ تم إضافة المدير في profiles بنجاح');
+                        successMsg.classList.add('show');
+
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 2000);
+                    } else {
+                        console.error('❌ فشل إضافة المدير في profiles:', profileData);
+                        errorMsg.textContent = '❌ تم إنشاء الحساب لكن حدث خطأ في إضافة البيانات. حاول تسجيل الدخول.';
+                        errorMsg.classList.add('show');
+                        btn.disabled = false;
+                        btn.innerHTML = '✅ إنشاء الحساب';
                     }
-
-                    successMsg.classList.add('show');
-
-                    // التوجيه بعد 2 ثانية
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 2000);
 
                 } else {
                     var errorMessage = data.msg || data.message || 'حدث خطأ في إنشاء الحساب';
                     if (errorMessage.includes('already registered')) {
                         errorMessage = 'هذا البريد الإلكتروني مسجل بالفعل. يرجى استخدام بريد آخر.';
                     }
+                    console.error('❌ فشل إنشاء المستخدم:', errorMessage);
                     errorMsg.textContent = '❌ ' + errorMessage;
                     errorMsg.classList.add('show');
+                    btn.disabled = false;
+                    btn.innerHTML = '✅ إنشاء الحساب';
                 }
 
             } catch (error) {
                 console.error('❌ خطأ في التسجيل:', error);
                 errorMsg.textContent = '❌ حدث خطأ في الاتصال بقاعدة البيانات: ' + error.message;
                 errorMsg.classList.add('show');
+                btn.disabled = false;
+                btn.innerHTML = '✅ إنشاء الحساب';
             }
-
-            btn.disabled = false;
-            btn.innerHTML = '✅ إنشاء الحساب';
         });
 
         // ============================================================
         // تنفيذ عند تحميل الصفحة
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 تم تحميل صفحة التسجيل');
             redirectIfAdminExists();
         });
     </script>
