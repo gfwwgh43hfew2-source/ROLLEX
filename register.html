@@ -262,14 +262,16 @@
                     // 4. إضافة المدير في جدول profiles
                     console.log('📝 جاري إضافة المدير في profiles...');
                     
-                    // ** التعديل المهم: استخدام supabase client بدلاً من fetch مباشر **
+                    // ** التعديل المهم: إضافة email في الـ payload **
                     var profilePayload = {
                         id: data.user.id,
                         name: name,
                         role: 'admin',
-                        company_name: companyName
+                        company_name: companyName,
+                        email: email
                     };
 
+                    // المحاولة 1: باستخدام Authorization
                     var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
                         method: 'POST',
                         headers: {
@@ -282,7 +284,7 @@
                     });
 
                     var profileData = await profileResponse.text();
-                    console.log('📡 استجابة إضافة profiles:', profileResponse.status);
+                    console.log('📡 استجابة إضافة profiles (محاولة 1):', profileResponse.status);
                     console.log('📝 بيانات الاستجابة:', profileData);
 
                     if (profileResponse.ok) {
@@ -293,8 +295,9 @@
                             window.location.href = 'index.html';
                         }, 2000);
                     } else {
-                        console.error('❌ فشل إضافة المدير في profiles:', profileData);
-                        // ** نرجع نجرب بطريقة تانية: من غير Authorization **
+                        console.error('❌ فشل إضافة المدير في profiles (محاولة 1):', profileData);
+                        
+                        // المحاولة 2: من غير Authorization
                         console.log('🔄 محاولة الإضافة من غير Authorization...');
                         
                         var profileResponse2 = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
@@ -308,21 +311,48 @@
                         });
 
                         var profileData2 = await profileResponse2.text();
-                        console.log('📡 استجابة إضافة profiles (المحاولة 2):', profileResponse2.status);
-                        console.log('📝 بيانات الاستجابة (المحاولة 2):', profileData2);
+                        console.log('📡 استجابة إضافة profiles (محاولة 2):', profileResponse2.status);
+                        console.log('📝 بيانات الاستجابة (محاولة 2):', profileData2);
 
                         if (profileResponse2.ok) {
-                            console.log('✅ تم إضافة المدير في profiles بنجاح (المحاولة 2)');
+                            console.log('✅ تم إضافة المدير في profiles بنجاح (محاولة 2)');
                             successMsg.classList.add('show');
 
                             setTimeout(() => {
                                 window.location.href = 'index.html';
                             }, 2000);
                         } else {
-                            errorMsg.textContent = '❌ تم إنشاء الحساب لكن حدث خطأ في إضافة البيانات. حاول تسجيل الدخول.';
-                            errorMsg.classList.add('show');
-                            btn.disabled = false;
-                            btn.innerHTML = '✅ إنشاء الحساب';
+                            // المحاولة 3: باستخدام admin API
+                            console.log('🔄 محاولة الإضافة باستخدام admin API...');
+                            
+                            var profileResponse3 = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
+                                method: 'POST',
+                                headers: {
+                                    'apikey': SUPABASE_ANON_KEY,
+                                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                                    'Content-Type': 'application/json',
+                                    'Prefer': 'return=representation'
+                                },
+                                body: JSON.stringify(profilePayload)
+                            });
+
+                            var profileData3 = await profileResponse3.text();
+                            console.log('📡 استجابة إضافة profiles (محاولة 3):', profileResponse3.status);
+                            console.log('📝 بيانات الاستجابة (محاولة 3):', profileData3);
+
+                            if (profileResponse3.ok) {
+                                console.log('✅ تم إضافة المدير في profiles بنجاح (محاولة 3)');
+                                successMsg.classList.add('show');
+
+                                setTimeout(() => {
+                                    window.location.href = 'index.html';
+                                }, 2000);
+                            } else {
+                                errorMsg.textContent = '❌ تم إنشاء الحساب لكن حدث خطأ في إضافة البيانات. حاول تسجيل الدخول.';
+                                errorMsg.classList.add('show');
+                                btn.disabled = false;
+                                btn.innerHTML = '✅ إنشاء الحساب';
+                            }
                         }
                     }
 
