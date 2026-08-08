@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>إدارة الموظفين - رولكس</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #1a2332;
+            --secondary: #c9a84c;
+            --secondary-dark: #b8942a;
+            --success: #28a745;
+            --danger: #dc3545;
+            --gray-50: #f8f9fb;
+            --gray-100: #f0f2f5;
+            --gray-200: #e8ecf1;
+            --gray-500: #8a96a8;
+            --gray-600: #6b7a8d;
+            --gray-700: #4a5a6e;
+            --gray-800: #2c3a4f;
+            --gray-900: #1a2332;
+            --white: #ffffff;
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.06);
+            --radius-lg: 16px;
+            --radius-sm: 8px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --font: 'Cairo', sans-serif;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font);
+            background: var(--gray-100);
+            color: var(--gray-900);
+            direction: rtl;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+        /* Header */
+        header {
+            background: var(--white);
+            border-bottom: 1px solid var(--gray-200);
+            padding: 14px 0;
+            box-shadow: var(--shadow-md);
+        }
+        header .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: var(--white);
+        }
+        .logo-text h1 {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: var(--gray-900);
+        }
+        .logo-text span {
+            font-size: 0.55rem;
+            color: var(--gray-500);
+            display: block;
+        }
+        nav a {
+            color: var(--gray-500);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+        }
+        nav a:hover, nav a.active {
+            background: rgba(201, 168, 76, 0.08);
+            color: var(--secondary);
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--gray-100);
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .user-badge .role {
+            background: var(--secondary);
+            color: var(--white);
+            padding: 2px 10px;
+            border-radius: 50px;
+            font-size: 0.6rem;
+        }
+
+        /* Page Title */
+        .page-title {
+            padding: 30px 0 20px;
+        }
+        .page-title h1 {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .page-title h1 i { color: var(--secondary); }
+        .page-title p { color: var(--gray-500); font-size: 0.9rem; margin-top: 4px; }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px;
+            border: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .stat-card .icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        .stat-card .icon.gold { background: rgba(201, 168, 76, 0.08); color: var(--secondary); }
+        .stat-card .icon.green { background: rgba(40, 167, 69, 0.08); color: var(--success); }
+        .stat-card .icon.blue { background: rgba(23, 162, 184, 0.08); color: #17a2b8; }
+        .stat-card .info .label { font-size: 0.6rem; color: var(--gray-500); font-weight: 600; text-transform: uppercase; }
+        .stat-card .info .value { font-size: 1.3rem; font-weight: 800; color: var(--gray-900); }
+
+        /* Form */
+        .form-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            border: 1px solid var(--gray-200);
+            margin-bottom: 24px;
+        }
+        .form-card .form-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-card .form-title i { color: var(--secondary); }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .form-group label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--gray-700);
+        }
+        .form-group input, .form-group select {
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--gray-200);
+            font-size: 0.85rem;
+            font-family: var(--font);
+            background: var(--gray-50);
+            outline: none;
+            transition: var(--transition);
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--secondary);
+            background: var(--white);
+        }
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: var(--font);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
+            color: var(--white);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(201, 168, 76, 0.25); }
+        .btn-danger { background: rgba(220, 53, 69, 0.08); color: var(--danger); border: 1px solid rgba(220, 53, 69, 0.1); }
+        .btn-danger:hover { background: rgba(220, 53, 69, 0.12); }
+        .btn-sm { padding: 4px 12px; font-size: 0.65rem; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* Table */
+        .table-wrapper {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+        }
+        .table-scroll { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            min-width: 600px;
+        }
+        thead {
+            background: var(--gray-50);
+            border-bottom: 2px solid var(--gray-200);
+        }
+        thead th {
+            padding: 12px 14px;
+            text-align: right;
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--gray-500);
+            text-transform: uppercase;
+        }
+        tbody td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--gray-100);
+            color: var(--gray-700);
+        }
+        tbody tr:hover td { background: var(--gray-50); }
+        .badge-role {
+            padding: 2px 12px;
+            border-radius: 50px;
+            font-size: 0.6rem;
+            font-weight: 600;
+        }
+        .badge-role.admin { background: rgba(201, 168, 76, 0.08); color: var(--secondary); }
+        .badge-role.accountant { background: rgba(23, 162, 184, 0.08); color: #17a2b8; }
+        .badge-role.driver { background: rgba(40, 167, 69, 0.08); color: var(--success); }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray-500);
+        }
+        .empty-state i { font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 8px; }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 380px;
+            width: 90%;
+            pointer-events: none;
+        }
+        .toast {
+            background: var(--white);
+            padding: 14px 18px;
+            border-radius: var(--radius-sm);
+            border-right: 4px solid var(--secondary);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateX(20px);
+            opacity: 0;
+            transition: 0.4s ease;
+            pointer-events: auto;
+        }
+        .toast.show { transform: translateX(0); opacity: 1; }
+        .toast.success { border-right-color: var(--success); }
+        .toast.error { border-right-color: var(--danger); }
+        .toast .icon { font-size: 1rem; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .toast .icon.success { background: rgba(40,167,69,0.08); color: var(--success); }
+        .toast .icon.error { background: rgba(220,53,69,0.08); color: var(--danger); }
+        .toast .content .title { font-size: 0.8rem; font-weight: 700; }
+        .toast .content .message { font-size: 0.65rem; color: var(--gray-500); }
+        .toast .close { background: none; border: none; color: var(--gray-400); cursor: pointer; font-size: 0.8rem; margin-right: auto; padding: 4px; }
+
+        @media (max-width: 768px) {
+            .form-row { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .container { padding: 0 12px; }
+            nav a:not(.active) { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <div class="logo">
+                <div class="logo-icon">👥</div>
+                <div class="logo-text">
+                    <h1>إدارة الموظفين</h1>
+                    <span>شركة رولكس</span>
+                </div>
+            </div>
+            <nav>
+                <a href="index.html">الرئيسية</a>
+                <a href="treasury.html">الخزينة</a>
+                <a href="#" class="active">الموظفين</a>
+                <a href="#">التقارير</a>
+            </nav>
+            <div class="user-badge" id="userBadge">
+                <i class="fas fa-user"></i>
+                <span id="userName">مرحباً</span>
+                <span class="role" id="userRole">مدير</span>
+                <button onclick="logout()" style="background:none;border:none;cursor:pointer;color:var(--gray-500);">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <section class="page-title">
+        <div class="container">
+            <h1><i class="fas fa-users-cog"></i> إدارة الموظفين</h1>
+            <p>إضافة وتعديل وحذف الموظفين في النظام</p>
+        </div>
+    </section>
+
+    <section>
+        <div class="container">
+
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="icon gold"><i class="fas fa-users"></i></div>
+                    <div class="info">
+                        <div class="label">إجمالي الموظفين</div>
+                        <div class="value" id="totalEmployees">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon green"><i class="fas fa-user-tie"></i></div>
+                    <div class="info">
+                        <div class="label">المديرين</div>
+                        <div class="value" id="totalAdmins">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon blue"><i class="fas fa-user"></i></div>
+                    <div class="info">
+                        <div class="label">الموظفين العاديين</div>
+                        <div class="value" id="totalEmployeesCount">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-card">
+                <div class="form-title"><i class="fas fa-user-plus"></i> إضافة موظف جديد</div>
+                <form id="addEmployeeForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>الاسم الكامل</label>
+                            <input type="text" id="empName" placeholder="مثال: محمد السيد" required />
+                        </div>
+                        <div class="form-group">
+                            <label>البريد الإلكتروني</label>
+                            <input type="email" id="empEmail" placeholder="example@company.com" required />
+                        </div>
+                        <div class="form-group">
+                            <label>كلمة السر</label>
+                            <input type="password" id="empPassword" placeholder="••••••••" required minlength="6" />
+                        </div>
+                        <div class="form-group">
+                            <label>الدور</label>
+                            <select id="empRole">
+                                <option value="accountant">محاسب</option>
+                                <option value="driver">سائق</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="justify-content:end;">
+                            <button type="submit" class="btn btn-primary" id="addBtn"><i class="fas fa-plus"></i> إضافة</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="table-wrapper">
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>الاسم</th>
+                                <th>البريد الإلكتروني</th>
+                                <th>الدور</th>
+                                <th>تاريخ الإنشاء</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeesBody">
+                            <tr><td colspan="5"><div class="empty-state"><i class="fas fa-users"></i> لا يوجد موظفين</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <script>
+        // ============================================================
+        // CONFIGURATION
+        // ============================================================
+        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
+        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
+        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ============================================================
+        // TOAST
+        // ============================================================
+        function showToast(title, message, type) {
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + (type || '');
+            var iconMap = { success: { icon: 'fa-check-circle', cls: 'success' }, error: { icon: 'fa-times-circle', cls: 'error' } };
+            var t = iconMap[type] || iconMap['error'];
+            toast.innerHTML = `
+                <span class="icon ${t.cls}"><i class="fas ${t.icon}"></i></span>
+                <div class="content"><div class="title">${title}</div><div class="message">${message}</div></div>
+                <button class="close"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('show'));
+            var timeout = setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); }, 4000);
+            toast.querySelector('.close').addEventListener('click', () => { clearTimeout(timeout); toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); });
+        }
+
+        // ============================================================
+        // CHECK SESSION
+        // ============================================================
+        async function checkSession() {
+            var { data: { session }, error } = await supabase.auth.getSession();
+            if (error || !session) { window.location.href = 'login.html'; return null; }
+            return session;
+        }
+
+        // ============================================================
+        // GET CURRENT USER PROFILE
+        // ============================================================
+        async function getCurrentUserProfile() {
+            var { data: { user }, error } = await supabase.auth.getUser();
+            if (error || !user) return null;
+            var { data, error: pError } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            if (pError) return null;
+            return { ...user, ...data };
+        }
+
+        // ============================================================
+        // CHECK ADMIN
+        // ============================================================
+        async function checkAdmin() {
+            var profile = await getCurrentUserProfile();
+            if (!profile || profile.role !== 'admin') {
+                showToast('❌ غير مسموح', 'هذه الصفحة مخصصة للمدير فقط', 'error');
+                setTimeout(() => window.location.href = 'index.html', 2000);
+                return false;
+            }
+            document.getElementById('userName').textContent = profile.name || 'مرحباً';
+            document.getElementById('userRole').textContent = profile.role || 'موظف';
+            return true;
+        }
+
+        // ============================================================
+        // FETCH EMPLOYEES
+        // ============================================================
+        async function fetchEmployees() {
+            var { data, error } = await supabase.from('profiles').select('*');
+            if (error) { console.error('❌ خطأ:', error); return []; }
+            return data || [];
+        }
+
+        // ============================================================
+        // RENDER EMPLOYEES
+        // ============================================================
+        function renderEmployees(employees) {
+            var tbody = document.getElementById('employeesBody');
+            var total = employees.length;
+            var admins = employees.filter(e => e.role === 'admin').length;
+            var normal = total - admins;
+
+            document.getElementById('totalEmployees').textContent = total;
+            document.getElementById('totalAdmins').textContent = admins;
+            document.getElementById('totalEmployeesCount').textContent = normal;
+
+            if (total === 0) {
+                tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><i class="fas fa-users"></i> لا يوجد موظفين</div></td></tr>`;
+                return;
+            }
+
+            var rows = '';
+            employees.forEach(emp => {
+                var roleClass = emp.role === 'admin' ? 'admin' : (emp.role === 'accountant' ? 'accountant' : 'driver');
+                var roleName = emp.role === 'admin' ? 'مدير' : (emp.role === 'accountant' ? 'محاسب' : 'سائق');
+                // منع حذف المدير نفسه
+                var isCurrent = emp.id === supabase.auth.user()?.id;
+                rows += `
+                    <tr>
+                        <td><strong>${emp.name || 'غير معروف'}</strong></td>
+                        <td>${emp.email || '-'}</td>
+                        <td><span class="badge-role ${roleClass}">${roleName}</span></td>
+                        <td>${emp.created_at ? new Date(emp.created_at).toLocaleDateString('ar-EG') : '-'}</td>
+                        <td>
+                            ${!isCurrent ? `<button class="btn btn-danger btn-sm" onclick="deleteEmployee('${emp.id}')"><i class="fas fa-trash-alt"></i> حذف</button>` : '<span style="color:var(--gray-500);font-size:0.6rem;">أنت</span>'}
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = rows;
+        }
+
+        // ============================================================
+        // ADD EMPLOYEE
+        // ============================================================
+        document.getElementById('addEmployeeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            var name = document.getElementById('empName').value.trim();
+            var email = document.getElementById('empEmail').value.trim();
+            var password = document.getElementById('empPassword').value;
+            var role = document.getElementById('empRole').value;
+
+            var btn = document.getElementById('addBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+
+            try {
+                // 1. تسجيل المستخدم في Auth
+                var { data: authData, error: authError } = await supabase.auth.admin.createUser({
+                    email: email,
+                    password: password,
+                    email_confirm: true,
+                    user_metadata: { name: name, role: role }
+                });
+
+                if (authError) {
+                    if (authError.message.includes('already registered')) {
+                        showToast('❌ خطأ', 'هذا البريد مسجل بالفعل', 'error');
+                    } else {
+                        showToast('❌ خطأ', authError.message, 'error');
+                    }
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
+                    return;
+                }
+
+                var userId = authData.user.id;
+
+                // 2. إضافة في profiles
+                var { error: profileError } = await supabase.from('profiles').insert({
+                    id: userId,
+                    name: name,
+                    role: role,
+                    email: email
+                });
+
+                if (profileError) {
+                    showToast('❌ خطأ', 'تم إنشاء المستخدم لكن فشل إضافة البيانات', 'error');
+                    console.error(profileError);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
+                    return;
+                }
+
+                showToast('✅ تم الإضافة', 'تم إضافة الموظف ' + name + ' بنجاح', 'success');
+                document.getElementById('addEmployeeForm').reset();
+                loadEmployees();
+
+            } catch (error) {
+                showToast('❌ خطأ', error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
+        });
+
+        // ============================================================
+        // DELETE EMPLOYEE
+        // ============================================================
+        async function deleteEmployee(userId) {
+            if (!confirm('هل أنت متأكد من حذف هذا الموظف؟')) return;
+
+            try {
+                // حذف من profiles
+                var { error: pError } = await supabase.from('profiles').delete().eq('id', userId);
+                if (pError) { showToast('❌ خطأ', 'فشل حذف الموظف', 'error'); return; }
+
+                // حذف من auth (يحتاج admin rights)
+                var { error: aError } = await supabase.auth.admin.deleteUser(userId);
+                if (aError) { console.error(aError); }
+
+                showToast('✅ تم الحذف', 'تم حذف الموظف بنجاح', 'success');
+                loadEmployees();
+
+            } catch (error) {
+                showToast('❌ خطأ', error.message, 'error');
+            }
+        }
+
+        // ============================================================
+        // LOAD EMPLOYEES
+        // ============================================================
+        async function loadEmployees() {
+            var employees = await fetchEmployees();
+            renderEmployees(employees);
+        }
+
+        // ============================================================
+        // LOGOUT
+        // ============================================================
+        async function logout() {
+            await supabase.auth.signOut();
+            localStorage.removeItem('rollex_session');
+            window.location.href = 'login.html';
+        }
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        (async function init() {
+            var session = await checkSession();
+            if (!session) return;
+            var isAdmin = await checkAdmin();
+            if (!isAdmin) return;
+            await loadEmployees();
+        })();
+    </script>
+
+</body>
+</html>
