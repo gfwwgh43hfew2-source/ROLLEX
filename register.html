@@ -144,6 +144,30 @@
         var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
         var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
 
+        // ===== التحقق من وجود مدير في النظام =====
+        async function checkIfAdminExists() {
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?role=eq.admin&select=id', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                    }
+                });
+
+                if (!response.ok) {
+                    console.warn('⚠️ فشل في التحقق من وجود مدير، نسمح بالتسجيل مؤقتاً');
+                    return false;
+                }
+
+                var data = await response.json();
+                return data && data.length > 0;
+            } catch (error) {
+                console.error('❌ خطأ في التحقق من وجود مدير:', error);
+                // في حالة الخطأ، نسمح بالتسجيل (للتجربة)
+                return false;
+            }
+        }
+
         // ===== إنشاء حساب جديد =====
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -163,7 +187,18 @@
             successMsg.classList.remove('show');
 
             try {
-                // 1. إنشاء المستخدم في Supabase Auth
+                // 1. التحقق من وجود مدير في النظام
+                var adminExists = await checkIfAdminExists();
+
+                if (adminExists) {
+                    errorMsg.textContent = '❌ عذراً، تم إنشاء حساب المدير بالفعل. لا يمكن التسجيل مرة أخرى.';
+                    errorMsg.classList.add('show');
+                    btn.disabled = false;
+                    btn.innerHTML = '✅ إنشاء الحساب';
+                    return;
+                }
+
+                // 2. إنشاء المستخدم في Supabase Auth
                 var response = await fetch(SUPABASE_URL + '/auth/v1/signup', {
                     method: 'POST',
                     headers: {
@@ -184,16 +219,17 @@
                 var data = await response.json();
 
                 if (response.ok) {
-                    // 2. حفظ الجلسة
+                    // 3. حفظ الجلسة
                     localStorage.setItem('rollex_session', JSON.stringify(data));
 
-                    // 3. إضافة المدير في جدول profiles
-                    await fetch(SUPABASE_URL + '/rest/v1/profiles', {
+                    // 4. إضافة المدير في جدول profiles
+                    var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
                         method: 'POST',
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
                             'Authorization': 'Bearer ' + data.access_token,
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=representation'
                         },
                         body: JSON.stringify({
                             id: data.user.id,
@@ -203,22 +239,32 @@
                         })
                     });
 
+                    if (!profileResponse.ok) {
+                        var profileError = await profileResponse.text();
+                        console.error('❌ فشل إضافة المدير في profiles:', profileError);
+                        // نحاول نكمل حتى لو فشل إضافة الـ profile
+                    }
+
                     successMsg.classList.add('show');
 
                     // التوجيه بعد 2 ثانية
                     setTimeout(() => {
-                        window.location.href = 'dashboard.html';
+                        window.location.href = 'index.html';
                     }, 2000);
 
                 } else {
-                    errorMsg.textContent = '❌ ' + (data.msg || 'حدث خطأ في إنشاء الحساب');
+                    var errorMessage = data.msg || data.message || 'حدث خطأ في إنشاء الحساب';
+                    if (errorMessage.includes('already registered')) {
+                        errorMessage = 'هذا البريد الإلكتروني مسجل بالفعل. يرجى استخدام بريد آخر.';
+                    }
+                    errorMsg.textContent = '❌ ' + errorMessage;
                     errorMsg.classList.add('show');
                 }
 
             } catch (error) {
-                errorMsg.textContent = '❌ حدث خطأ في الاتصال بقاعدة البيانات';
+                console.error('❌ خطأ في التسجيل:', error);
+                errorMsg.textContent = '❌ حدث خطأ في الاتصال بقاعدة البيانات: ' + error.message;
                 errorMsg.classList.add('show');
-                console.error(error);
             }
 
             btn.disabled = false;
