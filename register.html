@@ -775,16 +775,20 @@
          * ============================================================
          */
         async function redirectIfAdminExists() {
-            var adminExists = await checkAdminExists();
-            var adminMsg = document.getElementById('adminMsg');
-            var registerBtn = document.getElementById('registerBtn');
+            try {
+                var adminExists = await checkAdminExists();
+                var adminMsg = document.getElementById('adminMsg');
+                var registerBtn = document.getElementById('registerBtn');
 
-            if (adminExists) {
-                if (adminMsg) adminMsg.classList.add('show');
-                if (registerBtn) registerBtn.disabled = true;
-            } else {
-                if (adminMsg) adminMsg.classList.remove('show');
-                if (registerBtn) registerBtn.disabled = false;
+                if (adminExists) {
+                    if (adminMsg) adminMsg.classList.add('show');
+                    if (registerBtn) registerBtn.disabled = true;
+                } else {
+                    if (adminMsg) adminMsg.classList.remove('show');
+                    if (registerBtn) registerBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('❌ خطأ في redirectIfAdminExists:', error);
             }
         }
 
@@ -891,7 +895,6 @@
 
                 if (!companyResponse.ok) {
                     console.error('❌ فشل إضافة الشركة:', companyData);
-                    // نكمل حتى لو فشلت إضافة الشركة
                 }
 
                 var companyId = companyData && companyData.length > 0 ? companyData[0].id : null;
@@ -924,46 +927,6 @@
 
                 if (!profileResponse.ok) {
                     console.error('❌ فشل إضافة البروفايل:', profileData);
-                    // نجرب من غير Authorization
-                    console.log('🔄 محاولة الإضافة من غير Authorization...');
-                    
-                    var profileResponse2 = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'return=representation'
-                        },
-                        body: JSON.stringify(profilePayload)
-                    });
-
-                    var profileData2 = await profileResponse2.text();
-                    console.log('📡 استجابة إضافة profiles (محاولة 2):', profileResponse2.status);
-
-                    if (!profileResponse2.ok) {
-                        console.error('❌ فشل إضافة البروفايل (محاولة 2):', profileData2);
-                        
-                        // المحاولة 3: باستخدام admin API
-                        console.log('🔄 محاولة الإضافة باستخدام admin API...');
-                        var profileResponse3 = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
-                            method: 'POST',
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                                'Content-Type': 'application/json',
-                                'Prefer': 'return=representation'
-                            },
-                            body: JSON.stringify(profilePayload)
-                        });
-
-                        var profileData3 = await profileResponse3.text();
-                        console.log('📡 استجابة إضافة profiles (محاولة 3):', profileResponse3.status);
-
-                        if (!profileResponse3.ok) {
-                            console.error('❌ فشل إضافة البروفايل (محاولة 3):', profileData3);
-                            // حتى لو فشل كل شيء، الحساب اتعمل
-                        }
-                    }
                 }
 
                 showMessage('✅ تم إنشاء الحساب بنجاح! جاري التحويل...', 'success');
