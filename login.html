@@ -105,6 +105,15 @@
         .login-box .footer-text a:hover {
             text-decoration: underline;
         }
+        .login-box .admin-msg {
+            font-size: 0.7rem;
+            color: #8a96a8;
+            margin-top: 8px;
+            display: none;
+        }
+        .login-box .admin-msg.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -123,8 +132,9 @@
         <div class="error-msg" id="errorMsg">❌ البريد الإلكتروني أو كلمة السر غير صحيحة</div>
 
         <div class="footer-text">
-            ليس لديك حساب؟ <a href="register.html">إنشاء حساب جديد</a>
+            ليس لديك حساب؟ <a href="register.html" id="registerLink">إنشاء حساب جديد</a>
         </div>
+        <div class="admin-msg" id="adminMsg">⚠️ تم إنشاء حساب المدير بالفعل. التسجيل غير متاح.</div>
     </div>
 
     <script>
@@ -132,7 +142,50 @@
         var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
         var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
 
-        // ===== تسجيل الدخول =====
+        // ============================================================
+        // التحقق من وجود مدير وإخفاء زر التسجيل
+        // ============================================================
+        async function checkAdminExists() {
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?role=eq.admin&select=id', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                    }
+                });
+
+                if (!response.ok) {
+                    console.warn('⚠️ فشل في التحقق من وجود مدير');
+                    return false;
+                }
+
+                var data = await response.json();
+                var adminExists = data && data.length > 0;
+
+                // إخفاء أو إظهار زر التسجيل
+                var registerLink = document.getElementById('registerLink');
+                var adminMsg = document.getElementById('adminMsg');
+
+                if (registerLink) {
+                    if (adminExists) {
+                        registerLink.style.display = 'none';
+                        adminMsg.classList.add('show');
+                    } else {
+                        registerLink.style.display = 'inline';
+                        adminMsg.classList.remove('show');
+                    }
+                }
+
+                return adminExists;
+            } catch (error) {
+                console.error('❌ خطأ في التحقق:', error);
+                return false;
+            }
+        }
+
+        // ============================================================
+        // تسجيل الدخول
+        // ============================================================
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -165,9 +218,9 @@
                     localStorage.setItem('rollex_session', JSON.stringify(data));
 
                     // التوجيه إلى لوحة التحكم
-                    window.location.href = 'dashboard.html';
+                    window.location.href = 'index.html';
                 } else {
-                    errorMsg.textContent = '❌ ' + (data.msg || 'البريد أو كلمة السر غير صحيحة');
+                    errorMsg.textContent = '❌ ' + (data.msg || data.message || 'البريد أو كلمة السر غير صحيحة');
                     errorMsg.classList.add('show');
                 }
             } catch (error) {
@@ -178,6 +231,13 @@
 
             btn.disabled = false;
             btn.innerHTML = '🔓 تسجيل الدخول';
+        });
+
+        // ============================================================
+        // تنفيذ عند تحميل الصفحة
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAdminExists();
         });
     </script>
 
