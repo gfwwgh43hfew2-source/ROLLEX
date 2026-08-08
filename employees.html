@@ -467,11 +467,41 @@
         }
 
         // ============================================================
-        // CHECK SESSION
+        // CHECK SESSION - مع localStorage
         // ============================================================
         async function checkSession() {
+            // 1. نجرب نجيب من localStorage
+            var sessionData = localStorage.getItem('rollex_session');
+            if (sessionData) {
+                try {
+                    var parsed = JSON.parse(sessionData);
+                    if (parsed.access_token) {
+                        // نجرب نستخدم الـ token
+                        var { data, error } = await supabase.auth.setSession({
+                            access_token: parsed.access_token,
+                            refresh_token: parsed.refresh_token
+                        });
+                        if (!error && data.session) {
+                            console.log('✅ جلسة من localStorage');
+                            return data.session;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('⚠️ فشل قراءة localStorage');
+                }
+            }
+
+            // 2. لو مش موجود في localStorage، نجيب من Supabase
             var { data: { session }, error } = await supabase.auth.getSession();
-            if (error || !session) { window.location.href = 'login.html'; return null; }
+            if (error || !session) {
+                console.warn('⚠️ مفيش جلسة، تحويل للوجن');
+                window.location.href = 'login.html';
+                return null;
+            }
+
+            // 3. نحفظ الجلسة في localStorage عشان الصفحات الجاية
+            localStorage.setItem('rollex_session', JSON.stringify(session));
+            console.log('✅ جلسة جديدة من Supabase واتحفظت');
             return session;
         }
 
