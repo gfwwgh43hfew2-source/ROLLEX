@@ -564,9 +564,9 @@
         }
 
         // ============================================================
-        // RENDER EMPLOYEES
+        // RENDER EMPLOYEES - تم التعديل هنا
         // ============================================================
-        function renderEmployees(employees) {
+        async function renderEmployees(employees) {
             var tbody = document.getElementById('employeesBody');
             var total = employees.length;
             var admins = employees.filter(e => e.role === 'admin').length;
@@ -581,8 +581,11 @@
                 return;
             }
 
+            // جلب المستخدم الحالي بطريقة صحيحة
+            var { data: { user } } = await supabase.auth.getUser();
+            var currentUserId = user?.id;
+
             var rows = '';
-            var currentUserId = supabase.auth.user()?.id;
             employees.forEach(emp => {
                 var roleClass = emp.role === 'admin' ? 'admin' : (emp.role === 'accountant' ? 'accountant' : 'driver');
                 var roleName = emp.role === 'admin' ? 'مدير' : (emp.role === 'accountant' ? 'محاسب' : 'سائق');
@@ -692,7 +695,7 @@
         // ============================================================
         async function loadEmployees() {
             var employees = await fetchEmployees();
-            renderEmployees(employees);
+            await renderEmployees(employees);
         }
 
         // ============================================================
