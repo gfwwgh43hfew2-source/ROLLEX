@@ -476,7 +476,6 @@
                 try {
                     var parsed = JSON.parse(sessionData);
                     if (parsed.access_token) {
-                        // نجرب نستخدم الـ token
                         var { data, error } = await supabase.auth.setSession({
                             access_token: parsed.access_token,
                             refresh_token: parsed.refresh_token
@@ -499,7 +498,7 @@
                 return null;
             }
 
-            // 3. نحفظ الجلسة في localStorage عشان الصفحات الجاية
+            // 3. نحفظ الجلسة في localStorage
             localStorage.setItem('rollex_session', JSON.stringify(session));
             console.log('✅ جلسة جديدة من Supabase واتحفظت');
             return session;
@@ -510,22 +509,46 @@
         // ============================================================
         async function getCurrentUserProfile() {
             var { data: { user }, error } = await supabase.auth.getUser();
-            if (error || !user) return null;
+            if (error || !user) {
+                console.log('❌ مفيش مستخدم');
+                return null;
+            }
+            console.log('👤 المستخدم من auth:', user.email);
+
             var { data, error: pError } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-            if (pError) return null;
+            if (pError) {
+                console.log('❌ مفيش بروفايل:', pError.message);
+                return null;
+            }
+            console.log('📊 البروفايل:', data);
             return { ...user, ...data };
         }
 
         // ============================================================
-        // CHECK ADMIN
+        // CHECK ADMIN - مع عرض تفصيلي
         // ============================================================
         async function checkAdmin() {
+            console.log('🔍 بداية التحقق من المدير...');
             var profile = await getCurrentUserProfile();
-            if (!profile || profile.role !== 'admin') {
+            console.log('📊 البروفايل المسترجع:', profile);
+
+            if (!profile) {
+                console.log('❌ مفيش بروفايل');
+                showToast('❌ خطأ', 'لم يتم العثور على بيانات المستخدم', 'error');
+                setTimeout(() => window.location.href = 'index.html', 2000);
+                return false;
+            }
+
+            console.log('🔑 الدور:', profile.role);
+
+            if (profile.role !== 'admin') {
+                console.log('❌ مش مدير، الدور هو:', profile.role);
                 showToast('❌ غير مسموح', 'هذه الصفحة مخصصة للمدير فقط', 'error');
                 setTimeout(() => window.location.href = 'index.html', 2000);
                 return false;
             }
+
+            console.log('✅ مدير!');
             document.getElementById('userName').textContent = profile.name || 'مرحباً';
             document.getElementById('userRole').textContent = profile.role || 'موظف';
             return true;
@@ -559,11 +582,11 @@
             }
 
             var rows = '';
+            var currentUserId = supabase.auth.user()?.id;
             employees.forEach(emp => {
                 var roleClass = emp.role === 'admin' ? 'admin' : (emp.role === 'accountant' ? 'accountant' : 'driver');
                 var roleName = emp.role === 'admin' ? 'مدير' : (emp.role === 'accountant' ? 'محاسب' : 'سائق');
-                // منع حذف المدير نفسه
-                var isCurrent = emp.id === supabase.auth.user()?.id;
+                var isCurrent = emp.id === currentUserId;
                 rows += `
                     <tr>
                         <td><strong>${emp.name || 'غير معروف'}</strong></td>
@@ -650,11 +673,9 @@
             if (!confirm('هل أنت متأكد من حذف هذا الموظف؟')) return;
 
             try {
-                // حذف من profiles
                 var { error: pError } = await supabase.from('profiles').delete().eq('id', userId);
                 if (pError) { showToast('❌ خطأ', 'فشل حذف الموظف', 'error'); return; }
 
-                // حذف من auth (يحتاج admin rights)
                 var { error: aError } = await supabase.auth.admin.deleteUser(userId);
                 if (aError) { console.error(aError); }
 
@@ -687,10 +708,17 @@
         // INIT
         // ============================================================
         (async function init() {
+            console.log('🚀 بداية تحميل الصفحة');
             var session = await checkSession();
             if (!session) return;
+            console.log('✅ الجلسة موجودة');
+
             var isAdmin = await checkAdmin();
-            if (!isAdmin) return;
+            if (!isAdmin) {
+                console.log('❌ مش مدير، هنوقف هنا عشان نشوف المشكلة');
+                return;
+            }
+
             await loadEmployees();
         })();
     </script>
