@@ -1090,25 +1090,13 @@
         }
 
         // ============================================================
-        // IMPORT FROM EXCEL
-        // ============================================================
-        function openImportModal() {
-            document.getElementById('importModal').classList.add('active');
-            document.getElementById('importFile').value = '';
-        }
-
-        function closeImportModal() {
-            document.getElementById('importModal').classList.remove('active');
-        }
-
-        // ============================================================
-        // DOWNLOAD TEMPLATE
+        // DOWNLOAD TEMPLATE - بالترتيب الجديد
         // ============================================================
         function downloadTemplate() {
             var templateData = [
                 {
-                    'التاريخ': '2026-01-01',
-                    'البيان': 'مثال: فاتورة مبيعات',
+                    'التاريخ': '2026-08-09',
+                    'البيان': 'فاتورة مبيعات - مثال',
                     'النوع': 'incoming',
                     'المبلغ': 1000,
                     'رقم السند': 'INV-001',
@@ -1117,10 +1105,10 @@
                     'ملاحظات': 'ملاحظات اختيارية'
                 },
                 {
-                    'التاريخ': '2026-01-02',
-                    'البيان': 'مثال: مصروفات',
+                    'التاريخ': '2026-08-09',
+                    'البيان': 'مصروفات - مثال',
                     'النوع': 'outgoing',
-                    'المبلغ': -500,
+                    'المبلغ': 500,
                     'رقم السند': 'EXP-001',
                     'التبويب العام': 'مصاريف',
                     'التبويب الخاص': 'مورد 1',
@@ -1133,8 +1121,14 @@
             XLSX.utils.book_append_sheet(wb, ws, 'قالب الحركات');
 
             ws['!cols'] = [
-                { wch: 15 }, { wch: 35 }, { wch: 15 }, { wch: 15 },
-                { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 25 }
+                { wch: 15 },  // التاريخ
+                { wch: 30 },  // البيان
+                { wch: 15 },  // النوع
+                { wch: 15 },  // المبلغ
+                { wch: 15 },  // رقم السند
+                { wch: 20 },  // التبويب العام
+                { wch: 20 },  // التبويب الخاص
+                { wch: 25 }   // ملاحظات
             ];
 
             XLSX.writeFile(wb, 'قالب_استيراد_الخزينة.xlsx');
@@ -1143,7 +1137,19 @@
         }
 
         // ============================================================
-        // IMPORT FORM SUBMIT
+        // IMPORT EXCEL
+        // ============================================================
+        function openImportModal() {
+            document.getElementById('importModal').classList.add('active');
+            document.getElementById('importFile').value = '';
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.remove('active');
+        }
+
+        // ============================================================
+        // IMPORT FORM SUBMIT - مع الترتيب الجديد
         // ============================================================
         document.getElementById('importForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1161,61 +1167,115 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاستيراد...';
 
             try {
+                console.log('📥 بدء قراءة الملف...');
                 var data = await file.arrayBuffer();
                 var workbook = XLSX.read(data, { type: 'array' });
                 var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 var jsonData = XLSX.utils.sheet_to_json(firstSheet);
 
+                console.log('📊 البيانات المستخرجة:', jsonData);
+
                 if (!jsonData || jsonData.length === 0) {
                     throw new Error('الملف فارغ أو غير صحيح');
                 }
 
-                var transactions = jsonData.map(function(row) {
-                    return {
-                        date: row['التاريخ'] || new Date().toISOString().split('T')[0],
-                        description: row['البيان'] || 'حركة مستوردة',
-                        type: row['النوع'] || 'incoming',
-                        amount: parseFloat(row['المبلغ']) || 0,
-                        voucher_number: row['رقم السند'] || '',
-                        general_tab: row['التبويب العام'] || '',
-                        private_tab: row['التبويب الخاص'] || '',
-                        notes: row['ملاحظات'] || ''
-                    };
-                });
-
-                var validTransactions = transactions.filter(function(t) {
-                    return t.amount !== 0 && t.description;
-                });
-
-                if (validTransactions.length === 0) {
-                    throw new Error('لا توجد بيانات صالحة للاستيراد');
-                }
-
                 var token = getToken();
-                if (!token) return;
-
-                var response = await fetch(SUPABASE_URL + '/rest/v1/rpc/import_transactions', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        p_treasury_id: currentTreasuryId,
-                        p_transactions: validTransactions
-                    })
-                });
-
-                var result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.message || 'فشل الاستيراد');
+                if (!token) {
+                    throw new Error('لم يتم العثور على جلسة صالحة');
                 }
 
-                showToast('✅ تم الاستيراد', result.message || 'تم استيراد البيانات بنجاح', 'success');
-                closeImportModal();
-                loadData();
+                var successCount = 0;
+                var errorCount = 0;
+                var errors = [];
+
+                // معالجة كل حركة
+                for (var i = 0; i < jsonData.length; i++) {
+                    var row = jsonData[i];
+                    
+                    // استخراج البيانات بالترتيب الجديد
+                    var description = row['البيان'] || row['description'] || 'حركة مستوردة';
+                    var type = row['النوع'] || row['type'] || 'incoming';
+                    var amount = parseFloat(row['المبلغ'] || row['amount'] || 0);
+                    var voucherNumber = row['رقم السند'] || row['voucher_number'] || '';
+                    var generalTab = row['التبويب العام'] || row['general_tab'] || '';
+                    var privateTab = row['التبويب الخاص'] || row['private_tab'] || '';
+                    var notes = row['ملاحظات'] || row['notes'] || '';
+                    var date = row['التاريخ'] || row['date'] || new Date().toISOString().split('T')[0];
+
+                    // التحقق من صحة المبلغ
+                    if (!amount || amount === 0) {
+                        errorCount++;
+                        errors.push('صف ' + (i + 1) + ': المبلغ صفر أو غير صحيح');
+                        continue;
+                    }
+
+                    // التحقق من صحة النوع
+                    var validTypes = ['incoming', 'outgoing', 'transfer_in', 'transfer_out', 'opening', 'salary', 'expense', 'revenue'];
+                    if (!validTypes.includes(type)) {
+                        type = 'incoming';
+                    }
+
+                    // تحديد الإشارة حسب النوع
+                    if (type === 'outgoing' || type === 'transfer_out' || type === 'expense') {
+                        amount = -Math.abs(amount);
+                    } else {
+                        amount = Math.abs(amount);
+                    }
+
+                    try {
+                        var response = await fetch(SUPABASE_URL + '/rest/v1/rpc/add_transaction', {
+                            method: 'POST',
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': 'Bearer ' + token,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                p_treasury_id: currentTreasuryId,
+                                p_amount: amount,
+                                p_type: type,
+                                p_description: description,
+                                p_general_tab: generalTab || 'عام',
+                                p_private_tab: privateTab || 'خاص'
+                            })
+                        });
+
+                        var result = await response.json();
+
+                        if (!response.ok || !result?.success) {
+                            errorCount++;
+                            errors.push('صف ' + (i + 1) + ': ' + (result?.message || 'فشل الإدراج'));
+                        } else {
+                            successCount++;
+                            console.log('✅ تم إدراج الحركة ' + (i+1) + ': ' + description + ' - ' + amount);
+                        }
+
+                    } catch (err) {
+                        errorCount++;
+                        errors.push('صف ' + (i + 1) + ': ' + err.message);
+                    }
+                }
+
+                // عرض النتيجة
+                if (successCount > 0) {
+                    showToast(
+                        '✅ تم الاستيراد',
+                        'تم استيراد ' + successCount + ' حركة' + 
+                        (errorCount > 0 ? '، وفشل ' + errorCount + ' حركة' : ''),
+                        'success'
+                    );
+                    closeImportModal();
+                    loadData();
+                } else {
+                    showToast('❌ فشل الاستيراد', 'لم يتم استيراد أي حركة. تحقق من البيانات', 'error');
+                }
+
+                if (errors.length > 0) {
+                    console.log('❌ أخطاء الاستيراد:');
+                    errors.forEach(function(err) {
+                        console.log('  - ' + err);
+                    });
+                }
 
             } catch (error) {
                 console.error('❌ خطأ:', error);
