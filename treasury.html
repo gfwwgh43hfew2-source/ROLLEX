@@ -1122,7 +1122,7 @@
         }
 
         // ============================================================
-        // DOWNLOAD TEMPLATE
+        // DOWNLOAD TEMPLATE - مع وارد وصادر
         // ============================================================
         function downloadTemplate() {
             var templateData = [
@@ -1130,7 +1130,8 @@
                     'التاريخ': '2026-08-09',
                     'البيان': 'فاتورة مبيعات - مثال',
                     'النوع': 'incoming',
-                    'المبلغ': 1000,
+                    'وارد': 1000,
+                    'صادر': '',
                     'رقم السند': 'INV-001',
                     'التبويب العام': 'مبيعات',
                     'التبويب الخاص': 'عميل 1',
@@ -1140,10 +1141,22 @@
                     'التاريخ': '2026-08-09',
                     'البيان': 'مصروفات - مثال',
                     'النوع': 'outgoing',
-                    'المبلغ': 500,
+                    'وارد': '',
+                    'صادر': 500,
                     'رقم السند': 'EXP-001',
                     'التبويب العام': 'مصاريف',
                     'التبويب الخاص': 'مورد 1',
+                    'ملاحظات': ''
+                },
+                {
+                    'التاريخ': '2026-08-09',
+                    'البيان': 'راتب موظف - مثال',
+                    'النوع': 'salary',
+                    'وارد': '',
+                    'صادر': 300,
+                    'رقم السند': 'SAL-001',
+                    'التبويب العام': 'رواتب',
+                    'التبويب الخاص': 'موظف 1',
                     'ملاحظات': ''
                 }
             ];
@@ -1156,7 +1169,8 @@
                 { wch: 15 },  // التاريخ
                 { wch: 30 },  // البيان
                 { wch: 15 },  // النوع
-                { wch: 15 },  // المبلغ
+                { wch: 15 },  // وارد
+                { wch: 15 },  // صادر
                 { wch: 15 },  // رقم السند
                 { wch: 20 },  // التبويب العام
                 { wch: 20 },  // التبويب الخاص
@@ -1181,7 +1195,7 @@
         }
 
         // ============================================================
-        // IMPORT FORM SUBMIT
+        // IMPORT FORM SUBMIT - مع وارد وصادر
         // ============================================================
         document.getElementById('importForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1223,29 +1237,39 @@
                 for (var i = 0; i < jsonData.length; i++) {
                     var row = jsonData[i];
                     
+                    // استخراج البيانات مع دعم الأسماء العربية والإنجليزية
                     var description = row['البيان'] || row['description'] || 'حركة مستوردة';
                     var type = row['النوع'] || row['type'] || 'incoming';
-                    var amount = parseFloat(row['المبلغ'] || row['amount'] || 0);
                     var voucherNumber = row['رقم السند'] || row['voucher_number'] || '';
                     var generalTab = row['التبويب العام'] || row['general_tab'] || '';
                     var privateTab = row['التبويب الخاص'] || row['private_tab'] || '';
                     var notes = row['ملاحظات'] || row['notes'] || '';
 
-                    if (!amount || amount === 0) {
+                    // قراءة المبلغ من عمود وارد أو صادر
+                    var incoming = parseFloat(row['وارد'] || row['incoming'] || 0);
+                    var outgoing = parseFloat(row['صادر'] || row['outgoing'] || 0);
+                    
+                    // حساب المبلغ النهائي (وارد - صادر)
+                    var amount = incoming - outgoing;
+
+                    // التحقق من صحة المبلغ
+                    if (amount === 0) {
                         errorCount++;
-                        errors.push('صف ' + (i + 1) + ': المبلغ صفر أو غير صحيح');
+                        errors.push('صف ' + (i + 1) + ': المبلغ صفر (وارد: ' + incoming + ', صادر: ' + outgoing + ')');
                         continue;
                     }
 
+                    // التحقق من صحة النوع
                     var validTypes = ['incoming', 'outgoing', 'transfer_in', 'transfer_out', 'opening', 'salary', 'expense', 'revenue'];
                     if (!validTypes.includes(type)) {
                         type = 'incoming';
                     }
 
-                    if (type === 'outgoing' || type === 'transfer_out' || type === 'expense') {
-                        amount = -Math.abs(amount);
-                    } else {
-                        amount = Math.abs(amount);
+                    // تحديد الإشارة حسب النوع (لو مش محددة، نحددها من المبلغ)
+                    if (amount > 0 && type !== 'incoming' && type !== 'opening' && type !== 'revenue' && type !== 'transfer_in') {
+                        type = 'incoming';
+                    } else if (amount < 0 && type !== 'outgoing' && type !== 'expense' && type !== 'transfer_out') {
+                        type = 'outgoing';
                     }
 
                     try {
@@ -1273,7 +1297,7 @@
                             errors.push('صف ' + (i + 1) + ': ' + (result?.message || 'فشل الإدراج'));
                         } else {
                             successCount++;
-                            console.log('✅ تم إدراج الحركة ' + (i+1) + ': ' + description);
+                            console.log('✅ تم إدراج الحركة ' + (i+1) + ': ' + description + ' - ' + amount);
                         }
 
                     } catch (err) {
