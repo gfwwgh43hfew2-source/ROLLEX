@@ -6,7 +6,8 @@
     <title>الخزينة - QuickData ProSoft</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         /* ============================================================
            STYLES
@@ -118,13 +119,33 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 16px rgba(23,162,184,0.25);
         }
-        .actions-row .btn-action.danger {
-            background: rgba(248,113,113,0.1);
-            color: #f87171;
-            border: 1px solid rgba(248,113,113,0.1);
+        .actions-row .btn-action.export {
+            background: rgba(52,211,153,0.1);
+            color: #34d399;
+            border: 1px solid rgba(52,211,153,0.1);
         }
-        .actions-row .btn-action.danger:hover {
-            background: rgba(248,113,113,0.15);
+        .actions-row .btn-action.export:hover {
+            background: rgba(52,211,153,0.15);
+        }
+        .actions-row .btn-action.import {
+            background: rgba(245,166,35,0.1);
+            color: #f5a623;
+            border: 1px solid rgba(245,166,35,0.1);
+        }
+        .actions-row .btn-action.import:hover {
+            background: rgba(245,166,35,0.15);
+        }
+        .actions-row .btn-action.refresh {
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.5);
+        }
+        .actions-row .btn-action.refresh:hover {
+            background: rgba(255,255,255,0.08);
+        }
+        .actions-row .btn-action:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
         }
 
         /* Transfer Form */
@@ -214,7 +235,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.7rem;
-            min-width: 600px;
+            min-width: 700px;
         }
         thead {
             background: #2a3646;
@@ -273,11 +294,13 @@
         .modal-box {
             background: #212c3b;
             border-radius: 16px;
-            max-width: 450px;
+            max-width: 500px;
             width: 100%;
             padding: 32px;
             border: 1px solid rgba(255,255,255,0.05);
             animation: modalIn 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         @keyframes modalIn {
             from { transform: scale(0.95) translateY(20px); opacity: 0; }
@@ -315,7 +338,8 @@
         }
         .modal-box .form-group label .required { color: #f87171; }
         .modal-box .form-group input,
-        .modal-box .form-group textarea {
+        .modal-box .form-group textarea,
+        .modal-box .form-group select {
             width: 100%;
             padding: 10px 14px;
             border-radius: 8px;
@@ -327,12 +351,28 @@
             outline: none;
         }
         .modal-box .form-group input:focus,
-        .modal-box .form-group textarea:focus {
+        .modal-box .form-group textarea:focus,
+        .modal-box .form-group select:focus {
             border-color: #f5a623;
         }
         .modal-box .form-group textarea {
             min-height: 60px;
             resize: vertical;
+        }
+        .modal-box .form-group input[type="file"] {
+            padding: 8px;
+            background: #1b2431;
+        }
+        .modal-box .form-group input[type="file"]::-webkit-file-upload-button {
+            background: #f5a623;
+            color: #1b1204;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-family: inherit;
         }
         .modal-box .form-actions {
             display: flex;
@@ -375,6 +415,18 @@
         }
         .modal-box .form-actions .btn-cancel:hover {
             background: rgba(255,255,255,0.08);
+        }
+        .modal-box .helper-text {
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.25);
+            margin-top: 4px;
+        }
+        .modal-box .helper-text a {
+            color: #f5a623;
+            text-decoration: none;
+        }
+        .modal-box .helper-text a:hover {
+            text-decoration: underline;
         }
 
         /* Toast */
@@ -422,6 +474,14 @@
             .actions-row { flex-direction: column; }
             .actions-row .btn-action { width: 100%; justify-content: center; }
             .modal-box { padding: 20px; margin: 10px; }
+            .modal-box .form-actions { flex-direction: column; }
+            .modal-box .form-actions .btn-save { width: 100%; justify-content: center; }
+            .modal-box .form-actions .btn-cancel { width: 100%; justify-content: center; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 0 10px; }
+            .header h1 { font-size: 1.2rem; }
+            .treasury-info .balance { font-size: 1.1rem; }
         }
     </style>
 </head>
@@ -468,12 +528,18 @@
         <!-- ===== ACTIONS ROW ===== -->
         <div class="actions-row">
             <button class="btn-action primary" onclick="openOpeningModal()">
-                <i class="fas fa-plus-circle"></i> إضافة رصيد افتتاحي
+                <i class="fas fa-plus-circle"></i> رصيد افتتاحي
             </button>
             <button class="btn-action secondary" onclick="window.location.href='entry.html?treasury_id=' + currentTreasuryId">
                 <i class="fas fa-plus"></i> إضافة حركة
             </button>
-            <button class="btn-action" onclick="loadData()" style="background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.5);">
+            <button class="btn-action export" onclick="exportToExcel()">
+                <i class="fas fa-file-excel"></i> تصدير Excel
+            </button>
+            <button class="btn-action import" onclick="openImportModal()">
+                <i class="fas fa-file-upload"></i> استيراد Excel
+            </button>
+            <button class="btn-action refresh" onclick="loadData()">
                 <i class="fas fa-sync-alt"></i> تحديث
             </button>
         </div>
@@ -547,6 +613,36 @@
                         <i class="fas fa-save"></i> إضافة الرصيد
                     </button>
                     <button type="button" class="btn-cancel" onclick="closeOpeningModal()">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== IMPORT EXCEL MODAL ===== -->
+    <div class="modal-overlay" id="importModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-upload"></i> استيراد من Excel</h3>
+                <button class="close-modal" onclick="closeImportModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="importForm">
+                <div class="form-group">
+                    <label>تحميل قالب Excel</label>
+                    <button type="button" class="btn-action export" onclick="downloadTemplate()" style="width:100%;justify-content:center;padding:10px;">
+                        <i class="fas fa-download"></i> تحميل القالب
+                    </button>
+                    <div class="helper-text">قم بتحميل القالب واملأ البيانات ثم ارفعه</div>
+                </div>
+                <div class="form-group">
+                    <label>ملف Excel <span class="required">*</span></label>
+                    <input type="file" id="importFile" accept=".xlsx,.xls" required />
+                    <div class="helper-text">الصيغ المدعومة: .xlsx, .xls</div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-save" id="importSubmitBtn">
+                        <i class="fas fa-upload"></i> استيراد
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="closeImportModal()">إلغاء</button>
                 </div>
             </form>
         </div>
@@ -924,6 +1020,213 @@
         }
 
         // ============================================================
+        // EXPORT TO EXCEL
+        // ============================================================
+        async function exportToExcel() {
+            try {
+                var token = getToken();
+                if (!token) return;
+
+                var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + currentTreasuryId + '&order=created_at.desc', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('فشل جلب البيانات');
+                }
+
+                var transactions = await response.json();
+
+                if (!transactions || transactions.length === 0) {
+                    showToast('⚠️ تنبيه', 'لا توجد حركات لتصديرها', 'warning');
+                    return;
+                }
+
+                var excelData = transactions.map(function(item) {
+                    var typeLabels = {
+                        'incoming': 'إيداع',
+                        'outgoing': 'سحب',
+                        'transfer_in': 'تحويل وارد',
+                        'transfer_out': 'تحويل صادر',
+                        'opening': 'رصيد افتتاحي',
+                        'salary': 'راتب',
+                        'expense': 'مصروف',
+                        'revenue': 'إيراد'
+                    };
+                    return {
+                        'التاريخ': new Date(item.created_at).toLocaleDateString('ar-EG'),
+                        'البيان': item.description || '-',
+                        'النوع': typeLabels[item.type] || item.type || '-',
+                        'المبلغ': item.amount || 0,
+                        'رقم السند': item.voucher_number || '-',
+                        'التبويب العام': item.general_tab || '-',
+                        'التبويب الخاص': item.private_tab || '-',
+                        'ملاحظات': item.notes || '-'
+                    };
+                });
+
+                var ws = XLSX.utils.json_to_sheet(excelData);
+                var wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'الحركات');
+
+                ws['!cols'] = [
+                    { wch: 15 }, { wch: 35 }, { wch: 15 }, { wch: 15 },
+                    { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 25 }
+                ];
+
+                var treasuryName = document.getElementById('treasuryName').textContent || 'الخزينة';
+                var filename = treasuryName + '_' + new Date().toISOString().split('T')[0] + '.xlsx';
+                XLSX.writeFile(wb, filename);
+
+                showToast('✅ تم التصدير', 'تم تصدير ' + transactions.length + ' حركة بنجاح', 'success');
+
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                showToast('❌ خطأ', error.message, 'error');
+            }
+        }
+
+        // ============================================================
+        // IMPORT FROM EXCEL
+        // ============================================================
+        function openImportModal() {
+            document.getElementById('importModal').classList.add('active');
+            document.getElementById('importFile').value = '';
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.remove('active');
+        }
+
+        // ============================================================
+        // DOWNLOAD TEMPLATE
+        // ============================================================
+        function downloadTemplate() {
+            var templateData = [
+                {
+                    'التاريخ': '2026-01-01',
+                    'البيان': 'مثال: فاتورة مبيعات',
+                    'النوع': 'incoming',
+                    'المبلغ': 1000,
+                    'رقم السند': 'INV-001',
+                    'التبويب العام': 'مبيعات',
+                    'التبويب الخاص': 'عميل 1',
+                    'ملاحظات': 'ملاحظات اختيارية'
+                },
+                {
+                    'التاريخ': '2026-01-02',
+                    'البيان': 'مثال: مصروفات',
+                    'النوع': 'outgoing',
+                    'المبلغ': -500,
+                    'رقم السند': 'EXP-001',
+                    'التبويب العام': 'مصاريف',
+                    'التبويب الخاص': 'مورد 1',
+                    'ملاحظات': ''
+                }
+            ];
+
+            var ws = XLSX.utils.json_to_sheet(templateData);
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'قالب الحركات');
+
+            ws['!cols'] = [
+                { wch: 15 }, { wch: 35 }, { wch: 15 }, { wch: 15 },
+                { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 25 }
+            ];
+
+            XLSX.writeFile(wb, 'قالب_استيراد_الخزينة.xlsx');
+            
+            showToast('✅ تم التحميل', 'تم تحميل القالب بنجاح', 'success');
+        }
+
+        // ============================================================
+        // IMPORT FORM SUBMIT
+        // ============================================================
+        document.getElementById('importForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            var fileInput = document.getElementById('importFile');
+            var file = fileInput.files[0];
+
+            if (!file) {
+                showToast('⚠️ تنبيه', 'يرجى اختيار ملف Excel', 'error');
+                return;
+            }
+
+            var btn = document.getElementById('importSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاستيراد...';
+
+            try {
+                var data = await file.arrayBuffer();
+                var workbook = XLSX.read(data, { type: 'array' });
+                var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                var jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                if (!jsonData || jsonData.length === 0) {
+                    throw new Error('الملف فارغ أو غير صحيح');
+                }
+
+                var transactions = jsonData.map(function(row) {
+                    return {
+                        date: row['التاريخ'] || new Date().toISOString().split('T')[0],
+                        description: row['البيان'] || 'حركة مستوردة',
+                        type: row['النوع'] || 'incoming',
+                        amount: parseFloat(row['المبلغ']) || 0,
+                        voucher_number: row['رقم السند'] || '',
+                        general_tab: row['التبويب العام'] || '',
+                        private_tab: row['التبويب الخاص'] || '',
+                        notes: row['ملاحظات'] || ''
+                    };
+                });
+
+                var validTransactions = transactions.filter(function(t) {
+                    return t.amount !== 0 && t.description;
+                });
+
+                if (validTransactions.length === 0) {
+                    throw new Error('لا توجد بيانات صالحة للاستيراد');
+                }
+
+                var token = getToken();
+                if (!token) return;
+
+                var response = await fetch(SUPABASE_URL + '/rest/v1/rpc/import_transactions', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        p_treasury_id: currentTreasuryId,
+                        p_transactions: validTransactions
+                    })
+                });
+
+                var result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || 'فشل الاستيراد');
+                }
+
+                showToast('✅ تم الاستيراد', result.message || 'تم استيراد البيانات بنجاح', 'success');
+                closeImportModal();
+                loadData();
+
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                showToast('❌ خطأ', error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-upload"></i> استيراد';
+        });
+
+        // ============================================================
         // DISPLAY DATA
         // ============================================================
         function displayData(transactions, treasury) {
@@ -960,19 +1263,22 @@
             transactions.forEach(function(item) {
                 var badgeClass = 'badge-type';
                 var typeName = item.type || 'other';
-                if (typeName === 'incoming' || typeName === 'إيداع') {
-                    badgeClass += ' incoming';
-                    typeName = 'إيداع';
-                } else if (typeName === 'outgoing' || typeName === 'سحب') {
-                    badgeClass += ' outgoing';
-                    typeName = 'سحب';
-                } else if (typeName === 'transfer_in' || typeName === 'transfer_out') {
-                    badgeClass += ' transfer';
-                    typeName = 'تحويل';
-                } else if (typeName === 'opening') {
-                    badgeClass += ' opening';
-                    typeName = 'رصيد افتتاحي';
-                }
+                var typeLabels = {
+                    'incoming': 'إيداع',
+                    'outgoing': 'سحب',
+                    'transfer_in': 'تحويل وارد',
+                    'transfer_out': 'تحويل صادر',
+                    'opening': 'رصيد افتتاحي',
+                    'salary': 'راتب',
+                    'expense': 'مصروف',
+                    'revenue': 'إيراد'
+                };
+                var displayType = typeLabels[typeName] || typeName;
+
+                if (typeName === 'incoming') badgeClass += ' incoming';
+                else if (typeName === 'outgoing') badgeClass += ' outgoing';
+                else if (typeName === 'transfer_in' || typeName === 'transfer_out') badgeClass += ' transfer';
+                else if (typeName === 'opening') badgeClass += ' opening';
 
                 var amount = item.amount || 0;
                 var isIncoming = amount > 0;
@@ -982,7 +1288,7 @@
                 rows += `
                     <tr>
                         <td>${item.description || '-'}</td>
-                        <td><span class="${badgeClass}">${typeName}</span></td>
+                        <td><span class="${badgeClass}">${displayType}</span></td>
                         <td class="${isIncoming ? 'amount-in' : 'amount-out'}">
                             ${isIncoming ? '+' : '-'} ${displayAmount.toLocaleString()} ج.م
                         </td>
@@ -1045,21 +1351,23 @@
         }
 
         // ============================================================
-        // CLOSE MODAL ON ESCAPE
+        // CLOSE MODALS ON ESCAPE
         // ============================================================
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeOpeningModal();
+                closeImportModal();
             }
         });
 
         // ============================================================
-        // CLOSE MODAL ON OVERLAY CLICK
+        // CLOSE MODALS ON OVERLAY CLICK
         // ============================================================
         document.getElementById('openingModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeOpeningModal();
-            }
+            if (e.target === this) closeOpeningModal();
+        });
+        document.getElementById('importModal').addEventListener('click', function(e) {
+            if (e.target === this) closeImportModal();
         });
 
         // ============================================================
