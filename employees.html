@@ -602,7 +602,7 @@
         }
 
         // ============================================================
-        // ADD EMPLOYEE - باستخدام Admin API
+        // ADD EMPLOYEE - باستخدام signUp
         // ============================================================
         document.getElementById('addEmployeeForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -617,63 +617,65 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
 
             try {
-                // 1. نجيب الـ token من localStorage
-                var session = localStorage.getItem('rollex_session');
-                var parsed = JSON.parse(session);
-                var token = parsed.access_token;
+                // 1. نجيب company_id من المدير الحالي
+                var profile = await getCurrentUserProfile();
+                var companyId = profile.company_id;
 
-                // 2. إنشاء المستخدم في Supabase Auth باستخدام Admin API
-                var response = await fetch(SUPABASE_URL + '/auth/v1/admin/users', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password,
-                        email_confirm: true,
-                        user_metadata: {
+                // 2. تسجيل المستخدم في Auth
+                var { data: authData, error: authError } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
                             name: name,
-                            role: role
+                            role: role,
+                            company_name: profile.company_name || 'شركة رولكس للدهانات'
                         }
-                    })
+                    }
                 });
 
-                var data = await response.json();
-
-                if (!response.ok) {
-                    var errorMsg = data.msg || data.message || 'فشل إنشاء المستخدم';
-                    if (errorMsg.includes('already registered')) {
-                        errorMsg = 'هذا البريد مسجل بالفعل';
+                if (authError) {
+                    if (authError.message.includes('already registered')) {
+                        showToast('❌ خطأ', 'هذا البريد مسجل بالفعل', 'error');
+                    } else {
+                        showToast('❌ خطأ', authError.message, 'error');
                     }
-                    throw new Error(errorMsg);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
+                    return;
                 }
 
-                var userId = data.id;
+                if (!authData.user) {
+                    showToast('❌ خطأ', 'فشل إنشاء المستخدم', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
+                    return;
+                }
 
-                // 3. إضافة في profiles
-                var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify({
-                        id: userId,
-                        name: name,
-                        role: role,
-                        email: email
-                    })
+                // 3. إضافة في profiles يدوياً (لأن Trigger مش هيشتغل مع الموظفين العاديين)
+                var { error: profileError } = await supabase.from('profiles').insert({
+                    id: authData.user.id,
+                    name: name,
+                    role: role,
+                    email: email,
+                    company_id: companyId
                 });
 
-                if (!profileResponse.ok) {
-                    var profileError = await profileResponse.text();
+                if (profileError) {
                     console.error('❌ فشل إضافة البروفايل:', profileError);
-                    // نكمل حتى لو فشل
+                    // نحاول تاني من غير email
+                    var { error: retryError } = await supabase.from('profiles').insert({
+                        id: authData.user.id,
+                        name: name,
+                        role: role,
+                        company_id: companyId
+                    });
+                    if (retryError) {
+                        console.error('❌ فشل إضافة البروفايل (محاولة 2):', retryError);
+                        showToast('⚠️ تنبيه', 'تم إنشاء المستخدم لكن فشل إضافة البروفايل', 'warning');
+                    } else {
+                        console.log('✅ تم إضافة البروفايل (محاولة 2)');
+                    }
                 }
 
                 showToast('✅ تم الإضافة', 'تم إضافة الموظف ' + name + ' بنجاح', 'success');
@@ -695,10 +697,6 @@
         async function deleteEmployee(userId) {
             if (!confirm('هل أنت متأكد من حذف هذا الموظف؟')) return;
 
-            var session = localStorage.getItem('rollex_session');
-            var parsed = JSON.parse(session);
-            var token = parsed.access_token;
-
             try {
                 // 1. حذف من profiles
                 var { error: pError } = await supabase.from('profiles').delete().eq('id', userId);
@@ -707,17 +705,14 @@
                     return; 
                 }
 
-                // 2. حذف من auth.users
-                var deleteResponse = await fetch(SUPABASE_URL + '/auth/v1/admin/users/' + userId, {
-                    method: 'DELETE',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
+                // 2. حذف من auth.users باستخدام admin API
+                try {
+                    var { error: aError } = await supabase.auth.admin.deleteUser(userId);
+                    if (aError) { 
+                        console.error('❌ فشل حذف من auth:', aError);
                     }
-                });
-
-                if (!deleteResponse.ok) {
-                    console.error('❌ فشل حذف من auth:', deleteResponse.status);
+                } catch (e) {
+                    console.error('❌ خطأ في حذف auth:', e);
                 }
 
                 showToast('✅ تم الحذف', 'تم حذف الموظف بنجاح', 'success');
