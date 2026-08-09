@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>إدارة الخزائن - QuickData ProSoft</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: #1b2431;
+            color: #fff;
+            direction: rtl;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: #f5a623;
+        }
+
+        .header .back-btn {
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: 0.3s;
+        }
+
+        .header .back-btn:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+        }
+
+        /* ===== Add Treasury Form ===== */
+        .add-form {
+            background: #212c3b;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .add-form h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #f5a623;
+            margin-bottom: 16px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .form-group label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: #2a3646;
+            color: #fff;
+            font-size: 0.85rem;
+            font-family: inherit;
+            outline: none;
+            transition: 0.3s;
+            width: 100%;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #f5a623;
+            box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .form-group select option {
+            background: #212c3b;
+            color: #fff;
+        }
+
+        .btn-add {
+            padding: 10px 24px;
+            background: linear-gradient(135deg, #ffc857, #f5a623, #e08e0b);
+            color: #1b1204;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 166, 35, 0.3);
+        }
+
+        .btn-add:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ===== Treasuries List ===== */
+        .treasuries-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .treasury-card {
+            background: #212c3b;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: 0.3s;
+            position: relative;
+        }
+
+        .treasury-card:hover {
+            border-color: rgba(245, 166, 35, 0.15);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .treasury-card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 8px;
+        }
+
+        .treasury-card .card-header .name {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .treasury-card .card-header .type-badge {
+            font-size: 0.55rem;
+            font-weight: 700;
+            padding: 2px 12px;
+            border-radius: 50px;
+            background: rgba(245, 166, 35, 0.1);
+            color: #f5a623;
+            border: 1px solid rgba(245, 166, 35, 0.1);
+        }
+
+        .treasury-card .card-header .type-badge.main {
+            background: rgba(52, 211, 153, 0.1);
+            color: #34d399;
+            border-color: rgba(52, 211, 153, 0.1);
+        }
+
+        .treasury-card .description {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.75rem;
+            margin-bottom: 12px;
+        }
+
+        .treasury-card .stats {
+            display: flex;
+            gap: 16px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .treasury-card .stats .stat {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .treasury-card .stats .stat .label {
+            font-size: 0.55rem;
+            color: rgba(255, 255, 255, 0.3);
+            font-weight: 600;
+        }
+
+        .treasury-card .stats .stat .value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #f5a623;
+        }
+
+        .treasury-card .stats .stat .value.incoming {
+            color: #34d399;
+        }
+        .treasury-card .stats .stat .value.outgoing {
+            color: #f87171;
+        }
+
+        .treasury-card .card-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .treasury-card .card-actions button {
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: none;
+            font-size: 0.65rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .treasury-card .card-actions button:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        .treasury-card .card-actions button.enter {
+            background: rgba(245, 166, 35, 0.08);
+            color: #f5a623;
+        }
+
+        .treasury-card .card-actions button.enter:hover {
+            background: rgba(245, 166, 35, 0.15);
+        }
+
+        .treasury-card .card-actions button.delete {
+            color: #f87171;
+        }
+
+        .treasury-card .card-actions button.delete:hover {
+            background: rgba(248, 113, 113, 0.08);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 12px;
+            color: rgba(255, 255, 255, 0.05);
+        }
+
+        /* ===== Toast ===== */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            background: #212c3b;
+            padding: 14px 20px;
+            border-radius: 12px;
+            border-right: 4px solid #f5a623;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 280px;
+            animation: slideIn 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .toast.success {
+            border-right-color: #34d399;
+        }
+        .toast.error {
+            border-right-color: #f87171;
+        }
+
+        .toast .icon {
+            font-size: 1.1rem;
+        }
+        .toast .icon.success {
+            color: #34d399;
+        }
+        .toast .icon.error {
+            color: #f87171;
+        }
+
+        .toast .content .title {
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        .toast .content .message {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+            .treasuries-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- ===== Header ===== -->
+        <div class="header">
+            <h1><i class="fas fa-university"></i> إدارة الخزائن</h1>
+            <a href="treasury.html" class="back-btn"><i class="fas fa-arrow-right"></i> العودة للخزينة</a>
+        </div>
+
+        <!-- ===== Add Treasury Form ===== -->
+        <div class="add-form">
+            <h3><i class="fas fa-plus-circle"></i> إضافة خزينة جديدة</h3>
+            <form id="addTreasuryForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>اسم الخزينة</label>
+                        <input type="text" id="treasuryName" placeholder="مثال: خزينة المبيعات" required />
+                    </div>
+                    <div class="form-group">
+                        <label>الوصف</label>
+                        <input type="text" id="treasuryDesc" placeholder="وصف الخزينة" />
+                    </div>
+                    <div class="form-group">
+                        <label>النوع</label>
+                        <select id="treasuryType">
+                            <option value="custom">مخصصة</option>
+                            <option value="accountant">خزينة المحاسب</option>
+                            <option value="driver">خزينة السائق</option>
+                            <option value="sales">خزينة المبيعات</option>
+                            <option value="purchases">خزينة المشتريات</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn-add" id="addBtn"><i class="fas fa-plus"></i> إضافة</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- ===== Treasuries List ===== -->
+        <div id="treasuriesList">
+            <div class="empty-state">
+                <i class="fas fa-university"></i>
+                <p>لا توجد خزائن. أضف خزينة جديدة!</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===== Toast Container ===== -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
+        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
+        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ============================================================
+        // TOAST
+        // ============================================================
+        function showToast(title, message, type) {
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + (type || '');
+            var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            var iconClass = type === 'success' ? 'success' : 'error';
+
+            toast.innerHTML = `
+                <span class="icon ${iconClass}"><i class="fas ${icon}"></i></span>
+                <div class="content">
+                    <div class="title">${title}</div>
+                    <div class="message">${message}</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(function() {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(20px)';
+                setTimeout(function() { toast.remove(); }, 300);
+            }, 3000);
+        }
+
+        // ============================================================
+        // CHECK SESSION
+        // ============================================================
+        async function checkSession() {
+            var session = localStorage.getItem('rollex_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            try {
+                var parsed = JSON.parse(session);
+                var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + parsed.access_token
+                    }
+                });
+                if (!response.ok) {
+                    localStorage.removeItem('rollex_session');
+                    window.location.href = 'login.html';
+                    return null;
+                }
+                return await response.json();
+            } catch (e) {
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
+
+        // ============================================================
+        // GET CURRENT USER PROFILE
+        // ============================================================
+        async function getCurrentUserProfile() {
+            var user = await checkSession();
+            if (!user) return null;
+            var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=*&id=eq.' + user.id, {
+                headers: { 'apikey': SUPABASE_ANON_KEY }
+            });
+            var data = await response.json();
+            return data && data.length > 0 ? data[0] : null;
+        }
+
+        // ============================================================
+        // LOAD TREASURIES
+        // ============================================================
+        async function loadTreasuries() {
+            var profile = await getCurrentUserProfile();
+            if (!profile) return;
+
+            var response = await fetch(SUPABASE_URL + '/rest/v1/treasuries?select=*&company_id=eq.' + profile.company_id + '&is_active=eq.true', {
+                headers: { 'apikey': SUPABASE_ANON_KEY }
+            });
+
+            var treasuries = await response.json();
+            renderTreasuries(treasuries);
+        }
+
+        // ============================================================
+        // RENDER TREASURIES
+        // ============================================================
+        function renderTreasuries(treasuries) {
+            var container = document.getElementById('treasuriesList');
+
+            if (!treasuries || treasuries.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-university"></i>
+                        <p>لا توجد خزائن. أضف خزينة جديدة!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            var html = '<div class="treasuries-grid">';
+            treasuries.forEach(function(t) {
+                var typeLabels = {
+                    'main': 'رئيسية',
+                    'accountant': 'محاسب',
+                    'driver': 'سائق',
+                    'sales': 'مبيعات',
+                    'purchases': 'مشتريات',
+                    'custom': 'مخصصة'
+                };
+                var typeClass = t.type === 'main' ? 'main' : '';
+
+                html += `
+                    <div class="treasury-card" data-id="${t.id}">
+                        <div class="card-header">
+                            <span class="name">${t.name}</span>
+                            <span class="type-badge ${typeClass}">${typeLabels[t.type] || 'مخصصة'}</span>
+                        </div>
+                        <div class="description">${t.description || 'لا يوجد وصف'}</div>
+                        <div class="card-actions">
+                            <button class="enter" onclick="window.location.href='treasury.html?treasury_id=${t.id}'">
+                                <i class="fas fa-arrow-left"></i> دخول
+                            </button>
+                            ${t.type !== 'main' ? `<button class="delete" onclick="deleteTreasury('${t.id}')"><i class="fas fa-trash-alt"></i> حذف</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // ============================================================
+        // ADD TREASURY
+        // ============================================================
+        document.getElementById('addTreasuryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            var btn = document.getElementById('addBtn');
+            var name = document.getElementById('treasuryName').value.trim();
+            var description = document.getElementById('treasuryDesc').value.trim();
+            var type = document.getElementById('treasuryType').value;
+
+            if (!name) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال اسم الخزينة', 'error');
+                return;
+            }
+
+            var profile = await getCurrentUserProfile();
+            if (!profile) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/treasuries', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        description: description,
+                        type: type,
+                        company_id: profile.company_id
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('فشل إضافة الخزينة');
+                }
+
+                showToast('✅ تم الإضافة', 'تم إضافة الخزينة "' + name + '" بنجاح', 'success');
+                document.getElementById('addTreasuryForm').reset();
+                loadTreasuries();
+
+            } catch (error) {
+                showToast('❌ خطأ', error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
+        });
+
+        // ============================================================
+        // DELETE TREASURY
+        // ============================================================
+        async function deleteTreasury(id) {
+            if (!confirm('هل أنت متأكد من حذف هذه الخزينة؟')) return;
+
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/treasuries?id=eq.' + id, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Prefer': 'return=representation'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('فشل حذف الخزينة');
+                }
+
+                showToast('✅ تم الحذف', 'تم حذف الخزينة بنجاح', 'success');
+                loadTreasuries();
+
+            } catch (error) {
+                showToast('❌ خطأ', error.message, 'error');
+            }
+        }
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        console.log('🏢 إدارة الخزائن - QuickData ProSoft');
+        loadTreasuries();
+    </script>
+
+</body>
+</html>
