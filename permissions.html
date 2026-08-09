@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>الصلاحيات - نظام إدارة الشركات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        /* ==========================================================
+           RESET & BASE
+           ========================================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: #1b2431;
+            color: #fff;
+            direction: rtl;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* ==========================================================
+           HEADER
+           ========================================================== */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: #f5a623;
+        }
+
+        .header .back-btn {
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: 0.3s;
+        }
+
+        .header .back-btn:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+        }
+
+        /* ==========================================================
+           USER SELECTOR
+           ========================================================== */
+        .selector {
+            background: #212c3b;
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .selector label {
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.85rem;
+        }
+
+        .selector select {
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: #2a3646;
+            color: #fff;
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            min-width: 200px;
+            flex: 1;
+        }
+
+        .selector select:focus {
+            border-color: #f5a623;
+        }
+
+        /* ==========================================================
+           PERMISSIONS GRID
+           ========================================================== */
+        .permissions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .permission-card {
+            background: #212c3b;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: 0.3s;
+        }
+
+        .permission-card:hover {
+            border-color: rgba(245, 166, 35, 0.15);
+        }
+
+        .permission-card .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .permission-card .card-header .icon {
+            font-size: 1.3rem;
+            color: #f5a623;
+        }
+
+        .permission-card .card-header .title {
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        .permission-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .permission-item:last-child {
+            border-bottom: none;
+        }
+
+        .permission-item .label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 600;
+        }
+
+        /* ==========================================================
+           TOGGLE SWITCH
+           ========================================================== */
+        .toggle {
+            position: relative;
+            width: 38px;
+            height: 20px;
+            background: #2a3646;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: 0.3s;
+            flex-shrink: 0;
+        }
+
+        .toggle.active {
+            background: #f5a623;
+        }
+
+        .toggle .thumb {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            transition: 0.3s;
+        }
+
+        .toggle.active .thumb {
+            right: 20px;
+        }
+
+        /* ==========================================================
+           SAVE BUTTON
+           ========================================================== */
+        .save-section {
+            margin-top: 24px;
+            text-align: center;
+        }
+
+        .btn-save {
+            padding: 14px 48px;
+            background: linear-gradient(135deg, #ffc857, #f5a623, #e08e0b);
+            color: #1b1204;
+            border: none;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: inherit;
+            box-shadow: 0 6px 20px rgba(245, 166, 35, 0.2);
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(245, 166, 35, 0.3);
+        }
+
+        .btn-save:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ==========================================================
+           EMPTY STATE
+           ========================================================== */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 12px;
+            color: rgba(255, 255, 255, 0.05);
+        }
+
+        /* ==========================================================
+           TOAST
+           ========================================================== */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            background: #212c3b;
+            padding: 14px 20px;
+            border-radius: 12px;
+            border-right: 4px solid #f5a623;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 280px;
+            animation: slideIn 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .toast.success {
+            border-right-color: #34d399;
+        }
+        .toast.error {
+            border-right-color: #f87171;
+        }
+
+        .toast .icon {
+            font-size: 1.1rem;
+        }
+        .toast .icon.success {
+            color: #34d399;
+        }
+        .toast .icon.error {
+            color: #f87171;
+        }
+
+        .toast .content .title {
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        .toast .content .message {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* ==========================================================
+           RESPONSIVE
+           ========================================================== */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+
+            .selector {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .permissions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-save {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- ===== HEADER ===== -->
+        <div class="header">
+            <h1><i class="fas fa-shield-alt"></i> صلاحيات النظام</h1>
+            <a href="index.html" class="back-btn"><i class="fas fa-arrow-right"></i> العودة للرئيسية</a>
+        </div>
+
+        <!-- ===== USER SELECTOR ===== -->
+        <div class="selector">
+            <label><i class="fas fa-user"></i> اختيار الموظف:</label>
+            <select id="userSelect">
+                <option value="">جاري التحميل...</option>
+            </select>
+        </div>
+
+        <!-- ===== PERMISSIONS ===== -->
+        <div id="permissionsContainer">
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <p>اختر موظفاً لعرض صلاحياته</p>
+            </div>
+        </div>
+
+        <!-- ===== SAVE BUTTON ===== -->
+        <div class="save-section">
+            <button class="btn-save" id="saveBtn" disabled>
+                <i class="fas fa-save"></i> حفظ التغييرات
+            </button>
+        </div>
+
+    </div>
+
+    <!-- ===== TOAST ===== -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // ============================================================
+        // CONFIGURATION
+        // ============================================================
+        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
+        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
+
+        var currentUserId = null;
+        var currentPermissions = {};
+        var originalPermissions = {};
+
+        // ============================================================
+        // TOAST
+        // ============================================================
+        function showToast(title, message, type) {
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + (type || '');
+            var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            var iconClass = type === 'success' ? 'success' : 'error';
+
+            toast.innerHTML = `
+                <span class="icon ${iconClass}"><i class="fas ${icon}"></i></span>
+                <div class="content">
+                    <div class="title">${title}</div>
+                    <div class="message">${message}</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(function() {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(20px)';
+                setTimeout(function() { toast.remove(); }, 300);
+            }, 3000);
+        }
+
+        // ============================================================
+        // SESSION
+        // ============================================================
+        function getSession() {
+            var session = localStorage.getItem('rollex_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            try {
+                return JSON.parse(session);
+            } catch (e) {
+                localStorage.removeItem('rollex_session');
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
+
+        function getToken() {
+            var session = getSession();
+            return session ? session.access_token : null;
+        }
+
+        // ============================================================
+        // CHECK ADMIN
+        // ============================================================
+        async function checkAdmin() {
+            var token = getToken();
+            if (!token) return false;
+
+            var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+
+            if (!response.ok) return false;
+
+            var user = await response.json();
+
+            var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=role&id=eq.' + user.id, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+
+            var data = await profileResponse.json();
+            return data && data.length > 0 && data[0].role === 'admin';
+        }
+
+        // ============================================================
+        // LOAD USERS
+        // ============================================================
+        async function loadUsers() {
+            var token = getToken();
+            if (!token) return;
+
+            var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=id,name,email,role,permissions', {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+
+            if (!response.ok) return;
+
+            var users = await response.json();
+            var select = document.getElementById('userSelect');
+            select.innerHTML = '<option value="">اختر موظف...</option>';
+
+            users.forEach(function(user) {
+                var option = document.createElement('option');
+                option.value = user.id;
+                var roleLabel = user.role === 'admin' ? ' (مدير)' : (user.role === 'accountant' ? ' (محاسب)' : (user
+                    .role === 'driver' ? ' (سائق)' : ''));
+                option.textContent = (user.name || 'غير معروف') + roleLabel;
+                select.appendChild(option);
+            });
+
+            // اختيار أول مستخدم غير مدير (لو موجود)
+            var firstNonAdmin = users.find(function(u) { return u.role !== 'admin'; });
+            if (firstNonAdmin) {
+                select.value = firstNonAdmin.id;
+                loadPermissions(firstNonAdmin.id);
+            } else if (users.length > 0) {
+                select.value = users[0].id;
+                loadPermissions(users[0].id);
+            }
+        }
+
+        // ============================================================
+        // LOAD PERMISSIONS
+        // ============================================================
+        async function loadPermissions(userId) {
+            currentUserId = userId;
+            var token = getToken();
+            if (!token) return;
+
+            var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=permissions,role&id=eq.' + userId, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+
+            if (!response.ok) return;
+
+            var data = await response.json();
+            var profile = data && data.length > 0 ? data[0] : null;
+
+            if (!profile) {
+                document.getElementById('permissionsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-user-slash"></i>
+                        <p>لم يتم العثور على المستخدم</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // صلاحيات افتراضية للمدير (كل شيء مسموح)
+            var defaultPermissions = {
+                treasuries: { view: true, add: false, edit: false, delete: false },
+                employees: { view: false, add: false, edit: false, delete: false },
+                clients: { view: true, add: false, edit: false, delete: false },
+                products: { view: true, add: false, edit: false, delete: false },
+                invoices: { view: true, add: false, edit: false, delete: false },
+                reports: { view: false }
+            };
+
+            // لو مدير، كل الصلاحيات مفعلة
+            if (profile.role === 'admin') {
+                defaultPermissions = {
+                    treasuries: { view: true, add: true, edit: true, delete: true },
+                    employees: { view: true, add: true, edit: true, delete: true },
+                    clients: { view: true, add: true, edit: true, delete: true },
+                    products: { view: true, add: true, edit: true, delete: true },
+                    invoices: { view: true, add: true, edit: true, delete: true },
+                    reports: { view: true }
+                };
+                document.getElementById('saveBtn').disabled = true;
+                document.getElementById('saveBtn').title = 'المدير لديه جميع الصلاحيات';
+            } else {
+                document.getElementById('saveBtn').disabled = false;
+                document.getElementById('saveBtn').title = '';
+            }
+
+            // دمج الصلاحيات الموجودة مع الافتراضية
+            var permissions = profile.permissions || {};
+            var merged = {};
+
+            Object.keys(defaultPermissions).forEach(function(key) {
+                merged[key] = {};
+                Object.keys(defaultPermissions[key]).forEach(function(subKey) {
+                    merged[key][subKey] = (permissions[key] && permissions[key][subKey] !== undefined) ?
+                        permissions[key][subKey] :
+                        defaultPermissions[key][subKey];
+                });
+            });
+
+            currentPermissions = JSON.parse(JSON.stringify(merged));
+            originalPermissions = JSON.parse(JSON.stringify(merged));
+
+            renderPermissions(merged, profile.role);
+        }
+
+        // ============================================================
+        // RENDER PERMISSIONS
+        // ============================================================
+        function renderPermissions(permissions, role) {
+            var container = document.getElementById('permissionsContainer');
+
+            var sections = [{
+                key: 'treasuries',
+                icon: 'fa-university',
+                title: 'الخزائن',
+                actions: ['view', 'add', 'edit', 'delete']
+            }, {
+                key: 'employees',
+                icon: 'fa-users-cog',
+                title: 'الموظفين',
+                actions: ['view', 'add', 'edit', 'delete']
+            }, {
+                key: 'clients',
+                icon: 'fa-users',
+                title: 'العملاء',
+                actions: ['view', 'add', 'edit', 'delete']
+            }, {
+                key: 'products',
+                icon: 'fa-boxes',
+                title: 'المنتجات',
+                actions: ['view', 'add', 'edit', 'delete']
+            }, {
+                key: 'invoices',
+                icon: 'fa-file-invoice',
+                title: 'الفواتير',
+                actions: ['view', 'add', 'edit', 'delete']
+            }, {
+                key: 'reports',
+                icon: 'fa-chart-pie',
+                title: 'التقارير',
+                actions: ['view']
+            }];
+
+            var isAdmin = role === 'admin';
+
+            var html = '<div class="permissions-grid">';
+
+            sections.forEach(function(section) {
+                var sectionPerms = permissions[section.key] || {};
+
+                html += `
+                    <div class="permission-card">
+                        <div class="card-header">
+                            <span class="icon"><i class="fas ${section.icon}"></i></span>
+                            <span class="title">${section.title}</span>
+                        </div>
+                `;
+
+                section.actions.forEach(function(action) {
+                    var isEnabled = sectionPerms[action] || false;
+                    var actionLabels = {
+                        'view': '👁️ عرض',
+                        'add': '➕ إضافة',
+                        'edit': '✏️ تعديل',
+                        'delete': '🗑️ حذف'
+                    };
+
+                    html += `
+                        <div class="permission-item">
+                            <span class="label">${actionLabels[action] || action}</span>
+                            <div class="toggle ${isEnabled ? 'active' : ''}" 
+                                 onclick="${isAdmin ? '' : 'togglePermission(\'' + section.key + '\', \'' + action + '\')'}"
+                                 style="${isAdmin ? 'opacity:0.5;cursor:default;' : ''}">
+                                <div class="thumb"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+            });
+
+            html += '</div>';
+
+            // رسالة للمدير
+            if (isAdmin) {
+                html += `
+                    <div style="text-align:center;margin-top:20px;padding:16px;background:rgba(245,166,35,0.06);border-radius:12px;border:1px solid rgba(245,166,35,0.1);color:#f5a623;">
+                        <i class="fas fa-crown"></i> المدير لديه جميع الصلاحيات ولا يمكن تعديلها
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // ============================================================
+        // TOGGLE PERMISSION
+        // ============================================================
+        function togglePermission(section, action) {
+            var isAdmin = document.querySelector('.permission-card') === null;
+            if (isAdmin) return;
+
+            var current = currentPermissions[section][action];
+            currentPermissions[section][action] = !current;
+
+            // إعادة الرندر مع الحالة الجديدة
+            renderPermissions(currentPermissions, 'employee');
+
+            // تفعيل زر الحفظ
+            document.getElementById('saveBtn').disabled = false;
+        }
+
+        // ============================================================
+        // SAVE PERMISSIONS
+        // ============================================================
+        document.getElementById('saveBtn').addEventListener('click', async function() {
+            var btn = this;
+            var token = getToken();
+            if (!token || !currentUserId) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?id=eq.' + currentUserId, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({
+                        permissions: currentPermissions
+                    })
+                });
+
+                if (!response.ok) {
+                    var errorText = await response.text();
+                    throw new Error('فشل حفظ الصلاحيات: ' + errorText);
+                }
+
+                originalPermissions = JSON.parse(JSON.stringify(currentPermissions));
+                showToast('✅ تم الحفظ', 'تم تحديث صلاحيات المستخدم بنجاح', 'success');
+                btn.disabled = true;
+
+            } catch (error) {
+                showToast('❌ خطأ', error.message, 'error');
+                btn.disabled = false;
+            }
+
+            btn.innerHTML = '<i class="fas fa-save"></i> حفظ التغييرات';
+        });
+
+        // ============================================================
+        // USER SELECT CHANGE
+        // ============================================================
+        document.getElementById('userSelect').addEventListener('change', function() {
+            if (this.value) {
+                loadPermissions(this.value);
+            } else {
+                document.getElementById('permissionsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>اختر موظفاً لعرض صلاحياته</p>
+                    </div>
+                `;
+            }
+        });
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        console.log('🛡️ صلاحيات النظام - QuickData ProSoft');
+
+        (async function init() {
+            var isAdmin = await checkAdmin();
+            if (!isAdmin) {
+                showToast('❌ غير مسموح', 'هذه الصفحة مخصصة للمدير فقط', 'error');
+                setTimeout(function() { window.location.href = 'index.html'; }, 2000);
+                return;
+            }
+
+            await loadUsers();
+        })();
+    </script>
+
+</body>
+</html>
