@@ -467,10 +467,9 @@
         }
 
         // ============================================================
-        // CHECK SESSION - مع localStorage
+        // CHECK SESSION
         // ============================================================
         async function checkSession() {
-            // 1. نجرب نجيب من localStorage
             var sessionData = localStorage.getItem('rollex_session');
             if (sessionData) {
                 try {
@@ -490,7 +489,6 @@
                 }
             }
 
-            // 2. لو مش موجود في localStorage، نجيب من Supabase
             var { data: { session }, error } = await supabase.auth.getSession();
             if (error || !session) {
                 console.warn('⚠️ مفيش جلسة، تحويل للوجن');
@@ -498,7 +496,6 @@
                 return null;
             }
 
-            // 3. نحفظ الجلسة في localStorage
             localStorage.setItem('rollex_session', JSON.stringify(session));
             console.log('✅ جلسة جديدة من Supabase واتحفظت');
             return session;
@@ -525,7 +522,7 @@
         }
 
         // ============================================================
-        // CHECK ADMIN - مع عرض تفصيلي
+        // CHECK ADMIN
         // ============================================================
         async function checkAdmin() {
             console.log('🔍 بداية التحقق من المدير...');
@@ -605,10 +602,11 @@
         }
 
         // ============================================================
-        // ADD EMPLOYEE - تم التعديل هنا
+        // ADD EMPLOYEE - باستخدام Admin API
         // ============================================================
         document.getElementById('addEmployeeForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+
             var name = document.getElementById('empName').value.trim();
             var email = document.getElementById('empEmail').value.trim();
             var password = document.getElementById('empPassword').value;
@@ -619,53 +617,63 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
 
             try {
-                // 1. تسجيل المستخدم في Auth باستخدام signUp
-                var { data: authData, error: authError } = await supabase.auth.signUp({
-                    email: email,
-                    password: password,
-                    options: {
-                        data: {
+                // 1. نجيب الـ token من localStorage
+                var session = localStorage.getItem('rollex_session');
+                var parsed = JSON.parse(session);
+                var token = parsed.access_token;
+
+                // 2. إنشاء المستخدم في Supabase Auth باستخدام Admin API
+                var response = await fetch(SUPABASE_URL + '/auth/v1/admin/users', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        email_confirm: true,
+                        user_metadata: {
                             name: name,
                             role: role
                         }
-                    }
+                    })
                 });
 
-                if (authError) {
-                    if (authError.message.includes('already registered')) {
-                        showToast('❌ خطأ', 'هذا البريد مسجل بالفعل', 'error');
-                    } else {
-                        showToast('❌ خطأ', authError.message, 'error');
+                var data = await response.json();
+
+                if (!response.ok) {
+                    var errorMsg = data.msg || data.message || 'فشل إنشاء المستخدم';
+                    if (errorMsg.includes('already registered')) {
+                        errorMsg = 'هذا البريد مسجل بالفعل';
                     }
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
-                    return;
+                    throw new Error(errorMsg);
                 }
 
-                // 2. التحقق من إنشاء المستخدم
-                if (!authData.user) {
-                    showToast('❌ خطأ', 'فشل إنشاء المستخدم', 'error');
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
-                    return;
-                }
-
-                var userId = authData.user.id;
+                var userId = data.id;
 
                 // 3. إضافة في profiles
-                var { error: profileError } = await supabase.from('profiles').insert({
-                    id: userId,
-                    name: name,
-                    role: role,
-                    email: email
+                var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({
+                        id: userId,
+                        name: name,
+                        role: role,
+                        email: email
+                    })
                 });
 
-                if (profileError) {
-                    showToast('❌ خطأ', 'تم إنشاء المستخدم لكن فشل إضافة البيانات', 'error');
-                    console.error(profileError);
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
-                    return;
+                if (!profileResponse.ok) {
+                    var profileError = await profileResponse.text();
+                    console.error('❌ فشل إضافة البروفايل:', profileError);
+                    // نكمل حتى لو فشل
                 }
 
                 showToast('✅ تم الإضافة', 'تم إضافة الموظف ' + name + ' بنجاح', 'success');
@@ -687,6 +695,10 @@
         async function deleteEmployee(userId) {
             if (!confirm('هل أنت متأكد من حذف هذا الموظف؟')) return;
 
+            var session = localStorage.getItem('rollex_session');
+            var parsed = JSON.parse(session);
+            var token = parsed.access_token;
+
             try {
                 // 1. حذف من profiles
                 var { error: pError } = await supabase.from('profiles').delete().eq('id', userId);
@@ -695,11 +707,17 @@
                     return; 
                 }
 
-                // 2. حذف من auth.users باستخدام admin API
-                var { error: aError } = await supabase.auth.admin.deleteUser(userId);
-                if (aError) { 
-                    console.error('❌ فشل حذف من auth:', aError);
-                    // نكمل حتى لو فشل الحذف من auth
+                // 2. حذف من auth.users
+                var deleteResponse = await fetch(SUPABASE_URL + '/auth/v1/admin/users/' + userId, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!deleteResponse.ok) {
+                    console.error('❌ فشل حذف من auth:', deleteResponse.status);
                 }
 
                 showToast('✅ تم الحذف', 'تم حذف الموظف بنجاح', 'success');
@@ -739,7 +757,7 @@
 
             var isAdmin = await checkAdmin();
             if (!isAdmin) {
-                console.log('❌ مش مدير، هنوقف هنا عشان نشوف المشكلة');
+                console.log('❌ مش مدير');
                 return;
             }
 
