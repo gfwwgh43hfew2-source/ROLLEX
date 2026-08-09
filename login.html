@@ -2,9 +2,9 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
     <title>تسجيل الدخول - QuickData ProSoft</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <style>
         /* ==========================================================
@@ -282,66 +282,6 @@
         .copyright i { margin: 0 4px; color: rgba(230, 211, 163, 0.2); }
         .copyright strong { color: rgba(230, 211, 163, 0.4); font-weight: 800; }
         .copyright .version { color: rgba(199, 206, 219, 0.14); font-weight: 400; font-size: 0.5rem; }
-
-        /* ===== خيارات الدخول ===== */
-        .social-label {
-            text-align: center;
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: rgba(199, 206, 219, 0.3);
-            margin-bottom: 14px;
-        }
-
-        .social-btns {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 22px;
-        }
-
-        .social-btns button {
-            width: 48px;
-            height: 48px;
-            border-radius: 14px;
-            border: 1px solid rgba(230, 211, 163, 0.08);
-            background: rgba(255, 255, 255, 0.03);
-            color: rgba(199, 206, 219, 0.5);
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: all 0.15s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .social-btns button:hover {
-            border-color: var(--champagne);
-            background: rgba(230, 211, 163, 0.06);
-            color: var(--champagne);
-        }
-
-        /* ===== الفاصل ===== */
-        .divider {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 22px;
-        }
-
-        .divider span {
-            font-size: 0.6rem;
-            font-weight: 600;
-            color: rgba(199, 206, 219, 0.2);
-            white-space: nowrap;
-        }
-
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: rgba(230, 211, 163, 0.06);
-        }
 
         /* ===== حقول الإدخال ===== */
         .form-group {
@@ -632,7 +572,6 @@
             .btn-primary { padding: 14px; font-size: 0.9rem; }
             .links { font-size: 0.62rem; }
             .copyright { font-size: 0.52rem; margin-top: 18px; padding-top: 14px; }
-            .social-btns button { width: 42px; height: 42px; font-size: 0.95rem; }
         }
 
         @media (max-width: 420px) {
@@ -641,7 +580,6 @@
             .logo-text h1 { font-size: 1.2rem; }
             .input-wrap input { padding: 11px 36px 11px 12px; font-size: 0.82rem; }
             .btn-primary { padding: 12px; font-size: 0.85rem; }
-            .social-btns button { width: 36px; height: 36px; font-size: 0.85rem; }
         }
 
         @media (min-width: 769px) {
@@ -832,7 +770,7 @@
             var password = document.getElementById('password').value;
 
             if (!email || !password) {
-                showMessage('الرجاء ملء جميع الحقول', 'error');
+                showMessage('❌ الرجاء ملء جميع الحقول', 'error');
                 return;
             }
 
@@ -878,47 +816,6 @@
 
         /**
          * ============================================================
-         * التحقق من وجود مدير وإخفاء زر التسجيل
-         * ============================================================
-         */
-        async function checkAdminExists() {
-            try {
-                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?role=eq.admin&select=id', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY
-                    }
-                });
-
-                if (!response.ok) {
-                    console.warn('⚠️ فشل في التحقق من وجود مدير');
-                    return false;
-                }
-
-                var data = await response.json();
-                var adminExists = data && data.length > 0;
-
-                var registerLink = document.getElementById('registerLink');
-                var adminMsg = document.getElementById('adminMsg');
-
-                if (registerLink) {
-                    if (adminExists) {
-                        registerLink.style.display = 'none';
-                        if (adminMsg) adminMsg.classList.add('show');
-                    } else {
-                        registerLink.style.display = 'inline';
-                        if (adminMsg) adminMsg.classList.remove('show');
-                    }
-                }
-
-                return adminExists;
-            } catch (error) {
-                console.error('❌ خطأ في التحقق:', error);
-                return false;
-            }
-        }
-
-        /**
-         * ============================================================
          * دوال مساعدة
          * ============================================================
          */
@@ -940,17 +837,4 @@
          * رسالة الترحيب في Console
          * ============================================================
          */
-        console.log('🏢 نظام إدارة الشركات - تسجيل الدخول');
-        console.log('🔗 Supabase URL:', SUPABASE_URL);
-        console.log('✅ النظام جاهز للعمل');
-
-        // ============================================================
-        // تنفيذ عند تحميل الصفحة
-        // ============================================================
-        document.addEventListener('DOMContentLoaded', function() {
-            checkAdminExists();
-        });
-    </script>
-
-</body>
-</html>
+        console.log
