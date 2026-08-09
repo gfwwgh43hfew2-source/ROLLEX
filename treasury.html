@@ -235,7 +235,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.7rem;
-            min-width: 700px;
+            min-width: 900px;
         }
         thead {
             background: #2a3646;
@@ -248,6 +248,7 @@
             font-weight: 700;
             color: rgba(255,255,255,0.4);
             text-transform: uppercase;
+            white-space: nowrap;
         }
         tbody td {
             padding: 8px 12px;
@@ -260,6 +261,7 @@
             border-radius: 50px;
             font-size: 0.5rem;
             font-weight: 600;
+            white-space: nowrap;
         }
         .badge-type.incoming { background: rgba(52,211,153,0.1); color: #34d399; }
         .badge-type.outgoing { background: rgba(248,113,113,0.1); color: #f87171; }
@@ -268,6 +270,7 @@
 
         .amount-in { color: #34d399; font-weight: 700; }
         .amount-out { color: #f87171; font-weight: 700; }
+        .balance-cell { color: #f5a623; font-weight: 700; }
 
         .empty-state {
             text-align: center;
@@ -477,11 +480,14 @@
             .modal-box .form-actions { flex-direction: column; }
             .modal-box .form-actions .btn-save { width: 100%; justify-content: center; }
             .modal-box .form-actions .btn-cancel { width: 100%; justify-content: center; }
+            table { font-size: 0.6rem; min-width: 700px; }
+            thead th, tbody td { padding: 6px 8px; }
         }
         @media (max-width: 480px) {
             .container { padding: 0 10px; }
             .header h1 { font-size: 1.2rem; }
             .treasury-info .balance { font-size: 1.1rem; }
+            table { font-size: 0.55rem; min-width: 600px; }
         }
     </style>
 </head>
@@ -577,14 +583,18 @@
                 <table>
                     <thead>
                         <tr>
+                            <th>#</th>
+                            <th>التاريخ</th>
                             <th>البيان</th>
                             <th>النوع</th>
                             <th>المبلغ</th>
-                            <th>التاريخ</th>
+                            <th>التبويب العام</th>
+                            <th>التبويب الخاص</th>
+                            <th>الرصيد</th>
                         </tr>
                     </thead>
                     <tbody id="transactionsBody">
-                        <tr><td colspan="4"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>
+                        <tr><td colspan="8"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -803,7 +813,7 @@
             var token = getToken();
             if (!token) return [];
             try {
-                var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + treasuryId + '&order=created_at.desc', {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + treasuryId + '&order=created_at.asc', {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': 'Bearer ' + token
@@ -1027,7 +1037,7 @@
                 var token = getToken();
                 if (!token) return;
 
-                var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + currentTreasuryId + '&order=created_at.desc', {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + currentTreasuryId + '&order=created_at.asc', {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': 'Bearer ' + token
@@ -1045,7 +1055,11 @@
                     return;
                 }
 
+                var runningBalance = 0;
                 var excelData = transactions.map(function(item) {
+                    var amount = item.amount || 0;
+                    runningBalance += amount;
+                    
                     var typeLabels = {
                         'incoming': 'إيداع',
                         'outgoing': 'سحب',
@@ -1057,15 +1071,20 @@
                         'revenue': 'إيراد'
                     };
                     return {
+                        '#': '',
                         'التاريخ': new Date(item.created_at).toLocaleDateString('ar-EG'),
                         'البيان': item.description || '-',
                         'النوع': typeLabels[item.type] || item.type || '-',
-                        'المبلغ': item.amount || 0,
-                        'رقم السند': item.voucher_number || '-',
+                        'المبلغ': (amount > 0 ? '+' : '') + amount.toLocaleString(),
                         'التبويب العام': item.general_tab || '-',
                         'التبويب الخاص': item.private_tab || '-',
-                        'ملاحظات': item.notes || '-'
+                        'الرصيد': runningBalance.toLocaleString()
                     };
+                });
+
+                // إضافة أرقام للصفوف
+                excelData.forEach(function(row, index) {
+                    row['#'] = index + 1;
                 });
 
                 var ws = XLSX.utils.json_to_sheet(excelData);
@@ -1073,8 +1092,14 @@
                 XLSX.utils.book_append_sheet(wb, ws, 'الحركات');
 
                 ws['!cols'] = [
-                    { wch: 15 }, { wch: 35 }, { wch: 15 }, { wch: 15 },
-                    { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 25 }
+                    { wch: 5 },   // #
+                    { wch: 15 },  // التاريخ
+                    { wch: 35 },  // البيان
+                    { wch: 15 },  // النوع
+                    { wch: 15 },  // المبلغ
+                    { wch: 20 },  // التبويب العام
+                    { wch: 20 },  // التبويب الخاص
+                    { wch: 15 }   // الرصيد
                 ];
 
                 var treasuryName = document.getElementById('treasuryName').textContent || 'الخزينة';
@@ -1090,7 +1115,7 @@
         }
 
         // ============================================================
-        // DOWNLOAD TEMPLATE - بالترتيب الجديد
+        // DOWNLOAD TEMPLATE
         // ============================================================
         function downloadTemplate() {
             var templateData = [
@@ -1149,7 +1174,7 @@
         }
 
         // ============================================================
-        // IMPORT FORM SUBMIT - مع الترتيب الجديد
+        // IMPORT FORM SUBMIT
         // ============================================================
         document.getElementById('importForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1188,11 +1213,9 @@
                 var errorCount = 0;
                 var errors = [];
 
-                // معالجة كل حركة
                 for (var i = 0; i < jsonData.length; i++) {
                     var row = jsonData[i];
                     
-                    // استخراج البيانات بالترتيب الجديد
                     var description = row['البيان'] || row['description'] || 'حركة مستوردة';
                     var type = row['النوع'] || row['type'] || 'incoming';
                     var amount = parseFloat(row['المبلغ'] || row['amount'] || 0);
@@ -1200,22 +1223,18 @@
                     var generalTab = row['التبويب العام'] || row['general_tab'] || '';
                     var privateTab = row['التبويب الخاص'] || row['private_tab'] || '';
                     var notes = row['ملاحظات'] || row['notes'] || '';
-                    var date = row['التاريخ'] || row['date'] || new Date().toISOString().split('T')[0];
 
-                    // التحقق من صحة المبلغ
                     if (!amount || amount === 0) {
                         errorCount++;
                         errors.push('صف ' + (i + 1) + ': المبلغ صفر أو غير صحيح');
                         continue;
                     }
 
-                    // التحقق من صحة النوع
                     var validTypes = ['incoming', 'outgoing', 'transfer_in', 'transfer_out', 'opening', 'salary', 'expense', 'revenue'];
                     if (!validTypes.includes(type)) {
                         type = 'incoming';
                     }
 
-                    // تحديد الإشارة حسب النوع
                     if (type === 'outgoing' || type === 'transfer_out' || type === 'expense') {
                         amount = -Math.abs(amount);
                     } else {
@@ -1247,7 +1266,7 @@
                             errors.push('صف ' + (i + 1) + ': ' + (result?.message || 'فشل الإدراج'));
                         } else {
                             successCount++;
-                            console.log('✅ تم إدراج الحركة ' + (i+1) + ': ' + description + ' - ' + amount);
+                            console.log('✅ تم إدراج الحركة ' + (i+1) + ': ' + description);
                         }
 
                     } catch (err) {
@@ -1256,7 +1275,6 @@
                     }
                 }
 
-                // عرض النتيجة
                 if (successCount > 0) {
                     showToast(
                         '✅ تم الاستيراد',
@@ -1287,7 +1305,7 @@
         });
 
         // ============================================================
-        // DISPLAY DATA
+        // DISPLAY DATA - مع التبويب العام والخاص والرصيد التراكمي
         // ============================================================
         function displayData(transactions, treasury) {
             var tbody = document.getElementById('transactionsBody');
@@ -1315,12 +1333,14 @@
             document.getElementById('totalTransactions').textContent = transactions ? transactions.length : 0;
 
             if (!transactions || transactions.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>`;
                 return;
             }
 
             var rows = '';
-            transactions.forEach(function(item) {
+            var runningBalance = 0;
+
+            transactions.forEach(function(item, index) {
                 var badgeClass = 'badge-type';
                 var typeName = item.type || 'other';
                 var typeLabels = {
@@ -1344,15 +1364,22 @@
                 var isIncoming = amount > 0;
                 var displayAmount = Math.abs(amount);
                 var date = item.created_at ? new Date(item.created_at).toLocaleDateString('ar-EG') : '-';
+                
+                // حساب الرصيد التراكمي
+                runningBalance += amount;
 
                 rows += `
                     <tr>
-                        <td>${item.description || '-'}</td>
+                        <td>${index + 1}</td>
+                        <td>${date}</td>
+                        <td style="text-align:right;">${item.description || '-'}</td>
                         <td><span class="${badgeClass}">${displayType}</span></td>
                         <td class="${isIncoming ? 'amount-in' : 'amount-out'}">
-                            ${isIncoming ? '+' : '-'} ${displayAmount.toLocaleString()} ج.م
+                            ${isIncoming ? '+' : '-'} ${displayAmount.toLocaleString()}
                         </td>
-                        <td>${date}</td>
+                        <td>${item.general_tab || '-'}</td>
+                        <td>${item.private_tab || '-'}</td>
+                        <td class="balance-cell">${runningBalance.toLocaleString()}</td>
                     </tr>
                 `;
             });
