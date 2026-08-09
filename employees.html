@@ -602,7 +602,7 @@
         }
 
         // ============================================================
-        // ADD EMPLOYEE - باستخدام signUp
+        // ADD EMPLOYEE - مع التحقق من وجود البروفايل
         // ============================================================
         document.getElementById('addEmployeeForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -620,6 +620,7 @@
                 // 1. نجيب company_id من المدير الحالي
                 var profile = await getCurrentUserProfile();
                 var companyId = profile.company_id;
+                var companyName = profile.company_name || 'شركة رولكس للدهانات';
 
                 // 2. تسجيل المستخدم في Auth
                 var { data: authData, error: authError } = await supabase.auth.signUp({
@@ -629,7 +630,7 @@
                         data: {
                             name: name,
                             role: role,
-                            company_name: profile.company_name || 'شركة رولكس للدهانات'
+                            company_name: companyName
                         }
                     }
                 });
@@ -652,9 +653,28 @@
                     return;
                 }
 
-                // 3. إضافة في profiles يدوياً (لأن Trigger مش هيشتغل مع الموظفين العاديين)
+                var userId = authData.user.id;
+
+                // 3. نتحقق من وجود البروفايل قبل إضافته
+                var { data: existingProfile, error: checkError } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('id', userId)
+                    .single();
+
+                if (existingProfile) {
+                    console.log('✅ البروفايل موجود بالفعل');
+                    showToast('✅ تم الإضافة', 'تم إضافة الموظف ' + name + ' بنجاح', 'success');
+                    document.getElementById('addEmployeeForm').reset();
+                    loadEmployees();
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
+                    return;
+                }
+
+                // 4. إضافة في profiles (لو مش موجود)
                 var { error: profileError } = await supabase.from('profiles').insert({
-                    id: authData.user.id,
+                    id: userId,
                     name: name,
                     role: role,
                     email: email,
@@ -663,19 +683,10 @@
 
                 if (profileError) {
                     console.error('❌ فشل إضافة البروفايل:', profileError);
-                    // نحاول تاني من غير email
-                    var { error: retryError } = await supabase.from('profiles').insert({
-                        id: authData.user.id,
-                        name: name,
-                        role: role,
-                        company_id: companyId
-                    });
-                    if (retryError) {
-                        console.error('❌ فشل إضافة البروفايل (محاولة 2):', retryError);
-                        showToast('⚠️ تنبيه', 'تم إنشاء المستخدم لكن فشل إضافة البروفايل', 'warning');
-                    } else {
-                        console.log('✅ تم إضافة البروفايل (محاولة 2)');
-                    }
+                    showToast('⚠️ تنبيه', 'تم إنشاء المستخدم لكن فشل إضافة البروفايل', 'warning');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
+                    return;
                 }
 
                 showToast('✅ تم الإضافة', 'تم إضافة الموظف ' + name + ' بنجاح', 'success');
