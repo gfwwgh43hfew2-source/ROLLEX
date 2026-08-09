@@ -235,7 +235,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.7rem;
-            min-width: 900px;
+            min-width: 1000px;
         }
         thead {
             background: #2a3646;
@@ -587,14 +587,15 @@
                             <th>التاريخ</th>
                             <th>البيان</th>
                             <th>النوع</th>
-                            <th>المبلغ</th>
+                            <th>وارد</th>
+                            <th>صادر</th>
                             <th>التبويب العام</th>
                             <th>التبويب الخاص</th>
                             <th>الرصيد</th>
                         </tr>
                     </thead>
                     <tbody id="transactionsBody">
-                        <tr><td colspan="8"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>
+                        <tr><td colspan="9"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -1070,15 +1071,20 @@
                         'expense': 'مصروف',
                         'revenue': 'إيراد'
                     };
+                    
+                    var isIncoming = amount > 0;
+                    var displayAmount = Math.abs(amount);
+                    
                     return {
                         '#': '',
                         'التاريخ': new Date(item.created_at).toLocaleDateString('ar-EG'),
                         'البيان': item.description || '-',
                         'النوع': typeLabels[item.type] || item.type || '-',
-                        'المبلغ': (amount > 0 ? '+' : '') + amount.toLocaleString(),
+                        'وارد': isIncoming ? displayAmount : '',
+                        'صادر': !isIncoming ? displayAmount : '',
                         'التبويب العام': item.general_tab || '-',
                         'التبويب الخاص': item.private_tab || '-',
-                        'الرصيد': runningBalance.toLocaleString()
+                        'الرصيد': runningBalance
                     };
                 });
 
@@ -1096,7 +1102,8 @@
                     { wch: 15 },  // التاريخ
                     { wch: 35 },  // البيان
                     { wch: 15 },  // النوع
-                    { wch: 15 },  // المبلغ
+                    { wch: 15 },  // وارد
+                    { wch: 15 },  // صادر
                     { wch: 20 },  // التبويب العام
                     { wch: 20 },  // التبويب الخاص
                     { wch: 15 }   // الرصيد
@@ -1305,7 +1312,7 @@
         });
 
         // ============================================================
-        // DISPLAY DATA - مع التبويب العام والخاص والرصيد التراكمي
+        // DISPLAY DATA - مع وارد وصادر في عمودين منفصلين
         // ============================================================
         function displayData(transactions, treasury) {
             var tbody = document.getElementById('transactionsBody');
@@ -1333,7 +1340,7 @@
             document.getElementById('totalTransactions').textContent = transactions ? transactions.length : 0;
 
             if (!transactions || transactions.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>`;
                 return;
             }
 
@@ -1368,15 +1375,18 @@
                 // حساب الرصيد التراكمي
                 runningBalance += amount;
 
+                // تحديد وارد وصادر
+                var incoming = isIncoming ? displayAmount.toLocaleString() : '-';
+                var outgoing = !isIncoming ? displayAmount.toLocaleString() : '-';
+
                 rows += `
                     <tr>
                         <td>${index + 1}</td>
                         <td>${date}</td>
                         <td style="text-align:right;">${item.description || '-'}</td>
                         <td><span class="${badgeClass}">${displayType}</span></td>
-                        <td class="${isIncoming ? 'amount-in' : 'amount-out'}">
-                            ${isIncoming ? '+' : '-'} ${displayAmount.toLocaleString()}
-                        </td>
+                        <td class="amount-in">${incoming}</td>
+                        <td class="amount-out">${outgoing}</td>
                         <td>${item.general_tab || '-'}</td>
                         <td>${item.private_tab || '-'}</td>
                         <td class="balance-cell">${runningBalance.toLocaleString()}</td>
