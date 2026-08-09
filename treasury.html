@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ============================================================
-           STYLES - نسخة مبسطة
+           STYLES
            ============================================================ */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -30,8 +30,11 @@
             padding: 16px 0;
             border-bottom: 1px solid rgba(255,255,255,0.06);
             margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
         .header h1 { font-size: 1.6rem; font-weight: 900; color: #f5a623; }
+        .header h1 i { margin-left: 10px; }
         .header .back-btn {
             color: rgba(255,255,255,0.5);
             text-decoration: none;
@@ -57,7 +60,7 @@
         }
         .treasury-info .name { font-size: 1.2rem; font-weight: 800; color: #f5a623; }
         .treasury-info .balance { font-size: 1.4rem; font-weight: 900; color: #34d399; }
-        .treasury-info .balance .label { font-size: 0.7rem; color: rgba(255,255,255,0.4); font-weight: 600; }
+        .treasury-info .balance .label { font-size: 0.7rem; color: rgba(255,255,255,0.4); font-weight: 600; display: block; }
 
         /* Stats */
         .stats-grid {
@@ -77,9 +80,9 @@
         .stat-card .value.green { color: #34d399; }
         .stat-card .value.red { color: #f87171; }
         .stat-card .value.gold { color: #f5a623; }
-        .stat-card .label { font-size: 0.6rem; color: rgba(255,255,255,0.4); font-weight: 600; }
+        .stat-card .label { font-size: 0.6rem; color: rgba(255,255,255,0.4); font-weight: 600; text-transform: uppercase; }
 
-        /* Transfer Form */
+        /* Transfer Form - نسخة معدلة */
         .transfer-section {
             background: #212c3b;
             border-radius: 16px;
@@ -93,9 +96,10 @@
             color: #f5a623;
             margin-bottom: 12px;
         }
+        .transfer-section h3 i { margin-left: 8px; }
         .transfer-row {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr auto;
+            grid-template-columns: 1fr 1fr 1fr auto;
             gap: 12px;
             align-items: end;
         }
@@ -110,6 +114,7 @@
             color: rgba(255,255,255,0.4);
             text-transform: uppercase;
         }
+        .transfer-row .form-group label .required { color: #f87171; }
         .transfer-row .form-group select,
         .transfer-row .form-group input {
             padding: 8px 12px;
@@ -126,6 +131,10 @@
         .transfer-row .form-group input:focus {
             border-color: #f5a623;
         }
+        .transfer-row .form-group select option {
+            background: #212c3b;
+            color: #fff;
+        }
         .btn-transfer {
             padding: 8px 20px;
             background: linear-gradient(135deg, #17a2b8, #138496);
@@ -137,8 +146,16 @@
             cursor: pointer;
             font-family: inherit;
             white-space: nowrap;
+            transition: 0.3s;
         }
         .btn-transfer:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(23,162,184,0.25); }
+        .btn-transfer:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .transfer-note {
+            margin-top: 8px;
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.25);
+        }
+        .transfer-note strong { color: #f5a623; }
 
         /* Table */
         .table-wrapper {
@@ -191,6 +208,8 @@
             color: rgba(255,255,255,0.2);
         }
         .empty-state i { font-size: 3rem; display: block; margin-bottom: 12px; }
+        .empty-state a { color: #f5a623; text-decoration: none; font-weight: 700; }
+        .empty-state a:hover { text-decoration: underline; }
 
         /* Toast */
         .toast-container {
@@ -228,6 +247,7 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
+        /* Responsive */
         @media (max-width: 768px) {
             .transfer-row { grid-template-columns: 1fr; }
             .stats-grid { grid-template-columns: 1fr; }
@@ -250,11 +270,11 @@
         <div class="treasury-info" id="treasuryInfo">
             <div>
                 <div class="name" id="treasuryName">جاري التحميل...</div>
-                <div style="font-size:0.7rem;color:rgba(255,255,255,0.3);">الخزينة</div>
+                <div style="font-size:0.7rem;color:rgba(255,255,255,0.3);">الخزينة الحالية</div>
             </div>
             <div>
                 <div class="balance">
-                    <span class="label">الرصيد الحالي</span><br />
+                    <span class="label">الرصيد الحالي</span>
                     <span id="treasuryBalance">0 ج.م</span>
                 </div>
             </div>
@@ -276,25 +296,19 @@
             </div>
         </div>
 
-        <!-- ===== TRANSFER FORM ===== -->
+        <!-- ===== TRANSFER FORM - نسخة معدلة ===== -->
         <div class="transfer-section" id="transferSection">
-            <h3><i class="fas fa-exchange-alt"></i> تحويل بين الخزائن</h3>
+            <h3><i class="fas fa-exchange-alt"></i> تحويل إلى خزينة أخرى</h3>
             <div class="transfer-row">
                 <div class="form-group">
-                    <label>من خزينة</label>
-                    <select id="fromTreasury">
-                        <option value="">جاري التحميل...</option>
+                    <label>إلى خزينة <span class="required">*</span></label>
+                    <select id="toTreasury" required>
+                        <option value="">اختر الخزينة الهدف</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>إلى خزينة</label>
-                    <select id="toTreasury">
-                        <option value="">جاري التحميل...</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>المبلغ</label>
-                    <input type="number" id="transferAmount" placeholder="0.00" min="0.01" step="0.01" />
+                    <label>المبلغ <span class="required">*</span></label>
+                    <input type="number" id="transferAmount" placeholder="0.00" min="0.01" step="0.01" required />
                 </div>
                 <div class="form-group">
                     <label>البيان</label>
@@ -303,6 +317,9 @@
                 <button class="btn-transfer" onclick="transferMoney()">
                     <i class="fas fa-exchange-alt"></i> تحويل
                 </button>
+            </div>
+            <div class="transfer-note">
+                <i class="fas fa-info-circle"></i> سيتم التحويل من <strong id="fromTreasuryName">الخزينة الحالية</strong>
             </div>
         </div>
 
@@ -336,7 +353,6 @@
         // ============================================================
         var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
         var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
-        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         var currentTreasuryId = null;
         var allTreasuries = [];
@@ -498,61 +514,71 @@
         }
 
         // ============================================================
-        // POPULATE TREASURY SELECTS
+        // POPULATE TREASURY SELECTS - نسخة معدلة
         // ============================================================
-        function populateTreasurySelects(treasuries, currentId) {
-            console.log('🔄 ملء القوائم المنسدلة بـ:', treasuries);
+        function populateTreasurySelects(treasuries, currentId, currentName) {
+            console.log('🔄 ملء القائمة المنسدلة للتحويل...');
             
-            var fromSelect = document.getElementById('fromTreasury');
             var toSelect = document.getElementById('toTreasury');
 
-            fromSelect.innerHTML = '<option value="">اختر الخزينة</option>';
-            toSelect.innerHTML = '<option value="">اختر الخزينة</option>';
+            // عرض اسم الخزينة الحالية في الرسالة التوضيحية
+            document.getElementById('fromTreasuryName').textContent = currentName || 'الخزينة الحالية';
+
+            toSelect.innerHTML = '<option value="">اختر الخزينة الهدف</option>';
 
             if (!treasuries || treasuries.length === 0) {
-                fromSelect.innerHTML = '<option value="">لا توجد خزائن</option>';
-                toSelect.innerHTML = '<option value="">لا توجد خزائن</option>';
+                toSelect.innerHTML = '<option value="">لا توجد خزائن أخرى</option>';
                 return;
             }
 
+            // عرض الخزائن الأخرى فقط (غير الخزينة الحالية)
+            var hasOtherTreasuries = false;
             treasuries.forEach(function(t) {
                 if (t.id !== currentId) {
-                    var option1 = document.createElement('option');
-                    option1.value = t.id;
-                    option1.textContent = t.name + ' (رصيد: ' + (t.balance || 0).toLocaleString() + ' ج.م)';
-                    fromSelect.appendChild(option1);
-
-                    var option2 = document.createElement('option');
-                    option2.value = t.id;
-                    option2.textContent = t.name + ' (رصيد: ' + (t.balance || 0).toLocaleString() + ' ج.م)';
-                    toSelect.appendChild(option2);
+                    hasOtherTreasuries = true;
+                    var option = document.createElement('option');
+                    option.value = t.id;
+                    option.textContent = t.name + ' (رصيد: ' + (t.balance || 0).toLocaleString() + ' ج.م)';
+                    toSelect.appendChild(option);
                 }
             });
 
-            console.log('✅ تم ملء القوائم بنجاح');
+            if (!hasOtherTreasuries) {
+                toSelect.innerHTML = '<option value="">⚠️ لا توجد خزائن أخرى للتحويل</option>';
+            }
+
+            console.log('✅ تم ملء القائمة بنجاح');
         }
 
         // ============================================================
-        // TRANSFER MONEY
+        // TRANSFER MONEY - نسخة معدلة
         // ============================================================
         async function transferMoney() {
-            var fromId = document.getElementById('fromTreasury').value;
+            var fromId = currentTreasuryId;
             var toId = document.getElementById('toTreasury').value;
             var amount = parseFloat(document.getElementById('transferAmount').value);
             var description = document.getElementById('transferDesc').value.trim() || 'تحويل بين الخزائن';
 
-            if (!fromId || !toId) {
-                showToast('⚠️ تنبيه', 'يرجى اختيار خزينة المصدر والهدف', 'error');
+            if (!toId) {
+                showToast('⚠️ تنبيه', 'يرجى اختيار الخزينة الهدف', 'error');
                 return;
             }
 
-            if (fromId === toId) {
+            if (toId === fromId) {
                 showToast('⚠️ تنبيه', 'لا يمكن التحويل لنفس الخزينة', 'error');
                 return;
             }
 
             if (!amount || amount <= 0) {
                 showToast('⚠️ تنبيه', 'يرجى إدخال مبلغ صحيح', 'error');
+                return;
+            }
+
+            // التحقق من الرصيد
+            var balanceText = document.getElementById('treasuryBalance').textContent;
+            var currentBalance = parseFloat(balanceText.replace(/[^0-9.]/g, '')) || 0;
+            if (amount > currentBalance) {
+                showToast('⚠️ رصيد غير كافٍ', 'الرصيد الحالي: ' + currentBalance.toLocaleString() + ' ج.م', 'error');
                 return;
             }
 
@@ -564,7 +590,8 @@
                 var token = getToken();
                 if (!token) return;
 
-                // استدعاء دالة التحويل
+                var fromName = document.getElementById('treasuryName').textContent || 'الخزينة الحالية';
+
                 var response = await fetch(SUPABASE_URL + '/rest/v1/rpc/transfer_money', {
                     method: 'POST',
                     headers: {
@@ -576,7 +603,7 @@
                         p_from_treasury_id: fromId,
                         p_to_treasury_id: toId,
                         p_amount: amount,
-                        p_description: description
+                        p_description: description + ' (من ' + fromName + ')'
                     })
                 });
 
@@ -590,8 +617,8 @@
 
                 document.getElementById('transferAmount').value = '';
                 document.getElementById('transferDesc').value = '';
+                document.getElementById('toTreasury').value = '';
 
-                // إعادة تحميل البيانات
                 loadData();
 
             } catch (error) {
@@ -608,13 +635,11 @@
         function displayData(transactions, treasury) {
             var tbody = document.getElementById('transactionsBody');
 
-            // تحديث معلومات الخزينة
             if (treasury) {
                 document.getElementById('treasuryName').textContent = treasury.name;
                 document.getElementById('treasuryBalance').textContent = (treasury.balance || 0).toLocaleString() + ' ج.م';
             }
 
-            // حساب الإحصائيات
             var totalIn = 0;
             var totalOut = 0;
 
@@ -632,7 +657,6 @@
             document.getElementById('totalOutgoing').textContent = totalOut.toLocaleString() + ' ج.م';
             document.getElementById('totalTransactions').textContent = transactions ? transactions.length : 0;
 
-            // عرض الحركات
             if (!transactions || transactions.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>`;
                 return;
@@ -679,7 +703,6 @@
         async function loadData() {
             console.log('🔄 بدء تحميل البيانات...');
 
-            // 1. جلب التريزوري ID من الرابط
             currentTreasuryId = getTreasuryIdFromUrl();
             console.log('📌 Treasury ID:', currentTreasuryId);
 
@@ -691,15 +714,12 @@
                         <i class="fas fa-exclamation-triangle"></i>
                         <p>لم يتم تحديد خزينة. يرجى العودة لصفحة الخزائن.</p>
                         <br />
-                        <a href="treasuries.html" style="color:#f5a623;text-decoration:none;font-weight:700;">
-                            <i class="fas fa-arrow-right"></i> العودة للخزائن
-                        </a>
+                        <a href="treasuries.html"><i class="fas fa-arrow-right"></i> العودة للخزائن</a>
                     </div>
                 `;
                 return;
             }
 
-            // 2. جلب بيانات الخزينة
             var treasury = await getTreasuryDetails(currentTreasuryId);
             console.log('📊 بيانات الخزينة:', treasury);
 
@@ -710,26 +730,20 @@
                         <i class="fas fa-exclamation-triangle"></i>
                         <p>الخزينة غير موجودة أو تم حذفها</p>
                         <br />
-                        <a href="treasuries.html" style="color:#f5a623;text-decoration:none;font-weight:700;">
-                            <i class="fas fa-arrow-right"></i> العودة للخزائن
-                        </a>
+                        <a href="treasuries.html"><i class="fas fa-arrow-right"></i> العودة للخزائن</a>
                     </div>
                 `;
                 return;
             }
 
-            // 3. جلب الحركات
             var transactions = await getTransactions(currentTreasuryId);
             console.log('📊 عدد الحركات:', transactions ? transactions.length : 0);
 
-            // 4. جلب جميع الخزائن للتحويلات
             allTreasuries = await getCompanyTreasuries(treasury.company_id);
             console.log('📊 عدد الخزائن في الشركة:', allTreasuries.length);
 
-            // 5. تحديث قوائم التحويل
-            populateTreasurySelects(allTreasuries, currentTreasuryId);
+            populateTreasurySelects(allTreasuries, currentTreasuryId, treasury.name);
 
-            // 6. عرض البيانات
             displayData(transactions, treasury);
         }
 
@@ -745,7 +759,6 @@
             loadData();
         }
 
-        // تحديث تلقائي كل 30 ثانية
         setInterval(loadData, 30000);
     </script>
 
