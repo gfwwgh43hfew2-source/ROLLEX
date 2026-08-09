@@ -1195,7 +1195,7 @@
         }
 
         // ============================================================
-        // IMPORT FORM SUBMIT - مع وارد وصادر
+        // IMPORT FORM SUBMIT - مع دعم أسماء أعمدة متعددة
         // ============================================================
         document.getElementById('importForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1220,6 +1220,7 @@
                 var jsonData = XLSX.utils.sheet_to_json(firstSheet);
 
                 console.log('📊 البيانات المستخرجة:', jsonData);
+                console.log('📊 أسماء الأعمدة:', Object.keys(jsonData[0] || {}));
 
                 if (!jsonData || jsonData.length === 0) {
                     throw new Error('الملف فارغ أو غير صحيح');
@@ -1237,17 +1238,39 @@
                 for (var i = 0; i < jsonData.length; i++) {
                     var row = jsonData[i];
                     
-                    // استخراج البيانات مع دعم الأسماء العربية والإنجليزية
-                    var description = row['البيان'] || row['description'] || 'حركة مستوردة';
+                    // استخراج البيانات مع دعم أسماء متعددة
+                    var description = row['البيان'] || row['description'] || row['الوصف'] || 'حركة مستوردة';
                     var type = row['النوع'] || row['type'] || 'incoming';
-                    var voucherNumber = row['رقم السند'] || row['voucher_number'] || '';
-                    var generalTab = row['التبويب العام'] || row['general_tab'] || '';
-                    var privateTab = row['التبويب الخاص'] || row['private_tab'] || '';
+                    var voucherNumber = row['رقم السند'] || row['voucher_number'] || row['السند'] || '';
+                    var generalTab = row['التبويب العام'] || row['general_tab'] || row['تبويب عام'] || '';
+                    var privateTab = row['التبويب الخاص'] || row['private_tab'] || row['تبويب خاص'] || '';
                     var notes = row['ملاحظات'] || row['notes'] || '';
 
-                    // قراءة المبلغ من عمود وارد أو صادر
-                    var incoming = parseFloat(row['وارد'] || row['incoming'] || 0);
-                    var outgoing = parseFloat(row['صادر'] || row['outgoing'] || 0);
+                    // قراءة المبلغ من عدة أسماء محتملة
+                    var incoming = 0;
+                    var outgoing = 0;
+                    
+                    // محاولة قراءة وارد من أسماء مختلفة
+                    if (row['وارد'] !== undefined) incoming = parseFloat(row['وارد']) || 0;
+                    else if (row['incoming'] !== undefined) incoming = parseFloat(row['incoming']) || 0;
+                    else if (row['إيداع'] !== undefined) incoming = parseFloat(row['إيداع']) || 0;
+                    else if (row['داخل'] !== undefined) incoming = parseFloat(row['داخل']) || 0;
+                    
+                    // محاولة قراءة صادر من أسماء مختلفة
+                    if (row['صادر'] !== undefined) outgoing = parseFloat(row['صادر']) || 0;
+                    else if (row['outgoing'] !== undefined) outgoing = parseFloat(row['outgoing']) || 0;
+                    else if (row['سحب'] !== undefined) outgoing = parseFloat(row['سحب']) || 0;
+                    else if (row['خارج'] !== undefined) outgoing = parseFloat(row['خارج']) || 0;
+                    
+                    // لو مفيش وارد ولا صادر، نحاول نقرأ من عمود المبلغ
+                    if (incoming === 0 && outgoing === 0) {
+                        var amountFromColumn = parseFloat(row['المبلغ'] || row['amount'] || 0);
+                        if (amountFromColumn > 0) {
+                            incoming = amountFromColumn;
+                        } else if (amountFromColumn < 0) {
+                            outgoing = Math.abs(amountFromColumn);
+                        }
+                    }
                     
                     // حساب المبلغ النهائي (وارد - صادر)
                     var amount = incoming - outgoing;
