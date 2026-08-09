@@ -429,32 +429,69 @@
         }
 
         // ============================================================
-        // CHECK ADMIN
+        // CHECK ADMIN - مُحسّنة مع Console logs
         // ============================================================
         async function checkAdmin() {
-            var token = getToken();
-            if (!token) return false;
+            try {
+                console.log('🔍 بداية التحقق من المدير...');
 
-            var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token
+                var token = getToken();
+                if (!token) {
+                    console.log('❌ مفيش Token');
+                    return false;
                 }
-            });
 
-            if (!response.ok) return false;
+                console.log('✅ Token موجود');
 
-            var user = await response.json();
+                // 1. نجيب المستخدم من Auth
+                var userResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
 
-            var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=role&id=eq.' + user.id, {
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token
+                if (!userResponse.ok) {
+                    console.log('❌ فشل جلب المستخدم من Auth:', userResponse.status);
+                    return false;
                 }
-            });
 
-            var data = await profileResponse.json();
-            return data && data.length > 0 && data[0].role === 'admin';
+                var user = await userResponse.json();
+                console.log('👤 المستخدم:', user.email);
+
+                // 2. نجيب البروفايل
+                var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=role&id=eq.' + user.id, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!profileResponse.ok) {
+                    console.log('❌ فشل جلب البروفايل:', profileResponse.status);
+                    return false;
+                }
+
+                var data = await profileResponse.json();
+                console.log('📊 بيانات البروفايل:', data);
+
+                if (!data || data.length === 0) {
+                    console.log('❌ مفيش بروفايل للمستخدم');
+                    return false;
+                }
+
+                var role = data[0].role;
+                console.log('🔑 الدور:', role);
+
+                var isAdmin = role === 'admin';
+                console.log('✅ هل هو مدير؟', isAdmin);
+
+                return isAdmin;
+
+            } catch (error) {
+                console.error('❌ خطأ في checkAdmin:', error);
+                return false;
+            }
         }
 
         // ============================================================
@@ -741,13 +778,20 @@
         console.log('🛡️ صلاحيات النظام - QuickData ProSoft');
 
         (async function init() {
+            console.log('🚀 بداية التحميل...');
+
             var isAdmin = await checkAdmin();
+            console.log('📊 نتيجة checkAdmin:', isAdmin);
+
             if (!isAdmin) {
                 showToast('❌ غير مسموح', 'هذه الصفحة مخصصة للمدير فقط', 'error');
-                setTimeout(function() { window.location.href = 'index.html'; }, 2000);
+                setTimeout(function() {
+                    window.location.href = 'index.html';
+                }, 2000);
                 return;
             }
 
+            console.log('✅ تم التحقق من المدير، جاري تحميل المستخدمين...');
             await loadUsers();
         })();
 
