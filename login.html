@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
     <title>تسجيل الدخول - QuickData ProSoft</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Amiri:wght@400;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <style>
         /* ==========================================================
@@ -17,13 +17,16 @@
         }
 
         :root {
-            --gold: #f5c842;
-            --gold-deep: #d4a020;
-            --ink: #060a16;
-            --ink-2: #0a1024;
-            --pearl: rgba(255, 255, 255, 0.9);
-            --wave-1: rgba(66, 180, 190, 0.14);
-            --wave-2: rgba(245, 200, 66, 0.08);
+            --gold: #f5a623;
+            --gold-light: #ffc857;
+            --gold-deep: #e08e0b;
+            --navy-bg: #1b2431;
+            --navy-bg-2: #141c27;
+            --card: #212c3b;
+            --field: #2a3646;
+            --field-border: #37455a;
+            --text-dim: rgba(255, 255, 255, 0.35);
+            --text-mid: rgba(255, 255, 255, 0.55);
         }
 
         html { scroll-behavior: smooth; }
@@ -36,475 +39,193 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-            overflow: hidden;
+            padding: 40px 20px;
             position: relative;
-            background: var(--ink);
-        }
-
-        /* ===== خلفية فيديو متحركة ===== */
-        .bg-video {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0.28;
-            filter: blur(2px) brightness(0.55) saturate(1.15);
-            transform: scale(1.04);
-        }
-
-        /* ===== تراكب الخلفية ===== */
-        .bg-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 1;
-            background:
-                radial-gradient(ellipse at 30% 15%, rgba(245, 200, 66, 0.10) 0%, transparent 55%),
-                radial-gradient(ellipse at 75% 85%, rgba(66, 180, 190, 0.08) 0%, transparent 55%),
-                linear-gradient(180deg, rgba(6, 10, 22, 0.75) 0%, rgba(6, 10, 22, 0.94) 100%);
-            backdrop-filter: blur(4px);
-        }
-
-        /* ===== توهج مياه متحرك ===== */
-        .caustics {
-            position: fixed;
-            inset: 0;
-            z-index: 1;
-            pointer-events: none;
-            opacity: 0.35;
-            mix-blend-mode: screen;
-            background-image:
-                repeating-conic-gradient(from 0deg at 20% 30%, transparent 0deg, var(--wave-1) 8deg, transparent 16deg),
-                repeating-conic-gradient(from 45deg at 80% 70%, transparent 0deg, var(--wave-2) 10deg, transparent 20deg);
-            filter: blur(30px);
-            animation: causticsDrift 22s ease-in-out infinite alternate;
-        }
-
-        @keyframes causticsDrift {
-            0%   { transform: translate(0, 0) rotate(0deg) scale(1); }
-            50%  { transform: translate(-2%, 2%) rotate(4deg) scale(1.08); }
-            100% { transform: translate(2%, -1%) rotate(-3deg) scale(1.03); }
-        }
-
-        /* ===== جسيمات ذهبية متحركة ===== */
-        .particles {
-            position: fixed;
-            inset: 0;
-            z-index: 1;
-            pointer-events: none;
+            background: radial-gradient(ellipse at 50% 40%, #232f40 0%, var(--navy-bg) 55%, var(--navy-bg-2) 100%);
             overflow: hidden;
         }
 
-        .particle {
-            position: absolute;
-            width: 3px;
-            height: 3px;
-            background: rgba(245, 200, 66, 0.18);
-            border-radius: 50%;
-            animation: floatParticle linear infinite;
-            box-shadow: 0 0 8px rgba(245, 200, 66, 0.35);
-        }
-
-        @keyframes floatParticle {
-            0% { transform: translateY(100vh) rotate(0deg) scale(0); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(-10vh) rotate(720deg) scale(1); opacity: 0; }
-        }
-
-        /* ===== خط الأفق الذهبي ===== */
-        .horizon {
-            position: fixed;
-            left: 0; right: 0; bottom: 0;
-            height: 140px;
-            z-index: 1;
-            pointer-events: none;
-            opacity: 0.5;
-        }
-        .horizon svg { width: 100%; height: 100%; display: block; }
-        .horizon path {
-            animation: horizonSway 10s ease-in-out infinite alternate;
-            transform-origin: center bottom;
-        }
-        @keyframes horizonSway {
-            0% { transform: translateY(0) scaleY(1); }
-            100% { transform: translateY(-4px) scaleY(1.02); }
-        }
-
-        /* ===== الحاوية الرئيسية ===== */
-        .login-wrapper {
+        /* ==========================================================
+           الحلقة المتقطعة المزخرفة حول البطاقة
+           ========================================================== */
+        .ring-wrap {
             position: relative;
-            z-index: 2;
             width: 100%;
             max-width: 460px;
-            perspective: 1400px;
-            animation: fadeInUp 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ring {
+            position: absolute;
+            inset: -70px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .ring svg {
+            width: 100%;
+            height: 100%;
+            animation: ringSpin 90s linear infinite;
+        }
+
+        @keyframes ringSpin {
+            to { transform: rotate(360deg); }
+        }
+
+        .ring .tick {
+            stroke: rgba(255, 255, 255, 0.14);
+            stroke-width: 3;
+            stroke-linecap: round;
+        }
+
+        .ring .tick.lit {
+            stroke: var(--gold);
+            filter: drop-shadow(0 0 5px rgba(245, 166, 35, 0.85));
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .ring svg { animation: none; }
+        }
+
+        /* ==========================================================
+           البطاقة
+           ========================================================== */
+        .login-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 360px;
+            background: var(--card);
+            border-radius: 22px;
+            padding: 38px 30px 30px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
+            animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
         @keyframes fadeInUp {
-            0% { opacity: 0; transform: translateY(60px) scale(0.95); }
+            0% { opacity: 0; transform: translateY(30px) scale(0.97); }
             100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* ===== البطاقة الزجاجية ===== */
-        .login-container {
-            background: rgba(255, 255, 255, 0.035);
-            backdrop-filter: blur(40px);
-            -webkit-backdrop-filter: blur(40px);
-            border-radius: 32px;
-            padding: 44px 36px 32px;
-            border: 1px solid rgba(255, 255, 255, 0.07);
-            box-shadow:
-                0 40px 100px rgba(0, 0, 0, 0.6),
-                inset 0 1px 0 rgba(255, 255, 255, 0.06);
-            position: relative;
-            overflow: hidden;
-            transform-style: preserve-3d;
-            will-change: transform;
-            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s;
-        }
-
-        .login-container:hover {
-            box-shadow:
-                0 50px 120px rgba(0, 0, 0, 0.65),
-                0 0 90px rgba(245, 200, 66, 0.06),
-                inset 0 1px 0 rgba(255, 255, 255, 0.08);
-        }
-
-        /* ===== حدود متوهجة ===== */
-        .login-container::before {
-            content: '';
-            position: absolute;
-            inset: -2px;
-            border-radius: 32px;
-            padding: 2px;
-            background: conic-gradient(from 0deg,
-                    transparent 0%, rgba(245, 200, 66, 0.06) 25%,
-                    rgba(245, 200, 66, 0.18) 50%, rgba(245, 200, 66, 0.06) 75%,
-                    transparent 100%);
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            pointer-events: none;
-            animation: borderSpin 8s linear infinite;
-        }
-
-        @keyframes borderSpin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .login-container::after {
-            content: '';
-            position: absolute;
-            top: -50%; left: -50%;
-            width: 200%; height: 200%;
-            background: radial-gradient(ellipse at 50% 30%, rgba(245, 200, 66, 0.035) 0%, transparent 50%);
-            pointer-events: none;
-            animation: glowPulse 6s ease-in-out infinite alternate;
-        }
-
-        @keyframes glowPulse {
-            0% { opacity: 0.4; transform: scale(1); }
-            100% { opacity: 1; transform: scale(1.1); }
-        }
-
-        /* ===== محتوى البطاقة ===== */
-        .card-content { transform: translateZ(40px); position: relative; }
-
-        /* ===== الشعار ===== */
-        .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            margin-bottom: 30px;
-            animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
-        }
-
-        @keyframes slideDown {
-            0% { opacity: 0; transform: translateY(-30px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-
-        .logo-icon {
-            flex-shrink: 0;
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, var(--gold), var(--gold-deep));
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.6rem;
-            font-weight: 900;
-            color: var(--ink);
-            box-shadow: 0 8px 32px rgba(245, 200, 66, 0.2);
-            border: 2px solid rgba(245, 200, 66, 0.1);
-            animation: logoFloat 4s ease-in-out infinite alternate;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            font-family: 'Cairo', sans-serif;
-        }
-
-        .logo-icon:hover {
-            transform: scale(1.06) rotate(-3deg);
-            border-color: rgba(245, 200, 66, 0.35);
-            box-shadow: 0 12px 48px rgba(245, 200, 66, 0.18);
-        }
-
-        @keyframes logoFloat {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(-6px); }
-        }
-
-        .logo-text { flex: 1; }
-
-        .logo-text h1 {
-            font-size: 1.7rem;
-            font-weight: 900;
-            background: linear-gradient(135deg, #fff6da, var(--gold), var(--gold-deep), var(--gold));
-            background-size: 300% 300%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: shimmer 5s ease-in-out infinite;
-            line-height: 1.2;
-            letter-spacing: -0.5px;
-        }
-
-        @keyframes shimmer {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .logo-text .subtitle {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: rgba(255, 255, 255, 0.3);
-            font-size: 0.65rem;
-            font-weight: 600;
-            letter-spacing: 1px;
-            margin-top: 4px;
-        }
-        .logo-text .subtitle::before {
-            content: '';
-            width: 5px; height: 5px;
-            border-radius: 50%;
-            background: var(--gold);
-            box-shadow: 0 0 8px rgba(245, 200, 66, 0.7);
-            animation: dotPulse 2s ease-in-out infinite;
-        }
-        @keyframes dotPulse {
-            0%, 100% { opacity: 0.4; transform: scale(0.85); }
-            50% { opacity: 1; transform: scale(1.15); }
-        }
-
-        /* ===== حقوق الملكية ===== */
-        .copyright {
+        /* ===== العنوان ===== */
+        .title {
             text-align: center;
-            margin-top: 22px;
-            padding-top: 16px;
-            border-top: 1px solid rgba(255, 255, 255, 0.04);
-            color: rgba(255, 255, 255, 0.14);
-            font-size: 0.55rem;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
-        }
-
-        .copyright i { margin: 0 4px; color: rgba(245, 200, 66, 0.18); }
-        .copyright strong { 
-            color: rgba(245, 200, 66, 0.3); 
-            font-weight: 800;
-        }
-
-        /* ===== خيارات الدخول ===== */
-        .social-label {
-            text-align: center;
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.3);
-            margin-bottom: 12px;
-        }
-
-        .social-btns {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .social-btns button {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            background: rgba(255, 255, 255, 0.03);
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.15s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .social-btns button:hover {
-            border-color: var(--gold);
-            background: rgba(245, 200, 66, 0.06);
+            font-size: 1.9rem;
+            font-weight: 900;
+            letter-spacing: 2px;
             color: var(--gold);
+            text-shadow: 0 0 22px rgba(245, 166, 35, 0.35);
+            margin-bottom: 28px;
         }
 
-        /* ===== الفاصل ===== */
-        .divider {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 20px;
-        }
-
-        .divider span {
-            font-size: 0.6rem;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.2);
-            white-space: nowrap;
-        }
-
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.06);
-        }
-
-        /* ===== حقول الإدخال ===== */
+        /* ==========================================================
+           حقول الإدخال
+           ========================================================== */
         .form-group {
-            margin-bottom: 20px;
-            position: relative;
-            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            opacity: 0;
-            transform: translateY(20px);
+            margin-bottom: 16px;
         }
-
-        .form-group:nth-child(1) { animation-delay: 0.15s; }
-        .form-group:nth-child(2) { animation-delay: 0.25s; }
-
-        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
-
-        .form-group label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 0.7rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            transition: all 0.3s;
-        }
-
-        .form-group:focus-within label { color: rgba(245, 200, 66, 0.7); }
-        .form-group label i { font-size: 0.6rem; color: rgba(245, 200, 66, 0.25); }
 
         .input-wrap {
             position: relative;
-            border-radius: 16px;
-            background: rgba(255, 255, 255, 0.025);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            overflow: hidden;
-        }
-
-        .input-wrap::before {
-            content: '';
-            position: absolute; inset: 0;
-            border-radius: 16px;
-            padding: 1px;
-            background: linear-gradient(135deg, transparent, rgba(245, 200, 66, 0.06), transparent);
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.4s;
+            border-radius: 12px;
+            background: var(--field);
+            border: 1px solid var(--field-border);
+            transition: border-color 0.25s, box-shadow 0.25s;
         }
 
         .input-wrap:focus-within {
-            border-color: rgba(245, 200, 66, 0.2);
-            background: rgba(255, 255, 255, 0.05);
-            box-shadow: 0 0 0 4px rgba(245, 200, 66, 0.05), 0 0 40px rgba(245, 200, 66, 0.04);
-            transform: translateY(-1px);
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.12);
         }
-
-        .input-wrap:focus-within::before { opacity: 1; }
 
         .input-wrap .input-icon {
             position: absolute;
-            right: 16px; top: 50%;
+            left: 16px;
+            top: 50%;
             transform: translateY(-50%);
-            color: rgba(255, 255, 255, 0.1);
-            font-size: 0.8rem;
-            transition: color 0.3s;
+            color: var(--text-dim);
+            font-size: 0.85rem;
             z-index: 2;
         }
 
-        .input-wrap:focus-within .input-icon { color: rgba(245, 200, 66, 0.3); }
+        .input-wrap:focus-within .input-icon { color: var(--gold); }
 
         .input-wrap input {
             width: 100%;
-            padding: 16px 48px 16px 48px;
+            padding: 14px 44px 14px 16px;
             border: none;
             background: transparent;
             color: #fff;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-family: inherit;
             outline: none;
-            position: relative;
-            z-index: 1;
+            text-align: right;
         }
 
-        .input-wrap input::placeholder { color: rgba(255, 255, 255, 0.1); font-weight: 400; }
+        .input-wrap input::placeholder { color: var(--text-dim); font-weight: 400; }
+
+        .input-wrap .input-icon.right {
+            left: auto;
+            right: 16px;
+        }
 
         .toggle-pass {
             position: absolute;
-            left: 16px; top: 50%;
+            left: 16px;
+            top: 50%;
             transform: translateY(-50%);
-            background: none; border: none;
-            color: rgba(255, 255, 255, 0.15);
+            background: none;
+            border: none;
+            color: var(--text-dim);
             cursor: pointer;
             font-size: 0.8rem;
-            z-index: 2;
-            transition: color 0.25s;
+            z-index: 3;
             padding: 4px;
         }
-        .toggle-pass:hover { color: rgba(245, 200, 66, 0.6); }
+        .toggle-pass:hover { color: var(--gold); }
 
-        /* ===== زر تسجيل الدخول ===== */
+        .input-wrap.has-toggle input {
+            padding: 14px 44px 14px 44px;
+        }
+        .input-wrap.has-toggle .input-icon.right { right: 16px; }
+        .input-wrap.has-toggle .toggle-pass { left: 16px; }
+
+        /* ===== نسيت كلمة المرور ===== */
+        .forgot {
+            text-align: left;
+            margin-bottom: 22px;
+        }
+        .forgot a {
+            color: var(--text-mid);
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .forgot a:hover { color: var(--gold); text-decoration: underline; }
+
+        /* ==========================================================
+           زر تسجيل الدخول
+           ========================================================== */
         .btn-primary {
             width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #fddc7b, var(--gold), var(--gold-deep));
-            background-size: 200% 100%;
-            color: var(--ink);
+            padding: 14px;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-deep));
+            color: #1b1204;
             border: none;
-            border-radius: 50px;
+            border-radius: 12px;
             font-weight: 800;
-            font-size: 1rem;
+            font-size: 0.95rem;
+            letter-spacing: 1px;
             cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.25s, box-shadow 0.25s;
             font-family: inherit;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
+            box-shadow: 0 10px 26px rgba(245, 166, 35, 0.28);
             position: relative;
             overflow: hidden;
-            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
-            box-shadow: 0 4px 24px rgba(245, 200, 66, 0.18);
         }
 
         .btn-primary::before {
@@ -514,17 +235,13 @@
             transform: translateX(-100%);
             transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
-
         .btn-primary:hover::before { transform: translateX(100%); }
 
         .btn-primary:hover {
-            background-position: 100% 0;
-            transform: translateY(-3px) scale(1.01);
-            box-shadow: 0 16px 48px rgba(245, 200, 66, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 16px 36px rgba(245, 166, 35, 0.36);
         }
-
-        .btn-primary:active { transform: translateY(0) scale(0.97); }
-        .btn-primary i { font-size: 0.9rem; }
+        .btn-primary:active { transform: translateY(0) scale(0.98); }
 
         .btn-primary .ripple {
             position: absolute;
@@ -534,27 +251,22 @@
             animation: rippleAnim 0.6s ease-out;
             pointer-events: none;
         }
-        @keyframes rippleAnim {
-            to { transform: scale(3); opacity: 0; }
-        }
+        @keyframes rippleAnim { to { transform: scale(3); opacity: 0; } }
 
-        /* ===== زر التحميل ===== */
+        /* ===== التحميل ===== */
         .loading-spinner {
             display: none;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            padding: 14px;
-            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+            padding: 12px;
         }
-
         .loading-spinner .dots { display: flex; gap: 5px; }
         .loading-spinner .dots span {
             width: 6px; height: 6px;
             border-radius: 50%;
             background: var(--gold);
             animation: dotBounce 1.2s ease-in-out infinite;
-            box-shadow: 0 0 8px rgba(245, 200, 66, 0.5);
         }
         .loading-spinner .dots span:nth-child(2) { animation-delay: 0.15s; }
         .loading-spinner .dots span:nth-child(3) { animation-delay: 0.3s; }
@@ -562,50 +274,34 @@
             0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
             30% { transform: translateY(-6px); opacity: 1; }
         }
-
-        .loading-spinner span.label {
-            color: rgba(255, 255, 255, 0.35);
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
+        .loading-spinner span.label { color: var(--text-mid); font-size: 0.82rem; font-weight: 600; }
 
         /* ===== رسائل الحالة ===== */
         .message {
             text-align: center;
-            padding: 14px 18px;
-            border-radius: 14px;
-            margin-top: 16px;
-            font-size: 0.85rem;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-top: 14px;
+            font-size: 0.82rem;
             display: none;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            animation: messagePop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+            gap: 8px;
             font-weight: 700;
         }
-
-        @keyframes messagePop {
-            0% { opacity: 0; transform: scale(0.92) translateY(-4px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
         .message.success {
             display: flex;
-            background: rgba(43, 138, 62, 0.1);
+            background: rgba(43, 138, 62, 0.12);
             color: #66d17d;
-            border: 1px solid rgba(43, 138, 62, 0.15);
-            backdrop-filter: blur(8px);
+            border: 1px solid rgba(43, 138, 62, 0.2);
         }
-
         .message.error {
             display: flex;
-            background: rgba(201, 42, 42, 0.08);
+            background: rgba(201, 42, 42, 0.1);
             color: #ff6b6b;
-            border: 1px solid rgba(201, 42, 42, 0.14);
-            backdrop-filter: blur(8px);
-            animation: messagePop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both, shake 0.5s ease 0.4s;
+            border: 1px solid rgba(201, 42, 42, 0.18);
+            animation: shake 0.5s ease;
         }
-
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
             20% { transform: translateX(-6px); }
@@ -613,70 +309,78 @@
             60% { transform: translateX(-4px); }
             80% { transform: translateX(4px); }
         }
-
-        .checkmark {
-            width: 18px; height: 18px;
-            flex-shrink: 0;
-        }
-        .checkmark circle {
-            stroke: #66d17d;
-            stroke-width: 2;
-            fill: none;
-            stroke-dasharray: 63;
-            stroke-dashoffset: 63;
-            animation: circleDraw 0.5s ease forwards;
-        }
-        .checkmark path {
-            stroke: #66d17d;
-            stroke-width: 2.5;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            fill: none;
-            stroke-dasharray: 20;
-            stroke-dashoffset: 20;
-            animation: checkDraw 0.3s ease 0.4s forwards;
-        }
-        @keyframes circleDraw { to { stroke-dashoffset: 0; } }
-        @keyframes checkDraw { to { stroke-dashoffset: 0; } }
+        .checkmark { width: 16px; height: 16px; flex-shrink: 0; }
+        .checkmark circle { stroke: #66d17d; stroke-width: 2; fill: none; }
+        .checkmark path { stroke: #66d17d; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 
         /* ==========================================================
-           الروابط
+           تسجيل الدخول عبر
+           ========================================================== */
+        .social-label {
+            text-align: center;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            margin: 24px 0 14px;
+        }
+
+        .social-btns {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .social-btns button {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .social-btns button:hover { transform: translateY(-2px); }
+
+        .social-btns .fb { background: #3b5998; box-shadow: 0 6px 16px rgba(59, 89, 152, 0.35); }
+        .social-btns .x  { background: #14171a; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); }
+        .social-btns .gg { background: linear-gradient(135deg, #ea4335, #fbbc05); box-shadow: 0 6px 16px rgba(234, 67, 53, 0.32); }
+
+        /* ==========================================================
+           روابط أسفل البطاقة
            ========================================================== */
         .links {
             text-align: center;
-            margin-top: 20px;
-            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
-            color: rgba(255, 255, 255, 0.15);
-            font-size: 0.65rem;
+            color: var(--text-dim);
+            font-size: 0.8rem;
             font-weight: 600;
-            letter-spacing: 0.3px;
         }
-
-        .links .system-name {
-            color: rgba(255, 255, 255, 0.1);
-            font-size: 0.6rem;
-        }
-
-        .links .system-name i {
-            color: rgba(245, 200, 66, 0.15);
-            margin: 0 4px;
-        }
-
         .links a {
             color: var(--gold);
             text-decoration: none;
-            font-weight: 700;
-            transition: color 0.3s;
+            font-weight: 800;
         }
+        .links a:hover { text-decoration: underline; color: var(--gold-light); }
 
-        .links a:hover {
-            color: var(--gold-deep);
-            text-decoration: underline;
+        .copyright {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.16);
+            font-size: 0.6rem;
+            font-weight: 600;
+            letter-spacing: 0.4px;
         }
+        .copyright strong { color: rgba(245, 166, 35, 0.35); }
 
         /* ===== إمكانية الوصول ===== */
         a:focus-visible, button:focus-visible, input:focus-visible {
-            outline: 2px solid rgba(245, 200, 66, 0.6);
+            outline: 2px solid var(--gold);
             outline-offset: 2px;
         }
 
@@ -690,150 +394,69 @@
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
-            .login-container { padding: 28px 20px 26px; border-radius: 24px; }
-            .logo-section { gap: 14px; margin-bottom: 26px; }
-            .logo-icon { width: 52px; height: 52px; font-size: 1.3rem; border-radius: 14px; }
-            .logo-text h1 { font-size: 1.4rem; }
-            .input-wrap input { padding: 14px 44px 14px 44px; font-size: 0.9rem; }
-            .input-wrap .input-icon { right: 14px; font-size: 0.7rem; }
-            .toggle-pass { left: 14px; }
-            .btn-primary { padding: 14px; font-size: 0.9rem; }
-            .links { font-size: 0.55rem; }
-            .copyright { font-size: 0.5rem; margin-top: 16px; padding-top: 12px; }
-            .social-btns button { width: 38px; height: 38px; font-size: 0.85rem; }
+            .ring { inset: -40px; }
+            .login-container { padding: 30px 22px 24px; border-radius: 20px; }
+            .title { font-size: 1.6rem; }
         }
-
-        @media (max-width: 380px) {
-            .login-container { padding: 20px 14px 20px; border-radius: 20px; }
-            .logo-icon { width: 44px; height: 44px; font-size: 1.1rem; border-radius: 12px; }
-            .logo-text h1 { font-size: 1.2rem; }
-            .input-wrap input { padding: 12px 40px 12px 40px; font-size: 0.85rem; }
-            .btn-primary { padding: 12px; font-size: 0.85rem; }
-            .links { font-size: 0.5rem; }
-            .social-btns button { width: 34px; height: 34px; font-size: 0.75rem; }
-        }
-
-        @media (min-width: 769px) {
-            .login-container { padding: 52px 44px 38px; border-radius: 36px; }
-            .logo-icon { width: 76px; height: 76px; font-size: 1.9rem; border-radius: 22px; }
-            .logo-text h1 { font-size: 2rem; }
-        }
-
-        /* ===== تحسين التمرير ===== */
-        ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(245, 200, 66, 0.15); border-radius: 50px; }
     </style>
 </head>
 <body>
 
-    <!-- ===== فيديو الخلفية ===== -->
-    <video class="bg-video" autoplay muted loop playsinline>
-        <source src="https://cdn.pixabay.com/video/2022/11/10/138219-770684293_tiny.mp4" type="video/mp4" />
-    </video>
-
-    <div class="bg-overlay"></div>
-    <div class="caustics"></div>
-    <div class="particles" id="particles"></div>
-
-    <!-- ===== خط الأفق الذهبي ===== -->
-    <div class="horizon">
-        <svg viewBox="0 0 1440 140" preserveAspectRatio="none">
-            <path d="M0,90 C240,40 480,120 720,80 C960,40 1200,110 1440,70 L1440,140 L0,140 Z"
-                  fill="url(#horizonGrad)" />
-            <defs>
-                <linearGradient id="horizonGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#f5c842" stop-opacity="0.06" />
-                    <stop offset="100%" stop-color="#f5c842" stop-opacity="0" />
-                </linearGradient>
-            </defs>
-        </svg>
-    </div>
-
-    <!-- ===== الحاوية الرئيسية ===== -->
-    <div class="login-wrapper" id="loginWrapper">
+    <div class="ring-wrap" id="ringWrap">
+        <div class="ring" id="ring"></div>
 
         <div class="login-container" id="loginCard">
-            <div class="card-content">
 
-                <!-- ===== الشعار ===== -->
-                <div class="logo-section">
-                    <div class="logo-icon">QD</div>
-                    <div class="logo-text">
-                        <h1>نظام إدارة الشركات</h1>
-                        <div class="subtitle">تسجيل الدخول</div>
+            <div class="title">تسجيل الدخول</div>
+
+            <form id="loginForm">
+
+                <div class="form-group">
+                    <div class="input-wrap">
+                        <i class="fas fa-envelope input-icon right"></i>
+                        <input type="email" id="email" name="email" placeholder="البريد الإلكتروني" required autocomplete="email" />
                     </div>
                 </div>
 
-                <!-- ===== خيارات الدخول ===== -->
-                <div class="social-label">أو استخدم</div>
-                <div class="social-btns">
-                    <button onclick="alert('جاري التوجيه إلى جوجل...')"><i class="fab fa-google"></i></button>
-                    <button onclick="alert('جاري التوجيه إلى فيسبوك...')"><i class="fab fa-facebook-f"></i></button>
-                    <button onclick="alert('جاري التوجيه إلى مايكروسوفت...')"><i class="fab fa-microsoft"></i></button>
+                <div class="form-group">
+                    <div class="input-wrap has-toggle">
+                        <i class="fas fa-lock input-icon right"></i>
+                        <input type="password" id="password" name="password" placeholder="كلمة المرور" required autocomplete="current-password" />
+                        <button type="button" class="toggle-pass" id="togglePass" aria-label="إظهار كلمة المرور">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- ===== الفاصل ===== -->
-                <div class="divider">
-                    <span>أو</span>
+                <div class="forgot">
+                    <a href="#">نسيت كلمة المرور؟</a>
                 </div>
 
-                <!-- ===== نموذج تسجيل الدخول ===== -->
-                <form id="loginForm">
+                <button type="submit" class="btn-primary" id="loginBtn">دخول</button>
 
-                    <div class="form-group">
-                        <label><i class="fas fa-envelope"></i> البريد الإلكتروني</label>
-                        <div class="input-wrap">
-                            <i class="fas fa-envelope input-icon"></i>
-                            <input type="email" id="email" name="email" placeholder="admin@company.com" required autocomplete="email" />
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label><i class="fas fa-lock"></i> كلمة المرور</label>
-                        <div class="input-wrap">
-                            <i class="fas fa-key input-icon"></i>
-                            <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password" />
-                            <button type="button" class="toggle-pass" id="togglePass" aria-label="إظهار كلمة المرور">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="forgot">
-                        <a href="#">نسيت كلمة المرور؟</a>
-                    </div>
-
-                    <button type="submit" class="btn-primary" id="loginBtn">
-                        <i class="fas fa-sign-in-alt"></i> دخول
-                    </button>
-
-                    <div class="loading-spinner" id="loadingSpinner">
-                        <div class="dots"><span></span><span></span><span></span></div>
-                        <span class="label">جاري التحقق...</span>
-                    </div>
-
-                    <div id="message" class="message"></div>
-                </form>
-
-                <!-- ===== الروابط ===== -->
-                <div class="links">
-                    <span class="system-name">
-                        <i class="fas fa-circle" style="font-size: 0.25rem; vertical-align: middle;"></i>
-                        ليس لديك حساب؟ <a href="register.html">إنشاء حساب</a>
-                        <i class="fas fa-circle" style="font-size: 0.25rem; vertical-align: middle;"></i>
-                    </span>
+                <div class="loading-spinner" id="loadingSpinner">
+                    <div class="dots"><span></span><span></span><span></span></div>
+                    <span class="label">جاري التحقق...</span>
                 </div>
 
-                <!-- ===== حقوق الملكية ===== -->
-                <div class="copyright">
-                    <i class="fas fa-copyright"></i>
-                    2026 جميع الحقوق محفوظة لـ
-                    <strong>QuickData ProSoft</strong>
-                    <span class="version">v3.0</span>
-                </div>
+                <div id="message" class="message"></div>
+            </form>
 
+            <div class="social-label">تسجيل الدخول باستخدام</div>
+            <div class="social-btns">
+                <button class="fb" onclick="alert('جاري التوجيه إلى فيسبوك...')" aria-label="فيسبوك"><i class="fab fa-facebook-f"></i></button>
+                <button class="x" onclick="alert('جاري التوجيه إلى X...')" aria-label="X"><i class="fab fa-x-twitter"></i></button>
+                <button class="gg" onclick="alert('جاري التوجيه إلى جوجل...')" aria-label="جوجل"><i class="fab fa-google"></i></button>
             </div>
+
+            <div class="links">
+                ليس لديك حساب؟ <a href="register.html">إنشاء حساب</a>
+            </div>
+
+            <div class="copyright">
+                © 2026 جميع الحقوق محفوظة لـ <strong>QuickData ProSoft</strong>
+            </div>
+
         </div>
     </div>
 
@@ -848,46 +471,36 @@
 
         /**
          * ============================================================
-         * جسيمات الخلفية المتحركة
+         * بناء الحلقة المتقطعة المزخرفة (SVG)
          * ============================================================
          */
-        (function createParticles() {
-            var container = document.getElementById('particles');
-            var count = 25;
-            for (var i = 0; i < count; i++) {
-                var particle = document.createElement('div');
-                particle.className = 'particle';
-                var size = 2 + Math.random() * 4;
-                particle.style.width = size + 'px';
-                particle.style.height = size + 'px';
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.animationDuration = (10 + Math.random() * 14) + 's';
-                particle.style.animationDelay = (Math.random() * 12) + 's';
-                particle.style.opacity = 0.05 + Math.random() * 0.2;
-                container.appendChild(particle);
+        (function buildRing() {
+            var ring = document.getElementById('ring');
+            var size = 600;
+            var cx = size / 2, cy = size / 2, r = size / 2 - 20;
+            var total = 48;
+            var litStart = 4, litEnd = 15; // القطاع المضيء بالذهبي (أعلى اليمين)
+            var svgNS = 'http://www.w3.org/2000/svg';
+            var svg = document.createElementNS(svgNS, 'svg');
+            svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
+
+            for (var i = 0; i < total; i++) {
+                var angle = (i / total) * 2 * Math.PI;
+                var inner = r - 14;
+                var outer = r;
+                var x1 = cx + inner * Math.cos(angle);
+                var y1 = cy + inner * Math.sin(angle);
+                var x2 = cx + outer * Math.cos(angle);
+                var y2 = cy + outer * Math.sin(angle);
+                var line = document.createElementNS(svgNS, 'line');
+                line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+                var lit = (i >= litStart && i <= litEnd);
+                line.setAttribute('class', 'tick' + (lit ? ' lit' : ''));
+                svg.appendChild(line);
             }
+            ring.appendChild(svg);
         })();
-
-        /**
-         * ============================================================
-         * ميل البطاقة ثلاثي الأبعاد مع حركة الفأرة
-         * ============================================================
-         */
-        var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        var card = document.getElementById('loginCard');
-        var wrapper = document.getElementById('loginWrapper');
-
-        if (!prefersReducedMotion && window.matchMedia('(hover: hover)').matches) {
-            wrapper.addEventListener('mousemove', function(e) {
-                var rect = card.getBoundingClientRect();
-                var x = (e.clientX - rect.left) / rect.width - 0.5;
-                var y = (e.clientY - rect.top) / rect.height - 0.5;
-                card.style.transform = 'rotateY(' + (x * 6) + 'deg) rotateX(' + (-y * 6) + 'deg)';
-            });
-            wrapper.addEventListener('mouseleave', function() {
-                card.style.transform = 'rotateY(0deg) rotateX(0deg)';
-            });
-        }
 
         /**
          * ============================================================
@@ -980,11 +593,6 @@
             loadingSpinner.style.display = 'none';
         });
 
-        /**
-         * ============================================================
-         * دوال مساعدة
-         * ============================================================
-         */
         function showMessage(text, type) {
             var icon = type === 'success'
                 ? '<svg class="checkmark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3 3 7-7"/></svg>'
@@ -998,26 +606,6 @@
             messageDiv.innerHTML = '';
         }
 
-        /**
-         * ============================================================
-         * تأثيرات الحقول
-         * ============================================================
-         */
-        var inputs = document.querySelectorAll('.input-wrap input');
-        inputs.forEach(function(input) {
-            input.addEventListener('focus', function() {
-                this.closest('.input-wrap').style.transform = 'translateY(-1px)';
-            });
-            input.addEventListener('blur', function() {
-                this.closest('.input-wrap').style.transform = 'translateY(0)';
-            });
-        });
-
-        /**
-         * ============================================================
-         * رسالة الترحيب في Console
-         * ============================================================
-         */
         console.log('🏢 QuickData ProSoft - نظام إدارة الشركات');
         console.log('🔗 Supabase URL:', SUPABASE_URL);
         console.log('✅ النظام جاهز للعمل');
