@@ -2,1104 +2,334 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>الخزينة - QuickData ProSoft</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ============================================================
-           CSS VARIABLES
+           STYLES - نسخة مبسطة
            ============================================================ */
-        :root {
-            --primary: #1a2332;
-            --primary-light: #2c3a4f;
-            --secondary: #c9a84c;
-            --secondary-light: #e8d5a0;
-            --secondary-dark: #b8942a;
-            --success: #28a745;
-            --danger: #dc3545;
-            --info: #17a2b8;
-            --warning: #ffc107;
-            --gray-50: #f8f9fb;
-            --gray-100: #f0f2f5;
-            --gray-200: #e8ecf1;
-            --gray-300: #dce1e8;
-            --gray-400: #b8c4d0;
-            --gray-500: #8a96a8;
-            --gray-600: #6b7a8d;
-            --gray-700: #4a5a6e;
-            --gray-800: #2c3a4f;
-            --gray-900: #1a2332;
-            --white: #ffffff;
-            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
-            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.08);
-            --shadow-xl: 0 12px 60px rgba(0, 0, 0, 0.12);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --radius-xl: 20px;
-            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            --font: 'Cairo', sans-serif;
-        }
-
-        /* ============================================================
-           RESET & BASE
-           ============================================================ */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: var(--font);
-            background: var(--gray-100);
-            color: var(--gray-900);
+            font-family: 'Cairo', sans-serif;
             direction: rtl;
+            background: #1b2431;
+            color: #fff;
             min-height: 100vh;
-            line-height: 1.6;
+            padding: 20px;
         }
+        .container { max-width: 1200px; margin: 0 auto; }
 
-        .container {
-            max-width: 1440px;
-            margin: 0 auto;
-            padding: 0 24px;
-        }
-
-        /* ============================================================
-           SCROLLBAR
-           ============================================================ */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--gray-200);
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--secondary);
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--secondary-dark);
-        }
-
-        /* ============================================================
-           HEADER
-           ============================================================ */
-        header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.97);
-            backdrop-filter: blur(16px);
-            border-bottom: 1px solid var(--gray-200);
-            box-shadow: var(--shadow-sm);
-            padding: 0;
-            height: 68px;
-        }
-
-        header .container {
+        /* Header */
+        .header {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            height: 68px;
-        }
-
-        .logo {
-            display: flex;
             align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            margin-bottom: 24px;
+        }
+        .header h1 { font-size: 1.6rem; font-weight: 900; color: #f5a623; }
+        .header .back-btn {
+            color: rgba(255,255,255,0.5);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: 0.3s;
+        }
+        .header .back-btn:hover { background: rgba(255,255,255,0.04); color: #fff; }
+
+        /* Treasury Info */
+        .treasury-info {
+            background: #212c3b;
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
             gap: 12px;
         }
+        .treasury-info .name { font-size: 1.2rem; font-weight: 800; color: #f5a623; }
+        .treasury-info .balance { font-size: 1.4rem; font-weight: 900; color: #34d399; }
+        .treasury-info .balance .label { font-size: 0.7rem; color: rgba(255,255,255,0.4); font-weight: 600; }
 
-        .logo-icon {
-            width: 42px;
-            height: 42px;
-            background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
-            border-radius: var(--radius-md);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            font-weight: 900;
-            color: var(--white);
-            box-shadow: 0 2px 12px rgba(201, 168, 76, 0.25);
-        }
-
-        .logo-text h1 {
-            font-size: 1.2rem;
-            font-weight: 900;
-            color: var(--gray-900);
-            line-height: 1.1;
-        }
-
-        .logo-text span {
-            font-size: 0.5rem;
-            color: var(--gray-500);
-            display: block;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .nav-links a {
-            padding: 8px 18px;
-            border-radius: var(--radius-sm);
-            color: var(--gray-500);
-            font-size: 0.75rem;
-            font-weight: 600;
-            transition: var(--transition);
-            text-decoration: none;
-        }
-
-        .nav-links a:hover {
-            background: var(--gray-100);
-            color: var(--gray-900);
-        }
-
-        .nav-links a.active {
-            background: rgba(201, 168, 76, 0.08);
-            color: var(--secondary);
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .header-actions button {
-            width: 36px;
-            height: 36px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--gray-200);
-            background: var(--white);
-            color: var(--gray-500);
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.85rem;
-        }
-
-        .header-actions button:hover {
-            background: var(--gray-50);
-            border-color: var(--secondary);
-            color: var(--secondary);
-        }
-
-        /* ============================================================
-           HERO
-           ============================================================ */
-        .hero {
-            padding: 100px 0 24px;
-            text-align: center;
-        }
-
-        .hero h1 {
-            font-size: 2.2rem;
-            font-weight: 900;
-            color: var(--gray-900);
-        }
-
-        .hero h1 .gold {
-            background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .hero p {
-            color: var(--gray-500);
-            font-size: 0.9rem;
-            margin-top: 4px;
-        }
-
-        /* ============================================================
-           STATS CARDS
-           ============================================================ */
+        /* Stats */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-            margin: 16px 0 20px;
-        }
-
-        .stat-card {
-            background: var(--white);
-            border-radius: var(--radius-lg);
-            padding: 18px 20px;
-            border: 1px solid var(--gray-200);
-            box-shadow: var(--shadow-sm);
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .stat-card .icon-box {
-            width: 48px;
-            height: 48px;
-            border-radius: var(--radius-md);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3rem;
-            flex-shrink: 0;
-        }
-
-        .stat-card .icon-box.gold {
-            background: rgba(201, 168, 76, 0.08);
-            color: var(--secondary);
-        }
-        .stat-card .icon-box.green {
-            background: rgba(40, 167, 69, 0.08);
-            color: var(--success);
-        }
-        .stat-card .icon-box.red {
-            background: rgba(220, 53, 69, 0.08);
-            color: var(--danger);
-        }
-        .stat-card .icon-box.blue {
-            background: rgba(23, 162, 184, 0.08);
-            color: var(--info);
-        }
-
-        .stat-card .info .label {
-            font-size: 0.6rem;
-            color: var(--gray-500);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .stat-card .info .value {
-            font-size: 1.2rem;
-            font-weight: 800;
-            color: var(--gray-900);
-        }
-
-        .stat-card .info .value.gold {
-            color: var(--secondary);
-        }
-        .stat-card .info .value.green {
-            color: var(--success);
-        }
-        .stat-card .info .value.red {
-            color: var(--danger);
-        }
-        .stat-card .info .value.blue {
-            color: var(--info);
-        }
-
-        /* ============================================================
-           TRANSFER FORM
-           ============================================================ */
-        .transfer-section {
-            background: var(--white);
-            border-radius: var(--radius-lg);
-            padding: 20px 24px;
-            border: 1px solid var(--gray-200);
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
             margin-bottom: 20px;
-            box-shadow: var(--shadow-sm);
         }
+        .stat-card {
+            background: #212c3b;
+            border-radius: 12px;
+            padding: 14px 18px;
+            border: 1px solid rgba(255,255,255,0.05);
+            text-align: center;
+        }
+        .stat-card .value { font-size: 1.2rem; font-weight: 800; }
+        .stat-card .value.green { color: #34d399; }
+        .stat-card .value.red { color: #f87171; }
+        .stat-card .value.gold { color: #f5a623; }
+        .stat-card .label { font-size: 0.6rem; color: rgba(255,255,255,0.4); font-weight: 600; }
 
-        .transfer-section .transfer-title {
+        /* Transfer Form */
+        .transfer-section {
+            background: #212c3b;
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .transfer-section h3 {
             font-size: 0.9rem;
             font-weight: 700;
-            color: var(--gray-900);
+            color: #f5a623;
             margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
-
-        .transfer-section .transfer-title i {
-            color: var(--secondary);
-        }
-
         .transfer-row {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr 1fr auto;
             gap: 12px;
             align-items: end;
         }
-
         .transfer-row .form-group {
             display: flex;
             flex-direction: column;
             gap: 4px;
         }
-
         .transfer-row .form-group label {
             font-size: 0.6rem;
             font-weight: 700;
-            color: var(--gray-500);
+            color: rgba(255,255,255,0.4);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
-
         .transfer-row .form-group select,
         .transfer-row .form-group input {
             padding: 8px 12px;
-            border-radius: var(--radius-sm);
-            border: 1.5px solid var(--gray-200);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: #2a3646;
+            color: #fff;
             font-size: 0.8rem;
-            font-family: var(--font);
-            background: var(--gray-50);
-            color: var(--gray-900);
+            font-family: inherit;
             outline: none;
-            transition: var(--transition);
             width: 100%;
         }
-
         .transfer-row .form-group select:focus,
         .transfer-row .form-group input:focus {
-            border-color: var(--secondary);
-            background: var(--white);
-            box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.06);
+            border-color: #f5a623;
         }
-
         .btn-transfer {
             padding: 8px 20px;
-            background: linear-gradient(135deg, var(--info), #138496);
-            color: var(--white);
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            color: #fff;
             border: none;
-            border-radius: var(--radius-sm);
+            border-radius: 8px;
             font-weight: 700;
             font-size: 0.75rem;
             cursor: pointer;
-            transition: var(--transition);
-            font-family: var(--font);
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            font-family: inherit;
             white-space: nowrap;
         }
+        .btn-transfer:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(23,162,184,0.25); }
 
-        .btn-transfer:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(23, 162, 184, 0.25);
-        }
-
-        .btn-transfer:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* ============================================================
-           TABLE
-           ============================================================ */
-        .table-section {
-            padding-bottom: 40px;
-        }
-
-        .table-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .table-header .title {
-            font-size: 1rem;
-            font-weight: 800;
-            color: var(--gray-900);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .table-header .title i {
-            color: var(--secondary);
-        }
-
-        .table-header .title .count {
-            font-size: 0.6rem;
-            color: var(--gray-500);
-            font-weight: 600;
-            background: var(--gray-100);
-            padding: 2px 12px;
-            border-radius: 50px;
-        }
-
-        .table-header .actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .table-header .actions .btn-tool {
-            padding: 6px 16px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--gray-200);
-            background: var(--white);
-            color: var(--gray-600);
-            font-size: 0.65rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-family: var(--font);
-            text-decoration: none;
-        }
-
-        .table-header .actions .btn-tool:hover {
-            background: var(--gray-50);
-            border-color: var(--secondary);
-            color: var(--secondary);
-        }
-
-        .table-header .actions .btn-tool.add {
-            background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
-            color: var(--white);
-            border: none;
-            box-shadow: 0 2px 12px rgba(201, 168, 76, 0.15);
-        }
-
-        .table-header .actions .btn-tool.add:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(201, 168, 76, 0.25);
-            color: var(--white);
-        }
-
+        /* Table */
         .table-wrapper {
-            background: var(--white);
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--gray-200);
+            background: #212c3b;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.05);
             overflow: hidden;
-            box-shadow: var(--shadow-sm);
         }
-
-        .table-scroll {
-            overflow-x: auto;
-            padding: 0 4px;
-        }
-
+        .table-scroll { overflow-x: auto; }
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.7rem;
-            min-width: 900px;
+            min-width: 600px;
         }
-
         thead {
-            background: var(--gray-50);
-            border-bottom: 2px solid var(--gray-200);
+            background: #2a3646;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
-
         thead th {
-            padding: 12px 10px;
+            padding: 10px 12px;
             text-align: center;
             font-size: 0.6rem;
             font-weight: 700;
-            color: var(--gray-600);
+            color: rgba(255,255,255,0.4);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
-            position: sticky;
-            top: 0;
-            z-index: 5;
         }
-
         tbody td {
-            padding: 10px 10px;
-            border-bottom: 1px solid var(--gray-100);
-            color: var(--gray-700);
-            font-size: 0.65rem;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
             text-align: center;
-            vertical-align: middle;
+            color: rgba(255,255,255,0.7);
         }
-
-        tbody tr:hover td {
-            background: var(--gray-50);
-        }
-
         .badge-type {
-            background: var(--gray-100);
-            color: var(--gray-600);
             padding: 2px 10px;
             border-radius: 50px;
             font-size: 0.5rem;
-            border: 1px solid var(--gray-200);
-            display: inline-block;
-        }
-
-        .badge-type.deposit {
-            background: rgba(40, 167, 69, 0.08);
-            color: var(--success);
-            border-color: rgba(40, 167, 69, 0.08);
-        }
-        .badge-type.withdraw {
-            background: rgba(220, 53, 69, 0.08);
-            color: var(--danger);
-            border-color: rgba(220, 53, 69, 0.08);
-        }
-        .badge-type.transfer {
-            background: rgba(23, 162, 184, 0.08);
-            color: var(--info);
-            border-color: rgba(23, 162, 184, 0.08);
-        }
-
-        .amount-in {
-            color: var(--success);
-            font-weight: 700;
-        }
-        .amount-out {
-            color: var(--danger);
-            font-weight: 700;
-        }
-
-        .action-btns {
-            display: flex;
-            gap: 4px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .action-btns .btn-action {
-            padding: 4px 10px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--gray-200);
-            background: var(--white);
-            font-size: 0.6rem;
-            cursor: pointer;
-            transition: var(--transition);
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-family: var(--font);
             font-weight: 600;
         }
+        .badge-type.incoming { background: rgba(52,211,153,0.1); color: #34d399; }
+        .badge-type.outgoing { background: rgba(248,113,113,0.1); color: #f87171; }
+        .badge-type.transfer { background: rgba(23,162,184,0.1); color: #17a2b8; }
 
-        .action-btns .btn-action.edit {
-            color: var(--info);
-            border-color: rgba(23, 162, 184, 0.15);
-            background: rgba(23, 162, 184, 0.04);
-        }
-
-        .action-btns .btn-action.edit:hover {
-            background: rgba(23, 162, 184, 0.08);
-            border-color: var(--info);
-        }
-
-        .action-btns .btn-action.delete {
-            color: var(--danger);
-            border-color: rgba(220, 53, 69, 0.15);
-            background: rgba(220, 53, 69, 0.04);
-        }
-
-        .action-btns .btn-action.delete:hover {
-            background: rgba(220, 53, 69, 0.08);
-            border-color: var(--danger);
-        }
-
-        /* ============================================================
-           CARDS (Mobile)
-           ============================================================ */
-        .cards-container {
-            display: none;
-            grid-template-columns: 1fr;
-            gap: 12px;
-        }
-
-        .booking-card {
-            background: var(--white);
-            border-radius: var(--radius-lg);
-            padding: 16px;
-            border: 1px solid var(--gray-200);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .booking-card .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 8px;
-            margin-bottom: 6px;
-            border-bottom: 1px solid var(--gray-200);
-        }
-
-        .booking-card .card-header .name {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--gray-900);
-        }
-
-        .booking-card .card-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 3px 0;
-            border-bottom: 1px solid var(--gray-100);
-        }
-
-        .booking-card .card-row:last-child {
-            border-bottom: none;
-        }
-
-        .booking-card .card-label {
-            font-size: 0.55rem;
-            color: var(--gray-500);
-            font-weight: 600;
-        }
-
-        .booking-card .card-value {
-            font-size: 0.7rem;
-            color: var(--gray-800);
-            font-weight: 500;
-        }
-
-        /* ============================================================
-           LOADING & EMPTY
-           ============================================================ */
-        .loading {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--gray-500);
-        }
-
-        .loading i {
-            animation: spin 1s linear infinite;
-            font-size: 2rem;
-            color: var(--secondary);
-            display: block;
-            margin-bottom: 12px;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
+        .amount-in { color: #34d399; font-weight: 700; }
+        .amount-out { color: #f87171; font-weight: 700; }
 
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
-            color: var(--gray-400);
+            padding: 40px 20px;
+            color: rgba(255,255,255,0.2);
         }
+        .empty-state i { font-size: 3rem; display: block; margin-bottom: 12px; }
 
-        .empty-state i {
-            font-size: 4rem;
-            opacity: 0.3;
-            display: block;
-            margin-bottom: 12px;
-        }
-
-        .empty-state h3 {
-            font-size: 1.1rem;
-            color: var(--gray-600);
-        }
-        .empty-state p {
-            font-size: 0.8rem;
-        }
-
-        /* ============================================================
-           FLOATING ADD BUTTON
-           ============================================================ */
-        .btn-add-floating {
-            position: fixed;
-            bottom: 30px;
-            left: 30px;
-            z-index: 999;
-            background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
-            color: var(--white);
-            padding: 14px 24px;
-            border-radius: 60px;
-            font-weight: 800;
-            font-size: 0.85rem;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 6px 30px rgba(201, 168, 76, 0.3);
-            text-decoration: none;
-            transition: var(--transition);
-        }
-
-        .btn-add-floating:hover {
-            transform: scale(1.04) translateY(-2px);
-            box-shadow: 0 10px 40px rgba(201, 168, 76, 0.4);
-            color: var(--white);
-        }
-
-        /* ============================================================
-           TOAST
-           ============================================================ */
+        /* Toast */
         .toast-container {
             position: fixed;
-            top: 80px;
-            right: 24px;
-            z-index: 999999;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
             display: flex;
             flex-direction: column;
             gap: 8px;
-            max-width: 400px;
-            width: 90%;
-            pointer-events: none;
         }
-
         .toast {
-            background: var(--white);
-            padding: 16px 20px;
-            border-radius: var(--radius-md);
-            border-right: 4px solid var(--secondary);
-            box-shadow: var(--shadow-lg);
+            background: #212c3b;
+            padding: 14px 20px;
+            border-radius: 12px;
+            border-right: 4px solid #f5a623;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             display: flex;
             align-items: center;
-            gap: 14px;
-            transform: translateX(20px);
-            opacity: 0;
-            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            pointer-events: auto;
+            gap: 12px;
+            min-width: 280px;
+            animation: slideIn 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.05);
         }
+        .toast.success { border-right-color: #34d399; }
+        .toast.error { border-right-color: #f87171; }
+        .toast .icon { font-size: 1.1rem; }
+        .toast .icon.success { color: #34d399; }
+        .toast .icon.error { color: #f87171; }
+        .toast .content .title { font-size: 0.8rem; font-weight: 700; }
+        .toast .content .message { font-size: 0.7rem; color: rgba(255,255,255,0.4); }
 
-        .toast.show {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        .toast.success {
-            border-right-color: var(--success);
-        }
-        .toast.error {
-            border-right-color: var(--danger);
-        }
-        .toast.warning {
-            border-right-color: var(--warning);
-        }
-
-        .toast .icon {
-            font-size: 1.1rem;
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .toast .icon.success {
-            background: rgba(40, 167, 69, 0.08);
-            color: var(--success);
-        }
-        .toast .icon.error {
-            background: rgba(220, 53, 69, 0.08);
-            color: var(--danger);
-        }
-        .toast .icon.warning {
-            background: rgba(255, 193, 7, 0.08);
-            color: var(--warning);
-        }
-
-        .toast .content .title {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--gray-900);
-        }
-        .toast .content .message {
-            font-size: 0.7rem;
-            color: var(--gray-500);
-            margin-top: 1px;
-        }
-
-        .toast .close {
-            background: none;
-            border: none;
-            color: var(--gray-400);
-            cursor: pointer;
-            font-size: 0.9rem;
-            margin-right: auto;
-            padding: 4px;
-            transition: var(--transition);
-        }
-        .toast .close:hover {
-            color: var(--gray-600);
-        }
-
-        /* ============================================================
-           RESPONSIVE
-           ============================================================ */
-        @media (max-width: 1024px) {
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 1.6rem;
-            }
-            .hero {
-                padding: 85px 0 16px;
-            }
-            .stats-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
-            }
-            .stat-card {
-                padding: 14px;
-            }
-            .stat-card .info .value {
-                font-size: 1rem;
-            }
-            .table-wrapper {
-                display: none !important;
-            }
-            .cards-container {
-                display: grid !important;
-            }
-            .btn-add-floating {
-                bottom: 16px;
-                left: 16px;
-                padding: 10px 18px;
-                font-size: 0.75rem;
-            }
-            .nav-links a:not(.active) {
-                display: none;
-            }
-            .table-header {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .table-header .actions {
-                justify-content: flex-start;
-            }
-            .transfer-row {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-            .btn-transfer {
-                width: 100%;
-                justify-content: center;
-            }
-            .transfer-section {
-                padding: 16px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .hero h1 {
-                font-size: 1.3rem;
-            }
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            .logo-text h1 {
-                font-size: 1rem;
-            }
-            .logo-icon {
-                width: 34px;
-                height: 34px;
-                font-size: 1rem;
-            }
-            .toast-container {
-                top: 74px;
-                right: 12px;
-                max-width: 95%;
-            }
-            .toast {
-                padding: 12px 16px;
-                font-size: 0.7rem;
-            }
+            .transfer-row { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .header { flex-direction: column; gap: 12px; align-items: flex-start; }
+            .treasury-info { flex-direction: column; align-items: flex-start; }
         }
     </style>
 </head>
 <body>
 
-    <!-- ============================================================
-    HEADER
-    ============================================================ -->
-    <header>
-        <div class="container">
-            <div class="logo">
-                <div class="logo-icon">🏛️</div>
-                <div class="logo-text">
-                    <h1 id="treasuryName">الخزينة</h1>
-                    <span id="companyName">شركة رولكس</span>
+    <div class="container">
+
+        <!-- ===== HEADER ===== -->
+        <div class="header">
+            <h1><i class="fas fa-university"></i> الخزينة</h1>
+            <a href="treasuries.html" class="back-btn"><i class="fas fa-arrow-right"></i> العودة للخزائن</a>
+        </div>
+
+        <!-- ===== TREASURY INFO ===== -->
+        <div class="treasury-info" id="treasuryInfo">
+            <div>
+                <div class="name" id="treasuryName">جاري التحميل...</div>
+                <div style="font-size:0.7rem;color:rgba(255,255,255,0.3);">الخزينة</div>
+            </div>
+            <div>
+                <div class="balance">
+                    <span class="label">الرصيد الحالي</span><br />
+                    <span id="treasuryBalance">0 ج.م</span>
                 </div>
             </div>
-            <div class="nav-links">
-                <a href="index.html">الرئيسية</a>
-                <a href="treasuries.html" class="active">الخزائن</a>
-                <a href="#">التقارير</a>
+        </div>
+
+        <!-- ===== STATS ===== -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="value green" id="totalIncoming">0</div>
+                <div class="label">إجمالي الإيداعات</div>
             </div>
-            <div class="header-actions">
-                <button onclick="window.location.reload()" aria-label="تحديث"><i class="fas fa-sync-alt"></i></button>
-                <button onclick="window.location.href='treasuries.html'" aria-label="العودة للخزائن"><i class="fas fa-arrow-left"></i></button>
+            <div class="stat-card">
+                <div class="value red" id="totalOutgoing">0</div>
+                <div class="label">إجمالي السحوبات</div>
+            </div>
+            <div class="stat-card">
+                <div class="value gold" id="totalTransactions">0</div>
+                <div class="label">عدد الحركات</div>
             </div>
         </div>
-    </header>
 
-    <!-- ============================================================
-    TOAST
-    ============================================================ -->
+        <!-- ===== TRANSFER FORM ===== -->
+        <div class="transfer-section" id="transferSection">
+            <h3><i class="fas fa-exchange-alt"></i> تحويل بين الخزائن</h3>
+            <div class="transfer-row">
+                <div class="form-group">
+                    <label>من خزينة</label>
+                    <select id="fromTreasury">
+                        <option value="">جاري التحميل...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>إلى خزينة</label>
+                    <select id="toTreasury">
+                        <option value="">جاري التحميل...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>المبلغ</label>
+                    <input type="number" id="transferAmount" placeholder="0.00" min="0.01" step="0.01" />
+                </div>
+                <div class="form-group">
+                    <label>البيان</label>
+                    <input type="text" id="transferDesc" placeholder="سبب التحويل" />
+                </div>
+                <button class="btn-transfer" onclick="transferMoney()">
+                    <i class="fas fa-exchange-alt"></i> تحويل
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== TRANSACTIONS TABLE ===== -->
+        <div class="table-wrapper">
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>البيان</th>
+                            <th>النوع</th>
+                            <th>المبلغ</th>
+                            <th>التاريخ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsBody">
+                        <tr><td colspan="4"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===== TOAST ===== -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- ============================================================
-    HERO
-    ============================================================ -->
-    <section class="hero">
-        <div class="container">
-            <h1><span class="gold" id="heroTitle">الخزينة</span></h1>
-            <p id="heroDesc">إدارة حركة الخزينة، الإيرادات، المصاريف، والأرصدة</p>
-        </div>
-    </section>
-
-    <!-- ============================================================
-    STATS
-    ============================================================ -->
-    <section>
-        <div class="container">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="icon-box gold"><i class="fas fa-wallet"></i></div>
-                    <div class="info">
-                        <div class="label">الرصيد الحالي</div>
-                        <div class="value gold" id="totalBalance">0 ج.م</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon-box green"><i class="fas fa-arrow-up"></i></div>
-                    <div class="info">
-                        <div class="label">إجمالي الإيداعات</div>
-                        <div class="value green" id="totalIncoming">0 ج.م</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon-box red"><i class="fas fa-arrow-down"></i></div>
-                    <div class="info">
-                        <div class="label">إجمالي السحوبات</div>
-                        <div class="value red" id="totalOutgoing">0 ج.م</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon-box blue"><i class="fas fa-file-alt"></i></div>
-                    <div class="info">
-                        <div class="label">عدد الحركات</div>
-                        <div class="value blue" id="totalTransactions">0</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- ============================================================
-    TRANSFER SECTION
-    ============================================================ -->
-    <section>
-        <div class="container">
-            <div class="transfer-section" id="transferSection">
-                <div class="transfer-title">
-                    <i class="fas fa-exchange-alt"></i> تحويل بين الخزائن
-                </div>
-                <div class="transfer-row">
-                    <div class="form-group">
-                        <label>من خزينة</label>
-                        <select id="fromTreasury">
-                            <option value="">اختر الخزينة</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>إلى خزينة</label>
-                        <select id="toTreasury">
-                            <option value="">اختر الخزينة</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>المبلغ</label>
-                        <input type="number" id="transferAmount" placeholder="0.00" min="0.01" step="0.01" />
-                    </div>
-                    <div class="form-group">
-                        <label>البيان</label>
-                        <input type="text" id="transferDesc" placeholder="سبب التحويل" />
-                    </div>
-                    <button class="btn-transfer" onclick="transferMoney()">
-                        <i class="fas fa-exchange-alt"></i> تحويل
-                    </button>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- ============================================================
-    TABLE
-    ============================================================ -->
-    <section class="table-section">
-        <div class="container">
-            <div class="table-header">
-                <div class="title">
-                    <i class="fas fa-table"></i>
-                    سجل حركات الخزينة
-                    <span class="count" id="transactionsCount">0 حركة</span>
-                </div>
-                <div class="actions">
-                    <a href="entry.html" class="btn-tool add" id="addEntryBtn">
-                        <i class="fas fa-plus"></i> إضافة حركة
-                    </a>
-                    <button class="btn-tool" onclick="loadData()">
-                        <i class="fas fa-sync-alt"></i> تحديث
-                    </button>
-                </div>
-            </div>
-            <div id="treasuryContainer">
-                <div class="loading"><i class="fas fa-spinner"></i> جاري تحميل البيانات...</div>
-            </div>
-        </div>
-    </section>
-
-    <!-- ============================================================
-    FLOATING ADD BUTTON
-    ============================================================ -->
-    <a href="entry.html" class="btn-add-floating" id="floatingAddBtn">
-        <i class="fas fa-plus-circle"></i> إضافة حركة
-    </a>
-
-    <!-- ============================================================
-    FOOTER
-    ============================================================ -->
-    <footer style="background:var(--white);padding:20px 0;border-top:1px solid var(--gray-200);margin-top:10px;">
-        <div class="container">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <div class="logo-icon" style="width:34px;height:34px;font-size:1rem;">🏛️</div>
-                    <div>
-                        <h1 style="font-size:1rem;font-weight:900;color:var(--gray-900);">الخزينة</h1>
-                    </div>
-                </div>
-                <div style="color:var(--gray-400);font-size:0.6rem;">
-                    © 2026 جميع الحقوق محفوظة
-                </div>
-            </div>
-        </div>
-    </footer>
-
-    <!-- ============================================================
-    JAVASCRIPT
-    ============================================================ -->
     <script>
         // ============================================================
         // CONFIGURATION
@@ -1109,59 +339,34 @@
         var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         var currentTreasuryId = null;
-        var currentCompanyId = null;
         var allTreasuries = [];
 
         // ============================================================
-        // TOAST SYSTEM
+        // TOAST
         // ============================================================
         function showToast(title, message, type) {
             var container = document.getElementById('toastContainer');
             var toast = document.createElement('div');
             toast.className = 'toast ' + (type || '');
-
-            var iconMap = {
-                'success': { icon: 'fa-check-circle', cls: 'success' },
-                'error': { icon: 'fa-times-circle', cls: 'error' },
-                'warning': { icon: 'fa-exclamation-triangle', cls: 'warning' }
-            };
-
-            var toastType = iconMap[type] || iconMap['warning'];
-
-            toast.innerHTML = '' +
-                '<span class="icon ' + toastType.cls + '"><i class="fas ' + toastType.icon + '"></i></span>' +
-                '<div class="content">' +
-                '<div class="title">' + title + '</div>' +
-                '<div class="message">' + message + '</div>' +
-                '</div>' +
-                '<button class="close"><i class="fas fa-times"></i></button>';
-
+            var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            var iconClass = type === 'success' ? 'success' : 'error';
+            toast.innerHTML = `
+                <span class="icon ${iconClass}"><i class="fas ${icon}"></i></span>
+                <div class="content">
+                    <div class="title">${title}</div>
+                    <div class="message">${message}</div>
+                </div>
+            `;
             container.appendChild(toast);
-
-            requestAnimationFrame(function() {
-                toast.classList.add('show');
-            });
-
-            var timeout = setTimeout(function() {
-                if (toast.parentElement) {
-                    toast.classList.remove('show');
-                    setTimeout(function() {
-                        if (toast.parentElement) toast.remove();
-                    }, 400);
-                }
-            }, 4000);
-
-            toast.querySelector('.close').addEventListener('click', function() {
-                clearTimeout(timeout);
-                toast.classList.remove('show');
-                setTimeout(function() {
-                    if (toast.parentElement) toast.remove();
-                }, 400);
-            });
+            setTimeout(function() {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(20px)';
+                setTimeout(function() { toast.remove(); }, 300);
+            }, 3000);
         }
 
         // ============================================================
-        // GET SESSION & TOKEN
+        // SESSION & TOKEN
         // ============================================================
         function getSession() {
             var session = localStorage.getItem('rollex_session');
@@ -1169,9 +374,7 @@
                 window.location.href = 'login.html';
                 return null;
             }
-            try {
-                return JSON.parse(session);
-            } catch (e) {
+            try { return JSON.parse(session); } catch(e) {
                 localStorage.removeItem('rollex_session');
                 window.location.href = 'login.html';
                 return null;
@@ -1197,7 +400,6 @@
         async function getCurrentUserProfile() {
             var token = getToken();
             if (!token) return null;
-
             try {
                 var userResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
                     headers: {
@@ -1205,27 +407,21 @@
                         'Authorization': 'Bearer ' + token
                     }
                 });
-
                 if (!userResponse.ok) {
                     localStorage.removeItem('rollex_session');
                     window.location.href = 'login.html';
                     return null;
                 }
-
                 var user = await userResponse.json();
-
                 var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=*&id=eq.' + user.id, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': 'Bearer ' + token
                     }
                 });
-
                 if (!profileResponse.ok) return null;
-
                 var data = await profileResponse.json();
                 return data && data.length > 0 ? data[0] : null;
-
             } catch (error) {
                 console.error('❌ خطأ:', error);
                 return null;
@@ -1238,7 +434,6 @@
         async function getTreasuryDetails(treasuryId) {
             var token = getToken();
             if (!token) return null;
-
             try {
                 var response = await fetch(SUPABASE_URL + '/rest/v1/treasuries?select=*&id=eq.' + treasuryId, {
                     headers: {
@@ -1246,12 +441,9 @@
                         'Authorization': 'Bearer ' + token
                     }
                 });
-
                 if (!response.ok) return null;
-
                 var data = await response.json();
                 return data && data.length > 0 ? data[0] : null;
-
             } catch (error) {
                 console.error('❌ خطأ:', error);
                 return null;
@@ -1259,12 +451,11 @@
         }
 
         // ============================================================
-        // GET ALL TREASURIES FOR COMPANY
+        // GET COMPANY TREASURIES
         // ============================================================
         async function getCompanyTreasuries(companyId) {
             var token = getToken();
             if (!token) return [];
-
             try {
                 var response = await fetch(SUPABASE_URL + '/rest/v1/treasuries?select=*&company_id=eq.' + companyId + '&is_active=eq.true', {
                     headers: {
@@ -1272,13 +463,15 @@
                         'Authorization': 'Bearer ' + token
                     }
                 });
-
-                if (!response.ok) return [];
-
-                return await response.json();
-
+                if (!response.ok) {
+                    console.error('❌ فشل جلب الخزائن:', response.status);
+                    return [];
+                }
+                var data = await response.json();
+                console.log('📊 الخزائن التي تم جلبها:', data);
+                return data || [];
             } catch (error) {
-                console.error('❌ خطأ:', error);
+                console.error('❌ خطأ في جلب الخزائن:', error);
                 return [];
             }
         }
@@ -1289,7 +482,6 @@
         async function getTransactions(treasuryId) {
             var token = getToken();
             if (!token) return [];
-
             try {
                 var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + treasuryId + '&order=created_at.desc', {
                     headers: {
@@ -1297,15 +489,47 @@
                         'Authorization': 'Bearer ' + token
                     }
                 });
-
                 if (!response.ok) return [];
-
                 return await response.json();
-
             } catch (error) {
                 console.error('❌ خطأ:', error);
                 return [];
             }
+        }
+
+        // ============================================================
+        // POPULATE TREASURY SELECTS
+        // ============================================================
+        function populateTreasurySelects(treasuries, currentId) {
+            console.log('🔄 ملء القوائم المنسدلة بـ:', treasuries);
+            
+            var fromSelect = document.getElementById('fromTreasury');
+            var toSelect = document.getElementById('toTreasury');
+
+            fromSelect.innerHTML = '<option value="">اختر الخزينة</option>';
+            toSelect.innerHTML = '<option value="">اختر الخزينة</option>';
+
+            if (!treasuries || treasuries.length === 0) {
+                fromSelect.innerHTML = '<option value="">لا توجد خزائن</option>';
+                toSelect.innerHTML = '<option value="">لا توجد خزائن</option>';
+                return;
+            }
+
+            treasuries.forEach(function(t) {
+                if (t.id !== currentId) {
+                    var option1 = document.createElement('option');
+                    option1.value = t.id;
+                    option1.textContent = t.name + ' (رصيد: ' + (t.balance || 0).toLocaleString() + ' ج.م)';
+                    fromSelect.appendChild(option1);
+
+                    var option2 = document.createElement('option');
+                    option2.value = t.id;
+                    option2.textContent = t.name + ' (رصيد: ' + (t.balance || 0).toLocaleString() + ' ج.م)';
+                    toSelect.appendChild(option2);
+                }
+            });
+
+            console.log('✅ تم ملء القوائم بنجاح');
         }
 
         // ============================================================
@@ -1318,17 +542,17 @@
             var description = document.getElementById('transferDesc').value.trim() || 'تحويل بين الخزائن';
 
             if (!fromId || !toId) {
-                showToast('⚠️ تنبيه', 'يرجى اختيار خزينة المصدر والهدف', 'warning');
+                showToast('⚠️ تنبيه', 'يرجى اختيار خزينة المصدر والهدف', 'error');
                 return;
             }
 
             if (fromId === toId) {
-                showToast('⚠️ تنبيه', 'لا يمكن التحويل لنفس الخزينة', 'warning');
+                showToast('⚠️ تنبيه', 'لا يمكن التحويل لنفس الخزينة', 'error');
                 return;
             }
 
             if (!amount || amount <= 0) {
-                showToast('⚠️ تنبيه', 'يرجى إدخال مبلغ صحيح', 'warning');
+                showToast('⚠️ تنبيه', 'يرجى إدخال مبلغ صحيح', 'error');
                 return;
             }
 
@@ -1340,7 +564,7 @@
                 var token = getToken();
                 if (!token) return;
 
-                // استدعاء دالة التحويل في Supabase
+                // استدعاء دالة التحويل
                 var response = await fetch(SUPABASE_URL + '/rest/v1/rpc/transfer_money', {
                     method: 'POST',
                     headers: {
@@ -1356,9 +580,10 @@
                     })
                 });
 
+                var data = await response.json();
+
                 if (!response.ok) {
-                    var errorText = await response.text();
-                    throw new Error('فشل التحويل: ' + errorText);
+                    throw new Error(data.message || 'فشل التحويل');
                 }
 
                 showToast('✅ تم التحويل', 'تم تحويل ' + amount.toLocaleString() + ' ج.م بنجاح', 'success');
@@ -1378,189 +603,95 @@
         }
 
         // ============================================================
-        // POPULATE TREASURY SELECTS
-        // ============================================================
-        function populateTreasurySelects(treasuries, currentId) {
-            var fromSelect = document.getElementById('fromTreasury');
-            var toSelect = document.getElementById('toTreasury');
-
-            fromSelect.innerHTML = '<option value="">اختر الخزينة</option>';
-            toSelect.innerHTML = '<option value="">اختر الخزينة</option>';
-
-            treasuries.forEach(function(t) {
-                if (t.id !== currentId) {
-                    var option1 = document.createElement('option');
-                    option1.value = t.id;
-                    option1.textContent = t.name + ' (رصيد: ' + (t.balance || 0).toLocaleString() + ' ج.م)';
-                    fromSelect.appendChild(option1);
-
-                    var option2 = document.createElement('option');
-                    option2.value = t.id;
-                    option2.textContent = t.name + ' (رصيد: ' + (t.balance || 0).toLocaleString() + ' ج.م)';
-                    toSelect.appendChild(option2);
-                }
-            });
-        }
-
-        // ============================================================
         // DISPLAY DATA
         // ============================================================
         function displayData(transactions, treasury) {
-            var container = document.getElementById('treasuryContainer');
+            var tbody = document.getElementById('transactionsBody');
 
-            if (!transactions || transactions.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-inbox"></i>
-                        <h3>لا توجد حركات</h3>
-                        <p>قم بإضافة حركة جديدة باستخدام زر "إضافة حركة"</p>
-                    </div>
-                `;
-                document.getElementById('totalTransactions').textContent = '0';
-                document.getElementById('transactionsCount').textContent = '0 حركة';
-                return;
+            // تحديث معلومات الخزينة
+            if (treasury) {
+                document.getElementById('treasuryName').textContent = treasury.name;
+                document.getElementById('treasuryBalance').textContent = (treasury.balance || 0).toLocaleString() + ' ج.م';
             }
 
             // حساب الإحصائيات
             var totalIn = 0;
             var totalOut = 0;
 
-            transactions.forEach(function(item) {
-                if (item.amount > 0) {
-                    totalIn += item.amount;
-                } else {
-                    totalOut += Math.abs(item.amount);
-                }
-            });
-
-            var balance = totalIn - totalOut;
-
-            document.getElementById('totalBalance').textContent = balance.toLocaleString() + ' ج.م';
-            document.getElementById('totalIncoming').textContent = totalIn.toLocaleString() + ' ج.م';
-            document.getElementById('totalOutgoing').textContent = totalOut.toLocaleString() + ' ج.م';
-            document.getElementById('totalTransactions').textContent = transactions.length;
-            document.getElementById('transactionsCount').textContent = transactions.length + ' حركة';
-
-            // تحديث اسم الخزينة في الهيدر
-            if (treasury) {
-                document.getElementById('treasuryName').textContent = treasury.name;
-                document.getElementById('heroTitle').textContent = treasury.name;
-                document.getElementById('heroDesc').textContent = 'إدارة حركة ' + treasury.name;
+            if (transactions && transactions.length > 0) {
+                transactions.forEach(function(item) {
+                    if (item.amount > 0) {
+                        totalIn += item.amount;
+                    } else {
+                        totalOut += Math.abs(item.amount);
+                    }
+                });
             }
 
-            // بناء الجدول
+            document.getElementById('totalIncoming').textContent = totalIn.toLocaleString() + ' ج.م';
+            document.getElementById('totalOutgoing').textContent = totalOut.toLocaleString() + ' ج.م';
+            document.getElementById('totalTransactions').textContent = transactions ? transactions.length : 0;
+
+            // عرض الحركات
+            if (!transactions || transactions.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>`;
+                return;
+            }
+
             var rows = '';
             transactions.forEach(function(item) {
                 var badgeClass = 'badge-type';
-                if (item.type === 'incoming' || item.type === 'إيداع') badgeClass += ' deposit';
-                else if (item.type === 'outgoing' || item.type === 'سحب') badgeClass += ' withdraw';
-                else if (item.type === 'transfer') badgeClass += ' transfer';
+                var typeName = item.type || 'other';
+                if (typeName === 'incoming' || typeName === 'إيداع') {
+                    badgeClass += ' incoming';
+                    typeName = 'إيداع';
+                } else if (typeName === 'outgoing' || typeName === 'سحب') {
+                    badgeClass += ' outgoing';
+                    typeName = 'سحب';
+                } else if (typeName === 'transfer_in' || typeName === 'transfer_out') {
+                    badgeClass += ' transfer';
+                    typeName = 'تحويل';
+                }
 
                 var amount = item.amount || 0;
                 var isIncoming = amount > 0;
                 var displayAmount = Math.abs(amount);
+                var date = item.created_at ? new Date(item.created_at).toLocaleDateString('ar-EG') : '-';
 
                 rows += `
                     <tr>
                         <td>${item.description || '-'}</td>
-                        <td><span class="${badgeClass}">${item.type || '-'}</span></td>
-                        <td>${item.voucher_number || '-'}</td>
+                        <td><span class="${badgeClass}">${typeName}</span></td>
                         <td class="${isIncoming ? 'amount-in' : 'amount-out'}">
                             ${isIncoming ? '+' : '-'} ${displayAmount.toLocaleString()} ج.م
                         </td>
-                        <td style="font-size:0.55rem;color:var(--gray-500);">${item.notes || ''}</td>
-                        <td>${new Date(item.created_at).toLocaleDateString('ar-EG')}</td>
-                        <td>${new Date(item.created_at).toLocaleTimeString('ar-EG')}</td>
+                        <td>${date}</td>
                     </tr>
                 `;
             });
 
-            var tableHTML = `
-                <div class="table-wrapper">
-                    <div class="table-scroll">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>البيان</th>
-                                    <th>نوع الحركة</th>
-                                    <th>رقم السند</th>
-                                    <th>المبلغ</th>
-                                    <th>ملاحظات</th>
-                                    <th>التاريخ</th>
-                                    <th>الوقت</th>
-                                </tr>
-                            </thead>
-                            <tbody>${rows}</tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-
-            // بطاقات للجوال
-            var cardsHTML = '<div class="cards-container">';
-            transactions.forEach(function(item) {
-                var amount = item.amount || 0;
-                var isIncoming = amount > 0;
-                var displayAmount = Math.abs(amount);
-                var amountColor = isIncoming ? '#28a745' : '#dc3545';
-                var sign = isIncoming ? '+' : '-';
-
-                cardsHTML += `
-                    <div class="booking-card">
-                        <div class="card-header">
-                            <span class="name">${item.description || '-'}</span>
-                            <span class="number">#${item.voucher_number || '-'}</span>
-                        </div>
-                        <div class="card-row">
-                            <span class="card-label">نوع الحركة</span>
-                            <span class="card-value"><span class="badge-type">${item.type || '-'}</span></span>
-                        </div>
-                        <div class="card-row">
-                            <span class="card-label">المبلغ</span>
-                            <span class="card-value" style="color:${amountColor};font-weight:700;">${sign} ${displayAmount.toLocaleString()} ج.م</span>
-                        </div>
-                        <div class="card-row">
-                            <span class="card-label">التاريخ</span>
-                            <span class="card-value">${new Date(item.created_at).toLocaleDateString('ar-EG')}</span>
-                        </div>
-                        <div class="card-row" style="border-bottom:none;">
-                            <span class="card-label">الوقت</span>
-                            <span class="card-value">${new Date(item.created_at).toLocaleTimeString('ar-EG')}</span>
-                        </div>
-                        <div style="margin-top:8px;display:flex;gap:6px;justify-content:flex-end;border-top:1px solid var(--gray-100);padding-top:8px;">
-                            <button class="btn-action edit" onclick="editTransaction('${item.id}')" style="padding:4px 12px;border-radius:var(--radius-sm);border:1px solid rgba(23,162,184,0.15);background:rgba(23,162,184,0.04);color:var(--info);font-size:0.6rem;cursor:pointer;">
-                                <i class="fas fa-edit"></i> تعديل
-                            </button>
-                            <button class="btn-action delete" onclick="deleteTransaction('${item.id}')" style="padding:4px 12px;border-radius:var(--radius-sm);border:1px solid rgba(220,53,69,0.15);background:rgba(220,53,69,0.04);color:var(--danger);font-size:0.6rem;cursor:pointer;">
-                                <i class="fas fa-trash-alt"></i> حذف
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-            cardsHTML += '</div>';
-
-            container.innerHTML = tableHTML + cardsHTML;
+            tbody.innerHTML = rows;
         }
 
         // ============================================================
         // LOAD DATA
         // ============================================================
         async function loadData() {
-            var container = document.getElementById('treasuryContainer');
-            container.innerHTML = '<div class="loading"><i class="fas fa-spinner"></i> جاري تحميل البيانات...</div>';
+            console.log('🔄 بدء تحميل البيانات...');
 
             // 1. جلب التريزوري ID من الرابط
             currentTreasuryId = getTreasuryIdFromUrl();
+            console.log('📌 Treasury ID:', currentTreasuryId);
 
             if (!currentTreasuryId) {
-                container.innerHTML = `
+                document.getElementById('treasuryName').textContent = '⚠️ لم يتم تحديد خزينة';
+                document.getElementById('treasuryBalance').textContent = '0 ج.م';
+                document.querySelector('.table-wrapper').innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-exclamation-triangle"></i>
-                        <h3>لم يتم تحديد خزينة</h3>
-                        <p>يرجى العودة إلى صفحة الخزائن واختيار خزينة</p>
+                        <p>لم يتم تحديد خزينة. يرجى العودة لصفحة الخزائن.</p>
                         <br />
-                        <a href="treasuries.html" style="padding:10px 20px;background:var(--secondary);color:#fff;border-radius:8px;text-decoration:none;">
+                        <a href="treasuries.html" style="color:#f5a623;text-decoration:none;font-weight:700;">
                             <i class="fas fa-arrow-right"></i> العودة للخزائن
                         </a>
                     </div>
@@ -1570,15 +701,16 @@
 
             // 2. جلب بيانات الخزينة
             var treasury = await getTreasuryDetails(currentTreasuryId);
+            console.log('📊 بيانات الخزينة:', treasury);
 
             if (!treasury) {
-                container.innerHTML = `
+                document.getElementById('treasuryName').textContent = '⚠️ الخزينة غير موجودة';
+                document.querySelector('.table-wrapper').innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-exclamation-triangle"></i>
-                        <h3>الخزينة غير موجودة</h3>
-                        <p>قد تكون تم حذفها أو لا تملك صلاحية الوصول</p>
+                        <p>الخزينة غير موجودة أو تم حذفها</p>
                         <br />
-                        <a href="treasuries.html" style="padding:10px 20px;background:var(--secondary);color:#fff;border-radius:8px;text-decoration:none;">
+                        <a href="treasuries.html" style="color:#f5a623;text-decoration:none;font-weight:700;">
                             <i class="fas fa-arrow-right"></i> العودة للخزائن
                         </a>
                     </div>
@@ -1586,56 +718,19 @@
                 return;
             }
 
-            currentCompanyId = treasury.company_id;
-
             // 3. جلب الحركات
             var transactions = await getTransactions(currentTreasuryId);
+            console.log('📊 عدد الحركات:', transactions ? transactions.length : 0);
 
             // 4. جلب جميع الخزائن للتحويلات
-            allTreasuries = await getCompanyTreasuries(currentCompanyId);
+            allTreasuries = await getCompanyTreasuries(treasury.company_id);
+            console.log('📊 عدد الخزائن في الشركة:', allTreasuries.length);
 
-            // 5. تحديث بيانات التحويلات
+            // 5. تحديث قوائم التحويل
             populateTreasurySelects(allTreasuries, currentTreasuryId);
 
             // 6. عرض البيانات
             displayData(transactions, treasury);
-        }
-
-        // ============================================================
-        // DELETE TRANSACTION
-        // ============================================================
-        async function deleteTransaction(id) {
-            if (!confirm('هل أنت متأكد من حذف هذه الحركة؟')) return;
-
-            try {
-                var token = getToken();
-                if (!token) return;
-
-                var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?id=eq.' + id, {
-                    method: 'DELETE',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('فشل الحذف');
-                }
-
-                showToast('✅ تم الحذف', 'تم حذف الحركة بنجاح', 'success');
-                loadData();
-
-            } catch (error) {
-                showToast('❌ خطأ', error.message, 'error');
-            }
-        }
-
-        // ============================================================
-        // EDIT TRANSACTION (placeholder)
-        // ============================================================
-        function editTransaction(id) {
-            showToast('ℹ️ معلومات', 'سيتم إضافة التعديل قريباً', 'warning');
         }
 
         // ============================================================
@@ -1644,11 +739,11 @@
         console.log('🏛️ الخزينة - QuickData ProSoft');
         console.log('🔗 Supabase URL:', SUPABASE_URL);
 
-        // التأكد من الجلسة
         var session = getSession();
-        if (!session) return;
-
-        loadData();
+        if (session) {
+            console.log('✅ الجلسة موجودة');
+            loadData();
+        }
 
         // تحديث تلقائي كل 30 ثانية
         setInterval(loadData, 30000);
