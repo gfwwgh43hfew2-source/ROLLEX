@@ -454,80 +454,103 @@
         }
 
         // ============================================================
-        // CHECK SESSION
+        // CHECK SESSION & GET TOKEN
         // ============================================================
-        async function checkSession() {
+        function getSession() {
             var session = localStorage.getItem('rollex_session');
             if (!session) {
                 window.location.href = 'login.html';
                 return null;
             }
             try {
-                var parsed = JSON.parse(session);
-                var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + parsed.access_token
-                    }
-                });
-                if (!response.ok) {
-                    localStorage.removeItem('rollex_session');
-                    window.location.href = 'login.html';
-                    return null;
-                }
-                return await response.json();
+                return JSON.parse(session);
             } catch (e) {
+                localStorage.removeItem('rollex_session');
                 window.location.href = 'login.html';
                 return null;
             }
+        }
+
+        function getToken() {
+            var session = getSession();
+            return session ? session.access_token : null;
         }
 
         // ============================================================
         // GET CURRENT USER PROFILE
         // ============================================================
         async function getCurrentUserProfile() {
-            var user = await checkSession();
-            if (!user) return null;
-            var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=*&id=eq.' + user.id, {
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + user.access_token
+            var token = getToken();
+            if (!token) return null;
+
+            try {
+                // 1. جلب المستخدم من Auth
+                var userResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!userResponse.ok) {
+                    localStorage.removeItem('rollex_session');
+                    window.location.href = 'login.html';
+                    return null;
                 }
-            });
-            var data = await response.json();
-            return data && data.length > 0 ? data[0] : null;
+
+                var user = await userResponse.json();
+
+                // 2. جلب البروفايل
+                var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=*&id=eq.' + user.id, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!profileResponse.ok) {
+                    console.error('❌ فشل جلب البروفايل:', profileResponse.status);
+                    return null;
+                }
+
+                var data = await profileResponse.json();
+                return data && data.length > 0 ? data[0] : null;
+
+            } catch (error) {
+                console.error('❌ خطأ في getCurrentUserProfile:', error);
+                return null;
+            }
         }
 
         // ============================================================
         // LOAD TREASURIES
         // ============================================================
         async function loadTreasuries() {
-            var session = localStorage.getItem('rollex_session');
-            if (!session) {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            var parsed = JSON.parse(session);
-            var token = parsed.access_token;
+            var token = getToken();
+            if (!token) return;
 
             var profile = await getCurrentUserProfile();
             if (!profile) return;
 
-            var response = await fetch(SUPABASE_URL + '/rest/v1/treasuries?select=*&company_id=eq.' + profile.company_id + '&is_active=eq.true', {
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/treasuries?select=*&company_id=eq.' + profile.company_id + '&is_active=eq.true', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!response.ok) {
+                    console.error('❌ فشل جلب الخزائن:', response.status);
+                    return;
                 }
-            });
 
-            if (!response.ok) {
-                console.error('❌ فشل جلب الخزائن:', response.status);
-                return;
+                var treasuries = await response.json();
+                renderTreasuries(treasuries);
+
+            } catch (error) {
+                console.error('❌ خطأ في loadTreasuries:', error);
             }
-
-            var treasuries = await response.json();
-            renderTreasuries(treasuries);
         }
 
         // ============================================================
@@ -594,14 +617,8 @@
                 return;
             }
 
-            var session = localStorage.getItem('rollex_session');
-            if (!session) {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            var parsed = JSON.parse(session);
-            var token = parsed.access_token;
+            var token = getToken();
+            if (!token) return;
 
             var profile = await getCurrentUserProfile();
             if (!profile) return;
@@ -649,14 +666,8 @@
         async function deleteTreasury(id) {
             if (!confirm('هل أنت متأكد من حذف هذه الخزينة؟')) return;
 
-            var session = localStorage.getItem('rollex_session');
-            if (!session) {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            var parsed = JSON.parse(session);
-            var token = parsed.access_token;
+            var token = getToken();
+            if (!token) return;
 
             try {
                 var response = await fetch(SUPABASE_URL + '/rest/v1/treasuries?id=eq.' + id, {
