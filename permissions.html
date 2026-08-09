@@ -505,7 +505,8 @@
             var token = getToken();
             if (!token) return;
 
-            var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=permissions,role&id=eq.' + userId, {
+            // 1. نجيب بيانات المستخدم المختار
+            var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=id,name,role,permissions&id=eq.' + userId, {
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
                     'Authorization': 'Bearer ' + token
@@ -527,17 +528,17 @@
                 return;
             }
 
-            // صلاحيات افتراضية للمدير (كل شيء مسموح)
+            // 2. صلاحيات افتراضية حسب الدور
             var defaultPermissions = {
-                treasuries: { view: true, add: false, edit: false, delete: false },
+                treasuries: { view: false, add: false, edit: false, delete: false },
                 employees: { view: false, add: false, edit: false, delete: false },
-                clients: { view: true, add: false, edit: false, delete: false },
-                products: { view: true, add: false, edit: false, delete: false },
-                invoices: { view: true, add: false, edit: false, delete: false },
+                clients: { view: false, add: false, edit: false, delete: false },
+                products: { view: false, add: false, edit: false, delete: false },
+                invoices: { view: false, add: false, edit: false, delete: false },
                 reports: { view: false }
             };
 
-            // لو مدير، كل الصلاحيات مفعلة
+            // 3. لو مدير، كل الصلاحيات مفعلة
             if (profile.role === 'admin') {
                 defaultPermissions = {
                     treasuries: { view: true, add: true, edit: true, delete: true },
@@ -548,13 +549,11 @@
                     reports: { view: true }
                 };
                 document.getElementById('saveBtn').disabled = true;
-                document.getElementById('saveBtn').title = 'المدير لديه جميع الصلاحيات';
             } else {
                 document.getElementById('saveBtn').disabled = false;
-                document.getElementById('saveBtn').title = '';
             }
 
-            // دمج الصلاحيات الموجودة مع الافتراضية
+            // 4. دمج الصلاحيات الموجودة مع الافتراضية
             var permissions = profile.permissions || {};
             var merged = {};
 
@@ -668,9 +667,6 @@
         // TOGGLE PERMISSION
         // ============================================================
         function togglePermission(section, action) {
-            var isAdmin = document.querySelector('.permission-card') === null;
-            if (isAdmin) return;
-
             var current = currentPermissions[section][action];
             currentPermissions[section][action] = !current;
 
@@ -754,6 +750,9 @@
 
             await loadUsers();
         })();
+
+        // جعل الدوال عامة للاستخدام في HTML
+        window.togglePermission = togglePermission;
     </script>
 
 </body>
