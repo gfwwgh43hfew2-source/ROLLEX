@@ -489,7 +489,10 @@
             var user = await checkSession();
             if (!user) return null;
             var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=*&id=eq.' + user.id, {
-                headers: { 'apikey': SUPABASE_ANON_KEY }
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + user.access_token
+                }
             });
             var data = await response.json();
             return data && data.length > 0 ? data[0] : null;
@@ -499,12 +502,29 @@
         // LOAD TREASURIES
         // ============================================================
         async function loadTreasuries() {
+            var session = localStorage.getItem('rollex_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            var parsed = JSON.parse(session);
+            var token = parsed.access_token;
+
             var profile = await getCurrentUserProfile();
             if (!profile) return;
 
             var response = await fetch(SUPABASE_URL + '/rest/v1/treasuries?select=*&company_id=eq.' + profile.company_id + '&is_active=eq.true', {
-                headers: { 'apikey': SUPABASE_ANON_KEY }
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + token
+                }
             });
+
+            if (!response.ok) {
+                console.error('❌ فشل جلب الخزائن:', response.status);
+                return;
+            }
 
             var treasuries = await response.json();
             renderTreasuries(treasuries);
@@ -574,6 +594,15 @@
                 return;
             }
 
+            var session = localStorage.getItem('rollex_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            var parsed = JSON.parse(session);
+            var token = parsed.access_token;
+
             var profile = await getCurrentUserProfile();
             if (!profile) return;
 
@@ -585,6 +614,7 @@
                     method: 'POST',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
                         'Content-Type': 'application/json',
                         'Prefer': 'return=representation'
                     },
@@ -597,7 +627,8 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('فشل إضافة الخزينة');
+                    var errorText = await response.text();
+                    throw new Error('فشل إضافة الخزينة: ' + errorText);
                 }
 
                 showToast('✅ تم الإضافة', 'تم إضافة الخزينة "' + name + '" بنجاح', 'success');
@@ -618,11 +649,21 @@
         async function deleteTreasury(id) {
             if (!confirm('هل أنت متأكد من حذف هذه الخزينة؟')) return;
 
+            var session = localStorage.getItem('rollex_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            var parsed = JSON.parse(session);
+            var token = parsed.access_token;
+
             try {
                 var response = await fetch(SUPABASE_URL + '/rest/v1/treasuries?id=eq.' + id, {
                     method: 'DELETE',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
                         'Prefer': 'return=representation'
                     }
                 });
