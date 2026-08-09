@@ -7,9 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <style>
-        /* ==========================================================
-           RESET & BASE
-           ========================================================== */
         * {
             margin: 0;
             padding: 0;
@@ -30,9 +27,6 @@
             margin: 0 auto;
         }
 
-        /* ==========================================================
-           HEADER
-           ========================================================== */
         .header {
             display: flex;
             justify-content: space-between;
@@ -63,9 +57,6 @@
             color: #fff;
         }
 
-        /* ==========================================================
-           USER SELECTOR
-           ========================================================== */
         .selector {
             background: #212c3b;
             border-radius: 16px;
@@ -101,9 +92,6 @@
             border-color: #f5a623;
         }
 
-        /* ==========================================================
-           PERMISSIONS GRID
-           ========================================================== */
         .permissions-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -159,9 +147,6 @@
             font-weight: 600;
         }
 
-        /* ==========================================================
-           TOGGLE SWITCH
-           ========================================================== */
         .toggle {
             position: relative;
             width: 38px;
@@ -192,9 +177,6 @@
             right: 20px;
         }
 
-        /* ==========================================================
-           SAVE BUTTON
-           ========================================================== */
         .save-section {
             margin-top: 24px;
             text-align: center;
@@ -225,9 +207,6 @@
             transform: none;
         }
 
-        /* ==========================================================
-           EMPTY STATE
-           ========================================================== */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -241,9 +220,6 @@
             color: rgba(255, 255, 255, 0.05);
         }
 
-        /* ==========================================================
-           TOAST
-           ========================================================== */
         .toast-container {
             position: fixed;
             top: 20px;
@@ -305,25 +281,19 @@
             }
         }
 
-        /* ==========================================================
-           RESPONSIVE
-           ========================================================== */
         @media (max-width: 768px) {
             .header {
                 flex-direction: column;
                 gap: 12px;
                 align-items: flex-start;
             }
-
             .selector {
                 flex-direction: column;
                 align-items: stretch;
             }
-
             .permissions-grid {
                 grid-template-columns: 1fr;
             }
-
             .btn-save {
                 width: 100%;
             }
@@ -411,14 +381,14 @@
         function getSession() {
             var session = localStorage.getItem('rollex_session');
             if (!session) {
-                window.location.href = 'login.html';
+                console.log('❌ مفيش جلسة في localStorage');
                 return null;
             }
             try {
                 return JSON.parse(session);
             } catch (e) {
+                console.log('❌ فشل تحليل الجلسة:', e);
                 localStorage.removeItem('rollex_session');
-                window.location.href = 'login.html';
                 return null;
             }
         }
@@ -429,118 +399,63 @@
         }
 
         // ============================================================
-        // CHECK ADMIN - مُحسّنة مع Console logs
-        // ============================================================
-        // ============================================================
-// CHECK ADMIN - طريقة مباشرة من localStorage
-// ============================================================
-async function checkAdmin() {
-    try {
-        console.log('🔍 بداية التحقق من المدير...');
-
-        var session = localStorage.getItem('rollex_session');
-        if (!session) {
-            console.log('❌ مفيش جلسة');
-            return false;
-        }
-
-        var parsed = JSON.parse(session);
-        var token = parsed.access_token;
-
-        if (!token) {
-            console.log('❌ مفيش Token');
-            return false;
-        }
-
-        console.log('✅ Token موجود');
-
-        // نجيب المستخدم من Auth
-        var userResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + token
-            }
-        });
-
-        if (!userResponse.ok) {
-            console.log('❌ فشل جلب المستخدم:', userResponse.status);
-            return false;
-        }
-
-        var user = await userResponse.json();
-        console.log('👤 المستخدم:', user.email);
-
-        // نجيب البروفايل
-        var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=role&id=eq.' + user.id, {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + token
-            }
-        });
-
-        if (!profileResponse.ok) {
-            console.log('❌ فشل جلب البروفايل:', profileResponse.status);
-            // لو فشل، نرجع true مؤقتاً للاختبار
-            return true;
-        }
-
-        var data = await profileResponse.json();
-        console.log('📊 بيانات البروفايل:', data);
-
-        if (!data || data.length === 0) {
-            console.log('⚠️ مفيش بروفايل، نعتبره مدير مؤقتاً للاختبار');
-            return true;
-        }
-
-        var role = data[0].role;
-        console.log('🔑 الدور:', role);
-
-        return role === 'admin';
-
-    } catch (error) {
-        console.error('❌ خطأ:', error);
-        // لو في خطأ، نرجع true للاختبار
-        return true;
-    }
-}
-
-        // ============================================================
-        // LOAD USERS
+        // LOAD USERS - بدون تحقق من المدير
         // ============================================================
         async function loadUsers() {
+            console.log('📥 جاري تحميل المستخدمين...');
+
             var token = getToken();
-            if (!token) return;
+            if (!token) {
+                console.log('❌ مفيش Token، الصفحة هتفتح عادي لكن مش هتجيب بيانات');
+                document.getElementById('userSelect').innerHTML = '<option value="">⚠️ يرجى تسجيل الدخول</option>';
+                return;
+            }
 
-            var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=id,name,email,role,permissions', {
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token
+            console.log('✅ Token موجود، نجيب المستخدمين...');
+
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=id,name,email,role,permissions', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                console.log('📡 استجابة جلب المستخدمين:', response.status);
+
+                if (!response.ok) {
+                    var errorText = await response.text();
+                    console.log('❌ فشل جلب المستخدمين:', response.status, errorText);
+                    document.getElementById('userSelect').innerHTML = '<option value="">⚠️ فشل تحميل المستخدمين</option>';
+                    return;
                 }
-            });
 
-            if (!response.ok) return;
+                var users = await response.json();
+                console.log('📊 عدد المستخدمين:', users.length);
 
-            var users = await response.json();
-            var select = document.getElementById('userSelect');
-            select.innerHTML = '<option value="">اختر موظف...</option>';
+                var select = document.getElementById('userSelect');
+                select.innerHTML = '<option value="">اختر موظف...</option>';
 
-            users.forEach(function(user) {
-                var option = document.createElement('option');
-                option.value = user.id;
-                var roleLabel = user.role === 'admin' ? ' (مدير)' : (user.role === 'accountant' ? ' (محاسب)' : (user
-                    .role === 'driver' ? ' (سائق)' : ''));
-                option.textContent = (user.name || 'غير معروف') + roleLabel;
-                select.appendChild(option);
-            });
+                users.forEach(function(user) {
+                    var option = document.createElement('option');
+                    option.value = user.id;
+                    var roleLabel = user.role === 'admin' ? ' (مدير)' : (user.role === 'accountant' ? ' (محاسب)' : (user
+                        .role === 'driver' ? ' (سائق)' : ''));
+                    option.textContent = (user.name || 'غير معروف') + roleLabel;
+                    select.appendChild(option);
+                });
 
-            // اختيار أول مستخدم غير مدير (لو موجود)
-            var firstNonAdmin = users.find(function(u) { return u.role !== 'admin'; });
-            if (firstNonAdmin) {
-                select.value = firstNonAdmin.id;
-                loadPermissions(firstNonAdmin.id);
-            } else if (users.length > 0) {
-                select.value = users[0].id;
-                loadPermissions(users[0].id);
+                // اختيار أول مستخدم
+                if (users.length > 0) {
+                    select.value = users[0].id;
+                    loadPermissions(users[0].id);
+                }
+
+                console.log('✅ تم تحميل المستخدمين بنجاح');
+
+            } catch (error) {
+                console.error('❌ خطأ في loadUsers:', error);
+                document.getElementById('userSelect').innerHTML = '<option value="">⚠️ خطأ في التحميل</option>';
             }
         }
 
@@ -548,81 +463,104 @@ async function checkAdmin() {
         // LOAD PERMISSIONS
         // ============================================================
         async function loadPermissions(userId) {
+            console.log('📥 جاري تحميل صلاحيات المستخدم:', userId);
+
             currentUserId = userId;
             var token = getToken();
-            if (!token) return;
-
-            // 1. نجيب بيانات المستخدم المختار
-            var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=id,name,role,permissions&id=eq.' + userId, {
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token
-                }
-            });
-
-            if (!response.ok) return;
-
-            var data = await response.json();
-            var profile = data && data.length > 0 ? data[0] : null;
-
-            if (!profile) {
-                document.getElementById('permissionsContainer').innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-user-slash"></i>
-                        <p>لم يتم العثور على المستخدم</p>
-                    </div>
-                `;
+            if (!token) {
+                console.log('❌ مفيش Token');
                 return;
             }
 
-            // 2. صلاحيات افتراضية حسب الدور
-            var defaultPermissions = {
-                treasuries: { view: false, add: false, edit: false, delete: false },
-                employees: { view: false, add: false, edit: false, delete: false },
-                clients: { view: false, add: false, edit: false, delete: false },
-                products: { view: false, add: false, edit: false, delete: false },
-                invoices: { view: false, add: false, edit: false, delete: false },
-                reports: { view: false }
-            };
-
-            // 3. لو مدير، كل الصلاحيات مفعلة
-            if (profile.role === 'admin') {
-                defaultPermissions = {
-                    treasuries: { view: true, add: true, edit: true, delete: true },
-                    employees: { view: true, add: true, edit: true, delete: true },
-                    clients: { view: true, add: true, edit: true, delete: true },
-                    products: { view: true, add: true, edit: true, delete: true },
-                    invoices: { view: true, add: true, edit: true, delete: true },
-                    reports: { view: true }
-                };
-                document.getElementById('saveBtn').disabled = true;
-            } else {
-                document.getElementById('saveBtn').disabled = false;
-            }
-
-            // 4. دمج الصلاحيات الموجودة مع الافتراضية
-            var permissions = profile.permissions || {};
-            var merged = {};
-
-            Object.keys(defaultPermissions).forEach(function(key) {
-                merged[key] = {};
-                Object.keys(defaultPermissions[key]).forEach(function(subKey) {
-                    merged[key][subKey] = (permissions[key] && permissions[key][subKey] !== undefined) ?
-                        permissions[key][subKey] :
-                        defaultPermissions[key][subKey];
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=id,name,role,permissions&id=eq.' + userId, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
                 });
-            });
 
-            currentPermissions = JSON.parse(JSON.stringify(merged));
-            originalPermissions = JSON.parse(JSON.stringify(merged));
+                console.log('📡 استجابة جلب الصلاحيات:', response.status);
 
-            renderPermissions(merged, profile.role);
+                if (!response.ok) {
+                    console.log('❌ فشل جلب الصلاحيات:', response.status);
+                    return;
+                }
+
+                var data = await response.json();
+                console.log('📊 بيانات البروفايل:', data);
+
+                var profile = data && data.length > 0 ? data[0] : null;
+
+                if (!profile) {
+                    console.log('❌ مفيش بروفايل للمستخدم');
+                    document.getElementById('permissionsContainer').innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-user-slash"></i>
+                            <p>لم يتم العثور على المستخدم</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                console.log('👤 اسم المستخدم:', profile.name);
+                console.log('🔑 الدور:', profile.role);
+
+                // صلاحيات افتراضية
+                var defaultPermissions = {
+                    treasuries: { view: false, add: false, edit: false, delete: false },
+                    employees: { view: false, add: false, edit: false, delete: false },
+                    clients: { view: false, add: false, edit: false, delete: false },
+                    products: { view: false, add: false, edit: false, delete: false },
+                    invoices: { view: false, add: false, edit: false, delete: false },
+                    reports: { view: false }
+                };
+
+                // لو مدير، كل الصلاحيات مفعلة
+                if (profile.role === 'admin') {
+                    console.log('👑 المستخدم مدير، كل الصلاحيات مفعلة');
+                    defaultPermissions = {
+                        treasuries: { view: true, add: true, edit: true, delete: true },
+                        employees: { view: true, add: true, edit: true, delete: true },
+                        clients: { view: true, add: true, edit: true, delete: true },
+                        products: { view: true, add: true, edit: true, delete: true },
+                        invoices: { view: true, add: true, edit: true, delete: true },
+                        reports: { view: true }
+                    };
+                    document.getElementById('saveBtn').disabled = true;
+                } else {
+                    document.getElementById('saveBtn').disabled = false;
+                }
+
+                // دمج الصلاحيات
+                var permissions = profile.permissions || {};
+                var merged = {};
+
+                Object.keys(defaultPermissions).forEach(function(key) {
+                    merged[key] = {};
+                    Object.keys(defaultPermissions[key]).forEach(function(subKey) {
+                        merged[key][subKey] = (permissions[key] && permissions[key][subKey] !== undefined) ?
+                            permissions[key][subKey] :
+                            defaultPermissions[key][subKey];
+                    });
+                });
+
+                currentPermissions = JSON.parse(JSON.stringify(merged));
+                originalPermissions = JSON.parse(JSON.stringify(merged));
+
+                renderPermissions(merged, profile.role);
+
+            } catch (error) {
+                console.error('❌ خطأ في loadPermissions:', error);
+            }
         }
 
         // ============================================================
         // RENDER PERMISSIONS
         // ============================================================
         function renderPermissions(permissions, role) {
+            console.log('🎨 جاري عرض الصلاحيات...');
+
             var container = document.getElementById('permissionsContainer');
 
             var sections = [{
@@ -681,12 +619,15 @@ async function checkAdmin() {
                         'delete': '🗑️ حذف'
                     };
 
+                    var onclickAttr = isAdmin ? '' : `onclick="togglePermission('${section.key}', '${action}')"`;
+                    var styleAttr = isAdmin ? 'opacity:0.5;cursor:default;' : '';
+
                     html += `
                         <div class="permission-item">
                             <span class="label">${actionLabels[action] || action}</span>
                             <div class="toggle ${isEnabled ? 'active' : ''}" 
-                                 onclick="${isAdmin ? '' : 'togglePermission(\'' + section.key + '\', \'' + action + '\')'}"
-                                 style="${isAdmin ? 'opacity:0.5;cursor:default;' : ''}">
+                                 ${onclickAttr}
+                                 style="${styleAttr}">
                                 <div class="thumb"></div>
                             </div>
                         </div>
@@ -698,7 +639,6 @@ async function checkAdmin() {
 
             html += '</div>';
 
-            // رسالة للمدير
             if (isAdmin) {
                 html += `
                     <div style="text-align:center;margin-top:20px;padding:16px;background:rgba(245,166,35,0.06);border-radius:12px;border:1px solid rgba(245,166,35,0.1);color:#f5a623;">
@@ -708,34 +648,47 @@ async function checkAdmin() {
             }
 
             container.innerHTML = html;
+            console.log('✅ تم عرض الصلاحيات');
         }
 
         // ============================================================
         // TOGGLE PERMISSION
         // ============================================================
         function togglePermission(section, action) {
+            console.log('🔄 تغيير صلاحية:', section, action);
+
             var current = currentPermissions[section][action];
             currentPermissions[section][action] = !current;
+
+            console.log('📊 الحالة الجديدة:', currentPermissions[section][action]);
 
             // إعادة الرندر مع الحالة الجديدة
             renderPermissions(currentPermissions, 'employee');
 
             // تفعيل زر الحفظ
             document.getElementById('saveBtn').disabled = false;
+            console.log('✅ زر الحفظ مفعل');
         }
 
         // ============================================================
         // SAVE PERMISSIONS
         // ============================================================
         document.getElementById('saveBtn').addEventListener('click', async function() {
+            console.log('💾 بدء حفظ الصلاحيات...');
+
             var btn = this;
             var token = getToken();
-            if (!token || !currentUserId) return;
+            if (!token || !currentUserId) {
+                console.log('❌ مفيش Token أو User ID');
+                return;
+            }
 
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
             try {
+                console.log('📤 البيانات المرسلة:', currentPermissions);
+
                 var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?id=eq.' + currentUserId, {
                     method: 'PATCH',
                     headers: {
@@ -749,16 +702,21 @@ async function checkAdmin() {
                     })
                 });
 
+                console.log('📡 استجابة الحفظ:', response.status);
+
                 if (!response.ok) {
                     var errorText = await response.text();
+                    console.log('❌ فشل حفظ الصلاحيات:', errorText);
                     throw new Error('فشل حفظ الصلاحيات: ' + errorText);
                 }
 
                 originalPermissions = JSON.parse(JSON.stringify(currentPermissions));
+                console.log('✅ تم حفظ الصلاحيات بنجاح');
                 showToast('✅ تم الحفظ', 'تم تحديث صلاحيات المستخدم بنجاح', 'success');
                 btn.disabled = true;
 
             } catch (error) {
+                console.error('❌ خطأ في الحفظ:', error);
                 showToast('❌ خطأ', error.message, 'error');
                 btn.disabled = false;
             }
@@ -770,6 +728,7 @@ async function checkAdmin() {
         // USER SELECT CHANGE
         // ============================================================
         document.getElementById('userSelect').addEventListener('change', function() {
+            console.log('🔄 تغيير المستخدم المختار:', this.value);
             if (this.value) {
                 loadPermissions(this.value);
             } else {
@@ -786,22 +745,21 @@ async function checkAdmin() {
         // INIT
         // ============================================================
         console.log('🛡️ صلاحيات النظام - QuickData ProSoft');
+        console.log('📋 هذه الصفحة تفتح دائماً للاختبار');
 
         (async function init() {
-            console.log('🚀 بداية التحميل...');
+            console.log('🚀 بداية تحميل الصفحة...');
 
-            var isAdmin = await checkAdmin();
-            console.log('📊 نتيجة checkAdmin:', isAdmin);
-
-            if (!isAdmin) {
-                showToast('❌ غير مسموح', 'هذه الصفحة مخصصة للمدير فقط', 'error');
-                setTimeout(function() {
-                    window.location.href = 'index.html';
-                }, 2000);
+            // نتحقق من وجود جلسة
+            var session = localStorage.getItem('rollex_session');
+            if (!session) {
+                console.log('⚠️ مفيش جلسة، الصفحة هتفتح لكن مش هتجيب بيانات');
+                showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول لعرض الصلاحيات', 'warning');
+                document.getElementById('userSelect').innerHTML = '<option value="">⚠️ يرجى تسجيل الدخول</option>';
                 return;
             }
 
-            console.log('✅ تم التحقق من المدير، جاري تحميل المستخدمين...');
+            console.log('✅ جلسة موجودة، جاري تحميل المستخدمين...');
             await loadUsers();
         })();
 
