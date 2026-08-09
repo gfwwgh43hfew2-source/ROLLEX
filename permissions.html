@@ -376,7 +376,7 @@
         }
 
         // ============================================================
-        // SESSION
+        // GET SESSION
         // ============================================================
         function getSession() {
             var session = localStorage.getItem('rollex_session');
@@ -393,18 +393,58 @@
             }
         }
 
-        function getToken() {
+        // ============================================================
+        // GET TOKEN - مع تجديد الجلسة
+        // ============================================================
+        async function getToken() {
             var session = getSession();
-            return session ? session.access_token : null;
+            if (!session) {
+                console.log('❌ مفيش جلسة');
+                return null;
+            }
+
+            // 1. نجرب نجيب توكن جديد باستخدام refresh_token
+            if (session.refresh_token) {
+                try {
+                    console.log('🔄 محاولة تجديد الجلسة...');
+                    var refreshResponse = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            refresh_token: session.refresh_token
+                        })
+                    });
+
+                    if (refreshResponse.ok) {
+                        var newSession = await refreshResponse.json();
+                        localStorage.setItem('rollex_session', JSON.stringify(newSession));
+                        console.log('✅ تم تجديد الجلسة بنجاح');
+                        return newSession.access_token;
+                    } else {
+                        var errorText = await refreshResponse.text();
+                        console.log('❌ فشل تجديد الجلسة:', refreshResponse.status, errorText);
+                        // لو فشل التجديد، نجرب نستخدم التوكن القديم
+                        return session.access_token;
+                    }
+                } catch (error) {
+                    console.error('❌ خطأ في تجديد الجلسة:', error);
+                    return session.access_token;
+                }
+            }
+
+            return session.access_token;
         }
 
         // ============================================================
-        // LOAD USERS - بدون تحقق من المدير
+        // LOAD USERS
         // ============================================================
         async function loadUsers() {
             console.log('📥 جاري تحميل المستخدمين...');
 
-            var token = getToken();
+            var token = await getToken();
             if (!token) {
                 console.log('❌ مفيش Token، الصفحة هتفتح عادي لكن مش هتجيب بيانات');
                 document.getElementById('userSelect').innerHTML = '<option value="">⚠️ يرجى تسجيل الدخول</option>';
@@ -466,7 +506,7 @@
             console.log('📥 جاري تحميل صلاحيات المستخدم:', userId);
 
             currentUserId = userId;
-            var token = getToken();
+            var token = await getToken();
             if (!token) {
                 console.log('❌ مفيش Token');
                 return;
@@ -677,7 +717,7 @@
             console.log('💾 بدء حفظ الصلاحيات...');
 
             var btn = this;
-            var token = getToken();
+            var token = await getToken();
             if (!token || !currentUserId) {
                 console.log('❌ مفيش Token أو User ID');
                 return;
