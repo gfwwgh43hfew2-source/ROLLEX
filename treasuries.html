@@ -2,24 +2,45 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>إدارة الخزائن - QuickData ProSoft</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    <title>الخزائن - QuickData ProSoft</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
+        /* ==========================================================
+           RESET & BASE
+           ========================================================== */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        :root {
+            --gold: #f5a623;
+            --gold-light: #ffc857;
+            --gold-deep: #e08e0b;
+            --navy-bg: #1b2431;
+            --navy-bg-2: #141c27;
+            --card: #212c3b;
+            --card-hover: #2a3649;
+            --field: #2a3646;
+            --field-border: #37455a;
+            --text-dim: rgba(255, 255, 255, 0.55);
+            --text-faint: rgba(255, 255, 255, 0.4);
+            --text-mid: rgba(255, 255, 255, 0.72);
+            --danger: #ff6b6b;
+            --success: #66d17d;
+            --whatsapp: #25D366;
+        }
+
+        html { scroll-behavior: smooth; }
+
         body {
-            font-family: 'Cairo', sans-serif;
-            background: #1b2431;
-            color: #fff;
+            font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
             direction: rtl;
             min-height: 100vh;
+            background: radial-gradient(ellipse at 50% 40%, #232f40 0%, var(--navy-bg) 55%, var(--navy-bg-2) 100%);
+            color: #fff;
             padding: 20px;
         }
 
@@ -28,285 +49,428 @@
             margin: 0 auto;
         }
 
-        /* ===== Header ===== */
+        /* ==========================================================
+           HEADER
+           ========================================================== */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 16px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            margin-bottom: 24px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         .header h1 {
             font-size: 1.6rem;
             font-weight: 900;
-            color: #f5a623;
+            color: var(--gold);
         }
 
-        .header .back-btn {
-            color: rgba(255, 255, 255, 0.5);
-            text-decoration: none;
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 8px;
+        .header h1 i {
+            margin-left: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn-header {
+            padding: 8px 18px;
+            border-radius: 10px;
             border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-mid);
+            font-family: inherit;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
             transition: 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .header .back-btn:hover {
-            background: rgba(255, 255, 255, 0.04);
+        .btn-header:hover {
+            background: rgba(255, 255, 255, 0.08);
             color: #fff;
         }
 
-        /* ===== Add Treasury Form ===== */
-        .add-form {
-            background: #212c3b;
-            border-radius: 16px;
-            padding: 24px;
+        .btn-header.gold {
+            background: linear-gradient(135deg, var(--gold-light), var(--gold));
+            color: #1b1204;
+            border: none;
+        }
+
+        .btn-header.gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(245, 166, 35, 0.3);
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-mid);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .user-badge .role {
+            background: var(--gold);
+            color: #1b1204;
+            padding: 2px 10px;
+            border-radius: 50px;
+            font-size: 0.55rem;
+            font-weight: 700;
+        }
+
+        /* ==========================================================
+           STATS ROW
+           ========================================================== */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 18px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: 0.3s;
+        }
+
+        .stat-card:hover {
+            border-color: rgba(245, 166, 35, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .stat-card .label {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--text-faint);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: 900;
+            margin-top: 4px;
+            color: #fff;
+        }
+
+        .stat-card .value.gold { color: var(--gold); }
+        .stat-card .value.green { color: var(--success); }
+        .stat-card .value.red { color: var(--danger); }
+
+        /* ==========================================================
+           SEARCH & FILTER
+           ========================================================== */
+        .search-section {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 16px 20px;
             margin-bottom: 24px;
             border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .add-form h3 {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #f5a623;
-            margin-bottom: 16px;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr auto;
-            gap: 12px;
-            align-items: end;
-        }
-
-        .form-group {
             display: flex;
-            flex-direction: column;
-            gap: 4px;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
         }
 
-        .form-group label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: rgba(255, 255, 255, 0.4);
-            text-transform: uppercase;
+        .search-section .search-wrap {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
         }
 
-        .form-group input,
-        .form-group select {
-            padding: 10px 14px;
+        .search-section .search-wrap input {
+            width: 100%;
+            padding: 10px 16px 10px 44px;
             border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            background: #2a3646;
+            border: 1px solid var(--field-border);
+            background: var(--field);
             color: #fff;
             font-size: 0.85rem;
             font-family: inherit;
             outline: none;
             transition: 0.3s;
-            width: 100%;
         }
 
-        .form-group input:focus,
-        .form-group select:focus {
-            border-color: #f5a623;
-            box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.1);
+        .search-section .search-wrap input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.12);
         }
 
-        .form-group input::placeholder {
-            color: rgba(255, 255, 255, 0.2);
+        .search-section .search-wrap input::placeholder {
+            color: var(--text-faint);
         }
 
-        .form-group select option {
-            background: #212c3b;
+        .search-section .search-wrap .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-faint);
+        }
+
+        .search-section .filter-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .search-section .filter-group select {
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--field-border);
+            background: var(--field);
+            color: #fff;
+            font-size: 0.8rem;
+            font-family: inherit;
+            outline: none;
+            cursor: pointer;
+            transition: 0.3s;
+            min-width: 130px;
+        }
+
+        .search-section .filter-group select:focus {
+            border-color: var(--gold);
+        }
+
+        .search-section .filter-group select option {
+            background: var(--card);
             color: #fff;
         }
 
-        .btn-add {
-            padding: 10px 24px;
-            background: linear-gradient(135deg, #ffc857, #f5a623, #e08e0b);
-            color: #1b1204;
-            border: none;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: 0.3s;
-            font-family: inherit;
-            white-space: nowrap;
-        }
-
-        .btn-add:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(245, 166, 35, 0.3);
-        }
-
-        .btn-add:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* ===== Treasuries List ===== */
-        .treasuries-grid {
+        /* ==========================================================
+           TREASURY GRID
+           ========================================================== */
+        .treasury-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
+            gap: 18px;
         }
 
         .treasury-card {
-            background: #212c3b;
+            background: var(--card);
             border-radius: 16px;
-            padding: 20px;
+            padding: 22px 24px;
             border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: 0.3s;
+            transition: all 0.3s ease;
+            cursor: pointer;
             position: relative;
+            overflow: hidden;
+        }
+
+        .treasury-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--gold);
+            opacity: 0;
+            transition: opacity 0.3s;
         }
 
         .treasury-card:hover {
-            border-color: rgba(245, 166, 35, 0.15);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            border-color: rgba(245, 166, 35, 0.2);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
         }
 
-        .treasury-card .card-header {
+        .treasury-card:hover::before {
+            opacity: 1;
+        }
+
+        .treasury-card .card-top {
             display: flex;
             justify-content: space-between;
-            align-items: start;
-            margin-bottom: 8px;
-        }
-
-        .treasury-card .card-header .name {
-            font-size: 1.05rem;
-            font-weight: 800;
-            color: #fff;
-        }
-
-        .treasury-card .card-header .type-badge {
-            font-size: 0.55rem;
-            font-weight: 700;
-            padding: 2px 12px;
-            border-radius: 50px;
-            background: rgba(245, 166, 35, 0.1);
-            color: #f5a623;
-            border: 1px solid rgba(245, 166, 35, 0.1);
-        }
-
-        .treasury-card .card-header .type-badge.main {
-            background: rgba(52, 211, 153, 0.1);
-            color: #34d399;
-            border-color: rgba(52, 211, 153, 0.1);
-        }
-
-        .treasury-card .description {
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 0.75rem;
+            align-items: flex-start;
             margin-bottom: 12px;
         }
 
-        .treasury-card .stats {
+        .treasury-card .card-top .icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
             display: flex;
-            gap: 16px;
-            padding-top: 12px;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            background: rgba(245, 166, 35, 0.08);
+            color: var(--gold);
+        }
+
+        .treasury-card .card-top .badge {
+            padding: 3px 12px;
+            border-radius: 50px;
+            font-size: 0.55rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-faint);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .treasury-card .card-top .badge.active {
+            background: rgba(102, 209, 125, 0.1);
+            color: var(--success);
+            border-color: rgba(102, 209, 125, 0.1);
+        }
+
+        .treasury-card .card-name {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .treasury-card .card-desc {
+            font-size: 0.75rem;
+            color: var(--text-faint);
+            margin-bottom: 14px;
+        }
+
+        .treasury-card .card-balance {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 14px;
             border-top: 1px solid rgba(255, 255, 255, 0.04);
         }
 
-        .treasury-card .stats .stat {
-            display: flex;
-            flex-direction: column;
+        .treasury-card .card-balance .amount {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: var(--gold);
         }
 
-        .treasury-card .stats .stat .label {
-            font-size: 0.55rem;
-            color: rgba(255, 255, 255, 0.3);
+        .treasury-card .card-balance .label {
+            font-size: 0.6rem;
+            color: var(--text-faint);
             font-weight: 600;
+            text-transform: uppercase;
         }
 
-        .treasury-card .stats .stat .value {
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: #f5a623;
-        }
-
-        .treasury-card .stats .stat .value.incoming {
-            color: #34d399;
-        }
-        .treasury-card .stats .stat .value.outgoing {
-            color: #f87171;
+        .treasury-card .card-balance .treasury-type {
+            font-size: 0.6rem;
+            color: var(--text-faint);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 4px 10px;
+            border-radius: 50px;
         }
 
         .treasury-card .card-actions {
-            margin-top: 12px;
             display: flex;
             gap: 8px;
+            margin-top: 14px;
         }
 
-        .treasury-card .card-actions button {
-            padding: 4px 12px;
-            border-radius: 6px;
+        .treasury-card .card-actions .btn-sm {
+            padding: 6px 14px;
+            border-radius: 8px;
             border: none;
+            font-family: inherit;
             font-size: 0.65rem;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             transition: 0.3s;
-            font-family: inherit;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .treasury-card .card-actions .btn-sm.primary {
+            background: linear-gradient(135deg, var(--gold-light), var(--gold));
+            color: #1b1204;
+        }
+
+        .treasury-card .card-actions .btn-sm.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
+        }
+
+        .treasury-card .card-actions .btn-sm.secondary {
             background: rgba(255, 255, 255, 0.04);
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--text-mid);
+            border: 1px solid rgba(255, 255, 255, 0.06);
         }
 
-        .treasury-card .card-actions button:hover {
+        .treasury-card .card-actions .btn-sm.secondary:hover {
             background: rgba(255, 255, 255, 0.08);
-            color: #fff;
         }
 
-        .treasury-card .card-actions button.enter {
-            background: rgba(245, 166, 35, 0.08);
-            color: #f5a623;
-        }
-
-        .treasury-card .card-actions button.enter:hover {
-            background: rgba(245, 166, 35, 0.15);
-        }
-
-        .treasury-card .card-actions button.delete {
-            color: #f87171;
-        }
-
-        .treasury-card .card-actions button.delete:hover {
-            background: rgba(248, 113, 113, 0.08);
-        }
-
+        /* ==========================================================
+           EMPTY STATE
+           ========================================================== */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: rgba(255, 255, 255, 0.2);
+            color: var(--text-faint);
         }
 
         .empty-state i {
             font-size: 3rem;
             display: block;
             margin-bottom: 12px;
-            color: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.04);
         }
 
-        /* ===== Toast ===== */
+        .empty-state h3 {
+            font-size: 1.2rem;
+            color: var(--text-mid);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 0.8rem;
+        }
+
+        .empty-state a {
+            color: var(--gold);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .empty-state a:hover {
+            text-decoration: underline;
+        }
+
+        /* ==========================================================
+           TOAST
+           ========================================================== */
         .toast-container {
             position: fixed;
             top: 20px;
             right: 20px;
-            z-index: 9999;
+            z-index: 99999;
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
 
         .toast {
-            background: #212c3b;
+            background: var(--card);
             padding: 14px 20px;
             border-radius: 12px;
-            border-right: 4px solid #f5a623;
+            border-right: 4px solid var(--gold);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             display: flex;
             align-items: center;
@@ -316,55 +480,72 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .toast.success {
-            border-right-color: #34d399;
-        }
-        .toast.error {
-            border-right-color: #f87171;
-        }
+        .toast.success { border-right-color: var(--success); }
+        .toast.error { border-right-color: var(--danger); }
 
-        .toast .icon {
-            font-size: 1.1rem;
-        }
-        .toast .icon.success {
-            color: #34d399;
-        }
-        .toast .icon.error {
-            color: #f87171;
-        }
+        .toast .icon { font-size: 1.1rem; }
+        .toast .icon.success { color: var(--success); }
+        .toast .icon.error { color: var(--danger); }
 
-        .toast .content .title {
-            font-size: 0.8rem;
-            font-weight: 700;
-        }
-        .toast .content .message {
-            font-size: 0.7rem;
-            color: rgba(255, 255, 255, 0.4);
-        }
+        .toast .content .title { font-size: 0.8rem; font-weight: 700; }
+        .toast .content .message { font-size: 0.7rem; color: var(--text-faint); }
 
         @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(20px);
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ==========================================================
+           RESPONSIVE
+           ========================================================== */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
             }
-            to {
-                opacity: 1;
-                transform: translateX(0);
+
+            .header-actions {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+
+            .search-section {
+                flex-direction: column;
+            }
+
+            .search-section .search-wrap {
+                width: 100%;
+            }
+
+            .search-section .filter-group {
+                width: 100%;
+            }
+
+            .search-section .filter-group select {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .treasury-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
-        /* ===== RESPONSIVE ===== */
-        @media (max-width: 768px) {
-            .form-row {
+        @media (max-width: 480px) {
+            .stats-row {
                 grid-template-columns: 1fr;
             }
-            .header {
+
+            .treasury-card .card-actions {
                 flex-direction: column;
-                gap: 12px;
-                align-items: flex-start;
             }
-            .treasuries-grid {
-                grid-template-columns: 1fr;
+
+            .treasury-card .card-actions .btn-sm {
+                justify-content: center;
             }
         }
     </style>
@@ -373,59 +554,81 @@
 
     <div class="container">
 
-        <!-- ===== Header ===== -->
-        <div class="header">
-            <h1><i class="fas fa-university"></i> إدارة الخزائن</h1>
-            <a href="treasury.html" class="back-btn"><i class="fas fa-arrow-right"></i> العودة للخزينة</a>
-        </div>
-
-        <!-- ===== Add Treasury Form ===== -->
-        <div class="add-form">
-            <h3><i class="fas fa-plus-circle"></i> إضافة خزينة جديدة</h3>
-            <form id="addTreasuryForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>اسم الخزينة</label>
-                        <input type="text" id="treasuryName" placeholder="مثال: خزينة المبيعات" required />
-                    </div>
-                    <div class="form-group">
-                        <label>الوصف</label>
-                        <input type="text" id="treasuryDesc" placeholder="وصف الخزينة" />
-                    </div>
-                    <div class="form-group">
-                        <label>النوع</label>
-                        <select id="treasuryType">
-                            <option value="custom">مخصصة</option>
-                            <option value="accountant">خزينة المحاسب</option>
-                            <option value="driver">خزينة السائق</option>
-                            <option value="sales">خزينة المبيعات</option>
-                            <option value="purchases">خزينة المشتريات</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <button type="submit" class="btn-add" id="addBtn"><i class="fas fa-plus"></i> إضافة</button>
-                    </div>
+        <!-- ===== HEADER ===== -->
+        <header class="header">
+            <h1><i class="fas fa-university"></i> الخزائن</h1>
+            <div class="header-actions">
+                <div class="user-badge">
+                    <i class="fas fa-user"></i>
+                    <span id="userName">مرحباً</span>
+                    <span class="role" id="userRole">مدير</span>
                 </div>
-            </form>
+                <button class="btn-header gold" onclick="window.location.href='treasury-add.html'">
+                    <i class="fas fa-plus"></i> خزينة جديدة
+                </button>
+                <button class="btn-header" onclick="window.location.href='index.html'">
+                    <i class="fas fa-home"></i> الرئيسية
+                </button>
+                <button class="btn-header" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- ===== STATS ===== -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="label">إجمالي الخزائن</div>
+                <div class="value gold" id="totalTreasuries">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">إجمالي الرصيد</div>
+                <div class="value green" id="totalBalance">0 ج.م</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">الخزائن النشطة</div>
+                <div class="value" id="activeTreasuries">0</div>
+            </div>
         </div>
 
-        <!-- ===== Treasuries List ===== -->
-        <div id="treasuriesList">
-            <div class="empty-state">
-                <i class="fas fa-university"></i>
-                <p>لا توجد خزائن. أضف خزينة جديدة!</p>
+        <!-- ===== SEARCH & FILTER ===== -->
+        <div class="search-section">
+            <div class="search-wrap">
+                <span class="search-icon"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchInput" placeholder="ابحث عن خزينة..." onkeyup="filterTreasuries()" />
             </div>
+            <div class="filter-group">
+                <select id="typeFilter" onchange="filterTreasuries()">
+                    <option value="">جميع الأنواع</option>
+                    <option value="main">رئيسية</option>
+                    <option value="accountant">محاسب</option>
+                    <option value="driver">سائق</option>
+                    <option value="custom">مخصصة</option>
+                </select>
+                <select id="statusFilter" onchange="filterTreasuries()">
+                    <option value="">جميع الحالات</option>
+                    <option value="true">نشطة</option>
+                    <option value="false">غير نشطة</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ===== TREASURY GRID ===== -->
+        <div class="treasury-grid" id="treasuryGrid">
+            <!-- يتم التحميل عبر JavaScript -->
         </div>
 
     </div>
 
-    <!-- ===== Toast Container ===== -->
+    <!-- ===== TOAST ===== -->
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
+        // ============================================================
+        // CONFIGURATION
+        // ============================================================
         var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
         var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
-        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ============================================================
         // TOAST
@@ -436,7 +639,6 @@
             toast.className = 'toast ' + (type || '');
             var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
             var iconClass = type === 'success' ? 'success' : 'error';
-
             toast.innerHTML = `
                 <span class="icon ${iconClass}"><i class="fas ${icon}"></i></span>
                 <div class="content">
@@ -444,7 +646,6 @@
                     <div class="message">${message}</div>
                 </div>
             `;
-
             container.appendChild(toast);
             setTimeout(function() {
                 toast.style.opacity = '0';
@@ -454,7 +655,7 @@
         }
 
         // ============================================================
-        // CHECK SESSION & GET TOKEN
+        // SESSION
         // ============================================================
         function getSession() {
             var session = localStorage.getItem('rollex_session');
@@ -462,9 +663,7 @@
                 window.location.href = 'login.html';
                 return null;
             }
-            try {
-                return JSON.parse(session);
-            } catch (e) {
+            try { return JSON.parse(session); } catch(e) {
                 localStorage.removeItem('rollex_session');
                 window.location.href = 'login.html';
                 return null;
@@ -477,79 +676,110 @@
         }
 
         // ============================================================
-        // GET CURRENT USER PROFILE
+        // LOGOUT
         // ============================================================
-        async function getCurrentUserProfile() {
+        async function logout() {
+            localStorage.removeItem('rollex_session');
+            window.location.href = 'login.html';
+        }
+
+        // ============================================================
+        // GET USER PROFILE
+        // ============================================================
+        async function getUserProfile() {
             var token = getToken();
             if (!token) return null;
-
             try {
-                // 1. جلب المستخدم من Auth
                 var userResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': 'Bearer ' + token
                     }
                 });
-
-                if (!userResponse.ok) {
-                    localStorage.removeItem('rollex_session');
-                    window.location.href = 'login.html';
-                    return null;
-                }
-
+                if (!userResponse.ok) return null;
                 var user = await userResponse.json();
 
-                // 2. جلب البروفايل
                 var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=*&id=eq.' + user.id, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': 'Bearer ' + token
                     }
                 });
-
-                if (!profileResponse.ok) {
-                    console.error('❌ فشل جلب البروفايل:', profileResponse.status);
-                    return null;
-                }
-
+                if (!profileResponse.ok) return null;
                 var data = await profileResponse.json();
                 return data && data.length > 0 ? data[0] : null;
-
             } catch (error) {
-                console.error('❌ خطأ في getCurrentUserProfile:', error);
+                console.error('❌ خطأ:', error);
                 return null;
             }
         }
 
         // ============================================================
-        // LOAD TREASURIES
+        // GET COMPANY TREASURIES
         // ============================================================
-        async function loadTreasuries() {
+        async function getTreasuries(companyId) {
             var token = getToken();
-            if (!token) return;
-
-            var profile = await getCurrentUserProfile();
-            if (!profile) return;
-
+            if (!token) return [];
             try {
-                var response = await fetch(SUPABASE_URL + '/rest/v1/treasuries?select=*&company_id=eq.' + profile.company_id + '&is_active=eq.true', {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/treasuries?select=*&company_id=eq.' + companyId + '&order=created_at.desc', {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': 'Bearer ' + token
                     }
                 });
-
-                if (!response.ok) {
-                    console.error('❌ فشل جلب الخزائن:', response.status);
-                    return;
-                }
-
-                var treasuries = await response.json();
-                renderTreasuries(treasuries);
-
+                if (!response.ok) return [];
+                return await response.json();
             } catch (error) {
-                console.error('❌ خطأ في loadTreasuries:', error);
+                console.error('❌ خطأ:', error);
+                return [];
+            }
+        }
+
+        // ============================================================
+        // FILTER TREASURIES
+        // ============================================================
+        function filterTreasuries() {
+            var search = document.getElementById('searchInput').value.toLowerCase();
+            var typeFilter = document.getElementById('typeFilter').value;
+            var statusFilter = document.getElementById('statusFilter').value;
+
+            var cards = document.querySelectorAll('.treasury-card');
+            var visibleCount = 0;
+
+            cards.forEach(function(card) {
+                var name = card.getAttribute('data-name') || '';
+                var desc = card.getAttribute('data-desc') || '';
+                var type = card.getAttribute('data-type') || '';
+                var isActive = card.getAttribute('data-active') === 'true';
+
+                var matchSearch = name.includes(search) || desc.includes(search);
+                var matchType = !typeFilter || type === typeFilter;
+                var matchStatus = !statusFilter || String(isActive) === statusFilter;
+
+                if (matchSearch && matchType && matchStatus) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // إظهار رسالة إذا لم توجد نتائج
+            var grid = document.getElementById('treasuryGrid');
+            var emptyMsg = grid.querySelector('.empty-state-msg');
+            if (visibleCount === 0) {
+                if (!emptyMsg) {
+                    var msg = document.createElement('div');
+                    msg.className = 'empty-state empty-state-msg';
+                    msg.innerHTML = `
+                        <i class="fas fa-search"></i>
+                        <h3>لا توجد نتائج</h3>
+                        <p>حاول تغيير كلمات البحث أو الفلاتر</p>
+                    `;
+                    grid.appendChild(msg);
+                }
+            } else {
+                if (emptyMsg) emptyMsg.remove();
             }
         }
 
@@ -557,108 +787,104 @@
         // RENDER TREASURIES
         // ============================================================
         function renderTreasuries(treasuries) {
-            var container = document.getElementById('treasuriesList');
+            var grid = document.getElementById('treasuryGrid');
+            var totalBalance = 0;
+            var activeCount = 0;
 
-            if (!treasuries || treasuries.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
+            // تحديث الإحصائيات
+            treasuries.forEach(function(t) {
+                totalBalance += (t.balance || 0);
+                if (t.is_active !== false) activeCount++;
+            });
+
+            document.getElementById('totalTreasuries').textContent = treasuries.length;
+            document.getElementById('totalBalance').textContent = totalBalance.toLocaleString() + ' ج.م';
+            document.getElementById('activeTreasuries').textContent = activeCount;
+
+            if (treasuries.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column:1/-1;">
                         <i class="fas fa-university"></i>
-                        <p>لا توجد خزائن. أضف خزينة جديدة!</p>
+                        <h3>لا توجد خزائن</h3>
+                        <p>قم بإضافة خزينة جديدة للبدء</p>
+                        <br />
+                        <a href="treasury-add.html"><i class="fas fa-plus"></i> إضافة خزينة</a>
                     </div>
                 `;
                 return;
             }
 
-            var html = '<div class="treasuries-grid">';
+            var html = '';
+            var typeLabels = {
+                'main': 'رئيسية',
+                'accountant': 'محاسب',
+                'driver': 'سائق',
+                'custom': 'مخصصة'
+            };
+            var typeIcons = {
+                'main': 'fa-building',
+                'accountant': 'fa-calculator',
+                'driver': 'fa-truck',
+                'custom': 'fa-cog'
+            };
+
             treasuries.forEach(function(t) {
-                var typeLabels = {
-                    'main': 'رئيسية',
-                    'accountant': 'محاسب',
-                    'driver': 'سائق',
-                    'sales': 'مبيعات',
-                    'purchases': 'مشتريات',
-                    'custom': 'مخصصة'
-                };
-                var typeClass = t.type === 'main' ? 'main' : '';
+                var isActive = t.is_active !== false;
+                var typeLabel = typeLabels[t.type] || t.type || 'مخصصة';
+                var typeIcon = typeIcons[t.type] || 'fa-university';
 
                 html += `
-                    <div class="treasury-card" data-id="${t.id}">
-                        <div class="card-header">
-                            <span class="name">${t.name}</span>
-                            <span class="type-badge ${typeClass}">${typeLabels[t.type] || 'مخصصة'}</span>
+                    <div class="treasury-card" 
+                         data-id="${t.id}"
+                         data-name="${(t.name || '').toLowerCase()}"
+                         data-desc="${(t.description || '').toLowerCase()}"
+                         data-type="${t.type || ''}"
+                         data-active="${isActive}"
+                         onclick="openTreasury('${t.id}')">
+                        <div class="card-top">
+                            <div class="icon"><i class="fas ${typeIcon}"></i></div>
+                            <span class="badge ${isActive ? 'active' : ''}">${isActive ? 'نشطة' : 'غير نشطة'}</span>
                         </div>
-                        <div class="description">${t.description || 'لا يوجد وصف'}</div>
+                        <div class="card-name">${t.name || 'خزينة'}</div>
+                        <div class="card-desc">${t.description || 'لا يوجد وصف'}</div>
+                        <div class="card-balance">
+                            <div>
+                                <div class="label">الرصيد الحالي</div>
+                                <div class="amount">${(t.balance || 0).toLocaleString()} ج.م</div>
+                            </div>
+                            <span class="treasury-type">${typeLabel}</span>
+                        </div>
                         <div class="card-actions">
-                            <button class="enter" onclick="window.location.href='treasury.html?treasury_id=${t.id}'">
-                                <i class="fas fa-arrow-left"></i> دخول
+                            <a href="treasury.html?treasury_id=${t.id}" class="btn-sm primary" onclick="event.stopPropagation();">
+                                <i class="fas fa-eye"></i> عرض
+                            </a>
+                            <button class="btn-sm secondary" onclick="event.stopPropagation();editTreasury('${t.id}')">
+                                <i class="fas fa-edit"></i> تعديل
                             </button>
-                            ${t.type !== 'main' ? `<button class="delete" onclick="deleteTreasury('${t.id}')"><i class="fas fa-trash-alt"></i> حذف</button>` : ''}
+                            <button class="btn-sm secondary" onclick="event.stopPropagation();deleteTreasury('${t.id}')">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
                         </div>
                     </div>
                 `;
             });
-            html += '</div>';
-            container.innerHTML = html;
+
+            grid.innerHTML = html;
         }
 
         // ============================================================
-        // ADD TREASURY
+        // OPEN TREASURY
         // ============================================================
-        document.getElementById('addTreasuryForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        function openTreasury(id) {
+            window.location.href = 'treasury.html?treasury_id=' + id;
+        }
 
-            var btn = document.getElementById('addBtn');
-            var name = document.getElementById('treasuryName').value.trim();
-            var description = document.getElementById('treasuryDesc').value.trim();
-            var type = document.getElementById('treasuryType').value;
-
-            if (!name) {
-                showToast('⚠️ تنبيه', 'يرجى إدخال اسم الخزينة', 'error');
-                return;
-            }
-
-            var token = getToken();
-            if (!token) return;
-
-            var profile = await getCurrentUserProfile();
-            if (!profile) return;
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
-
-            try {
-                var response = await fetch(SUPABASE_URL + '/rest/v1/treasuries', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify({
-                        name: name,
-                        description: description,
-                        type: type,
-                        company_id: profile.company_id
-                    })
-                });
-
-                if (!response.ok) {
-                    var errorText = await response.text();
-                    throw new Error('فشل إضافة الخزينة: ' + errorText);
-                }
-
-                showToast('✅ تم الإضافة', 'تم إضافة الخزينة "' + name + '" بنجاح', 'success');
-                document.getElementById('addTreasuryForm').reset();
-                loadTreasuries();
-
-            } catch (error) {
-                showToast('❌ خطأ', error.message, 'error');
-            }
-
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
-        });
+        // ============================================================
+        // EDIT TREASURY
+        // ============================================================
+        function editTreasury(id) {
+            window.location.href = 'treasury-edit.html?treasury_id=' + id;
+        }
 
         // ============================================================
         // DELETE TREASURY
@@ -674,8 +900,7 @@
                     method: 'DELETE',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Prefer': 'return=representation'
+                        'Authorization': 'Bearer ' + token
                     }
                 });
 
@@ -684,18 +909,43 @@
                 }
 
                 showToast('✅ تم الحذف', 'تم حذف الخزينة بنجاح', 'success');
-                loadTreasuries();
+                loadData();
 
             } catch (error) {
+                console.error('❌ خطأ:', error);
                 showToast('❌ خطأ', error.message, 'error');
             }
         }
 
         // ============================================================
+        // LOAD DATA
+        // ============================================================
+        async function loadData() {
+            var profile = await getUserProfile();
+            if (!profile) {
+                showToast('⚠️ تنبيه', 'لم يتم العثور على بيانات المستخدم', 'error');
+                return;
+            }
+
+            document.getElementById('userName').textContent = profile.name || 'مرحباً';
+            document.getElementById('userRole').textContent = profile.role === 'admin' ? 'مدير' : (profile.role === 'accountant' ? 'محاسب' : 'موظف');
+
+            var treasuries = await getTreasuries(profile.company_id);
+            renderTreasuries(treasuries);
+        }
+
+        // ============================================================
         // INIT
         // ============================================================
-        console.log('🏢 إدارة الخزائن - QuickData ProSoft');
-        loadTreasuries();
+        console.log('🏛️ الخزائن - QuickData ProSoft');
+        console.log('🔗 Supabase URL:', SUPABASE_URL);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+        });
+
+        // تحديث تلقائي كل 30 ثانية
+        setInterval(loadData, 30000);
     </script>
 
 </body>
