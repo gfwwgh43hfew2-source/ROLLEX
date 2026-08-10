@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
     <title>تسجيل الدخول - QuickData ProSoft</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ==========================================================
            RESET & BASE
@@ -475,14 +476,26 @@
 
         /**
          * ============================================================
+         * INITIALIZE SUPABASE CLIENT
+         * ============================================================
+         * استخدام SDK بدلاً من Fetch المباشر لتوفير تجربة أكثر استقراراً
+         */
+        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: true,
+                storageKey: 'rollex_session'
+            }
+        });
+
+        /**
+         * ============================================================
          * DEBUG MODE - تفعيل وضع التصحيح
          * ============================================================
          */
         var DEBUG_MODE = true;
 
-        /**
-         * دالة مساعدة للطباعة في Console مع تنسيق واضح
-         */
         function debugLog(message, type, data) {
             if (!DEBUG_MODE) return;
             
@@ -520,214 +533,78 @@
 
         /**
          * ============================================================
-         * تجديد التوكن (Refresh Token)
+         * CHECK SESSION - باستخدام Supabase SDK
          * ============================================================
          */
-        async function refreshSession() {
-            debugLog('بدء محاولة تجديد التوكن...', 'info');
-            
-            var session = localStorage.getItem('rollex_session');
-            
-            if (!session) {
-                debugLog('لا توجد جلسة لتجديدها', 'warning');
-                return null;
-            }
-
-            try {
-                var parsed = JSON.parse(session);
-                
-                if (!parsed.refresh_token) {
-                    debugLog('لا يوجد refresh_token في الجلسة', 'warning');
-                    return null;
-                }
-
-                debugLog('إرسال طلب تجديد التوكن إلى Supabase...', 'info');
-                
-                var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        refresh_token: parsed.refresh_token
-                    })
-                });
-
-                debugLog('استجابة طلب التجديد', 'info', { 
-                    status: response.status, 
-                    ok: response.ok 
-                });
-
-                if (!response.ok) {
-                    var errorData = await response.json();
-                    debugLog('فشل تجديد التوكن', 'error', { status: response.status, error: errorData });
-                    return null;
-                }
-
-                var newSession = await response.json();
-                localStorage.setItem('rollex_session', JSON.stringify(newSession));
-                
-                debugLog('تم تجديد التوكن بنجاح', 'success', {
-                    new_access_token: newSession.access_token ? newSession.access_token.substring(0, 20) + '...' : 'غير موجود'
-                });
-                
-                return newSession;
-
-            } catch (error) {
-                debugLog('خطأ في تجديد التوكن', 'error', error);
-                return null;
-            }
-        }
-
-        /**
-         * ============================================================
-         * التحقق من صحة الجلسة
-         * ============================================================
-         */
-        async function verifyToken(accessToken) {
-            debugLog('بدء التحقق من صحة التوكن...', 'info');
+        async function checkSession() {
+            debugLog('بدء التحقق من الجلسة باستخدام Supabase SDK...', 'info');
             
             try {
-                var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + accessToken
-                    }
-                });
-
-                debugLog('استجابة التحقق من التوكن', 'info', { 
-                    status: response.status, 
-                    ok: response.ok 
-                });
-
-                if (response.ok) {
-                    debugLog('التوكن صالح', 'success');
+                // الحصول على الجلسة الحالية من Supabase
+                var { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    debugLog('خطأ في جلب الجلسة', 'error', error);
+                    return false;
+                }
+                
+                if (session) {
+                    debugLog('تم العثور على جلسة صالحة', 'success', {
+                        user: session.user.email,
+                        expires_at: new Date(session.expires_at * 1000).toLocaleString()
+                    });
                     return true;
                 } else {
-                    var errorText = await response.text();
-                    debugLog('التوكن غير صالح', 'error', { status: response.status, error: errorText });
+                    debugLog('لا توجد جلسة نشطة', 'info');
                     return false;
                 }
             } catch (error) {
-                debugLog('خطأ في التحقق من التوكن', 'error', error);
+                debugLog('خطأ في التحقق من الجلسة', 'error', error);
                 return false;
             }
         }
 
         /**
          * ============================================================
-         * التحقق من الجلسة عند تحميل الصفحة
-         * ============================================================
-         */
-        (async function checkSession() {
-            debugLog('بدء التحقق من الجلسة...', 'info');
-            
-            var session = localStorage.getItem('rollex_session');
-            debugLog('قراءة localStorage، session موجود؟', 'info', { exists: session !== null });
-            
-            if (!session) {
-                debugLog('لا توجد جلسة في localStorage، عرض صفحة تسجيل الدخول', 'info');
-                return;
-            }
-
-            try {
-                var parsed = JSON.parse(session);
-                debugLog('تم تحليل الجلسة بنجاح', 'success', {
-                    has_access_token: !!parsed.access_token,
-                    has_refresh_token: !!parsed.refresh_token,
-                    access_token_preview: parsed.access_token ? parsed.access_token.substring(0, 20) + '...' : 'غير موجود'
-                });
-                
-                if (!parsed.access_token) {
-                    debugLog('لا يوجد access_token في الجلسة، سيتم حذفها', 'warning');
-                    localStorage.removeItem('rollex_session');
-                    return;
-                }
-
-                debugLog('محاولة تجديد التوكن...', 'info');
-                
-                var newSession = await refreshSession();
-                
-                if (newSession) {
-                    debugLog('تم تجديد الجلسة بنجاح، جاري التوجيه إلى الصفحة الرئيسية...', 'success');
-                    window.location.href = 'index.html';
-                    return;
-                }
-
-                debugLog('فشل تجديد التوكن، جاري التحقق من التوكن الحالي...', 'warning');
-
-                var isValid = await verifyToken(parsed.access_token);
-                debugLog('نتيجة التحقق من التوكن', 'info', { isValid: isValid });
-                
-                if (isValid) {
-                    debugLog('الجلسة صالحة، جاري التوجيه إلى الصفحة الرئيسية...', 'success');
-                    window.location.href = 'index.html';
-                } else {
-                    debugLog('الجلسة غير صالحة، يتم حذفها', 'error');
-                    localStorage.removeItem('rollex_session');
-                }
-
-            } catch (error) {
-                debugLog('خطأ في التحقق من الجلسة', 'error', error);
-                localStorage.removeItem('rollex_session');
-            }
-        })();
-
-        /**
-         * ============================================================
-         * بناء الحلقة المتقطعة المزخرفة (SVG)
+         * BUILD RING - الحلقة المزخرفة
          * ============================================================
          */
         (function buildRing() {
             var ring = document.getElementById('ring');
             var size = 600;
-            var cx = size / 2;
-            var cy = size / 2;
-            var r = size / 2 - 20;
+            var cx = size / 2, cy = size / 2, r = size / 2 - 20;
             var total = 48;
-            var litStart = 4;
-            var litEnd = 15;
+            var litStart = 4, litEnd = 15;
             var svgNS = 'http://www.w3.org/2000/svg';
-            
             var svg = document.createElementNS(svgNS, 'svg');
             svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
-            svg.setAttribute('aria-hidden', 'true');
 
             for (var i = 0; i < total; i++) {
                 var angle = (i / total) * 2 * Math.PI;
                 var inner = r - 14;
                 var outer = r;
-                
                 var x1 = cx + inner * Math.cos(angle);
                 var y1 = cy + inner * Math.sin(angle);
                 var x2 = cx + outer * Math.cos(angle);
                 var y2 = cy + outer * Math.sin(angle);
-                
                 var line = document.createElementNS(svgNS, 'line');
-                line.setAttribute('x1', x1);
-                line.setAttribute('y1', y1);
-                line.setAttribute('x2', x2);
-                line.setAttribute('y2', y2);
-                
+                line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2); line.setAttribute('y2', y2);
                 var lit = (i >= litStart && i <= litEnd);
                 line.setAttribute('class', 'tick' + (lit ? ' lit' : ''));
-                
                 svg.appendChild(line);
             }
-            
             ring.appendChild(svg);
         })();
 
         /**
          * ============================================================
-         * إظهار / إخفاء كلمة المرور
+         * TOGGLE PASSWORD - إظهار/إخفاء كلمة المرور
          * ============================================================
          */
         var togglePass = document.getElementById('togglePass');
         var passwordInput = document.getElementById('password');
         var eyeIcon = document.getElementById('eyeIcon');
-
         var eyeOpenPath = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/>';
         var eyeClosedPath = '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 4.22-5.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a20.3 20.3 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/>';
 
@@ -741,33 +618,26 @@
 
         /**
          * ============================================================
-         * تأثير التموّج عند النقر على الزر
+         * RIPPLE EFFECT - تأثير التموج على الزر
          * ============================================================
          */
         var loginBtn = document.getElementById('loginBtn');
-        
         loginBtn.addEventListener('click', function(e) {
             if (loginBtn.disabled) return;
-            
             var rect = this.getBoundingClientRect();
             var ripple = document.createElement('span');
             var size = Math.max(rect.width, rect.height);
-            
             ripple.className = 'ripple';
             ripple.style.width = ripple.style.height = size + 'px';
             ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
             ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
-            
             this.appendChild(ripple);
-            
-            setTimeout(function() {
-                ripple.remove();
-            }, 650);
+            setTimeout(function() { ripple.remove(); }, 650);
         });
 
         /**
          * ============================================================
-         * عناصر النموذج
+         * FORM ELEMENTS
          * ============================================================
          */
         var loginForm = document.getElementById('loginForm');
@@ -781,7 +651,7 @@
 
         /**
          * ============================================================
-         * التحقق من صحة البريد الإلكتروني
+         * VALIDATION FUNCTIONS
          * ============================================================
          */
         function validateEmail(value) {
@@ -789,11 +659,6 @@
             return emailRegex.test(value);
         }
 
-        /**
-         * ============================================================
-         * تحديث حالة الحقل
-         * ============================================================
-         */
         function setFieldState(wrap, errorEl, isValid) {
             wrap.classList.toggle('invalid', !isValid);
             errorEl.classList.toggle('show', !isValid);
@@ -801,7 +666,7 @@
 
         /**
          * ============================================================
-         * معالجة حدث تقديم النموذج
+         * LOGIN FORM SUBMIT - باستخدام Supabase SDK
          * ============================================================
          */
         loginForm.addEventListener('submit', async function(e) {
@@ -817,11 +682,7 @@
             setFieldState(passwordWrap, passwordError, passwordValid);
 
             if (!emailValid || !passwordValid) {
-                if (!emailValid) {
-                    emailInput.focus();
-                } else {
-                    passwordInput.focus();
-                }
+                if (!emailValid) emailInput.focus(); else passwordInput.focus();
                 return;
             }
 
@@ -833,32 +694,35 @@
             try {
                 debugLog('📤 جاري إرسال طلب تسجيل الدخول...', 'info');
 
-                var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password
-                    })
+                // استخدام Supabase SDK لتسجيل الدخول
+                var { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
                 });
 
-                var data = await response.json();
-
-                if (!response.ok) {
-                    var errorMsg = data.msg || data.message || 'بيانات الدخول غير صحيحة';
+                if (error) {
+                    debugLog('❌ فشل تسجيل الدخول', 'error', error);
+                    
+                    var errorMsg = error.message || 'بيانات الدخول غير صحيحة';
+                    if (errorMsg.includes('Invalid login credentials')) {
+                        errorMsg = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+                    }
                     throw new Error(errorMsg);
                 }
 
-                debugLog('✅ تم تسجيل الدخول بنجاح', 'success');
+                debugLog('✅ تم تسجيل الدخول بنجاح', 'success', {
+                    user: data.user.email,
+                    session: data.session ? 'نشطة' : 'غير موجودة'
+                });
 
+                // حفظ الجلسة في localStorage أو sessionStorage حسب اختيار المستخدم
                 var storage = document.getElementById('remember').checked 
                     ? window.localStorage 
                     : window.sessionStorage;
                 
-                storage.setItem('rollex_session', JSON.stringify(data));
+                // Supabase SDK يحفظ الجلسة تلقائياً، لكننا نحفظها يدوياً للتأكد
+                storage.setItem('rollex_session', JSON.stringify(data.session));
+                
                 showMessage('تم تسجيل الدخول بنجاح! جاري التحويل...', 'success');
 
                 setTimeout(function() {
@@ -877,23 +741,17 @@
 
         /**
          * ============================================================
-         * عرض رسالة حالة
+         * MESSAGE FUNCTIONS
          * ============================================================
          */
         function showMessage(text, type) {
             var icon = type === 'success'
                 ? '<svg class="checkmark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3 3 7-7"/></svg>'
                 : '<span aria-hidden="true">⚠</span>';
-            
             messageDiv.innerHTML = icon + '<span>' + text + '</span>';
             messageDiv.className = 'message ' + type;
         }
 
-        /**
-         * ============================================================
-         * إخفاء رسالة الحالة
-         * ============================================================
-         */
         function hideMessage() {
             messageDiv.className = 'message';
             messageDiv.innerHTML = '';
@@ -901,7 +759,7 @@
 
         /**
          * ============================================================
-         * التحقق الفوري عند الكتابة
+         * REAL-TIME VALIDATION - التحقق الفوري أثناء الكتابة
          * ============================================================
          */
         emailInput.addEventListener('input', function() {
@@ -918,18 +776,28 @@
 
         /**
          * ============================================================
-         * رسائل الترحيب في Console
+         * SESSION CHECK ON PAGE LOAD - التحقق من الجلسة عند تحميل الصفحة
          * ============================================================
          */
-        debugLog('🚀 بدء تحميل صفحة تسجيل الدخول', 'info');
-        debugLog('🔗 Supabase URL', 'info', SUPABASE_URL);
-        debugLog('🔄 وضع التصحيح مفعل', 'info');
-        
-        console.log('🏢 QuickData ProSoft - نظام إدارة الشركات');
-        console.log('✅ النظام جاهز للعمل');
-        console.log('📌 تم تحميل صفحة تسجيل الدخول بنجاح');
-        
-        debugLog('✅ تم تحميل صفحة تسجيل الدخول بالكامل', 'success');
+        (async function init() {
+            debugLog('🚀 بدء تحميل صفحة تسجيل الدخول', 'info');
+            debugLog('🔗 Supabase URL', 'info', SUPABASE_URL);
+            debugLog('🔄 وضع التصحيح مفعل', 'info');
+
+            // التحقق من وجود جلسة نشطة
+            var hasSession = await checkSession();
+            
+            if (hasSession) {
+                debugLog('✅ جلسة موجودة، جاري التوجيه إلى الصفحة الرئيسية...', 'success');
+                window.location.href = 'index.html';
+            } else {
+                debugLog('ℹ️ لا توجد جلسة، عرض صفحة تسجيل الدخول', 'info');
+            }
+
+            console.log('🏢 QuickData ProSoft - نظام إدارة الشركات');
+            console.log('✅ النظام جاهز للعمل');
+            console.log('📌 تم تحميل صفحة تسجيل الدخول بنجاح');
+        })();
     </script>
 
 </body>
