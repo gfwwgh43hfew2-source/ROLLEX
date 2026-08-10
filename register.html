@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
     <title>إنشاء حساب - QuickData ProSoft</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <style>
         /* ==========================================================
            RESET & BASE
@@ -25,8 +24,11 @@
             --card: #212c3b;
             --field: #2a3646;
             --field-border: #37455a;
-            --text-dim: rgba(255, 255, 255, 0.35);
-            --text-mid: rgba(255, 255, 255, 0.55);
+            --text-dim: rgba(255, 255, 255, 0.55);
+            --text-faint: rgba(255, 255, 255, 0.4);
+            --text-mid: rgba(255, 255, 255, 0.72);
+            --danger: #ff6b6b;
+            --success: #66d17d;
         }
 
         html { scroll-behavior: smooth; }
@@ -45,9 +47,6 @@
             overflow: hidden;
         }
 
-        /* ==========================================================
-           الحلقة المتقطعة المزخرفة حول البطاقة
-           ========================================================== */
         .ring-wrap {
             position: relative;
             width: 100%;
@@ -71,9 +70,7 @@
             animation: ringSpin 90s linear infinite;
         }
 
-        @keyframes ringSpin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes ringSpin { to { transform: rotate(360deg); } }
 
         .ring .tick {
             stroke: rgba(255, 255, 255, 0.14);
@@ -90,9 +87,6 @@
             .ring svg { animation: none; }
         }
 
-        /* ==========================================================
-           البطاقة
-           ========================================================== */
         .register-container {
             position: relative;
             z-index: 1;
@@ -111,7 +105,10 @@
             100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* ===== العنوان ===== */
+        @media (prefers-reduced-motion: reduce) {
+            .register-container { animation: none; }
+        }
+
         .title {
             text-align: center;
             font-size: 1.9rem;
@@ -119,14 +116,17 @@
             letter-spacing: 2px;
             color: var(--gold);
             text-shadow: 0 0 22px rgba(245, 166, 35, 0.35);
-            margin-bottom: 28px;
+            margin-bottom: 26px;
         }
 
-        /* ==========================================================
-           حقول الإدخال
-           ========================================================== */
-        .form-group {
-            margin-bottom: 16px;
+        .form-group { margin-bottom: 16px; }
+
+        .form-group label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text-mid);
+            margin-bottom: 6px;
         }
 
         .input-wrap {
@@ -139,17 +139,18 @@
 
         .input-wrap:focus-within {
             border-color: var(--gold);
-            box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.12);
+            box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
         }
 
         .input-wrap .input-icon {
             position: absolute;
-            left: 16px;
+            right: 14px;
             top: 50%;
             transform: translateY(-50%);
             color: var(--text-dim);
-            font-size: 0.85rem;
             z-index: 2;
+            display: flex;
+            pointer-events: none;
         }
 
         .input-wrap:focus-within .input-icon { color: var(--gold); }
@@ -166,16 +167,21 @@
             text-align: right;
         }
 
-        .input-wrap input::placeholder { color: var(--text-dim); font-weight: 400; }
+        .input-wrap input::placeholder { color: var(--text-faint); font-weight: 400; }
 
-        .input-wrap .input-icon.right {
-            left: auto;
-            right: 16px;
+        .field-error {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            color: var(--danger);
+            font-size: 0.74rem;
+            font-weight: 700;
+            margin-top: 6px;
         }
+        .field-error.show { display: flex; }
+        .input-wrap.invalid { border-color: var(--danger); }
+        .input-wrap.invalid:focus-within { box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.15); }
 
-        /* ==========================================================
-           زر إنشاء الحساب
-           ========================================================== */
         .btn-primary {
             width: 100%;
             padding: 14px;
@@ -187,11 +193,15 @@
             font-size: 0.95rem;
             letter-spacing: 1px;
             cursor: pointer;
-            transition: transform 0.25s, box-shadow 0.25s;
+            transition: transform 0.25s, box-shadow 0.25s, opacity 0.25s;
             font-family: inherit;
             box-shadow: 0 10px 26px rgba(245, 166, 35, 0.28);
             position: relative;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
             margin-top: 8px;
         }
 
@@ -204,11 +214,13 @@
         }
         .btn-primary:hover::before { transform: translateX(100%); }
 
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 16px 36px rgba(245, 166, 35, 0.36);
         }
-        .btn-primary:active { transform: translateY(0) scale(0.98); }
+        .btn-primary:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+
+        .btn-primary:disabled { cursor: not-allowed; opacity: 0.75; box-shadow: none; }
 
         .btn-primary .ripple {
             position: absolute;
@@ -220,30 +232,20 @@
         }
         @keyframes rippleAnim { to { transform: scale(3); opacity: 0; } }
 
-        /* ===== التحميل ===== */
-        .loading-spinner {
+        .btn-spinner {
             display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            padding: 12px;
-        }
-        .loading-spinner .dots { display: flex; gap: 5px; }
-        .loading-spinner .dots span {
-            width: 6px; height: 6px;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(27, 18, 4, 0.3);
+            border-top-color: #1b1204;
             border-radius: 50%;
-            background: var(--gold);
-            animation: dotBounce 1.2s ease-in-out infinite;
+            animation: spin 0.7s linear infinite;
         }
-        .loading-spinner .dots span:nth-child(2) { animation-delay: 0.15s; }
-        .loading-spinner .dots span:nth-child(3) { animation-delay: 0.3s; }
-        @keyframes dotBounce {
-            0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
-            30% { transform: translateY(-6px); opacity: 1; }
-        }
-        .loading-spinner span.label { color: var(--text-mid); font-size: 0.82rem; font-weight: 600; }
+        .btn-primary.loading .btn-spinner { display: inline-block; }
+        .btn-primary.loading .btn-label { opacity: 0.85; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { .btn-spinner { animation: none; } }
 
-        /* ===== رسائل الحالة ===== */
         .message {
             text-align: center;
             padding: 12px 16px;
@@ -258,15 +260,15 @@
         }
         .message.success {
             display: flex;
-            background: rgba(43, 138, 62, 0.12);
-            color: #66d17d;
-            border: 1px solid rgba(43, 138, 62, 0.2);
+            background: rgba(43, 138, 62, 0.14);
+            color: var(--success);
+            border: 1px solid rgba(43, 138, 62, 0.25);
         }
         .message.error {
             display: flex;
-            background: rgba(201, 42, 42, 0.1);
-            color: #ff6b6b;
-            border: 1px solid rgba(201, 42, 42, 0.18);
+            background: rgba(201, 42, 42, 0.12);
+            color: var(--danger);
+            border: 1px solid rgba(201, 42, 42, 0.22);
             animation: shake 0.5s ease;
         }
         @keyframes shake {
@@ -276,13 +278,11 @@
             60% { transform: translateX(-4px); }
             80% { transform: translateX(4px); }
         }
+        @media (prefers-reduced-motion: reduce) { .message.error { animation: none; } }
         .checkmark { width: 16px; height: 16px; flex-shrink: 0; }
-        .checkmark circle { stroke: #66d17d; stroke-width: 2; fill: none; }
-        .checkmark path { stroke: #66d17d; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+        .checkmark circle { stroke: var(--success); stroke-width: 2; fill: none; }
+        .checkmark path { stroke: var(--success); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 
-        /* ==========================================================
-           روابط أسفل البطاقة
-           ========================================================== */
         .links {
             text-align: center;
             color: var(--text-dim);
@@ -302,28 +302,23 @@
             margin-top: 20px;
             padding-top: 14px;
             border-top: 1px solid rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.16);
+            color: rgba(255, 255, 255, 0.22);
             font-size: 0.6rem;
             font-weight: 600;
             letter-spacing: 0.4px;
         }
-        .copyright strong { color: rgba(245, 166, 35, 0.35); }
+        .copyright strong { color: rgba(245, 166, 35, 0.45); }
 
-        /* ===== إمكانية الوصول ===== */
-        a:focus-visible, button:focus-visible, input:focus-visible {
+        a:focus-visible, button:focus-visible {
             outline: 2px solid var(--gold);
             outline-offset: 2px;
         }
 
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
+        .input-wrap input:focus,
+        .input-wrap input:focus-visible {
+            outline: none;
         }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
             .ring { inset: -40px; }
             .register-container { padding: 30px 22px 24px; border-radius: 20px; }
@@ -334,50 +329,72 @@
 <body>
 
     <div class="ring-wrap" id="ringWrap">
-        <div class="ring" id="ring"></div>
+        <div class="ring" id="ring" aria-hidden="true"></div>
 
         <div class="register-container" id="registerCard">
 
-            <div class="title">إنشاء حساب</div>
+            <h1 class="title">إنشاء حساب</h1>
 
-            <form id="registerForm">
+            <form id="registerForm" novalidate>
 
                 <div class="form-group">
-                    <div class="input-wrap">
-                        <i class="fas fa-user input-icon right"></i>
-                        <input type="text" id="name" name="name" placeholder="الاسم الكامل" required />
+                    <label for="name">الاسم الكامل</label>
+                    <div class="input-wrap" id="nameWrap">
+                        <span class="input-icon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </span>
+                        <input type="text" id="name" name="name" placeholder="أحمد محمد المدير" required autocomplete="name" aria-describedby="nameError" />
+                    </div>
+                    <div class="field-error" id="nameError" role="alert">
+                        <span aria-hidden="true">⚠</span><span>يرجى إدخال الاسم الكامل</span>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <div class="input-wrap">
-                        <i class="fas fa-envelope input-icon right"></i>
-                        <input type="email" id="email" name="email" placeholder="البريد الإلكتروني" required autocomplete="email" />
+                    <label for="email">البريد الإلكتروني</label>
+                    <div class="input-wrap" id="emailWrap">
+                        <span class="input-icon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
+                        </span>
+                        <input type="email" id="email" name="email" placeholder="admin@company.com" required autocomplete="email" aria-describedby="emailError" />
+                    </div>
+                    <div class="field-error" id="emailError" role="alert">
+                        <span aria-hidden="true">⚠</span><span>يرجى إدخال بريد إلكتروني صالح</span>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <div class="input-wrap">
-                        <i class="fas fa-lock input-icon right"></i>
-                        <input type="password" id="password" name="password" placeholder="كلمة المرور (6 أحرف على الأقل)" required minlength="6" />
+                    <label for="password">كلمة المرور</label>
+                    <div class="input-wrap" id="passwordWrap">
+                        <span class="input-icon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </span>
+                        <input type="password" id="password" name="password" placeholder="•••••••• (6 أحرف على الأقل)" required minlength="6" autocomplete="new-password" aria-describedby="passwordError" />
+                    </div>
+                    <div class="field-error" id="passwordError" role="alert">
+                        <span aria-hidden="true">⚠</span><span>كلمة المرور يجب أن تكون 6 أحرف على الأقل</span>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <div class="input-wrap">
-                        <i class="fas fa-building input-icon right"></i>
-                        <input type="text" id="companyName" name="companyName" placeholder="اسم الشركة" required />
+                    <label for="companyName">اسم الشركة</label>
+                    <div class="input-wrap" id="companyWrap">
+                        <span class="input-icon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M16 10h.01"/><path d="M8 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M16 18h.01"/></svg>
+                        </span>
+                        <input type="text" id="companyName" name="companyName" placeholder="شركة النور للتجارة" required autocomplete="organization" aria-describedby="companyError" />
+                    </div>
+                    <div class="field-error" id="companyError" role="alert">
+                        <span aria-hidden="true">⚠</span><span>يرجى إدخال اسم الشركة</span>
                     </div>
                 </div>
 
-                <button type="submit" class="btn-primary" id="registerBtn">إنشاء الحساب</button>
+                <button type="submit" class="btn-primary" id="registerBtn">
+                    <span class="btn-spinner" aria-hidden="true"></span>
+                    <span class="btn-label">إنشاء الحساب</span>
+                </button>
 
-                <div class="loading-spinner" id="loadingSpinner">
-                    <div class="dots"><span></span><span></span><span></span></div>
-                    <span class="label">جاري إنشاء الحساب...</span>
-                </div>
-
-                <div id="message" class="message"></div>
+                <div id="message" class="message" role="status" aria-live="polite"></div>
             </form>
 
             <div class="links">
@@ -440,6 +457,7 @@
          */
         var registerBtn = document.getElementById('registerBtn');
         registerBtn.addEventListener('click', function(e) {
+            if (registerBtn.disabled) return;
             var rect = this.getBoundingClientRect();
             var ripple = document.createElement('span');
             var size = Math.max(rect.width, rect.height);
@@ -477,28 +495,63 @@
          */
         var registerForm = document.getElementById('registerForm');
         var messageDiv = document.getElementById('message');
-        var loadingSpinner = document.getElementById('loadingSpinner');
+        var btnLabel = registerBtn.querySelector('.btn-label');
+
+        // عناصر التحقق
+        var nameInput = document.getElementById('name');
+        var nameWrap = document.getElementById('nameWrap');
+        var nameError = document.getElementById('nameError');
+
+        var emailInput = document.getElementById('email');
+        var emailWrap = document.getElementById('emailWrap');
+        var emailError = document.getElementById('emailError');
+
+        var passwordInput = document.getElementById('password');
+        var passwordWrap = document.getElementById('passwordWrap');
+        var passwordError = document.getElementById('passwordError');
+
+        var companyInput = document.getElementById('companyName');
+        var companyWrap = document.getElementById('companyWrap');
+        var companyError = document.getElementById('companyError');
+
+        function validateEmail(value) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+        }
+
+        function setFieldState(wrap, errorEl, isValid) {
+            wrap.classList.toggle('invalid', !isValid);
+            errorEl.classList.toggle('show', !isValid);
+        }
 
         registerForm.addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            var name = document.getElementById('name').value.trim();
-            var email = document.getElementById('email').value.trim();
-            var password = document.getElementById('password').value;
-            var companyName = document.getElementById('companyName').value.trim();
+            var name = nameInput.value.trim();
+            var email = emailInput.value.trim();
+            var password = passwordInput.value;
+            var companyName = companyInput.value.trim();
 
-            if (!name || !email || !password || !companyName) {
-                showMessage('❌ الرجاء ملء جميع الحقول', 'error');
+            var nameValid = name.length > 0;
+            var emailValid = validateEmail(email);
+            var passwordValid = password.length >= 6;
+            var companyValid = companyName.length > 0;
+
+            setFieldState(nameWrap, nameError, nameValid);
+            setFieldState(emailWrap, emailError, emailValid);
+            setFieldState(passwordWrap, passwordError, passwordValid);
+            setFieldState(companyWrap, companyError, companyValid);
+
+            if (!nameValid || !emailValid || !passwordValid || !companyValid) {
+                if (!nameValid) nameInput.focus();
+                else if (!emailValid) emailInput.focus();
+                else if (!passwordValid) passwordInput.focus();
+                else if (!companyValid) companyInput.focus();
                 return;
             }
 
-            if (password.length < 6) {
-                showMessage('❌ كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
-                return;
-            }
-
-            registerBtn.style.display = 'none';
-            loadingSpinner.style.display = 'flex';
+            registerBtn.disabled = true;
+            registerBtn.classList.add('loading');
+            btnLabel.textContent = 'جاري إنشاء الحساب...';
             hideMessage();
 
             try {
@@ -507,8 +560,9 @@
 
                 if (companyExists) {
                     showMessage('⚠️ هذه الشركة مسجلة بالفعل. التسجيل متاح للشركات الجديدة فقط.', 'error');
-                    registerBtn.style.display = 'flex';
-                    loadingSpinner.style.display = 'none';
+                    registerBtn.disabled = false;
+                    registerBtn.classList.remove('loading');
+                    btnLabel.textContent = 'إنشاء الحساب';
                     return;
                 }
 
@@ -554,14 +608,15 @@
                 showMessage('❌ ' + error.message, 'error');
             }
 
-            registerBtn.style.display = 'flex';
-            loadingSpinner.style.display = 'none';
+            registerBtn.disabled = false;
+            registerBtn.classList.remove('loading');
+            btnLabel.textContent = 'إنشاء الحساب';
         });
 
         function showMessage(text, type) {
             var icon = type === 'success'
-                ? '<svg class="checkmark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3 3 7-7"/></svg>'
-                : '<i class="fas fa-circle-exclamation"></i>';
+                ? '<svg class="checkmark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3 3 7-7"/></svg>'
+                : '<span aria-hidden="true">⚠</span>';
             messageDiv.innerHTML = icon + '<span>' + text + '</span>';
             messageDiv.className = 'message ' + type;
         }
@@ -570,6 +625,31 @@
             messageDiv.className = 'message';
             messageDiv.innerHTML = '';
         }
+
+        // التحقق الفوري عند الكتابة
+        nameInput.addEventListener('input', function() {
+            if (nameWrap.classList.contains('invalid') && nameInput.value.trim().length > 0) {
+                setFieldState(nameWrap, nameError, true);
+            }
+        });
+
+        emailInput.addEventListener('input', function() {
+            if (emailWrap.classList.contains('invalid') && validateEmail(emailInput.value.trim())) {
+                setFieldState(emailWrap, emailError, true);
+            }
+        });
+
+        passwordInput.addEventListener('input', function() {
+            if (passwordWrap.classList.contains('invalid') && passwordInput.value.length >= 6) {
+                setFieldState(passwordWrap, passwordError, true);
+            }
+        });
+
+        companyInput.addEventListener('input', function() {
+            if (companyWrap.classList.contains('invalid') && companyInput.value.trim().length > 0) {
+                setFieldState(companyWrap, companyError, true);
+            }
+        });
 
         console.log('🏢 QuickData ProSoft - نظام إدارة الشركات');
         console.log('🔗 Supabase URL:', SUPABASE_URL);
