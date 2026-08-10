@@ -469,44 +469,80 @@
          * ============================================================
          * SUPABASE CONFIGURATION
          * ============================================================
-         * هذه المتغيرات تحتوي على معلومات الاتصال بقاعدة البيانات
-         * يجب أن تكون متطابقة مع المشروع في Supabase
          */
         var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
         var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
 
         /**
          * ============================================================
+         * DEBUG MODE - تفعيل وضع التصحيح
+         * ============================================================
+         */
+        var DEBUG_MODE = true;
+
+        /**
+         * دالة مساعدة للطباعة في Console مع تنسيق واضح
+         */
+        function debugLog(message, type, data) {
+            if (!DEBUG_MODE) return;
+            
+            var prefix = '🔍 [DEBUG]';
+            var icon = '📌';
+            
+            switch(type) {
+                case 'success':
+                    prefix = '✅ [SUCCESS]';
+                    icon = '✅';
+                    break;
+                case 'error':
+                    prefix = '❌ [ERROR]';
+                    icon = '❌';
+                    break;
+                case 'warning':
+                    prefix = '⚠️ [WARNING]';
+                    icon = '⚠️';
+                    break;
+                case 'info':
+                    prefix = 'ℹ️ [INFO]';
+                    icon = 'ℹ️';
+                    break;
+                default:
+                    prefix = '🔍 [DEBUG]';
+                    icon = '🔍';
+            }
+            
+            if (data) {
+                console.log(icon + ' ' + prefix + ' - ' + message, data);
+            } else {
+                console.log(icon + ' ' + prefix + ' - ' + message);
+            }
+        }
+
+        /**
+         * ============================================================
          * تجديد التوكن (Refresh Token)
          * ============================================================
-         * هذه الدالة تحاول تجديد التوكن باستخدام refresh_token
-         * في حالة نجاح التجديد، يتم حفظ الجلسة الجديدة في localStorage
-         * 
-         * @returns {Object|null} الجلسة الجديدة أو null في حالة الفشل
          */
         async function refreshSession() {
-            // محاولة قراءة الجلسة من localStorage
+            debugLog('بدء محاولة تجديد التوكن...', 'info');
+            
             var session = localStorage.getItem('rollex_session');
             
-            // إذا لم توجد جلسة، نعيد null
             if (!session) {
-                console.log('⚠️ لا توجد جلسة لتجديدها');
+                debugLog('لا توجد جلسة لتجديدها', 'warning');
                 return null;
             }
 
             try {
-                // تحويل JSON إلى كائن
                 var parsed = JSON.parse(session);
                 
-                // التأكد من وجود refresh_token
                 if (!parsed.refresh_token) {
-                    console.log('⚠️ لا يوجد refresh_token في الجلسة');
+                    debugLog('لا يوجد refresh_token في الجلسة', 'warning');
                     return null;
                 }
 
-                console.log('🔄 جاري تجديد التوكن...');
-
-                // إرسال طلب تجديد التوكن إلى Supabase
+                debugLog('إرسال طلب تجديد التوكن إلى Supabase...', 'info');
+                
                 var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
                     method: 'POST',
                     headers: {
@@ -518,24 +554,28 @@
                     })
                 });
 
-                // التحقق من نجاح الطلب
+                debugLog('استجابة طلب التجديد', 'info', { 
+                    status: response.status, 
+                    ok: response.ok 
+                });
+
                 if (!response.ok) {
                     var errorData = await response.json();
-                    console.log('❌ فشل تجديد التوكن:', response.status, errorData);
+                    debugLog('فشل تجديد التوكن', 'error', { status: response.status, error: errorData });
                     return null;
                 }
 
-                // استخراج الجلسة الجديدة من الاستجابة
                 var newSession = await response.json();
-                
-                // حفظ الجلسة الجديدة في localStorage
                 localStorage.setItem('rollex_session', JSON.stringify(newSession));
                 
-                console.log('✅ تم تجديد التوكن بنجاح');
+                debugLog('تم تجديد التوكن بنجاح', 'success', {
+                    new_access_token: newSession.access_token ? newSession.access_token.substring(0, 20) + '...' : 'غير موجود'
+                });
+                
                 return newSession;
 
             } catch (error) {
-                console.error('❌ خطأ في تجديد التوكن:', error);
+                debugLog('خطأ في تجديد التوكن', 'error', error);
                 return null;
             }
         }
@@ -544,15 +584,11 @@
          * ============================================================
          * التحقق من صحة الجلسة
          * ============================================================
-         * هذه الدالة تتحقق من صحة التوكن الحالي عن طريق الاتصال بـ Supabase
-         * 
-         * @param {string} accessToken - التوكن المراد التحقق منه
-         * @returns {boolean} true إذا كان التوكن صالحًا، false إذا كان منتهيًا
          */
         async function verifyToken(accessToken) {
+            debugLog('بدء التحقق من صحة التوكن...', 'info');
+            
             try {
-                console.log('🔍 جاري التحقق من صحة التوكن...');
-                
                 var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
@@ -560,15 +596,21 @@
                     }
                 });
 
+                debugLog('استجابة التحقق من التوكن', 'info', { 
+                    status: response.status, 
+                    ok: response.ok 
+                });
+
                 if (response.ok) {
-                    console.log('✅ التوكن صالح');
+                    debugLog('التوكن صالح', 'success');
                     return true;
                 } else {
-                    console.log('❌ التوكن غير صالح:', response.status);
+                    var errorText = await response.text();
+                    debugLog('التوكن غير صالح', 'error', { status: response.status, error: errorText });
                     return false;
                 }
             } catch (error) {
-                console.error('❌ خطأ في التحقق من التوكن:', error);
+                debugLog('خطأ في التحقق من التوكن', 'error', error);
                 return false;
             }
         }
@@ -577,60 +619,57 @@
          * ============================================================
          * التحقق من الجلسة عند تحميل الصفحة
          * ============================================================
-         * هذه الدالة تُستدعى عند تحميل صفحة تسجيل الدخول
-         * إذا كانت هناك جلسة صالحة، يتم توجيه المستخدم إلى الصفحة الرئيسية
          */
         (async function checkSession() {
-            console.log('🔍 بدء التحقق من الجلسة...');
+            debugLog('بدء التحقق من الجلسة...', 'info');
             
-            // محاولة قراءة الجلسة من localStorage
             var session = localStorage.getItem('rollex_session');
+            debugLog('قراءة localStorage، session موجود؟', 'info', { exists: session !== null });
             
-            // إذا لم توجد جلسة، نخرج من الدالة
             if (!session) {
-                console.log('ℹ️ لا توجد جلسة، عرض صفحة تسجيل الدخول');
+                debugLog('لا توجد جلسة في localStorage، عرض صفحة تسجيل الدخول', 'info');
                 return;
             }
 
             try {
-                // تحويل JSON إلى كائن
                 var parsed = JSON.parse(session);
+                debugLog('تم تحليل الجلسة بنجاح', 'success', {
+                    has_access_token: !!parsed.access_token,
+                    has_refresh_token: !!parsed.refresh_token,
+                    access_token_preview: parsed.access_token ? parsed.access_token.substring(0, 20) + '...' : 'غير موجود'
+                });
                 
-                // التأكد من وجود access_token
                 if (!parsed.access_token) {
-                    console.log('⚠️ لا يوجد access_token في الجلسة');
+                    debugLog('لا يوجد access_token في الجلسة، سيتم حذفها', 'warning');
                     localStorage.removeItem('rollex_session');
                     return;
                 }
 
-                console.log('📋 تم العثور على جلسة، جاري التحقق من صلاحيتها...');
-
-                // الخطوة 1: محاولة تجديد التوكن أولاً
+                debugLog('محاولة تجديد التوكن...', 'info');
+                
                 var newSession = await refreshSession();
                 
                 if (newSession) {
-                    // إذا نجح التجديد، نوجه المستخدم إلى الصفحة الرئيسية
-                    console.log('✅ تم تجديد الجلسة بنجاح، جاري التوجيه إلى الصفحة الرئيسية...');
+                    debugLog('تم تجديد الجلسة بنجاح، جاري التوجيه إلى الصفحة الرئيسية...', 'success');
                     window.location.href = 'index.html';
                     return;
                 }
 
-                // الخطوة 2: إذا فشل التجديد، نتحقق من التوكن الحالي
+                debugLog('فشل تجديد التوكن، جاري التحقق من التوكن الحالي...', 'warning');
+
                 var isValid = await verifyToken(parsed.access_token);
+                debugLog('نتيجة التحقق من التوكن', 'info', { isValid: isValid });
                 
                 if (isValid) {
-                    // إذا كان التوكن صالحًا، نوجه المستخدم إلى الصفحة الرئيسية
-                    console.log('✅ الجلسة صالحة، جاري التوجيه إلى الصفحة الرئيسية...');
+                    debugLog('الجلسة صالحة، جاري التوجيه إلى الصفحة الرئيسية...', 'success');
                     window.location.href = 'index.html';
                 } else {
-                    // إذا كان التوكن منتهيًا، نحذف الجلسة
-                    console.log('⚠️ الجلسة غير صالحة، يتم حذفها');
+                    debugLog('الجلسة غير صالحة، يتم حذفها', 'error');
                     localStorage.removeItem('rollex_session');
                 }
 
             } catch (error) {
-                console.error('❌ خطأ في التحقق من الجلسة:', error);
-                // في حالة حدوث خطأ، نحذف الجلسة لضمان عدم التكرار
+                debugLog('خطأ في التحقق من الجلسة', 'error', error);
                 localStorage.removeItem('rollex_session');
             }
         })();
@@ -639,8 +678,6 @@
          * ============================================================
          * بناء الحلقة المتقطعة المزخرفة (SVG)
          * ============================================================
-         * هذه الدالة تقوم بإنشاء الحلقة المزخرفة حول البطاقة باستخدام SVG
-         * تحتوي على 48 نقطة، منها 12 نقطة مضيئة باللون الذهبي
          */
         (function buildRing() {
             var ring = document.getElementById('ring');
@@ -653,38 +690,32 @@
             var litEnd = 15;
             var svgNS = 'http://www.w3.org/2000/svg';
             
-            // إنشاء عنصر SVG
             var svg = document.createElementNS(svgNS, 'svg');
             svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
             svg.setAttribute('aria-hidden', 'true');
 
-            // إنشاء النقاط (ticks)
             for (var i = 0; i < total; i++) {
                 var angle = (i / total) * 2 * Math.PI;
                 var inner = r - 14;
                 var outer = r;
                 
-                // حساب إحداثيات النقطة
                 var x1 = cx + inner * Math.cos(angle);
                 var y1 = cy + inner * Math.sin(angle);
                 var x2 = cx + outer * Math.cos(angle);
                 var y2 = cy + outer * Math.sin(angle);
                 
-                // إنشاء خط SVG
                 var line = document.createElementNS(svgNS, 'line');
                 line.setAttribute('x1', x1);
                 line.setAttribute('y1', y1);
                 line.setAttribute('x2', x2);
                 line.setAttribute('y2', y2);
                 
-                // تحديد إذا كانت النقطة مضيئة أم لا
                 var lit = (i >= litStart && i <= litEnd);
                 line.setAttribute('class', 'tick' + (lit ? ' lit' : ''));
                 
                 svg.appendChild(line);
             }
             
-            // إضافة SVG إلى العنصر
             ring.appendChild(svg);
         })();
 
@@ -692,30 +723,19 @@
          * ============================================================
          * إظهار / إخفاء كلمة المرور
          * ============================================================
-         * عند النقر على زر العين، يتم تبديل نوع حقل كلمة المرور
-         * بين نص عادي ونص مشفر
          */
         var togglePass = document.getElementById('togglePass');
         var passwordInput = document.getElementById('password');
         var eyeIcon = document.getElementById('eyeIcon');
 
-        // تعريف مسارات SVG للعين المفتوحة والمغلقة
         var eyeOpenPath = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/>';
         var eyeClosedPath = '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 4.22-5.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a20.3 20.3 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/>';
 
-        // إضافة مستمع الحدث لزر إظهار/إخفاء كلمة المرور
         togglePass.addEventListener('click', function() {
-            // تحديد الحالة الحالية
             var isPassword = passwordInput.type === 'password';
-            
-            // تبديل نوع حقل الإدخال
             passwordInput.type = isPassword ? 'text' : 'password';
-            
-            // تحديث حالة aria للوصولية
             togglePass.setAttribute('aria-pressed', String(isPassword));
             togglePass.setAttribute('aria-label', isPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
-            
-            // تغيير أيقونة العين
             eyeIcon.innerHTML = isPassword ? eyeClosedPath : eyeOpenPath;
         });
 
@@ -723,30 +743,23 @@
          * ============================================================
          * تأثير التموّج عند النقر على الزر
          * ============================================================
-         * عند النقر على زر تسجيل الدخول، يتم إنشاء دائرة تموج
-         * تظهر من نقطة النقر وتتوسع حتى تختفي
          */
         var loginBtn = document.getElementById('loginBtn');
         
         loginBtn.addEventListener('click', function(e) {
-            // التأكد من أن الزر غير معطل
             if (loginBtn.disabled) return;
             
-            // حساب موقع النقر بالنسبة للزر
             var rect = this.getBoundingClientRect();
             var ripple = document.createElement('span');
             var size = Math.max(rect.width, rect.height);
             
-            // تعيين خصائص دائرة التموج
             ripple.className = 'ripple';
             ripple.style.width = ripple.style.height = size + 'px';
             ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
             ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
             
-            // إضافة دائرة التموج إلى الزر
             this.appendChild(ripple);
             
-            // إزالة دائرة التموج بعد انتهاء الحركة
             setTimeout(function() {
                 ripple.remove();
             }, 650);
@@ -756,7 +769,6 @@
          * ============================================================
          * عناصر النموذج
          * ============================================================
-         * تعريف جميع عناصر النموذج التي سنتعامل معها
          */
         var loginForm = document.getElementById('loginForm');
         var messageDiv = document.getElementById('message');
@@ -771,11 +783,8 @@
          * ============================================================
          * التحقق من صحة البريد الإلكتروني
          * ============================================================
-         * @param {string} value - البريد الإلكتروني المراد التحقق منه
-         * @returns {boolean} true إذا كان البريد صالحًا، false إذا لم يكن
          */
         function validateEmail(value) {
-            // استخدام تعبير منتظم للتحقق من صحة البريد الإلكتروني
             var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return emailRegex.test(value);
         }
@@ -784,15 +793,9 @@
          * ============================================================
          * تحديث حالة الحقل
          * ============================================================
-         * @param {Element} wrap - عنصر الحاوية الخارجية للحقل
-         * @param {Element} errorEl - عنصر رسالة الخطأ
-         * @param {boolean} isValid - صحة الحقل (true/false)
          */
         function setFieldState(wrap, errorEl, isValid) {
-            // إضافة أو إزالة الصنف 'invalid' من الحاوية
             wrap.classList.toggle('invalid', !isValid);
-            
-            // إظهار أو إخفاء رسالة الخطأ
             errorEl.classList.toggle('show', !isValid);
         }
 
@@ -800,28 +803,19 @@
          * ============================================================
          * معالجة حدث تقديم النموذج
          * ============================================================
-         * عند تقديم النموذج (الضغط على زر الدخول أو Enter)
-         * يتم التحقق من صحة البيانات وإرسال طلب تسجيل الدخول
          */
         loginForm.addEventListener('submit', async function(e) {
-            // منع تقديم النموذج الافتراضي (إعادة تحميل الصفحة)
             e.preventDefault();
 
-            // قراءة البريد الإلكتروني وإزالة المسافات الزائدة
             var email = emailInput.value.trim();
-            // قراءة كلمة المرور وإزالة المسافات الزائدة
             var password = passwordInput.value.trim();
 
-            // التحقق من صحة البريد الإلكتروني
             var emailValid = validateEmail(email);
-            // التحقق من عدم فراغ كلمة المرور
             var passwordValid = password.length > 0;
 
-            // تحديث حالة الحقول
             setFieldState(emailWrap, emailError, emailValid);
             setFieldState(passwordWrap, passwordError, passwordValid);
 
-            // إذا كانت البيانات غير صالحة، نوقف التنفيذ ونركز على الحقل الأول الخطأ
             if (!emailValid || !passwordValid) {
                 if (!emailValid) {
                     emailInput.focus();
@@ -831,18 +825,14 @@
                 return;
             }
 
-            // تعطيل الزر وإظهار حالة التحميل
             loginBtn.disabled = true;
             loginBtn.classList.add('loading');
             btnLabel.textContent = 'جاري التحقق...';
-            
-            // إخفاء أي رسالة سابقة
             hideMessage();
 
             try {
-                console.log('📤 جاري إرسال طلب تسجيل الدخول...');
+                debugLog('📤 جاري إرسال طلب تسجيل الدخول...', 'info');
 
-                // إرسال طلب تسجيل الدخول إلى Supabase
                 var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
                     method: 'POST',
                     headers: {
@@ -855,43 +845,31 @@
                     })
                 });
 
-                // استخراج البيانات من الاستجابة
                 var data = await response.json();
 
-                // التحقق من نجاح عملية تسجيل الدخول
                 if (!response.ok) {
-                    // تحديد رسالة الخطأ المناسبة
                     var errorMsg = data.msg || data.message || 'بيانات الدخول غير صحيحة';
                     throw new Error(errorMsg);
                 }
 
-                console.log('✅ تم تسجيل الدخول بنجاح');
+                debugLog('✅ تم تسجيل الدخول بنجاح', 'success');
 
-                // تحديد مكان حفظ الجلسة حسب اختيار المستخدم
                 var storage = document.getElementById('remember').checked 
                     ? window.localStorage 
                     : window.sessionStorage;
                 
-                // حفظ الجلسة
                 storage.setItem('rollex_session', JSON.stringify(data));
-                
-                // عرض رسالة نجاح
                 showMessage('تم تسجيل الدخول بنجاح! جاري التحويل...', 'success');
 
-                // الانتظار 900 مللي ثم التوجيه إلى الصفحة الرئيسية
                 setTimeout(function() {
                     window.location.href = 'index.html';
                 }, 900);
 
             } catch (error) {
-                // تسجيل الخطأ في Console
-                console.error('❌ خطأ في تسجيل الدخول:', error);
-                
-                // عرض رسالة الخطأ للمستخدم
+                debugLog('❌ خطأ في تسجيل الدخول', 'error', error);
                 showMessage(error.message, 'error');
             }
 
-            // إعادة تمكين الزر وإزالة حالة التحميل
             loginBtn.disabled = false;
             loginBtn.classList.remove('loading');
             btnLabel.textContent = 'دخول';
@@ -901,19 +879,13 @@
          * ============================================================
          * عرض رسالة حالة
          * ============================================================
-         * @param {string} text - نص الرسالة
-         * @param {string} type - نوع الرسالة (success / error)
          */
         function showMessage(text, type) {
-            // تحديد الأيقونة المناسبة حسب نوع الرسالة
             var icon = type === 'success'
                 ? '<svg class="checkmark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3 3 7-7"/></svg>'
                 : '<span aria-hidden="true">⚠</span>';
             
-            // تعيين محتوى الرسالة
             messageDiv.innerHTML = icon + '<span>' + text + '</span>';
-            
-            // تعيين الصنف المناسب
             messageDiv.className = 'message ' + type;
         }
 
@@ -931,21 +903,14 @@
          * ============================================================
          * التحقق الفوري عند الكتابة
          * ============================================================
-         * عند كتابة المستخدم في الحقول، يتم التحقق من صحة البيانات
-         * وإزالة رسائل الخطأ تلقائياً عند التصحيح
          */
-
-        // التحقق من البريد الإلكتروني أثناء الكتابة
         emailInput.addEventListener('input', function() {
-            // إذا كان الحقل يظهر عليه خطأ وقيمة البريد صالحة
             if (emailWrap.classList.contains('invalid') && validateEmail(emailInput.value.trim())) {
                 setFieldState(emailWrap, emailError, true);
             }
         });
 
-        // التحقق من كلمة المرور أثناء الكتابة
         passwordInput.addEventListener('input', function() {
-            // إذا كان الحقل يظهر عليه خطأ وكلمة المرور غير فارغة
             if (passwordWrap.classList.contains('invalid') && passwordInput.value.trim().length > 0) {
                 setFieldState(passwordWrap, passwordError, true);
             }
@@ -953,14 +918,18 @@
 
         /**
          * ============================================================
-         * رسالة الترحيب في Console
+         * رسائل الترحيب في Console
          * ============================================================
-         * عرض معلومات عن النظام في وحدة التحكم
          */
+        debugLog('🚀 بدء تحميل صفحة تسجيل الدخول', 'info');
+        debugLog('🔗 Supabase URL', 'info', SUPABASE_URL);
+        debugLog('🔄 وضع التصحيح مفعل', 'info');
+        
         console.log('🏢 QuickData ProSoft - نظام إدارة الشركات');
-        console.log('🔗 Supabase URL:', SUPABASE_URL);
         console.log('✅ النظام جاهز للعمل');
         console.log('📌 تم تحميل صفحة تسجيل الدخول بنجاح');
+        
+        debugLog('✅ تم تحميل صفحة تسجيل الدخول بالكامل', 'success');
     </script>
 
 </body>
