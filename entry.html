@@ -663,14 +663,14 @@
         }
 
         /* ============================================================
-           CLIENT SUGGESTIONS
+           CLIENT SUGGESTIONS - اقتراحات العملاء والموردين
            ============================================================ */
-        .client-suggestions-container {
+        .suggestions-container {
             position: relative;
             width: 100%;
         }
 
-        .client-suggestions {
+        .suggestions-list {
             position: absolute;
             top: 100%;
             right: 0;
@@ -686,11 +686,11 @@
             margin-top: 2px;
         }
 
-        .client-suggestions.show {
+        .suggestions-list.show {
             display: block;
         }
 
-        .client-suggestions .suggestion-item {
+        .suggestions-list .suggestion-item {
             padding: 10px 14px;
             cursor: pointer;
             transition: var(--transition);
@@ -701,41 +701,41 @@
             font-size: 0.85rem;
         }
 
-        .client-suggestions .suggestion-item:last-child {
+        .suggestions-list .suggestion-item:last-child {
             border-bottom: none;
         }
 
-        .client-suggestions .suggestion-item:hover {
+        .suggestions-list .suggestion-item:hover {
             background: var(--gray-50);
         }
 
-        .client-suggestions .suggestion-item.selected {
+        .suggestions-list .suggestion-item.selected {
             background: rgba(201, 168, 76, 0.08);
             border-right: 3px solid var(--secondary);
         }
 
-        .client-suggestions .suggestion-item .client-phone {
+        .suggestions-list .suggestion-item .item-phone {
             font-size: 0.65rem;
             color: var(--gray-500);
         }
 
-        .client-suggestions .suggestion-item.add-new {
+        .suggestions-list .suggestion-item.add-new {
             color: var(--success);
             font-weight: 700;
         }
 
-        .client-suggestions .suggestion-item.add-new i {
+        .suggestions-list .suggestion-item.add-new i {
             margin-left: 6px;
         }
 
-        .client-suggestions .loading-suggestions {
+        .suggestions-list .loading-suggestions {
             padding: 12px 14px;
             text-align: center;
             color: var(--gray-500);
             font-size: 0.75rem;
         }
 
-        .client-suggestions .no-results {
+        .suggestions-list .no-results {
             padding: 12px 14px;
             text-align: center;
             color: var(--gray-500);
@@ -1046,16 +1046,16 @@
                             </div>
                         </div>
 
-                        <!-- ===== التبويب الخاص مع اقتراحات العملاء ===== -->
+                        <!-- ===== التبويب الخاص مع اقتراحات ديناميكية ===== -->
                         <div class="form-group">
                             <label for="entryPrivateTab">
                                 <i class="fas fa-folder"></i>
                                 التبويب الخاص
                                 <span class="required">*</span>
                             </label>
-                            <div class="client-suggestions-container">
-                                <input type="text" id="entryPrivateTab" placeholder="ابحث عن عميل..." required autocomplete="off" />
-                                <div class="client-suggestions" id="clientSuggestions"></div>
+                            <div class="suggestions-container" id="suggestionsContainer">
+                                <input type="text" id="entryPrivateTab" placeholder="ابحث أو أدخل القيمة..." required autocomplete="off" />
+                                <div class="suggestions-list" id="suggestionsList"></div>
                             </div>
                         </div>
 
@@ -1096,7 +1096,7 @@
     </section>
 
     <!-- ============================================================
-    JAVASCRIPT - النسخة المُعدّلة مع اقتراحات العملاء
+    JAVASCRIPT - النسخة المُعدّلة مع اقتراحات ديناميكية
     ============================================================ -->
     <script>
         // ============================================================
@@ -1125,7 +1125,8 @@
         var outgoingInput = document.getElementById('entryOutgoing');
         var generalTabSelect = document.getElementById('entryGeneralTab');
         var privateTabInput = document.getElementById('entryPrivateTab');
-        var clientSuggestions = document.getElementById('clientSuggestions');
+        var suggestionsList = document.getElementById('suggestionsList');
+        var suggestionsContainer = document.getElementById('suggestionsContainer');
         var notesInput = document.getElementById('entryNotes');
         var editIndexInput = document.getElementById('editIndex');
         var submitBtn = document.getElementById('submitBtn');
@@ -1133,8 +1134,17 @@
         var descCounter = document.getElementById('descCounter');
         var notesCounter = document.getElementById('notesCounter');
 
+        // ============================================================
+        // STATE
+        // ============================================================
         var clientsList = [];
-        var selectedClientId = null;
+        var suppliersList = [];
+        var employeesList = [];
+        var expenseTypesList = [];
+        var productsList = [];
+        var projectsList = [];
+        var currentLinkedTable = null;
+        var selectedItemId = null;
         var selectedSuggestionIndex = -1;
 
         // ============================================================
@@ -1186,214 +1196,7 @@
         }
 
         // ============================================================
-        // جلب العملاء من Supabase
-        // ============================================================
-        async function loadClients() {
-            try {
-                var session = await initSupabaseWithSession();
-                if (!session) return;
-
-                var token = session.access_token;
-
-                var { data: userData } = await supabase.auth.getUser();
-                if (!userData?.user) return;
-
-                var { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('company_id')
-                    .eq('id', userData.user.id)
-                    .single();
-
-                if (!profileData) return;
-
-                var response = await fetch(SUPABASE_URL + '/rest/v1/clients?select=id,name,phone,code&company_id=eq.' + profileData.company_id + '&status=eq.نشط&order=name.asc', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!response.ok) return;
-
-                clientsList = await response.json();
-                console.log('✅ تم جلب العملاء:', clientsList.length);
-
-            } catch (error) {
-                console.error('❌ خطأ في جلب العملاء:', error);
-            }
-        }
-
-        // ============================================================
-        // عرض اقتراحات العملاء
-        // ============================================================
-        function showClientSuggestions(searchTerm) {
-            var input = searchTerm.trim().toLowerCase();
-
-            if (!input || input.length < 1) {
-                clientSuggestions.classList.remove('show');
-                selectedSuggestionIndex = -1;
-                return;
-            }
-
-            var filtered = clientsList.filter(function(client) {
-                return client.name.toLowerCase().includes(input) ||
-                    (client.phone && client.phone.includes(input));
-            });
-
-            var results = filtered.slice(0, 10);
-
-            if (results.length === 0) {
-                clientSuggestions.innerHTML = `
-                            <div class="suggestion-item add-new" onclick="openAddClientModal('${input}')">
-                                <span><i class="fas fa-plus-circle"></i> إضافة عميل جديد: "${input}"</span>
-                            </div>
-                            <div class="no-results">لا توجد نتائج مطابقة</div>
-                        `;
-                clientSuggestions.classList.add('show');
-                selectedSuggestionIndex = -1;
-                return;
-            }
-
-            var html = '';
-            results.forEach(function(client, index) {
-                html += `
-                            <div class="suggestion-item" onclick="selectClient('${client.id}', '${client.name}', '${client.phone || ''}')" data-index="${index}">
-                                <span>${client.name}</span>
-                                ${client.phone ? `<span class="client-phone">📱 ${client.phone}</span>` : ''}
-                            </div>
-                        `;
-            });
-
-            html += `
-                        <div class="suggestion-item add-new" onclick="openAddClientModal('${input}')">
-                            <span><i class="fas fa-plus-circle"></i> إضافة عميل جديد</span>
-                        </div>
-                    `;
-
-            clientSuggestions.innerHTML = html;
-            clientSuggestions.classList.add('show');
-            selectedSuggestionIndex = -1;
-            updateSuggestionHighlight();
-        }
-
-        // ============================================================
-        // تحديث تمييز الاقتراح المحدد
-        // ============================================================
-        function updateSuggestionHighlight() {
-            var items = clientSuggestions.querySelectorAll('.suggestion-item');
-            items.forEach(function(item, index) {
-                item.classList.remove('selected');
-                if (index === selectedSuggestionIndex) {
-                    item.classList.add('selected');
-                    item.scrollIntoView({ block: 'nearest' });
-                }
-            });
-        }
-
-        // ============================================================
-        // اختيار عميل
-        // ============================================================
-        function selectClient(id, name, phone) {
-            privateTabInput.value = name;
-            selectedClientId = id;
-            clientSuggestions.classList.remove('show');
-            selectedSuggestionIndex = -1;
-
-            // تغيير لون الحقل مؤقتاً للتأكيد
-            privateTabInput.style.borderColor = 'var(--success)';
-            setTimeout(function() {
-                privateTabInput.style.borderColor = '';
-            }, 2000);
-        }
-
-        // ============================================================
-        // فتح نافذة إضافة عميل جديد
-        // ============================================================
-        function openAddClientModal(initialName) {
-            var name = initialName || '';
-            var newName = prompt('📝 أدخل اسم العميل الجديد:', name || '');
-            if (!newName) return;
-
-            var newPhone = prompt('📞 أدخل رقم الجوال (اختياري):', '');
-            if (newPhone === null) return;
-
-            addNewClient(newName.trim(), newPhone ? newPhone.trim() : '');
-        }
-
-        // ============================================================
-        // إضافة عميل جديد
-        // ============================================================
-        async function addNewClient(name, phone) {
-            if (!name || name.trim() === '') {
-                showToast('⚠️ تنبيه', 'يرجى إدخال اسم العميل', 'error');
-                return;
-            }
-
-            try {
-                var session = await initSupabaseWithSession();
-                if (!session) {
-                    showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'error');
-                    return;
-                }
-
-                var token = session.access_token;
-
-                var { data: userData } = await supabase.auth.getUser();
-                if (!userData?.user) return;
-
-                var { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('company_id')
-                    .eq('id', userData.user.id)
-                    .single();
-
-                if (!profileData) return;
-
-                var code = 'C' + String(Date.now()).slice(-6);
-
-                var response = await fetch(SUPABASE_URL + '/rest/v1/clients', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify({
-                        company_id: profileData.company_id,
-                        user_id: userData.user.id,
-                        name: name,
-                        phone: phone || '',
-                        code: code,
-                        status: 'نشط',
-                        opening_balance: 0,
-                        credit_limit: 0
-                    })
-                });
-
-                if (!response.ok) {
-                    var errorData = await response.text();
-                    throw new Error('فشل إضافة العميل: ' + errorData);
-                }
-
-                var newClient = await response.json();
-                clientsList.push(newClient[0] || newClient);
-
-                selectClient(newClient[0]?.id || newClient.id, name, phone || '');
-
-                showToast('✅ تم الإضافة', 'تم إضافة العميل "' + name + '" بنجاح', 'success');
-
-                // إعادة تحميل العملاء
-                await loadClients();
-
-            } catch (error) {
-                console.error('❌ خطأ:', error);
-                showToast('❌ خطأ', error.message || 'فشل إضافة العميل', 'error');
-            }
-        }
-
-        // ============================================================
-        // تهيئة Supabase مع الجلسة من localStorage
+        // SESSION FUNCTIONS
         // ============================================================
         async function initSupabaseWithSession() {
             var session = localStorage.getItem('rollex_session');
@@ -1469,9 +1272,6 @@
             }
         }
 
-        // ============================================================
-        // LOCAL STORAGE OPERATIONS
-        // ============================================================
         function getEntries() {
             try {
                 var data = localStorage.getItem(STORAGE_KEY);
@@ -1492,7 +1292,44 @@
         }
 
         // ============================================================
-        // جلب التبويبات العامة من Supabase
+        // GET COMPANY ID
+        // ============================================================
+        async function getCompanyId() {
+            var session = await initSupabaseWithSession();
+            if (!session) return null;
+
+            var token = session.access_token;
+
+            try {
+                var userResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!userResponse.ok) return null;
+                var user = await userResponse.json();
+
+                var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=company_id&id=eq.' + user.id, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!profileResponse.ok) return null;
+                var data = await profileResponse.json();
+                return data && data.length > 0 ? data[0].company_id : null;
+
+            } catch (error) {
+                console.error('❌ خطأ في جلب company_id:', error);
+                return null;
+            }
+        }
+
+        // ============================================================
+        // LOAD GENERAL TABS
         // ============================================================
         async function loadGeneralTabs() {
             try {
@@ -1502,33 +1339,15 @@
                 var session = await initSupabaseWithSession();
                 if (!session) {
                     select.innerHTML = '<option value="">⚠️ يرجى تسجيل الدخول</option>';
-                    console.warn('⚠️ المستخدم غير مسجل الدخول');
                     return;
                 }
 
-                var { data: userData, error: userError } = await supabase.auth.getUser();
-                if (userError || !userData.user) {
-                    select.innerHTML = '<option value="">⚠️ يرجى تسجيل الدخول</option>';
-                    console.warn('⚠️ المستخدم غير مسجل الدخول');
-                    return;
-                }
-
-                var userId = userData.user.id;
-
-                var { data: profileData, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('company_id')
-                    .eq('id', userId)
-                    .single();
-
-                if (profileError || !profileData) {
-                    select.innerHTML = '<option value="">⚠️ لم يتم العثور على الشركة</option>';
-                    console.warn('⚠️ لم يتم العثور على company_id');
-                    return;
-                }
-
-                var companyId = profileData.company_id;
                 var token = session.access_token;
+                var companyId = await getCompanyId();
+                if (!companyId) {
+                    select.innerHTML = '<option value="">⚠️ لم يتم العثور على الشركة</option>';
+                    return;
+                }
 
                 var response = await fetch(SUPABASE_URL + '/rest/v1/general_tabs?select=id,name,type,linked_table&company_id=eq.' + companyId + '&is_active=eq.true&order=name.asc', {
                     headers: {
@@ -1563,8 +1382,6 @@
                     return;
                 }
 
-                window.generalTabsData = tabsData;
-
                 tabsData.forEach(function(tab) {
                     var option = document.createElement('option');
                     option.value = tab.name;
@@ -1574,6 +1391,7 @@
                     else typeLabel = ' (وارد/صادر)';
                     option.textContent = tab.name + typeLabel;
                     option.dataset.linkedTable = tab.linked_table || '';
+                    option.dataset.tabId = tab.id;
                     select.appendChild(option);
                 });
 
@@ -1594,9 +1412,364 @@
         }
 
         // ============================================================
-        // إضافة تبويب جديد بسرعة من نموذج الإدخال
+        // LOAD DATA FROM LINKED TABLE
         // ============================================================
-        async function quickAddGeneralTab(tabName, tabType) {
+        async function loadLinkedTableData(linkedTable) {
+            if (!linkedTable) return [];
+
+            var session = await initSupabaseWithSession();
+            if (!session) return [];
+
+            var token = session.access_token;
+            var companyId = await getCompanyId();
+
+            try {
+                var query = SUPABASE_URL + '/rest/v1/' + linkedTable + '?select=id,name';
+                if (companyId) {
+                    query += '&company_id=eq.' + companyId;
+                }
+                query += '&order=name.asc';
+
+                var response = await fetch(query, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!response.ok) return [];
+                return await response.json();
+
+            } catch (error) {
+                console.error('❌ خطأ في جلب البيانات من ' + linkedTable + ':', error);
+                return [];
+            }
+        }
+
+        // ============================================================
+        // UPDATE PRIVATE TAB SUGGESTIONS
+        // ============================================================
+        async function updatePrivateTabSuggestions() {
+            var generalTab = generalTabSelect.value;
+
+            if (!generalTab || generalTab === '__add_new__') {
+                resetPrivateTabToInput();
+                return;
+            }
+
+            var selectedOption = generalTabSelect.options[generalTabSelect.selectedIndex];
+            var linkedTable = selectedOption ? selectedOption.dataset.linkedTable : '';
+
+            currentLinkedTable = linkedTable;
+
+            if (!linkedTable) {
+                resetPrivateTabToInput();
+                return;
+            }
+
+            // تحميل البيانات من الجدول المرتبط
+            var data = await loadLinkedTableData(linkedTable);
+
+            // تخزين البيانات في المتغير المناسب
+            switch (linkedTable) {
+                case 'clients':
+                    clientsList = data;
+                    break;
+                case 'suppliers':
+                    suppliersList = data;
+                    break;
+                case 'employees':
+                    employeesList = data;
+                    break;
+                case 'expense_types':
+                    expenseTypesList = data;
+                    break;
+                case 'products':
+                    productsList = data;
+                    break;
+                case 'projects':
+                    projectsList = data;
+                    break;
+                default:
+                    data = [];
+            }
+
+            // تحديث الـ input ليكون مع اقتراحات
+            if (data && data.length > 0) {
+                privateTabInput.placeholder = 'ابحث عن ' + getTableLabel(linkedTable) + '...';
+                privateTabInput.value = '';
+                // إظهار الاقتراحات عند الكتابة
+            } else {
+                resetPrivateTabToInput();
+            }
+        }
+
+        // ============================================================
+        // GET TABLE LABEL
+        // ============================================================
+        function getTableLabel(linkedTable) {
+            var labels = {
+                'clients': 'عميل',
+                'suppliers': 'مورد',
+                'employees': 'موظف',
+                'expense_types': 'نوع مصروف',
+                'products': 'منتج',
+                'projects': 'مشروع'
+            };
+            return labels[linkedTable] || linkedTable;
+        }
+
+        // ============================================================
+        // RESET PRIVATE TAB TO INPUT
+        // ============================================================
+        function resetPrivateTabToInput() {
+            if (privateTabInput.tagName === 'SELECT') {
+                var newInput = document.createElement('input');
+                newInput.type = 'text';
+                newInput.id = 'entryPrivateTab';
+                newInput.name = 'entryPrivateTab';
+                newInput.placeholder = 'أدخل القيمة...';
+                newInput.required = true;
+                newInput.className = 'form-control';
+                newInput.style.width = '100%';
+                newInput.style.padding = '10px 14px';
+                newInput.style.borderRadius = 'var(--radius-sm)';
+                newInput.style.border = '1.5px solid var(--gray-200)';
+                newInput.style.fontSize = '0.85rem';
+                newInput.style.fontFamily = 'var(--font)';
+                newInput.style.transition = 'var(--transition)';
+                newInput.style.background = 'var(--gray-50)';
+                newInput.style.color = 'var(--gray-900)';
+                newInput.style.outline = 'none';
+
+                var parent = privateTabInput.parentElement;
+                if (parent) {
+                    parent.replaceChild(newInput, privateTabInput);
+                }
+                privateTabInput = newInput;
+                currentLinkedTable = null;
+            } else {
+                privateTabInput.value = '';
+                privateTabInput.placeholder = 'أدخل القيمة...';
+                currentLinkedTable = null;
+            }
+        }
+
+        // ============================================================
+        // SHOW SUGGESTIONS
+        // ============================================================
+        function showSuggestions(searchTerm) {
+            var input = searchTerm.trim().toLowerCase();
+
+            if (!input || input.length < 1 || !currentLinkedTable) {
+                suggestionsList.classList.remove('show');
+                selectedSuggestionIndex = -1;
+                return;
+            }
+
+            // جلب البيانات حسب الجدول المرتبط
+            var data = [];
+            switch (currentLinkedTable) {
+                case 'clients':
+                    data = clientsList;
+                    break;
+                case 'suppliers':
+                    data = suppliersList;
+                    break;
+                case 'employees':
+                    data = employeesList;
+                    break;
+                case 'expense_types':
+                    data = expenseTypesList;
+                    break;
+                case 'products':
+                    data = productsList;
+                    break;
+                case 'projects':
+                    data = projectsList;
+                    break;
+                default:
+                    data = [];
+            }
+
+            var filtered = data.filter(function(item) {
+                return item.name.toLowerCase().includes(input);
+            });
+
+            var results = filtered.slice(0, 10);
+
+            if (results.length === 0) {
+                suggestionsList.innerHTML = `
+                            <div class="suggestion-item add-new" onclick="openAddNewItem('${input}')">
+                                <span><i class="fas fa-plus-circle"></i> إضافة جديد: "${input}"</span>
+                            </div>
+                            <div class="no-results">لا توجد نتائج مطابقة</div>
+                        `;
+                suggestionsList.classList.add('show');
+                selectedSuggestionIndex = -1;
+                return;
+            }
+
+            var label = getTableLabel(currentLinkedTable);
+            var html = '';
+            results.forEach(function(item, index) {
+                html += `
+                            <div class="suggestion-item" onclick="selectItem('${item.id}', '${item.name}')" data-index="${index}">
+                                <span>${item.name}</span>
+                                <span class="item-phone">${label}</span>
+                            </div>
+                        `;
+            });
+
+            html += `
+                        <div class="suggestion-item add-new" onclick="openAddNewItem('${input}')">
+                            <span><i class="fas fa-plus-circle"></i> إضافة ${label} جديد</span>
+                        </div>
+                    `;
+
+            suggestionsList.innerHTML = html;
+            suggestionsList.classList.add('show');
+            selectedSuggestionIndex = -1;
+            updateSuggestionHighlight();
+        }
+
+        // ============================================================
+        // UPDATE SUGGESTION HIGHLIGHT
+        // ============================================================
+        function updateSuggestionHighlight() {
+            var items = suggestionsList.querySelectorAll('.suggestion-item');
+            items.forEach(function(item, index) {
+                item.classList.remove('selected');
+                if (index === selectedSuggestionIndex) {
+                    item.classList.add('selected');
+                    item.scrollIntoView({ block: 'nearest' });
+                }
+            });
+        }
+
+        // ============================================================
+        // SELECT ITEM
+        // ============================================================
+        function selectItem(id, name) {
+            privateTabInput.value = name;
+            selectedItemId = id;
+            suggestionsList.classList.remove('show');
+            selectedSuggestionIndex = -1;
+
+            // تغيير لون الحقل مؤقتاً للتأكيد
+            privateTabInput.style.borderColor = 'var(--success)';
+            setTimeout(function() {
+                privateTabInput.style.borderColor = '';
+            }, 2000);
+        }
+
+        // ============================================================
+        // OPEN ADD NEW ITEM
+        // ============================================================
+        function openAddNewItem(initialName) {
+            var label = getTableLabel(currentLinkedTable);
+            var name = prompt('📝 أدخل اسم ' + label + ' الجديد:', initialName || '');
+            if (!name) return;
+
+            addNewItem(name.trim());
+        }
+
+        // ============================================================
+        // ADD NEW ITEM
+        // ============================================================
+        async function addNewItem(name) {
+            if (!name || name.trim() === '') {
+                showToast('⚠️ تنبيه', 'يرجى إدخال الاسم', 'error');
+                return;
+            }
+
+            if (!currentLinkedTable) {
+                showToast('⚠️ تنبيه', 'لم يتم تحديد الجدول المرتبط', 'error');
+                return;
+            }
+
+            try {
+                var session = await initSupabaseWithSession();
+                if (!session) {
+                    showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'error');
+                    return;
+                }
+
+                var token = session.access_token;
+                var companyId = await getCompanyId();
+                if (!companyId) {
+                    showToast('⚠️ تنبيه', 'لم يتم العثور على الشركة', 'error');
+                    return;
+                }
+
+                var { data: userData } = await supabase.auth.getUser();
+                if (!userData?.user) return;
+
+                var payload = {
+                    name: name.trim(),
+                    company_id: companyId,
+                    user_id: userData.user.id
+                };
+
+                // بعض الجداول قد لا تحتوي على user_id
+                if (currentLinkedTable === 'expense_types' || currentLinkedTable === 'products' || currentLinkedTable === 'projects') {
+                    delete payload.user_id;
+                }
+
+                var response = await fetch(SUPABASE_URL + '/rest/v1/' + currentLinkedTable, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    var errorData = await response.text();
+                    throw new Error('فشل الإضافة: ' + errorData);
+                }
+
+                var newItem = await response.json();
+                var itemData = newItem[0] || newItem;
+
+                // تحديث القائمة المحلية
+                switch (currentLinkedTable) {
+                    case 'clients':
+                        clientsList.push(itemData);
+                        break;
+                    case 'suppliers':
+                        suppliersList.push(itemData);
+                        break;
+                    case 'employees':
+                        employeesList.push(itemData);
+                        break;
+                    case 'expense_types':
+                        expenseTypesList.push(itemData);
+                        break;
+                    case 'products':
+                        productsList.push(itemData);
+                        break;
+                    case 'projects':
+                        projectsList.push(itemData);
+                        break;
+                }
+
+                selectItem(itemData.id, itemData.name);
+                showToast('✅ تم الإضافة', 'تم إضافة "' + name + '" بنجاح', 'success');
+
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                showToast('❌ خطأ', error.message || 'فشل الإضافة', 'error');
+            }
+        }
+
+        // ============================================================
+        // QUICK ADD GENERAL TAB
+        // ============================================================
+        async function quickAddGeneralTab(tabName, tabType, linkedTable) {
             try {
                 var session = await initSupabaseWithSession();
                 if (!session) {
@@ -1604,24 +1777,25 @@
                     return false;
                 }
 
-                var { data: userData, error: userError } = await supabase.auth.getUser();
-                if (userError || !userData.user) {
-                    showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'error');
-                    return false;
-                }
-
-                var { data: profileData, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('company_id')
-                    .eq('id', userData.user.id)
-                    .single();
-
-                if (profileError || !profileData) {
+                var token = session.access_token;
+                var companyId = await getCompanyId();
+                if (!companyId) {
                     showToast('⚠️ تنبيه', 'لم يتم العثور على الشركة', 'error');
                     return false;
                 }
 
-                var token = session.access_token;
+                var { data: userData } = await supabase.auth.getUser();
+                if (!userData?.user) return false;
+
+                var payload = {
+                    company_id: companyId,
+                    name: tabName,
+                    type: tabType || 'both',
+                    linked_table: linkedTable || null,
+                    is_active: true,
+                    is_system: false,
+                    created_by: userData.user.id
+                };
 
                 var response = await fetch(SUPABASE_URL + '/rest/v1/general_tabs', {
                     method: 'POST',
@@ -1631,15 +1805,7 @@
                         'Content-Type': 'application/json',
                         'Prefer': 'return=representation'
                     },
-                    body: JSON.stringify({
-                        company_id: profileData.company_id,
-                        name: tabName,
-                        type: tabType || 'both',
-                        linked_table: 'clients',
-                        is_active: true,
-                        is_system: false,
-                        created_by: userData.user.id
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) {
@@ -1664,7 +1830,7 @@
         }
 
         // ============================================================
-        // التعامل مع اختيار "إضافة تبويب جديد"
+        // GENERAL TAB CHANGE EVENT
         // ============================================================
         generalTabSelect.addEventListener('change', async function() {
             if (this.value === '__add_new__') {
@@ -1682,12 +1848,46 @@
                 };
                 var selectedType = typeMap[tabType] || 'both';
 
-                var success = await quickAddGeneralTab(tabName.trim(), selectedType);
+                var linkedOptions = [
+                    { value: 'clients', label: 'العملاء' },
+                    { value: 'suppliers', label: 'الموردين' },
+                    { value: 'employees', label: 'الموظفين' },
+                    { value: 'expense_types', label: 'أنواع المصروفات' },
+                    { value: 'products', label: 'المنتجات' },
+                    { value: 'projects', label: 'المشاريع' },
+                    { value: '', label: 'غير مرتبط (إدخال يدوي)' }
+                ];
+
+                var linkedList = linkedOptions.map(function(opt) {
+                    return opt.value + ' (' + opt.label + ')';
+                }).join('\n');
+
+                var linkedTable = prompt(
+                    '🔗 اختر الجدول المرتبط (انسخ الاسم بدقة):\n' +
+                    linkedList,
+                    'clients'
+                );
+
+                if (linkedTable === null) {
+                    this.value = '';
+                    return;
+                }
+
+                var validTables = ['clients', 'suppliers', 'employees', 'expense_types', 'products', 'projects', ''];
+                if (linkedTable !== '' && !validTables.includes(linkedTable)) {
+                    showToast('⚠️ تنبيه', 'اسم الجدول غير صحيح، سيتم استخدام العملاء كقيمة افتراضية', 'warning');
+                    linkedTable = 'clients';
+                }
+
+                var success = await quickAddGeneralTab(tabName.trim(), selectedType, linkedTable || null);
                 if (success) {
                     this.value = tabName.trim();
+                    await updatePrivateTabSuggestions();
                 } else {
                     this.value = '';
                 }
+            } else {
+                await updatePrivateTabSuggestions();
             }
         });
 
@@ -1786,7 +1986,8 @@
             outgoingInput.style.opacity = '1';
             generalTabSelect.value = '';
             privateTabInput.value = '';
-            selectedClientId = null;
+            selectedItemId = null;
+            currentLinkedTable = null;
             notesInput.value = '';
             editIndexInput.value = '-1';
 
@@ -1989,7 +2190,7 @@
             }
 
             if (event.key === 'Escape') {
-                clientSuggestions.classList.remove('show');
+                suggestionsList.classList.remove('show');
                 selectedSuggestionIndex = -1;
 
                 var activeElement = document.activeElement;
@@ -2110,52 +2311,20 @@
         }
 
         // ============================================================
-        // INIT
-        // ============================================================
-        async function initPage() {
-            console.log('🏛️ تطبيق إدخال الخزينة الرئيسية - شركة رولكس');
-            console.log('🔗 Supabase URL:', SUPABASE_URL);
-            console.log('📊 جدول البيانات:', TABLE_NAME);
-            console.log('💾 مفتاح التخزين المحلي:', STORAGE_KEY);
-
-            var session = await initSupabaseWithSession();
-
-            if (!session) {
-                console.warn('⚠️ لا توجد جلسة صالحة');
-                showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'warning');
-                setTimeout(function() {
-                    window.location.href = 'login.html?return_to=entry.html';
-                }, 1500);
-                return;
-            }
-
-            console.log('✅ الجلسة صالحة، المستخدم:', session.user.email);
-
-            await testConnection();
-            await loadGeneralTabs();
-            await loadClients();
-
-            setTimeout(function() {
-                showToast('👋 مرحباً', 'نموذج إدخال الخزينة الرئيسية جاهز للاستخدام', 'success');
-            }, 1000);
-        }
-
-        // ============================================================
-        // CLIENT SUGGESTIONS EVENTS
+        // SUGGESTIONS EVENTS
         // ============================================================
         privateTabInput.addEventListener('input', function() {
             var value = this.value.trim();
-            if (value.length >= 1) {
-                showClientSuggestions(value);
+            if (value.length >= 1 && currentLinkedTable) {
+                showSuggestions(value);
             } else {
-                clientSuggestions.classList.remove('show');
-                selectedClientId = null;
+                suggestionsList.classList.remove('show');
                 selectedSuggestionIndex = -1;
             }
         });
 
         privateTabInput.addEventListener('keydown', function(e) {
-            var items = clientSuggestions.querySelectorAll('.suggestion-item');
+            var items = suggestionsList.querySelectorAll('.suggestion-item');
 
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
@@ -2182,33 +2351,65 @@
             }
 
             if (e.key === 'Escape') {
-                clientSuggestions.classList.remove('show');
+                suggestionsList.classList.remove('show');
                 selectedSuggestionIndex = -1;
             }
         });
 
         privateTabInput.addEventListener('blur', function() {
             setTimeout(function() {
-                if (!document.activeElement || !document.activeElement.closest('.client-suggestions-container')) {
-                    clientSuggestions.classList.remove('show');
+                if (!document.activeElement || !document.activeElement.closest('.suggestions-container')) {
+                    suggestionsList.classList.remove('show');
                     selectedSuggestionIndex = -1;
                 }
             }, 200);
         });
 
         document.addEventListener('click', function(e) {
-            var container = document.querySelector('.client-suggestions-container');
+            var container = document.querySelector('.suggestions-container');
             if (container && !container.contains(e.target)) {
-                clientSuggestions.classList.remove('show');
+                suggestionsList.classList.remove('show');
                 selectedSuggestionIndex = -1;
             }
         });
 
-        // جعل الدوال عامة للاستخدام في HTML
-        window.openAddClientModal = openAddClientModal;
-        window.selectClient = selectClient;
+        // ============================================================
+        // EXPOSE FUNCTIONS TO GLOBAL
+        // ============================================================
+        window.selectItem = selectItem;
+        window.openAddNewItem = openAddNewItem;
+        window.addNewItem = addNewItem;
 
-        // بدء التهيئة
+        // ============================================================
+        // INIT
+        // ============================================================
+        async function initPage() {
+            console.log('🏛️ تطبيق إدخال الخزينة الرئيسية - شركة رولكس');
+            console.log('🔗 Supabase URL:', SUPABASE_URL);
+            console.log('📊 جدول البيانات:', TABLE_NAME);
+            console.log('💾 مفتاح التخزين المحلي:', STORAGE_KEY);
+
+            var session = await initSupabaseWithSession();
+
+            if (!session) {
+                console.warn('⚠️ لا توجد جلسة صالحة');
+                showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'warning');
+                setTimeout(function() {
+                    window.location.href = 'login.html?return_to=entry.html';
+                }, 1500);
+                return;
+            }
+
+            console.log('✅ الجلسة صالحة، المستخدم:', session.user.email);
+
+            await testConnection();
+            await loadGeneralTabs();
+
+            setTimeout(function() {
+                showToast('👋 مرحباً', 'نموذج إدخال الخزينة الرئيسية جاهز للاستخدام', 'success');
+            }, 1000);
+        }
+
         document.addEventListener('DOMContentLoaded', initPage);
     </script>
 
