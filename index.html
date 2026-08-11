@@ -172,6 +172,9 @@
             display: flex; align-items: center; justify-content: center;
             color: var(--ink-3); border: 1px solid var(--line);
             transition: .15s;
+            cursor: pointer;
+            background: transparent;
+            border: 1px solid var(--line);
         }
         .sidebar .footer .logout:hover { color: var(--oxide); border-color: var(--oxide); }
 
@@ -430,7 +433,6 @@
             <a href="index.html" class="item active" style="--swatch:var(--ink)"><i class="fas fa-house"></i> الرئيسية</a>
             <a href="treasuries.html" class="item" style="--swatch:var(--prussian)"><span class="chip"></span> الخزينة</a>
             <a href="entry.html" class="item" style="--swatch:var(--prussian)"><span class="chip"></span> إدخال حركة</a>
-            <!-- ✅ تم تعديل رابط العملاء ليفتح clients.html -->
             <a href="clients.html" class="item" style="--swatch:var(--viridian)"><span class="chip"></span> العملاء</a>
             <a href="#" class="item" style="--swatch:var(--viridian)"><span class="chip"></span> تحصيلات العملاء</a>
 
@@ -454,7 +456,9 @@
                     <div class="name">محمد خلاف</div>
                     <div class="role">مدير النظام</div>
                 </div>
-                <a href="login.html" class="logout" title="تسجيل الخروج"><i class="fas fa-arrow-right-from-bracket"></i></a>
+                <button class="logout" onclick="logout()" title="تسجيل الخروج">
+                    <i class="fas fa-arrow-right-from-bracket"></i>
+                </button>
             </div>
         </div>
     </nav>
@@ -480,6 +484,9 @@
                     <div class="name">محمد خلاف<small>مدير النظام</small></div>
                     <i class="fas fa-chevron-down"></i>
                 </div>
+                <button onclick="logout()" title="تسجيل الخروج" style="background:none;border:none;cursor:pointer;color:var(--ink-3);font-size:1rem;padding:4px 8px;">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
             </div>
         </header>
 
@@ -736,6 +743,36 @@
             };
             requestAnimationFrame(step);
         }
+
+        // ============================================================
+        // LOGOUT - تسجيل الخروج
+        // ============================================================
+        async function logout() {
+            console.log('🚪 جاري تسجيل الخروج...');
+            
+            try {
+                // حذف الجلسة من localStorage
+                localStorage.removeItem('rollex_session');
+                
+                // حذف الجلسة من sessionStorage (إذا وجدت)
+                sessionStorage.removeItem('rollex_session');
+                
+                // تنظيف أي بيانات أخرى
+                localStorage.removeItem('user');
+                localStorage.removeItem('rollex_treasury_entries');
+                
+                console.log('✅ تم تسجيل الخروج بنجاح');
+                
+            } catch (error) {
+                console.error('❌ خطأ في تسجيل الخروج:', error);
+            }
+            
+            // إعادة التوجيه إلى صفحة تسجيل الدخول
+            window.location.href = 'login.html';
+        }
+
+        // جعل الدالة عامة للاستخدام في HTML
+        window.logout = logout;
 
         Chart.defaults.font.family = "'Cairo', sans-serif";
         Chart.defaults.color = '#a69c90';
