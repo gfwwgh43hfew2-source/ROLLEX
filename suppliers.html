@@ -35,6 +35,7 @@
             --font-mono: 'JetBrains Mono', ui-monospace, monospace;
             --header-height: 60px;
             --stripe-height: 4px;
+            --sidebar-width: 260px;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -55,6 +56,215 @@
         .swatch-stripe span:nth-child(3) { background: var(--rust); }
         .swatch-stripe span:nth-child(4) { background: var(--blue); }
 
+        /* ============================================================
+           SIDEBAR OVERLAY
+           ============================================================ */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* ============================================================
+           SIDEBAR
+           ============================================================ */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: calc(-1 * var(--sidebar-width));
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--surface);
+            border-left: 1px solid var(--line);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow);
+            overflow-y: auto;
+        }
+
+        .sidebar.open {
+            right: 0;
+        }
+
+        .sidebar .brand {
+            padding: 20px 18px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--line);
+            flex-shrink: 0;
+        }
+
+        .sidebar .brand .mark {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .sidebar .brand .text {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--ink);
+            line-height: 1.2;
+        }
+
+        .sidebar .brand .text span {
+            display: block;
+            font-size: 0.55rem;
+            font-weight: 600;
+            color: var(--ink-mute);
+        }
+
+        .sidebar .close-btn {
+            margin-right: auto;
+            background: none;
+            border: none;
+            color: var(--ink-mute);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: 0.2s;
+        }
+
+        .sidebar .close-btn:hover {
+            background: var(--surface-muted);
+            color: var(--ink);
+        }
+
+        .sidebar .menu {
+            flex: 1;
+            padding: 12px 14px;
+            overflow-y: auto;
+        }
+
+        .sidebar .menu .label {
+            font-size: 0.55rem;
+            color: var(--ink-mute);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px 10px 6px;
+            font-weight: 700;
+        }
+
+        .sidebar .menu .label:first-child {
+            padding-top: 4px;
+        }
+
+        .sidebar .menu .item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            color: var(--ink-soft);
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            border-right: 3px solid transparent;
+        }
+
+        .sidebar .menu .item:hover {
+            background: var(--surface-muted);
+            color: var(--ink);
+        }
+
+        .sidebar .menu .item.active {
+            background: var(--accent-soft);
+            color: var(--accent-ink);
+            border-right-color: var(--accent);
+        }
+
+        .sidebar .menu .item i {
+            width: 18px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--ink-mute);
+        }
+
+        .sidebar .menu .item.active i {
+            color: var(--accent);
+        }
+
+        .sidebar .footer {
+            padding: 12px 16px 16px;
+            border-top: 1px solid var(--line);
+            flex-shrink: 0;
+        }
+
+        .sidebar .footer .user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar .footer .user .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--ink-mute);
+        }
+
+        .sidebar .footer .user .info .name {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        .sidebar .footer .user .info .role {
+            font-size: 0.55rem;
+            color: var(--ink-mute);
+        }
+
+        .sidebar .footer .logout-btn {
+            margin-right: auto;
+            background: none;
+            border: none;
+            color: var(--ink-mute);
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: 0.2s;
+        }
+
+        .sidebar .footer .logout-btn:hover {
+            background: var(--surface-muted);
+            color: var(--rust);
+        }
+
+        /* ============================================================
+           HEADER
+           ============================================================ */
         header {
             position: sticky;
             top: 0;
@@ -109,50 +319,6 @@
             display: none; font-size: 1.05rem; color: var(--ink); cursor: pointer;
             padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface);
         }
-
-        .mobile-nav-overlay {
-            display: none; position: fixed; inset: 0; background: rgba(18,24,33,0.35);
-            z-index: 999; backdrop-filter: blur(3px); opacity: 0;
-            transition: opacity 0.3s ease; pointer-events: none;
-        }
-        .mobile-nav-overlay.active { opacity: 1; pointer-events: auto; }
-        .mobile-nav-menu {
-            display: none; position: fixed; top: 0; right: -270px;
-            width: 260px; height: 100vh; background: #ffffff;
-            border-left: 1px solid var(--line); z-index: 1000;
-            padding: 60px 18px 30px; transition: right 0.3s ease;
-            overflow-y: auto; box-shadow: var(--shadow);
-        }
-        .mobile-nav-menu.open { right: 0; }
-        .mobile-nav-menu .close-btn {
-            position: absolute; top: 12px; left: 12px;
-            font-size: 1.2rem; color: var(--ink-mute); cursor: pointer;
-            padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line);
-        }
-        .mobile-nav-menu .close-btn:hover { background: var(--accent-soft); color: var(--accent-ink); }
-        .mobile-nav-menu .menu-items a {
-            display: flex; align-items: center; gap: 10px;
-            padding: 9px 12px; border-radius: 8px;
-            color: var(--ink-soft); font-weight: 700; font-size: 0.85rem;
-            transition: 0.2s;
-        }
-        .mobile-nav-menu .menu-items a i { width: 18px; color: var(--ink-mute); }
-        .mobile-nav-menu .menu-items a:hover { background: var(--surface-muted); }
-        .mobile-nav-menu .menu-items a.active { background: var(--accent-soft); color: var(--accent-ink); }
-        .mobile-nav-menu .menu-items a.active i { color: var(--accent-ink); }
-
-        .mobile-nav-bottom {
-            display: none; position: fixed; bottom: 0; left: 0; right: 0;
-            z-index: 998; background: #ffffff; border-top: 1px solid var(--line);
-            padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
-        }
-        .mobile-nav-bottom ul { display: flex; justify-content: space-around; list-style: none; }
-        .mobile-nav-bottom ul li {
-            display: flex; flex-direction: column; align-items: center; gap: 2px;
-            font-size: 0.42rem; color: var(--ink-mute); transition: 0.2s; padding: 3px 8px; border-radius: 6px;
-        }
-        .mobile-nav-bottom ul li i { font-size: 0.9rem; }
-        .mobile-nav-bottom ul li:hover, .mobile-nav-bottom ul li.active { color: var(--accent-ink); }
 
         /* ============================================================
            MAIN CONTENT
@@ -602,9 +768,12 @@
             .toast-container { top: 70px; right: 10px; max-width: 300px; }
             nav { display: none !important; }
             .hamburger { display: flex !important; }
-            .mobile-nav-bottom { display: flex !important; }
-            .mobile-nav-menu { display: block; }
-            .mobile-nav-overlay { display: block; }
+            .sidebar {
+                width: 280px;
+                right: calc(-1 * 280px);
+            }
+            .sidebar.open { right: 0; }
+            .sidebar-overlay { display: block; }
         }
 
         @media (max-width: 480px) {
@@ -618,14 +787,80 @@
         }
 
         @media (min-width: 769px) {
-            .mobile-nav-bottom, .mobile-nav-overlay, .mobile-nav-menu, .hamburger { display: none !important; }
+            .hamburger { display: none !important; }
             nav { display: flex !important; }
+            .sidebar-overlay { display: none !important; }
         }
     </style>
 </head>
 <body>
 
     <div class="swatch-stripe"><span></span><span></span><span></span><span></span></div>
+
+    <!-- ============================================================
+    SIDEBAR OVERLAY
+    ============================================================ -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ============================================================
+    SIDEBAR - القائمة الجانبية
+    ============================================================ -->
+    <nav class="sidebar" id="sidebar">
+        <div class="brand">
+            <div class="mark">🏭</div>
+            <div class="text">
+                نظام المصنع
+                <span>شركة رولكس للدهانات</span>
+            </div>
+            <button class="close-btn" id="closeSidebar"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="menu">
+            <div class="label">القائمة الرئيسية</div>
+            <a href="index.html" class="item"><i class="fas fa-house"></i> الرئيسية</a>
+            <a href="treasury.html" class="item"><i class="fas fa-coins"></i> الخزينة</a>
+            <a href="entry.html" class="item"><i class="fas fa-pen"></i> إدخال حركة</a>
+
+            <div class="label">المبيعات والمشتريات</div>
+            <a href="sales.html" class="item"><i class="fas fa-chart-line"></i> المبيعات</a>
+            <a href="purchases.html" class="item"><i class="fas fa-shopping-cart"></i> المشتريات</a>
+
+            <div class="label">العملاء والموردين</div>
+            <a href="clients.html" class="item"><i class="fas fa-users"></i> العملاء</a>
+            <a href="suppliers.html" class="item active"><i class="fas fa-truck"></i> الموردين</a>
+
+            <div class="label">المخزون</div>
+            <a href="materials.html" class="item"><i class="fas fa-boxes"></i> الخامات</a>
+            <a href="products.html" class="item"><i class="fas fa-cubes"></i> المنتجات</a>
+            <a href="raw-material-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المواد الخام</a>
+            <a href="finished-goods-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المنتج التام</a>
+
+            <div class="label">الإنتاج</div>
+            <a href="formulations.html" class="item"><i class="fas fa-flask"></i> التركيبات</a>
+            <a href="production-orders.html" class="item"><i class="fas fa-industry"></i> أوامر الإنتاج</a>
+            <a href="costs.html" class="item"><i class="fas fa-calculator"></i> التكاليف</a>
+
+            <div class="label">التقارير</div>
+            <a href="reports.html" class="item"><i class="fas fa-file-lines"></i> التقارير</a>
+            <a href="invoices-summary.html" class="item"><i class="fas fa-file-invoice"></i> ملخص الفواتير</a>
+
+            <div class="label">الإعدادات</div>
+            <a href="tabs-settings.html" class="item"><i class="fas fa-tags"></i> التبويبات العامة</a>
+            <a href="settings.html" class="item"><i class="fas fa-gear"></i> الإعدادات</a>
+            <a href="help.html" class="item"><i class="fas fa-circle-question"></i> المساعدة</a>
+        </div>
+
+        <div class="footer">
+            <div class="user">
+                <div class="avatar">م</div>
+                <div class="info">
+                    <div class="name">محمد خلاف</div>
+                    <div class="role">مدير النظام</div>
+                </div>
+                <button class="logout-btn" onclick="logout()" title="تسجيل الخروج"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </div>
+    </nav>
 
     <!-- ============================================================
     HEADER
@@ -648,34 +883,15 @@
             </nav>
             <div class="header-actions">
                 <button onclick="loadData()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
-                <button onclick="window.location.href='login.html'" title="تسجيل الخروج"><i class="fas fa-sign-out-alt"></i></button>
+                <button onclick="logout()" title="تسجيل الخروج"><i class="fas fa-sign-out-alt"></i></button>
                 <div class="hamburger" id="navToggle"><i class="fas fa-bars"></i></div>
             </div>
         </div>
     </header>
 
-    <div class="mobile-nav-overlay" id="mobileOverlay"></div>
-    <div class="mobile-nav-menu" id="mobileMenu">
-        <div class="close-btn" id="closeMenu"><i class="fas fa-times"></i></div>
-        <div class="menu-items">
-            <a href="treasury.html"><i class="fas fa-coins"></i> الخزينة</a>
-            <a href="clients.html"><i class="fas fa-users"></i> العملاء</a>
-            <a href="#" class="active"><i class="fas fa-truck"></i> الموردين</a>
-            <a href="employees.html"><i class="fas fa-user-tie"></i> الموظفين</a>
-            <a href="reports.html"><i class="fas fa-chart-pie"></i> التقارير</a>
-        </div>
-    </div>
-
-    <nav class="mobile-nav-bottom" id="mobileNavBottom">
-        <ul>
-            <li><a href="treasury.html"><i class="fas fa-coins"></i><span>الخزينة</span></a></li>
-            <li><a href="clients.html"><i class="fas fa-users"></i><span>العملاء</span></a></li>
-            <li class="active"><a href="#"><i class="fas fa-truck"></i><span>الموردين</span></a></li>
-            <li><a href="employees.html"><i class="fas fa-user-tie"></i><span>الموظفين</span></a></li>
-            <li><a href="reports.html"><i class="fas fa-chart-pie"></i><span>التقارير</span></a></li>
-        </ul>
-    </nav>
-
+    <!-- ============================================================
+    TOAST
+    ============================================================ -->
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- ============================================================
@@ -865,6 +1081,55 @@
     ============================================================ -->
     <script>
         // ============================================================
+        // SIDEBAR TOGGLE
+        // ============================================================
+        var sidebar = document.getElementById('sidebar');
+        var sidebarOverlay = document.getElementById('sidebarOverlay');
+        var closeSidebarBtn = document.getElementById('closeSidebar');
+        var navToggle = document.getElementById('navToggle');
+
+        function openSidebar() {
+            sidebar.classList.add('open');
+            sidebarOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        navToggle.addEventListener('click', openSidebar);
+        closeSidebarBtn.addEventListener('click', closeSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeSidebar();
+                closeModal();
+                closeImportModal();
+            }
+        });
+
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768 && sidebar.classList.contains('open')) {
+                closeSidebar();
+            }
+        });
+
+        // ============================================================
+        // LOGOUT
+        // ============================================================
+        function logout() {
+            if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                localStorage.removeItem('rollex_session');
+                sessionStorage.removeItem('rollex_session');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // ============================================================
         // SUPABASE CONFIGURATION
         // ============================================================
         var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
@@ -1004,7 +1269,7 @@
 
             try {
                 var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME + '?select=*&company_id=eq.' + companyId +
-                    '&order=name.asc', {
+                    '&order=code.asc', {
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
                             'Authorization': 'Bearer ' + token
@@ -1288,6 +1553,7 @@
             document.getElementById('supplierOpeningBalance').value = '0';
             document.getElementById('supplierCreditLimit').value = '0';
             document.getElementById('supplierModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
         }
 
         // ============================================================
@@ -1314,6 +1580,7 @@
             document.getElementById('supplierNotes').value = supplier.notes || '';
 
             document.getElementById('supplierModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
         }
 
         // ============================================================
@@ -1321,6 +1588,7 @@
         // ============================================================
         function closeModal() {
             document.getElementById('supplierModal').classList.remove('active');
+            document.body.style.overflow = '';
         }
 
         // ============================================================
@@ -1481,10 +1749,12 @@
         function openImportModal() {
             document.getElementById('importModal').classList.add('active');
             document.getElementById('importFile').value = '';
+            document.body.style.overflow = 'hidden';
         }
 
         function closeImportModal() {
             document.getElementById('importModal').classList.remove('active');
+            document.body.style.overflow = '';
         }
 
         // ============================================================
@@ -1614,16 +1884,6 @@
         });
 
         // ============================================================
-        // CLOSE MODAL ON ESCAPE
-        // ============================================================
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeModal();
-                closeImportModal();
-            }
-        });
-
-        // ============================================================
         // EXPOSE FUNCTIONS TO GLOBAL
         // ============================================================
         window.applyFilters = applyFilters;
@@ -1639,43 +1899,7 @@
         window.closeImportModal = closeImportModal;
         window.importFromExcel = importFromExcel;
         window.saveSupplier = saveSupplier;
-
-        // ============================================================
-        // MOBILE NAV
-        // ============================================================
-        var navToggle = document.getElementById('navToggle');
-        var mobileMenu = document.getElementById('mobileMenu');
-        var mobileOverlay = document.getElementById('mobileOverlay');
-        var closeMenu = document.getElementById('closeMenu');
-
-        function openMenu() {
-            mobileMenu.classList.add('open');
-            mobileOverlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
-            navToggle.innerHTML = '<i class="fas fa-times"></i>';
-        }
-
-        function closeMenuFn() {
-            mobileMenu.classList.remove('open');
-            mobileOverlay.classList.remove('active');
-            document.body.style.overflow = '';
-            navToggle.innerHTML = '<i class="fas fa-bars"></i>';
-        }
-
-        navToggle.addEventListener('click', function() {
-            if (mobileMenu.classList.contains('open')) { closeMenuFn(); } else { openMenu(); }
-        });
-
-        closeMenu.addEventListener('click', closeMenuFn);
-        mobileOverlay.addEventListener('click', closeMenuFn);
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && mobileMenu.classList.contains('open')) { closeMenuFn(); }
-        });
-
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 768 && mobileMenu.classList.contains('open')) { closeMenuFn(); }
-        });
+        window.logout = logout;
 
         // ============================================================
         // INIT
