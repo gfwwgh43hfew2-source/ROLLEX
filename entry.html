@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ============================================================
-           CSS VARIABLES - الثيم الفاتح الاحترافي
+           CSS VARIABLES
            ============================================================ */
         :root {
             --primary: #1a2332;
@@ -44,6 +44,8 @@
             --radius-xl: 20px;
             --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             --font: 'Cairo', sans-serif;
+            --sidebar-width: 260px;
+            --header-height: 60px;
         }
 
         /* ============================================================
@@ -65,125 +67,300 @@
             line-height: 1.6;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
+        /* ============================================================
+           SIDEBAR OVERLAY
+           ============================================================ */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
         }
 
         /* ============================================================
-           SCROLLBAR
+           SIDEBAR
            ============================================================ */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: calc(-1 * var(--sidebar-width));
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--white);
+            border-left: 1px solid var(--gray-200);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-lg);
+            overflow-y: auto;
         }
-        ::-webkit-scrollbar-track {
+
+        .sidebar.open {
+            right: 0;
+        }
+
+        .sidebar .brand {
+            padding: 20px 18px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--gray-200);
+            flex-shrink: 0;
+        }
+
+        .sidebar .brand .mark {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: var(--white);
+            flex-shrink: 0;
+        }
+
+        .sidebar .brand .text {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--gray-900);
+            line-height: 1.2;
+        }
+
+        .sidebar .brand .text span {
+            display: block;
+            font-size: 0.55rem;
+            font-weight: 600;
+            color: var(--gray-500);
+        }
+
+        .sidebar .close-btn {
+            margin-right: auto;
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+        }
+
+        .sidebar .close-btn:hover {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .sidebar .menu {
+            flex: 1;
+            padding: 12px 14px;
+            overflow-y: auto;
+        }
+
+        .sidebar .menu .label {
+            font-size: 0.55rem;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px 10px 6px;
+            font-weight: 700;
+        }
+
+        .sidebar .menu .label:first-child {
+            padding-top: 4px;
+        }
+
+        .sidebar .menu .item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            color: var(--gray-600);
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: var(--transition);
+            cursor: pointer;
+            text-decoration: none;
+            border-right: 3px solid transparent;
+        }
+
+        .sidebar .menu .item:hover {
+            background: var(--gray-50);
+            color: var(--gray-900);
+        }
+
+        .sidebar .menu .item.active {
+            background: rgba(201, 168, 76, 0.06);
+            color: var(--secondary-dark);
+            border-right-color: var(--secondary);
+        }
+
+        .sidebar .menu .item i {
+            width: 18px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--gray-400);
+        }
+
+        .sidebar .menu .item.active i {
+            color: var(--secondary);
+        }
+
+        .sidebar .footer {
+            padding: 12px 16px 16px;
+            border-top: 1px solid var(--gray-200);
+            flex-shrink: 0;
+        }
+
+        .sidebar .footer .user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar .footer .user .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
             background: var(--gray-200);
-            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--gray-600);
         }
-        ::-webkit-scrollbar-thumb {
-            background: var(--secondary);
-            border-radius: 10px;
+
+        .sidebar .footer .user .info .name {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--gray-900);
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--secondary-dark);
+
+        .sidebar .footer .user .info .role {
+            font-size: 0.55rem;
+            color: var(--gray-500);
+        }
+
+        .sidebar .footer .logout-btn {
+            margin-right: auto;
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+        }
+
+        .sidebar .footer .logout-btn:hover {
+            background: var(--gray-100);
+            color: var(--danger);
         }
 
         /* ============================================================
            HEADER
            ============================================================ */
         header {
-            position: fixed;
+            position: sticky;
             top: 0;
             left: 0;
             right: 0;
-            z-index: 1000;
+            z-index: 100;
             background: rgba(255, 255, 255, 0.97);
             backdrop-filter: blur(16px);
             border-bottom: 1px solid var(--gray-200);
             box-shadow: var(--shadow-sm);
-            padding: 0;
-            height: 68px;
-        }
-
-        header .container {
+            height: var(--header-height);
+            padding: 0 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            height: 68px;
         }
 
-        .logo {
+        .header-left {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .logo-icon {
-            width: 42px;
-            height: 42px;
-            background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
-            border-radius: var(--radius-md);
+        .hamburger {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--gray-200);
+            background: var(--white);
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: var(--transition);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
+            font-size: 1rem;
+        }
+
+        .hamburger:hover {
+            border-color: var(--secondary);
+            color: var(--secondary);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
             font-weight: 900;
             color: var(--white);
-            box-shadow: 0 2px 12px rgba(201, 168, 76, 0.25);
         }
 
         .logo-text h1 {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 900;
             color: var(--gray-900);
             line-height: 1.1;
         }
 
         .logo-text span {
-            font-size: 0.5rem;
+            font-size: 0.45rem;
             color: var(--gray-500);
             display: block;
             font-weight: 600;
-            letter-spacing: 0.5px;
         }
 
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .nav-links a {
-            padding: 8px 18px;
-            border-radius: var(--radius-sm);
-            color: var(--gray-500);
-            font-size: 0.75rem;
-            font-weight: 600;
-            transition: var(--transition);
-            text-decoration: none;
-        }
-
-        .nav-links a:hover {
-            background: var(--gray-100);
-            color: var(--gray-900);
-        }
-
-        .nav-links a.active {
-            background: rgba(201, 168, 76, 0.08);
-            color: var(--secondary);
-        }
-
-        .header-actions {
+        .header-right {
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .header-actions button {
-            width: 36px;
-            height: 36px;
+        .header-right button {
+            width: 34px;
+            height: 34px;
             border-radius: var(--radius-sm);
             border: 1px solid var(--gray-200);
             background: var(--white);
@@ -196,22 +373,35 @@
             font-size: 0.85rem;
         }
 
-        .header-actions button:hover {
-            background: var(--gray-50);
+        .header-right button:hover {
             border-color: var(--secondary);
             color: var(--secondary);
+        }
+
+        /* ============================================================
+           MAIN CONTENT
+           ============================================================ */
+        .main-content {
+            padding-top: 20px;
+            padding-bottom: 40px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
         }
 
         /* ============================================================
            HERO
            ============================================================ */
         .hero {
-            padding: 100px 0 20px;
+            padding: 20px 0 16px;
             text-align: center;
         }
 
         .hero h1 {
-            font-size: 2.2rem;
+            font-size: 1.8rem;
             font-weight: 900;
             color: var(--gray-900);
         }
@@ -224,19 +414,19 @@
 
         .hero p {
             color: var(--gray-500);
-            font-size: 0.9rem;
-            margin-top: 4px;
+            font-size: 0.85rem;
+            margin-top: 2px;
         }
 
         /* ============================================================
            PAGE TITLE
            ============================================================ */
         .page-title {
-            margin: 16px 0 20px;
+            margin: 12px 0 16px;
         }
 
         .page-title h2 {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: 800;
             color: var(--gray-900);
             display: flex;
@@ -250,8 +440,42 @@
 
         .page-title p {
             color: var(--gray-500);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             margin-top: 2px;
+        }
+
+        /* ============================================================
+           BREADCRUMB
+           ============================================================ */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.65rem;
+            color: var(--gray-500);
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .breadcrumb a {
+            color: var(--secondary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .breadcrumb a:hover {
+            color: var(--secondary-dark);
+            text-decoration: underline;
+        }
+
+        .breadcrumb .separator {
+            color: var(--gray-300);
+        }
+
+        .breadcrumb .current {
+            color: var(--gray-700);
+            font-weight: 600;
         }
 
         /* ============================================================
@@ -629,41 +853,7 @@
         }
 
         /* ============================================================
-           BREADCRUMB
-           ============================================================ */
-        .breadcrumb {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.7rem;
-            color: var(--gray-500);
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
-
-        .breadcrumb a {
-            color: var(--secondary);
-            text-decoration: none;
-            font-weight: 600;
-            transition: var(--transition);
-        }
-
-        .breadcrumb a:hover {
-            color: var(--secondary-dark);
-            text-decoration: underline;
-        }
-
-        .breadcrumb .separator {
-            color: var(--gray-300);
-        }
-
-        .breadcrumb .current {
-            color: var(--gray-700);
-            font-weight: 600;
-        }
-
-        /* ============================================================
-           CLIENT SUGGESTIONS - اقتراحات العملاء والموردين
+           CLIENT SUGGESTIONS
            ============================================================ */
         .suggestions-container {
             position: relative;
@@ -751,10 +941,10 @@
             }
 
             .hero h1 {
-                font-size: 1.6rem;
+                font-size: 1.4rem;
             }
             .hero {
-                padding: 85px 0 12px;
+                padding: 12px 0 8px;
             }
 
             .form-grid {
@@ -796,21 +986,17 @@
             }
 
             .page-title h2 {
-                font-size: 1.1rem;
+                font-size: 1rem;
             }
 
             .logo-text h1 {
-                font-size: 1rem;
+                font-size: 0.85rem;
             }
 
             .logo-icon {
-                width: 34px;
-                height: 34px;
-                font-size: 1rem;
-            }
-
-            .nav-links a:not(.active) {
-                display: none;
+                width: 30px;
+                height: 30px;
+                font-size: 0.8rem;
             }
 
             .form-group input,
@@ -823,11 +1009,20 @@
             .amount-row .form-group input {
                 font-size: 0.9rem;
             }
+
+            header {
+                padding: 0 12px;
+            }
+
+            .sidebar {
+                width: 280px;
+                right: calc(-1 * 280px);
+            }
         }
 
         @media (max-width: 480px) {
             .hero h1 {
-                font-size: 1.3rem;
+                font-size: 1.2rem;
             }
 
             .form-card {
@@ -866,6 +1061,10 @@
                 padding: 12px 16px;
                 font-size: 0.7rem;
             }
+
+            header .logo-text span {
+                display: none;
+            }
         }
 
         /* ============================================================
@@ -893,16 +1092,90 @@
             .toast-container {
                 display: none;
             }
+
+            .sidebar,
+            .sidebar-overlay,
+            .hamburger {
+                display: none !important;
+            }
         }
     </style>
 </head>
 <body>
 
     <!-- ============================================================
+    SIDEBAR OVERLAY
+    ============================================================ -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ============================================================
+    SIDEBAR - القائمة الجانبية
+    ============================================================ -->
+    <nav class="sidebar" id="sidebar">
+        <div class="brand">
+            <div class="mark">🏛️</div>
+            <div class="text">
+                نظام المبيعات
+                <span>شركة رولكس للدهانات</span>
+            </div>
+            <button class="close-btn" id="closeSidebar"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="menu">
+            <div class="label">القائمة الرئيسية</div>
+            <a href="index.html" class="item"><i class="fas fa-house"></i> الرئيسية</a>
+            <a href="treasury.html" class="item"><i class="fas fa-coins"></i> الخزينة</a>
+            <a href="entry.html" class="item active"><i class="fas fa-pen"></i> إدخال حركة</a>
+
+            <div class="label">المبيعات والمشتريات</div>
+            <a href="sales.html" class="item"><i class="fas fa-chart-line"></i> المبيعات</a>
+            <a href="purchases.html" class="item"><i class="fas fa-shopping-cart"></i> المشتريات</a>
+
+            <div class="label">العملاء والموردين</div>
+            <a href="clients.html" class="item"><i class="fas fa-users"></i> العملاء</a>
+            <a href="suppliers.html" class="item"><i class="fas fa-truck"></i> الموردين</a>
+
+            <div class="label">المخزون</div>
+            <a href="materials.html" class="item"><i class="fas fa-boxes"></i> الخامات</a>
+            <a href="products.html" class="item"><i class="fas fa-cubes"></i> المنتجات</a>
+            <a href="raw-material-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المواد الخام</a>
+            <a href="finished-goods-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المنتج التام</a>
+
+            <div class="label">الإنتاج</div>
+            <a href="formulations.html" class="item"><i class="fas fa-flask"></i> التركيبات</a>
+            <a href="production-orders.html" class="item"><i class="fas fa-industry"></i> أوامر الإنتاج</a>
+            <a href="costs.html" class="item"><i class="fas fa-calculator"></i> التكاليف</a>
+
+            <div class="label">التقارير</div>
+            <a href="reports.html" class="item"><i class="fas fa-file-lines"></i> التقارير</a>
+            <a href="invoices-summary.html" class="item"><i class="fas fa-file-invoice"></i> ملخص الفواتير</a>
+
+            <div class="label">الإعدادات</div>
+            <a href="tabs-settings.html" class="item"><i class="fas fa-tags"></i> التبويبات العامة</a>
+            <a href="settings.html" class="item"><i class="fas fa-gear"></i> الإعدادات</a>
+            <a href="help.html" class="item"><i class="fas fa-circle-question"></i> المساعدة</a>
+        </div>
+
+        <div class="footer">
+            <div class="user">
+                <div class="avatar">م</div>
+                <div class="info">
+                    <div class="name">محمد خلاف</div>
+                    <div class="role">مدير النظام</div>
+                </div>
+                <button class="logout-btn" onclick="logout()" title="تسجيل الخروج"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ============================================================
     HEADER
     ============================================================ -->
     <header>
-        <div class="container">
+        <div class="header-left">
+            <button class="hamburger" id="openSidebar" aria-label="فتح القائمة الجانبية">
+                <i class="fas fa-bars"></i>
+            </button>
             <div class="logo">
                 <div class="logo-icon">🏛️</div>
                 <div class="logo-text">
@@ -910,15 +1183,10 @@
                     <span>شركة رولكس</span>
                 </div>
             </div>
-            <div class="nav-links">
-                <a href="treasury.html">الخزينة</a>
-                <a href="#" class="active">إدخال</a>
-                <a href="#">التقارير</a>
-            </div>
-            <div class="header-actions">
-                <button aria-label="بحث"><i class="fas fa-search"></i></button>
-                <button aria-label="إشعارات"><i class="fas fa-bell"></i></button>
-            </div>
+        </div>
+        <div class="header-right">
+            <button aria-label="بحث"><i class="fas fa-search"></i></button>
+            <button aria-label="إشعارات"><i class="fas fa-bell"></i></button>
         </div>
     </header>
 
@@ -928,189 +1196,223 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- ============================================================
-    HERO
+    MAIN CONTENT
     ============================================================ -->
-    <section class="hero">
+    <div class="main-content">
         <div class="container">
-            <h1><span class="gold">إدخال حركة الخزينة الرئيسية</span></h1>
-            <p>سجل حركات الإيداع والسحب والتحويلات في الخزينة الرئيسية</p>
-        </div>
-    </section>
 
-    <!-- ============================================================
-    PAGE TITLE
-    ============================================================ -->
-    <section class="page-title">
-        <div class="container">
-            <div class="breadcrumb">
-                <a href="index.html"><i class="fas fa-home"></i> الرئيسية</a>
-                <span class="separator"><i class="fas fa-chevron-left"></i></span>
-                <a href="treasury.html">الخزينة الرئيسية</a>
-                <span class="separator"><i class="fas fa-chevron-left"></i></span>
-                <span class="current">إدخال حركة</span>
-            </div>
-            <h2><i class="fas fa-pen-fancy"></i> نموذج إدخال الحركة</h2>
-            <p>أدخل بيانات الحركة الجديدة بدقة</p>
-        </div>
-    </section>
+            <!-- ===== HERO ===== -->
+            <section class="hero">
+                <h1><span class="gold">إدخال حركة الخزينة الرئيسية</span></h1>
+                <p>سجل حركات الإيداع والسحب والتحويلات في الخزينة الرئيسية</p>
+            </section>
 
-    <!-- ============================================================
-    FORM
-    ============================================================ -->
-    <section>
-        <div class="container">
-            <div class="form-card">
-                <form id="entryForm" novalidate>
+            <!-- ===== PAGE TITLE ===== -->
+            <section class="page-title">
+                <div class="breadcrumb">
+                    <a href="index.html"><i class="fas fa-home"></i> الرئيسية</a>
+                    <span class="separator"><i class="fas fa-chevron-left"></i></span>
+                    <a href="treasury.html">الخزينة الرئيسية</a>
+                    <span class="separator"><i class="fas fa-chevron-left"></i></span>
+                    <span class="current">إدخال حركة</span>
+                </div>
+                <h2><i class="fas fa-pen-fancy"></i> نموذج إدخال الحركة</h2>
+                <p>أدخل بيانات الحركة الجديدة بدقة</p>
+            </section>
 
-                    <div class="form-grid">
+            <!-- ===== FORM ===== -->
+            <section>
+                <div class="form-card">
+                    <form id="entryForm" novalidate>
 
-                        <!-- ===== التاريخ ===== -->
-                        <div class="form-group">
-                            <label for="entryDate">
-                                <i class="fas fa-calendar-alt"></i>
-                                التاريخ
-                                <span class="required">*</span>
-                            </label>
-                            <input type="date" id="entryDate" required />
-                        </div>
+                        <div class="form-grid">
 
-                        <!-- ===== رقم السند ===== -->
-                        <div class="form-group">
-                            <label for="entryNumber">
-                                <i class="fas fa-hashtag"></i>
-                                رقم السند
-                                <span class="required">*</span>
-                            </label>
-                            <input type="text" id="entryNumber" placeholder="مثال: 1" required />
-                        </div>
+                            <!-- ===== التاريخ ===== -->
+                            <div class="form-group">
+                                <label for="entryDate">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    التاريخ
+                                    <span class="required">*</span>
+                                </label>
+                                <input type="date" id="entryDate" required />
+                            </div>
 
-                        <!-- ===== نوع الحركة ===== -->
-                        <div class="form-group">
-                            <label for="entryType">
-                                <i class="fas fa-tag"></i>
-                                نوع الحركة
-                                <span class="required">*</span>
-                            </label>
-                            <select id="entryType" required>
-                                <option value="">اختر النوع...</option>
-                                <option value="إيداع">💰 إيداع</option>
-                                <option value="سحب">🏦 سحب</option>
-                                <option value="تحويل">🔄 تحويل</option>
-                                <option value="مصاريف">🧾 مصاريف</option>
-                                <option value="إيرادات">📈 إيرادات</option>
-                            </select>
-                        </div>
+                            <!-- ===== رقم السند ===== -->
+                            <div class="form-group">
+                                <label for="entryNumber">
+                                    <i class="fas fa-hashtag"></i>
+                                    رقم السند
+                                    <span class="required">*</span>
+                                </label>
+                                <input type="text" id="entryNumber" placeholder="مثال: 1" required />
+                            </div>
 
-                        <!-- ===== التبويب العام (قائمة منسدلة من قاعدة البيانات) ===== -->
-                        <div class="form-group">
-                            <label for="entryGeneralTab">
-                                <i class="fas fa-folder-open"></i>
-                                التبويب العام
-                                <span class="required">*</span>
-                            </label>
-                            <select id="entryGeneralTab" required>
-                                <option value="">جاري تحميل التبويبات...</option>
-                            </select>
-                        </div>
+                            <!-- ===== نوع الحركة ===== -->
+                            <div class="form-group">
+                                <label for="entryType">
+                                    <i class="fas fa-tag"></i>
+                                    نوع الحركة
+                                    <span class="required">*</span>
+                                </label>
+                                <select id="entryType" required>
+                                    <option value="">اختر النوع...</option>
+                                    <option value="إيداع">💰 إيداع</option>
+                                    <option value="سحب">🏦 سحب</option>
+                                    <option value="تحويل">🔄 تحويل</option>
+                                    <option value="مصاريف">🧾 مصاريف</option>
+                                    <option value="إيرادات">📈 إيرادات</option>
+                                </select>
+                            </div>
 
-                        <!-- ===== البيان (كامل العرض) ===== -->
-                        <div class="form-group full-width">
-                            <label for="entryDescription">
-                                <i class="fas fa-align-right"></i>
-                                البيان
-                                <span class="required">*</span>
-                            </label>
-                            <input type="text" id="entryDescription" placeholder="وصف الحركة..." required maxlength="200" />
-                            <div class="char-counter" id="descCounter">0 / 200</div>
-                        </div>
+                            <!-- ===== التبويب العام ===== -->
+                            <div class="form-group">
+                                <label for="entryGeneralTab">
+                                    <i class="fas fa-folder-open"></i>
+                                    التبويب العام
+                                    <span class="required">*</span>
+                                </label>
+                                <select id="entryGeneralTab" required>
+                                    <option value="">جاري تحميل التبويبات...</option>
+                                </select>
+                            </div>
 
-                        <!-- ===== المبالغ ===== -->
-                        <div class="form-group full-width">
-                            <div class="amount-row">
-                                <div class="form-group">
-                                    <label for="entryIncoming">
-                                        <i class="fas fa-arrow-up" style="color:var(--success);"></i>
-                                        إيداع
-                                        <span class="optional">(اختياري)</span>
-                                    </label>
-                                    <input type="number" id="entryIncoming" placeholder="0.00" min="0" step="0.01" class="incoming" />
-                                </div>
-                                <div class="form-group">
-                                    <label for="entryOutgoing">
-                                        <i class="fas fa-arrow-down" style="color:var(--danger);"></i>
-                                        سحب
-                                        <span class="optional">(اختياري)</span>
-                                    </label>
-                                    <input type="number" id="entryOutgoing" placeholder="0.00" min="0" step="0.01" class="outgoing" />
+                            <!-- ===== البيان ===== -->
+                            <div class="form-group full-width">
+                                <label for="entryDescription">
+                                    <i class="fas fa-align-right"></i>
+                                    البيان
+                                    <span class="required">*</span>
+                                </label>
+                                <input type="text" id="entryDescription" placeholder="وصف الحركة..." required maxlength="200" />
+                                <div class="char-counter" id="descCounter">0 / 200</div>
+                            </div>
+
+                            <!-- ===== المبالغ ===== -->
+                            <div class="form-group full-width">
+                                <div class="amount-row">
+                                    <div class="form-group">
+                                        <label for="entryIncoming">
+                                            <i class="fas fa-arrow-up" style="color:var(--success);"></i>
+                                            إيداع
+                                            <span class="optional">(اختياري)</span>
+                                        </label>
+                                        <input type="number" id="entryIncoming" placeholder="0.00" min="0" step="0.01" class="incoming" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="entryOutgoing">
+                                            <i class="fas fa-arrow-down" style="color:var(--danger);"></i>
+                                            سحب
+                                            <span class="optional">(اختياري)</span>
+                                        </label>
+                                        <input type="number" id="entryOutgoing" placeholder="0.00" min="0" step="0.01" class="outgoing" />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- ===== التبويب الخاص مع اقتراحات ديناميكية ===== -->
-                        <div class="form-group">
-                            <label for="entryPrivateTab">
-                                <i class="fas fa-folder"></i>
-                                التبويب الخاص
-                                <span class="required">*</span>
-                            </label>
-                            <div class="suggestions-container" id="suggestionsContainer">
-                                <input type="text" id="entryPrivateTab" placeholder="ابحث أو أدخل القيمة..." required autocomplete="off" />
-                                <div class="suggestions-list" id="suggestionsList"></div>
+                            <!-- ===== التبويب الخاص ===== -->
+                            <div class="form-group">
+                                <label for="entryPrivateTab">
+                                    <i class="fas fa-folder"></i>
+                                    التبويب الخاص
+                                    <span class="required">*</span>
+                                </label>
+                                <div class="suggestions-container" id="suggestionsContainer">
+                                    <input type="text" id="entryPrivateTab" placeholder="ابحث أو أدخل القيمة..." required autocomplete="off" />
+                                    <div class="suggestions-list" id="suggestionsList"></div>
+                                </div>
                             </div>
+
+                            <!-- ===== ملاحظات ===== -->
+                            <div class="form-group full-width">
+                                <label for="entryNotes">
+                                    <i class="fas fa-sticky-note"></i>
+                                    ملاحظات
+                                    <span class="optional">(اختياري)</span>
+                                </label>
+                                <textarea id="entryNotes" placeholder="أي ملاحظات إضافية..." maxlength="300"></textarea>
+                                <div class="char-counter" id="notesCounter">0 / 300</div>
+                            </div>
+
                         </div>
 
-                        <!-- ===== ملاحظات ===== -->
-                        <div class="form-group full-width">
-                            <label for="entryNotes">
-                                <i class="fas fa-sticky-note"></i>
-                                ملاحظات
-                                <span class="optional">(اختياري)</span>
-                            </label>
-                            <textarea id="entryNotes" placeholder="أي ملاحظات إضافية..." maxlength="300"></textarea>
-                            <div class="char-counter" id="notesCounter">0 / 300</div>
+                        <!-- ===== HIDDEN ===== -->
+                        <input type="hidden" id="editIndex" value="-1" />
+
+                        <!-- ===== FORM ACTIONS ===== -->
+                        <div class="form-actions">
+                            <button type="submit" class="btn-submit" id="submitBtn">
+                                <span class="btn-icon"><i class="fas fa-save"></i></span>
+                                <span class="btn-text">حفظ الحركة</span>
+                                <span class="spinner"><i class="fas fa-spinner"></i></span>
+                            </button>
+                            <button type="reset" class="btn-reset" id="resetBtn">
+                                <i class="fas fa-undo-alt"></i> تفريغ
+                            </button>
+                            <a href="treasury.html" class="btn-back">
+                                <i class="fas fa-arrow-right"></i> العودة
+                            </a>
                         </div>
 
-                    </div>
+                    </form>
+                </div>
+            </section>
 
-                    <!-- ===== HIDDEN ===== -->
-                    <input type="hidden" id="editIndex" value="-1" />
-
-                    <!-- ===== FORM ACTIONS ===== -->
-                    <div class="form-actions">
-                        <button type="submit" class="btn-submit" id="submitBtn">
-                            <span class="btn-icon"><i class="fas fa-save"></i></span>
-                            <span class="btn-text">حفظ الحركة</span>
-                            <span class="spinner"><i class="fas fa-spinner"></i></span>
-                        </button>
-                        <button type="reset" class="btn-reset" id="resetBtn">
-                            <i class="fas fa-undo-alt"></i> تفريغ
-                        </button>
-                        <a href="treasury.html" class="btn-back">
-                            <i class="fas fa-arrow-right"></i> العودة
-                        </a>
-                    </div>
-
-                </form>
-            </div>
         </div>
-    </section>
+    </div>
 
     <!-- ============================================================
-    JAVASCRIPT - النسخة المُعدّلة مع اقتراحات ديناميكية
+    JAVASCRIPT
     ============================================================ -->
     <script>
+        // ============================================================
+        // SIDEBAR TOGGLE
+        // ============================================================
+        var sidebar = document.getElementById('sidebar');
+        var sidebarOverlay = document.getElementById('sidebarOverlay');
+        var openSidebarBtn = document.getElementById('openSidebar');
+        var closeSidebarBtn = document.getElementById('closeSidebar');
+
+        function openSidebar() {
+            sidebar.classList.add('open');
+            sidebarOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        openSidebarBtn.addEventListener('click', openSidebar);
+        closeSidebarBtn.addEventListener('click', closeSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeSidebar();
+            }
+        });
+
+        // ============================================================
+        // LOGOUT
+        // ============================================================
+        function logout() {
+            if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                localStorage.removeItem('rollex_session');
+                sessionStorage.removeItem('rollex_session');
+                window.location.href = 'login.html';
+            }
+        }
+
         // ============================================================
         // CONFIGURATION
         // ============================================================
         var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
         var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
         var TABLE_NAME = 'treasury';
-
         var STORAGE_KEY = 'rollex_treasury_entries';
 
-        // ============================================================
-        // INIT SUPABASE CLIENT
-        // ============================================================
         var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ============================================================
