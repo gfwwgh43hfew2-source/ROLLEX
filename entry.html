@@ -927,14 +927,16 @@
                             </select>
                         </div>
 
-                        <!-- ===== التبويب العام ===== -->
+                        <!-- ===== التبويب العام (قائمة منسدلة من قاعدة البيانات) ===== -->
                         <div class="form-group">
                             <label for="entryGeneralTab">
                                 <i class="fas fa-folder-open"></i>
                                 التبويب العام
                                 <span class="required">*</span>
                             </label>
-                            <input type="text" id="entryGeneralTab" placeholder="مثال: المبيعات" required />
+                            <select id="entryGeneralTab" required>
+                                <option value="">جاري تحميل التبويبات...</option>
+                            </select>
                         </div>
 
                         <!-- ===== البيان (كامل العرض) ===== -->
@@ -977,7 +979,7 @@
                                 التبويب الخاص
                                 <span class="required">*</span>
                             </label>
-                            <input type="text" id="entryPrivateTab" placeholder="مثال: نقدي" required />
+                            <input type="text" id="entryPrivateTab" placeholder="مثال: العميل محمد" required />
                         </div>
 
                         <!-- ===== ملاحظات ===== -->
@@ -1017,7 +1019,7 @@
     </section>
 
     <!-- ============================================================
-    JAVASCRIPT - النسخة المُعدّلة مع user_id
+    JAVASCRIPT - النسخة المُعدّلة مع التبويبات العامة
     ============================================================ -->
     <script>
         // ============================================================
@@ -1044,7 +1046,7 @@
         var descriptionInput = document.getElementById('entryDescription');
         var incomingInput = document.getElementById('entryIncoming');
         var outgoingInput = document.getElementById('entryOutgoing');
-        var generalTabInput = document.getElementById('entryGeneralTab');
+        var generalTabSelect = document.getElementById('entryGeneralTab');
         var privateTabInput = document.getElementById('entryPrivateTab');
         var notesInput = document.getElementById('entryNotes');
         var editIndexInput = document.getElementById('editIndex');
@@ -1124,7 +1126,185 @@
         }
 
         // ============================================================
-        // SAVE TO SUPABASE - مع user_id
+        // جلب التبويبات العامة من Supabase
+        // ============================================================
+        async function loadGeneralTabs() {
+            try {
+                var select = generalTabSelect;
+                select.innerHTML = '<option value="">جاري التحميل...</option>';
+
+                // 1. جلب المستخدم الحالي
+                var { data: userData, error: userError } = await supabase.auth.getUser();
+                if (userError || !userData.user) {
+                    select.innerHTML = '<option value="">⚠️ يرجى تسجيل الدخول</option>';
+                    console.warn('⚠️ المستخدم غير مسجل الدخول');
+                    return;
+                }
+
+                // 2. جلب company_id من جدول profiles
+                var { data: profileData, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('company_id')
+                    .eq('id', userData.user.id)
+                    .single();
+
+                if (profileError || !profileData) {
+                    select.innerHTML = '<option value="">⚠️ لم يتم العثور على الشركة</option>';
+                    console.warn('⚠️ لم يتم العثور على company_id');
+                    return;
+                }
+
+                var companyId = profileData.company_id;
+
+                // 3. جلب التبويبات من جدول general_tabs
+                var { data: tabsData, error: tabsError } = await supabase
+                    .from('general_tabs')
+                    .select('id, name, type')
+                    .eq('company_id', companyId)
+                    .eq('is_active', true)
+                    .order('name', { ascending: true });
+
+                if (tabsError) {
+                    console.error('❌ فشل جلب التبويبات:', tabsError);
+                    select.innerHTML = '<option value="">⚠️ فشل التحميل</option>';
+                    return;
+                }
+
+                // 4. ملء القائمة المنسدلة
+                select.innerHTML = '<option value="">اختر التبويب العام...</option>';
+
+                if (!tabsData || tabsData.length === 0) {
+                    var emptyOption = document.createElement('option');
+                    emptyOption.value = '';
+                    emptyOption.textContent = '⚠️ لا توجد تبويبات، أضف تبويباً في الإعدادات';
+                    emptyOption.disabled = true;
+                    select.appendChild(emptyOption);
+                    
+                    // إضافة زر لإضافة تبويب جديد بسرعة
+                    var addOption = document.createElement('option');
+                    addOption.value = '__add_new__';
+                    addOption.textContent = '➕ إضافة تبويب جديد...';
+                    addOption.style.color = 'var(--secondary)';
+                    addOption.style.fontWeight = 'bold';
+                    select.appendChild(addOption);
+                    return;
+                }
+
+                tabsData.forEach(function(tab) {
+                    var option = document.createElement('option');
+                    option.value = tab.name;
+                    var typeLabel = '';
+                    if (tab.type === 'in') typeLabel = ' (وارد)';
+                    else if (tab.type === 'out') typeLabel = ' (صادر)';
+                    else typeLabel = ' (وارد/صادر)';
+                    option.textContent = tab.name + typeLabel;
+                    select.appendChild(option);
+                });
+
+                // إضافة خيار لإضافة تبويب جديد
+                var addOption = document.createElement('option');
+                addOption.value = '__add_new__';
+                addOption.textContent = '➕ إضافة تبويب جديد...';
+                addOption.style.color = 'var(--secondary)';
+                addOption.style.fontWeight = 'bold';
+                select.appendChild(addOption);
+
+                console.log('✅ تم تحميل ' + tabsData.length + ' تبويب عام');
+
+            } catch (error) {
+                console.error('❌ خطأ في تحميل التبويبات:', error);
+                var select = generalTabSelect;
+                select.innerHTML = '<option value="">⚠️ حدث خطأ</option>';
+            }
+        }
+
+        // ============================================================
+        // إضافة تبويب جديد بسرعة من نموذج الإدخال
+        // ============================================================
+        async function quickAddGeneralTab(tabName, tabType) {
+            try {
+                // جلب المستخدم الحالي
+                var { data: userData, error: userError } = await supabase.auth.getUser();
+                if (userError || !userData.user) {
+                    showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'error');
+                    return false;
+                }
+
+                // جلب company_id
+                var { data: profileData, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('company_id')
+                    .eq('id', userData.user.id)
+                    .single();
+
+                if (profileError || !profileData) {
+                    showToast('⚠️ تنبيه', 'لم يتم العثور على الشركة', 'error');
+                    return false;
+                }
+
+                // إضافة التبويب
+                var { data, error } = await supabase
+                    .from('general_tabs')
+                    .insert({
+                        company_id: profileData.company_id,
+                        name: tabName,
+                        type: tabType || 'both',
+                        is_active: true,
+                        is_system: false,
+                        created_by: userData.user.id
+                    })
+                    .select();
+
+                if (error) {
+                    if (error.message && error.message.includes('duplicate key')) {
+                        showToast('⚠️ تنبيه', 'هذا التبويب موجود بالفعل', 'warning');
+                    } else {
+                        throw new Error(error.message);
+                    }
+                    return false;
+                }
+
+                showToast('✅ تم الإضافة', 'تم إضافة التبويب "' + tabName + '" بنجاح', 'success');
+                await loadGeneralTabs(); // إعادة تحميل القائمة
+                return true;
+
+            } catch (error) {
+                console.error('❌ خطأ في إضافة التبويب:', error);
+                showToast('❌ خطأ', error.message || 'فشل إضافة التبويب', 'error');
+                return false;
+            }
+        }
+
+        // ============================================================
+        // التعامل مع اختيار "إضافة تبويب جديد"
+        // ============================================================
+        generalTabSelect.addEventListener('change', async function() {
+            if (this.value === '__add_new__') {
+                var tabName = prompt('📝 أدخل اسم التبويب الجديد:');
+                if (!tabName || tabName.trim() === '') {
+                    this.value = '';
+                    return;
+                }
+
+                var tabType = prompt('📌 حدد نوع التبويب:\n1 - وارد فقط\n2 - صادر فقط\n3 - وارد وصادر', '3');
+                var typeMap = {
+                    '1': 'in',
+                    '2': 'out',
+                    '3': 'both'
+                };
+                var selectedType = typeMap[tabType] || 'both';
+
+                var success = await quickAddGeneralTab(tabName.trim(), selectedType);
+                if (success) {
+                    this.value = tabName.trim();
+                } else {
+                    this.value = '';
+                }
+            }
+        });
+
+        // ============================================================
+        // SAVE TO SUPABASE - مع user_id والتبويبات
         // ============================================================
         async function saveToSupabase(entry) {
             // جلب المستخدم الحالي
@@ -1146,7 +1326,7 @@
                 notes: entry.notes || '',
                 general_tab: entry.generalTab || '',
                 private_tab: entry.privateTab || '',
-                user_id: userId  // <-- العمود الجديد
+                user_id: userId
             };
 
             console.log('📤 محاولة الحفظ في Supabase:', JSON.stringify(payload, null, 2));
@@ -1211,7 +1391,8 @@
             outgoingInput.disabled = false;
             incomingInput.style.opacity = '1';
             outgoingInput.style.opacity = '1';
-            generalTabInput.value = '';
+            // لا نقوم بتفريغ التبويب العام لأنه قائمة منسدلة من قاعدة البيانات
+            // generalTabSelect.value = '';
             privateTabInput.value = '';
             notesInput.value = '';
             editIndexInput.value = '-1';
@@ -1236,7 +1417,7 @@
             var description = descriptionInput.value.trim();
             var incoming = parseFloat(incomingInput.value) || 0;
             var outgoing = parseFloat(outgoingInput.value) || 0;
-            var generalTab = generalTabInput.value.trim();
+            var generalTab = generalTabSelect.value;
             var privateTab = privateTabInput.value.trim();
 
             if (!date) {
@@ -1263,9 +1444,9 @@
                 return false;
             }
 
-            if (!generalTab) {
-                showToast('⚠️ تحقق من البيانات', 'يرجى إدخال التبويب العام', 'error');
-                generalTabInput.focus();
+            if (!generalTab || generalTab === '__add_new__') {
+                showToast('⚠️ تحقق من البيانات', 'يرجى اختيار التبويب العام', 'error');
+                generalTabSelect.focus();
                 return false;
             }
 
@@ -1309,7 +1490,7 @@
             var incoming = parseFloat(incomingInput.value) || 0;
             var outgoing = parseFloat(outgoingInput.value) || 0;
             var amount = incoming > 0 ? incoming : outgoing;
-            var generalTab = generalTabInput.value.trim();
+            var generalTab = generalTabSelect.value;
             var privateTab = privateTabInput.value.trim();
             var notes = notesInput.value.trim();
 
@@ -1532,16 +1713,26 @@
         // ============================================================
         // INIT
         // ============================================================
-        console.log('🏛️ تطبيق إدخال الخزينة الرئيسية - شركة رولكس');
-        console.log('🔗 Supabase URL:', SUPABASE_URL);
-        console.log('📊 جدول البيانات:', TABLE_NAME);
-        console.log('💾 مفتاح التخزين المحلي:', STORAGE_KEY);
+        async function initPage() {
+            console.log('🏛️ تطبيق إدخال الخزينة الرئيسية - شركة رولكس');
+            console.log('🔗 Supabase URL:', SUPABASE_URL);
+            console.log('📊 جدول البيانات:', TABLE_NAME);
+            console.log('💾 مفتاح التخزين المحلي:', STORAGE_KEY);
 
-        testConnection();
+            // اختبار الاتصال
+            await testConnection();
 
-        setTimeout(function() {
-            showToast('👋 مرحباً', 'نموذج إدخال الخزينة الرئيسية جاهز للاستخدام', 'success');
-        }, 1000);
+            // تحميل التبويبات العامة
+            await loadGeneralTabs();
+
+            // رسالة ترحيب
+            setTimeout(function() {
+                showToast('👋 مرحباً', 'نموذج إدخال الخزينة الرئيسية جاهز للاستخدام', 'success');
+            }, 1000);
+        }
+
+        // بدء التهيئة
+        document.addEventListener('DOMContentLoaded', initPage);
     </script>
 
 </body>
