@@ -1104,6 +1104,43 @@
         }
 
         // ============================================================
+        // تهيئة Supabase مع الجلسة من localStorage
+        // ============================================================
+        function initSupabaseWithSession() {
+            var session = localStorage.getItem('rollex_session');
+            if (!session) {
+                console.warn('⚠️ لا توجد جلسة في localStorage');
+                return null;
+            }
+
+            try {
+                var parsed = JSON.parse(session);
+                if (!parsed.access_token) {
+                    console.warn('⚠️ لا يوجد access_token في الجلسة');
+                    return null;
+                }
+
+                // تهيئة Supabase مع التوكن
+                var { data: { session: supabaseSession }, error } = supabase.auth.setSession({
+                    access_token: parsed.access_token,
+                    refresh_token: parsed.refresh_token
+                });
+
+                if (error) {
+                    console.error('❌ فشل تهيئة الجلسة:', error);
+                    return null;
+                }
+
+                console.log('✅ تم تهيئة الجلسة بنجاح');
+                return supabaseSession;
+
+            } catch (error) {
+                console.error('❌ خطأ في تهيئة الجلسة:', error);
+                return null;
+            }
+        }
+
+        // ============================================================
         // LOCAL STORAGE OPERATIONS
         // ============================================================
         function getEntries() {
@@ -1133,7 +1170,15 @@
                 var select = generalTabSelect;
                 select.innerHTML = '<option value="">جاري التحميل...</option>';
 
-                // 1. جلب المستخدم الحالي
+                // 1. تهيئة الجلسة من localStorage
+                var session = initSupabaseWithSession();
+                if (!session) {
+                    select.innerHTML = '<option value="">⚠️ يرجى تسجيل الدخول</option>';
+                    console.warn('⚠️ المستخدم غير مسجل الدخول');
+                    return;
+                }
+
+                // 2. جلب المستخدم الحالي
                 var { data: userData, error: userError } = await supabase.auth.getUser();
                 if (userError || !userData.user) {
                     select.innerHTML = '<option value="">⚠️ يرجى تسجيل الدخول</option>';
@@ -1141,11 +1186,13 @@
                     return;
                 }
 
-                // 2. جلب company_id من جدول profiles
+                var userId = userData.user.id;
+
+                // 3. جلب company_id من جدول profiles
                 var { data: profileData, error: profileError } = await supabase
                     .from('profiles')
                     .select('company_id')
-                    .eq('id', userData.user.id)
+                    .eq('id', userId)
                     .single();
 
                 if (profileError || !profileData) {
@@ -1156,21 +1203,24 @@
 
                 var companyId = profileData.company_id;
 
-                // 3. جلب التبويبات من جدول general_tabs
-                var { data: tabsData, error: tabsError } = await supabase
-                    .from('general_tabs')
-                    .select('id, name, type')
-                    .eq('company_id', companyId)
-                    .eq('is_active', true)
-                    .order('name', { ascending: true });
+                // 4. جلب التبويبات من جدول general_tabs
+                var token = session.access_token;
+                var response = await fetch(SUPABASE_URL + '/rest/v1/general_tabs?select=id,name,type&company_id=eq.' + companyId + '&is_active=eq.true&order=name.asc', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
 
-                if (tabsError) {
-                    console.error('❌ فشل جلب التبويبات:', tabsError);
+                if (!response.ok) {
+                    console.error('❌ فشل جلب التبويبات:', response.status);
                     select.innerHTML = '<option value="">⚠️ فشل التحميل</option>';
                     return;
                 }
 
-                // 4. ملء القائمة المنسدلة
+                var tabsData = await response.json();
+
+                // 5. ملء القائمة المنسدلة
                 select.innerHTML = '<option value="">اختر التبويب العام...</option>';
 
                 if (!tabsData || tabsData.length === 0) {
@@ -1179,8 +1229,7 @@
                     emptyOption.textContent = '⚠️ لا توجد تبويبات، أضف تبويباً في الإعدادات';
                     emptyOption.disabled = true;
                     select.appendChild(emptyOption);
-                    
-                    // إضافة زر لإضافة تبويب جديد بسرعة
+
                     var addOption = document.createElement('option');
                     addOption.value = '__add_new__';
                     addOption.textContent = '➕ إضافة تبويب جديد...';
@@ -1201,7 +1250,6 @@
                     select.appendChild(option);
                 });
 
-                // إضافة خيار لإضافة تبويب جديد
                 var addOption = document.createElement('option');
                 addOption.value = '__add_new__';
                 addOption.textContent = '➕ إضافة تبويب جديد...';
@@ -1223,6 +1271,13 @@
         // ============================================================
         async function quickAddGeneralTab(tabName, tabType) {
             try {
+                // تهيئة الجلسة من localStorage
+                var session = initSupabaseWithSession();
+                if (!session) {
+                    showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'error');
+                    return false;
+                }
+
                 // جلب المستخدم الحالي
                 var { data: userData, error: userError } = await supabase.auth.getUser();
                 if (userError || !userData.user) {
@@ -1242,10 +1297,18 @@
                     return false;
                 }
 
+                var token = session.access_token;
+
                 // إضافة التبويب
-                var { data, error } = await supabase
-                    .from('general_tabs')
-                    .insert({
+                var response = await fetch(SUPABASE_URL + '/rest/v1/general_tabs', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({
                         company_id: profileData.company_id,
                         name: tabName,
                         type: tabType || 'both',
@@ -1253,13 +1316,14 @@
                         is_system: false,
                         created_by: userData.user.id
                     })
-                    .select();
+                });
 
-                if (error) {
-                    if (error.message && error.message.includes('duplicate key')) {
+                if (!response.ok) {
+                    var errorData = await response.json();
+                    if (errorData.message && errorData.message.includes('duplicate key')) {
                         showToast('⚠️ تنبيه', 'هذا التبويب موجود بالفعل', 'warning');
                     } else {
-                        throw new Error(error.message);
+                        throw new Error(errorData.message || 'فشل الإضافة');
                     }
                     return false;
                 }
@@ -1307,6 +1371,12 @@
         // SAVE TO SUPABASE - مع user_id والتبويبات
         // ============================================================
         async function saveToSupabase(entry) {
+            // تهيئة الجلسة من localStorage
+            var session = initSupabaseWithSession();
+            if (!session) {
+                throw new Error('❌ يرجى تسجيل الدخول أولاً');
+            }
+
             // جلب المستخدم الحالي
             var { data: userData, error: userError } = await supabase.auth.getUser();
             
@@ -1315,6 +1385,7 @@
             }
             
             var userId = userData.user.id;
+            var token = session.access_token;
             
             var payload = {
                 date: entry.date,
@@ -1335,7 +1406,7 @@
                 method: 'POST',
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + token,
                     'Content-Type': 'application/json',
                     'Prefer': 'return=representation'
                 },
@@ -1391,8 +1462,7 @@
             outgoingInput.disabled = false;
             incomingInput.style.opacity = '1';
             outgoingInput.style.opacity = '1';
-            // لا نقوم بتفريغ التبويب العام لأنه قائمة منسدلة من قاعدة البيانات
-            // generalTabSelect.value = '';
+            generalTabSelect.value = '';
             privateTabInput.value = '';
             notesInput.value = '';
             editIndexInput.value = '-1';
@@ -1433,7 +1503,7 @@
             }
 
             if (!type) {
-                showToast('⚠️ تحقق من البيانات', 'يرجى اختيار نوع الحركة', 'error');
+                showToast('⚠️ تحقق من 데이터', 'يرجى اختيار نوع الحركة', 'error');
                 typeSelect.focus();
                 return false;
             }
@@ -1674,11 +1744,19 @@
         // ============================================================
         async function testConnection() {
             try {
-                // 1. اختبار الاتصال
+                // 1. تهيئة الجلسة من localStorage
+                var session = initSupabaseWithSession();
+                if (!session) {
+                    showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'warning');
+                    return false;
+                }
+
+                // 2. اختبار الاتصال
+                var token = session.access_token;
                 var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME + '?limit=1', {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                        'Authorization': 'Bearer ' + token
                     }
                 });
 
@@ -1690,7 +1768,7 @@
 
                 console.log('✅ الاتصال بـ Supabase ناجح');
 
-                // 2. التحقق من تسجيل الدخول
+                // 3. التحقق من تسجيل الدخول
                 var { data: userData, error: userError } = await supabase.auth.getUser();
                 
                 if (userError || !userData.user) {
@@ -1718,6 +1796,16 @@
             console.log('🔗 Supabase URL:', SUPABASE_URL);
             console.log('📊 جدول البيانات:', TABLE_NAME);
             console.log('💾 مفتاح التخزين المحلي:', STORAGE_KEY);
+
+            // تهيئة الجلسة أولاً
+            var session = initSupabaseWithSession();
+            if (!session) {
+                showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'warning');
+                setTimeout(function() {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
 
             // اختبار الاتصال
             await testConnection();
