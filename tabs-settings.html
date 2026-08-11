@@ -42,6 +42,8 @@
             --radius-xl: 20px;
             --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             --font: 'Cairo', sans-serif;
+            --sidebar-width: 260px;
+            --header-height: 60px;
         }
 
         * {
@@ -65,6 +67,212 @@
         }
 
         /* ============================================================
+           SIDEBAR OVERLAY
+           ============================================================ */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* ============================================================
+           SIDEBAR
+           ============================================================ */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: calc(-1 * var(--sidebar-width));
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--white);
+            border-left: 1px solid var(--gray-200);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-lg);
+            overflow-y: auto;
+        }
+
+        .sidebar.open {
+            right: 0;
+        }
+
+        .sidebar .brand {
+            padding: 20px 18px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--gray-200);
+            flex-shrink: 0;
+        }
+
+        .sidebar .brand .mark {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: var(--white);
+            flex-shrink: 0;
+        }
+
+        .sidebar .brand .text {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--gray-900);
+            line-height: 1.2;
+        }
+
+        .sidebar .brand .text span {
+            display: block;
+            font-size: 0.55rem;
+            font-weight: 600;
+            color: var(--gray-500);
+        }
+
+        .sidebar .close-btn {
+            margin-right: auto;
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+        }
+
+        .sidebar .close-btn:hover {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .sidebar .menu {
+            flex: 1;
+            padding: 12px 14px;
+            overflow-y: auto;
+        }
+
+        .sidebar .menu .label {
+            font-size: 0.55rem;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px 10px 6px;
+            font-weight: 700;
+        }
+
+        .sidebar .menu .label:first-child {
+            padding-top: 4px;
+        }
+
+        .sidebar .menu .item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            color: var(--gray-600);
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: var(--transition);
+            cursor: pointer;
+            text-decoration: none;
+            border-right: 3px solid transparent;
+        }
+
+        .sidebar .menu .item:hover {
+            background: var(--gray-50);
+            color: var(--gray-900);
+        }
+
+        .sidebar .menu .item.active {
+            background: rgba(201, 168, 76, 0.06);
+            color: var(--secondary-dark);
+            border-right-color: var(--secondary);
+        }
+
+        .sidebar .menu .item i {
+            width: 18px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--gray-400);
+        }
+
+        .sidebar .menu .item.active i {
+            color: var(--secondary);
+        }
+
+        .sidebar .footer {
+            padding: 12px 16px 16px;
+            border-top: 1px solid var(--gray-200);
+            flex-shrink: 0;
+        }
+
+        .sidebar .footer .user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar .footer .user .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--gray-600);
+        }
+
+        .sidebar .footer .user .info .name {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .sidebar .footer .user .info .role {
+            font-size: 0.55rem;
+            color: var(--gray-500);
+        }
+
+        .sidebar .footer .logout-btn {
+            margin-right: auto;
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+        }
+
+        .sidebar .footer .logout-btn:hover {
+            background: var(--gray-100);
+            color: var(--danger);
+        }
+
+        /* ============================================================
            HEADER
            ============================================================ */
         .header {
@@ -76,6 +284,32 @@
             margin-bottom: 24px;
             flex-wrap: wrap;
             gap: 12px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .hamburger {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--gray-200);
+            background: var(--white);
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .hamburger:hover {
+            border-color: var(--secondary);
+            color: var(--secondary);
         }
 
         .header h1 {
@@ -349,7 +583,7 @@
            ============================================================ */
         .toast-container {
             position: fixed;
-            top: 20px;
+            top: 80px;
             right: 20px;
             z-index: 9999;
             display: flex;
@@ -416,25 +650,113 @@
             }
             .tab-item .tab-actions { justify-content: flex-start; }
             .tab-item .tab-type { display: inline-block; }
+            .sidebar {
+                width: 280px;
+                right: calc(-1 * 280px);
+            }
+            .sidebar.open { right: 0; }
+            .sidebar-overlay { display: block; }
+            .header { flex-direction: column; align-items: flex-start; }
+            .header .back-btn { width: 100%; justify-content: center; }
+            .toast-container { top: 70px; right: 10px; max-width: 300px; }
         }
 
         @media (max-width: 480px) {
             body { padding: 12px; }
-            .header { flex-direction: column; align-items: flex-start; }
-            .header .back-btn { width: 100%; justify-content: center; }
-            .toast-container { top: 12px; right: 12px; max-width: 95%; }
+            .toast-container { top: 60px; right: 8px; max-width: 260px; }
+            .toast { padding: 10px 12px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <!-- ============================================================
+    SIDEBAR OVERLAY
+    ============================================================ -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-        <!-- ===== HEADER ===== -->
-        <div class="header">
-            <h1><i class="fas fa-tags"></i> إدارة التبويبات العامة</h1>
-            <a href="settings.html" class="back-btn"><i class="fas fa-arrow-right"></i> العودة للإعدادات</a>
+    <!-- ============================================================
+    SIDEBAR - القائمة الجانبية
+    ============================================================ -->
+    <nav class="sidebar" id="sidebar">
+        <div class="brand">
+            <div class="mark">🏷️</div>
+            <div class="text">
+                نظام المصنع
+                <span>شركة رولكس للدهانات</span>
+            </div>
+            <button class="close-btn" id="closeSidebar"><i class="fas fa-times"></i></button>
         </div>
+
+        <div class="menu">
+            <div class="label">القائمة الرئيسية</div>
+            <a href="index.html" class="item"><i class="fas fa-house"></i> الرئيسية</a>
+            <a href="treasury.html" class="item"><i class="fas fa-coins"></i> الخزينة</a>
+            <a href="entry.html" class="item"><i class="fas fa-pen"></i> إدخال حركة</a>
+
+            <div class="label">المبيعات والمشتريات</div>
+            <a href="sales.html" class="item"><i class="fas fa-chart-line"></i> المبيعات</a>
+            <a href="purchases.html" class="item"><i class="fas fa-shopping-cart"></i> المشتريات</a>
+
+            <div class="label">العملاء والموردين</div>
+            <a href="clients.html" class="item"><i class="fas fa-users"></i> العملاء</a>
+            <a href="suppliers.html" class="item"><i class="fas fa-truck"></i> الموردين</a>
+
+            <div class="label">المخزون</div>
+            <a href="materials.html" class="item"><i class="fas fa-boxes"></i> الخامات</a>
+            <a href="products.html" class="item"><i class="fas fa-cubes"></i> المنتجات</a>
+            <a href="raw-material-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المواد الخام</a>
+            <a href="finished-goods-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المنتج التام</a>
+
+            <div class="label">الإنتاج</div>
+            <a href="formulations.html" class="item"><i class="fas fa-flask"></i> التركيبات</a>
+            <a href="production-orders.html" class="item"><i class="fas fa-industry"></i> أوامر الإنتاج</a>
+            <a href="costs.html" class="item"><i class="fas fa-calculator"></i> التكاليف</a>
+
+            <div class="label">التقارير</div>
+            <a href="reports.html" class="item"><i class="fas fa-file-lines"></i> التقارير</a>
+            <a href="invoices-summary.html" class="item"><i class="fas fa-file-invoice"></i> ملخص الفواتير</a>
+
+            <div class="label">الإعدادات</div>
+            <a href="tabs-settings.html" class="item active"><i class="fas fa-tags"></i> التبويبات العامة</a>
+            <a href="settings.html" class="item"><i class="fas fa-gear"></i> الإعدادات</a>
+            <a href="help.html" class="item"><i class="fas fa-circle-question"></i> المساعدة</a>
+        </div>
+
+        <div class="footer">
+            <div class="user">
+                <div class="avatar">م</div>
+                <div class="info">
+                    <div class="name">محمد خلاف</div>
+                    <div class="role">مدير النظام</div>
+                </div>
+                <button class="logout-btn" onclick="logout()" title="تسجيل الخروج"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ============================================================
+    HEADER
+    ============================================================ -->
+    <div class="header">
+        <div class="header-left">
+            <button class="hamburger" id="openSidebar" aria-label="فتح القائمة الجانبية">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1><i class="fas fa-tags"></i> إدارة التبويبات العامة</h1>
+        </div>
+        <a href="settings.html" class="back-btn"><i class="fas fa-arrow-right"></i> العودة للإعدادات</a>
+    </div>
+
+    <!-- ============================================================
+    TOAST
+    ============================================================ -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ============================================================
+    MAIN CONTENT
+    ============================================================ -->
+    <div class="container">
 
         <!-- ===== ADD FORM ===== -->
         <div class="add-form">
@@ -485,10 +807,48 @@
 
     </div>
 
-    <!-- ===== TOAST ===== -->
-    <div class="toast-container" id="toastContainer"></div>
-
     <script>
+        // ============================================================
+        // SIDEBAR TOGGLE
+        // ============================================================
+        var sidebar = document.getElementById('sidebar');
+        var sidebarOverlay = document.getElementById('sidebarOverlay');
+        var openSidebarBtn = document.getElementById('openSidebar');
+        var closeSidebarBtn = document.getElementById('closeSidebar');
+
+        function openSidebar() {
+            sidebar.classList.add('open');
+            sidebarOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        openSidebarBtn.addEventListener('click', openSidebar);
+        closeSidebarBtn.addEventListener('click', closeSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeSidebar();
+            }
+        });
+
+        // ============================================================
+        // LOGOUT
+        // ============================================================
+        function logout() {
+            if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                localStorage.removeItem('rollex_session');
+                sessionStorage.removeItem('rollex_session');
+                window.location.href = 'login.html';
+            }
+        }
+
         // ============================================================
         // SUPABASE CONFIGURATION
         // ============================================================
@@ -835,7 +1195,6 @@
         // EDIT TAB - مع إمكانية تعديل linked_table
         // ============================================================
         async function editTab(tabId) {
-            // جلب بيانات التبويب الحالي
             var token = getToken();
             if (!token) {
                 showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'error');
@@ -859,9 +1218,8 @@
                     return;
                 }
 
-                // عرض نافذة تعديل مخصصة
                 var newName = prompt('📝 أدخل الاسم الجديد للتبويب:', tab.name);
-                if (newName === null) return; // إلغاء
+                if (newName === null) return;
                 if (!newName || newName.trim() === '') {
                     showToast('⚠️ تنبيه', 'الاسم لا يمكن أن يكون فارغاً', 'error');
                     return;
@@ -888,9 +1246,8 @@
                     linkedList,
                     currentLinked
                 );
-                if (newLinkedTable === null) return; // إلغاء
+                if (newLinkedTable === null) return;
 
-                // تحديث التبويب
                 var updateResponse = await fetch(SUPABASE_URL + '/rest/v1/general_tabs?id=eq.' + tabId, {
                     method: 'PATCH',
                     headers: {
@@ -916,13 +1273,20 @@
         }
 
         // ============================================================
+        // EXPOSE FUNCTIONS TO GLOBAL
+        // ============================================================
+        window.addGeneralTab = addGeneralTab;
+        window.deleteTab = deleteTab;
+        window.editTab = editTab;
+        window.logout = logout;
+
+        // ============================================================
         // INIT
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🏷️ إدارة التبويبات العامة - QuickData ProSoft');
             console.log('🔗 Supabase URL:', SUPABASE_URL);
 
-            // التحقق من وجود جلسة
             var token = getToken();
             if (!token) {
                 showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول للوصول إلى هذه الصفحة', 'warning');
@@ -934,11 +1298,6 @@
 
             renderTabs();
         });
-
-        // جعل الدوال عامة للاستخدام في HTML
-        window.addGeneralTab = addGeneralTab;
-        window.deleteTab = deleteTab;
-        window.editTab = editTab;
     </script>
 
 </body>
