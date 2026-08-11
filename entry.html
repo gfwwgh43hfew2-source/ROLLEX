@@ -1019,7 +1019,7 @@
     </section>
 
     <!-- ============================================================
-    JAVASCRIPT - النسخة المُعدّلة مع التبويبات العامة
+    JAVASCRIPT - النسخة المُعدّلة مع إصلاح مشكلة الجلسة
     ============================================================ -->
     <script>
         // ============================================================
@@ -1104,9 +1104,9 @@
         }
 
         // ============================================================
-        // تهيئة Supabase مع الجلسة من localStorage
+        // تهيئة Supabase مع الجلسة من localStorage - نسخة مُحسّنة
         // ============================================================
-        function initSupabaseWithSession() {
+        async function initSupabaseWithSession() {
             var session = localStorage.getItem('rollex_session');
             if (!session) {
                 console.warn('⚠️ لا توجد جلسة في localStorage');
@@ -1117,17 +1117,60 @@
                 var parsed = JSON.parse(session);
                 if (!parsed.access_token) {
                     console.warn('⚠️ لا يوجد access_token في الجلسة');
+                    // حذف الجلسة التالفة
+                    localStorage.removeItem('rollex_session');
                     return null;
                 }
 
-                // تهيئة Supabase مع التوكن
-                var { data: { session: supabaseSession }, error } = supabase.auth.setSession({
+                // التحقق من صحة التوكن مع Supabase
+                var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + parsed.access_token
+                    }
+                });
+
+                if (!response.ok) {
+                    console.warn('⚠️ التوكن غير صالح، محاولة التجديد...');
+                    
+                    // محاولة تجديد التوكن
+                    if (parsed.refresh_token) {
+                        var refreshResponse = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+                            method: 'POST',
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                refresh_token: parsed.refresh_token
+                            })
+                        });
+
+                        if (refreshResponse.ok) {
+                            var newSession = await refreshResponse.json();
+                            localStorage.setItem('rollex_session', JSON.stringify(newSession));
+                            parsed = newSession;
+                            console.log('✅ تم تجديد التوكن بنجاح');
+                        } else {
+                            console.warn('⚠️ فشل تجديد التوكن');
+                            localStorage.removeItem('rollex_session');
+                            return null;
+                        }
+                    } else {
+                        localStorage.removeItem('rollex_session');
+                        return null;
+                    }
+                }
+
+                // تهيئة Supabase مع التوكن الجديد
+                var { data: { session: supabaseSession }, error } = await supabase.auth.setSession({
                     access_token: parsed.access_token,
                     refresh_token: parsed.refresh_token
                 });
 
                 if (error) {
                     console.error('❌ فشل تهيئة الجلسة:', error);
+                    localStorage.removeItem('rollex_session');
                     return null;
                 }
 
@@ -1136,6 +1179,7 @@
 
             } catch (error) {
                 console.error('❌ خطأ في تهيئة الجلسة:', error);
+                localStorage.removeItem('rollex_session');
                 return null;
             }
         }
@@ -1171,7 +1215,7 @@
                 select.innerHTML = '<option value="">جاري التحميل...</option>';
 
                 // 1. تهيئة الجلسة من localStorage
-                var session = initSupabaseWithSession();
+                var session = await initSupabaseWithSession();
                 if (!session) {
                     select.innerHTML = '<option value="">⚠️ يرجى تسجيل الدخول</option>';
                     console.warn('⚠️ المستخدم غير مسجل الدخول');
@@ -1272,7 +1316,7 @@
         async function quickAddGeneralTab(tabName, tabType) {
             try {
                 // تهيئة الجلسة من localStorage
-                var session = initSupabaseWithSession();
+                var session = await initSupabaseWithSession();
                 if (!session) {
                     showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'error');
                     return false;
@@ -1372,7 +1416,7 @@
         // ============================================================
         async function saveToSupabase(entry) {
             // تهيئة الجلسة من localStorage
-            var session = initSupabaseWithSession();
+            var session = await initSupabaseWithSession();
             if (!session) {
                 throw new Error('❌ يرجى تسجيل الدخول أولاً');
             }
@@ -1503,7 +1547,7 @@
             }
 
             if (!type) {
-                showToast('⚠️ تحقق من 데이터', 'يرجى اختيار نوع الحركة', 'error');
+                showToast('⚠️ تحقق من البيانات', 'يرجى اختيار نوع الحركة', 'error');
                 typeSelect.focus();
                 return false;
             }
@@ -1740,12 +1784,12 @@
         })();
 
         // ============================================================
-        // TEST CONNECTION & AUTH
+        // TEST CONNECTION & AUTH - مع استقبال الجلسة
         // ============================================================
         async function testConnection() {
             try {
                 // 1. تهيئة الجلسة من localStorage
-                var session = initSupabaseWithSession();
+                var session = await initSupabaseWithSession();
                 if (!session) {
                     showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'warning');
                     return false;
@@ -1778,7 +1822,6 @@
                 }
 
                 console.log('✅ المستخدم مسجل:', userData.user.email);
-                showToast('✅ متصل', 'مرحباً ' + (userData.user.email || 'مستخدم'), 'success');
                 return true;
 
             } catch (error) {
@@ -1797,15 +1840,20 @@
             console.log('📊 جدول البيانات:', TABLE_NAME);
             console.log('💾 مفتاح التخزين المحلي:', STORAGE_KEY);
 
-            // تهيئة الجلسة أولاً
-            var session = initSupabaseWithSession();
+            // تهيئة الجلسة أولاً - مع انتظار النتيجة
+            var session = await initSupabaseWithSession();
+            
             if (!session) {
+                console.warn('⚠️ لا توجد جلسة صالحة');
                 showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'warning');
                 setTimeout(function() {
-                    window.location.href = 'login.html';
-                }, 2000);
+                    // التوجيه إلى login.html مع معامل return_url للعودة بعد تسجيل الدخول
+                    window.location.href = 'login.html?return_to=entry.html';
+                }, 1500);
                 return;
             }
+
+            console.log('✅ الجلسة صالحة، المستخدم:', session.user.email);
 
             // اختبار الاتصال
             await testConnection();
