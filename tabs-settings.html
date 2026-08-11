@@ -123,23 +123,22 @@
             border: 1px solid var(--gray-200);
             box-shadow: var(--shadow-sm);
             margin-bottom: 20px;
-            display: flex;
+            display: grid;
+            grid-template-columns: 1.5fr 0.8fr 1fr auto;
             gap: 12px;
-            flex-wrap: wrap;
-            align-items: flex-end;
+            align-items: end;
         }
 
         .add-form .form-group {
-            flex: 1;
-            min-width: 180px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         .add-form .form-group label {
-            display: block;
             font-size: 0.7rem;
             font-weight: 700;
             color: var(--gray-600);
-            margin-bottom: 4px;
         }
 
         .add-form .form-group input,
@@ -161,6 +160,16 @@
             border-color: var(--secondary);
             background: var(--white);
             box-shadow: 0 0 0 4px rgba(201, 168, 76, 0.06);
+        }
+
+        .add-form .form-group .helper-text {
+            font-size: 0.55rem;
+            color: var(--gray-400);
+            margin-top: 2px;
+        }
+
+        .add-form .form-group .helper-text i {
+            color: var(--secondary);
         }
 
         .add-form .btn-add {
@@ -204,7 +213,7 @@
 
         .tabs-list .list-header {
             display: grid;
-            grid-template-columns: 1fr 0.5fr 0.4fr;
+            grid-template-columns: 1.8fr 0.6fr 0.8fr 0.4fr;
             padding: 12px 20px;
             background: var(--gray-50);
             border-bottom: 1px solid var(--gray-200);
@@ -217,7 +226,7 @@
 
         .tab-item {
             display: grid;
-            grid-template-columns: 1fr 0.5fr 0.4fr;
+            grid-template-columns: 1.8fr 0.6fr 0.8fr 0.4fr;
             padding: 12px 20px;
             border-bottom: 1px solid var(--gray-100);
             transition: var(--transition);
@@ -236,6 +245,16 @@
             font-weight: 600;
             font-size: 0.85rem;
             color: var(--gray-800);
+        }
+
+        .tab-item .tab-linked {
+            font-size: 0.6rem;
+            color: var(--gray-400);
+        }
+
+        .tab-item .tab-linked i {
+            color: var(--secondary);
+            font-size: 0.5rem;
         }
 
         .tab-item .tab-type {
@@ -379,11 +398,22 @@
            RESPONSIVE
            ============================================================ */
         @media (max-width: 768px) {
+            .add-form {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .add-form .btn-add {
+                width: 100%;
+                justify-content: center;
+            }
             .header h1 { font-size: 1.2rem; }
-            .add-form { flex-direction: column; align-items: stretch; }
-            .add-form .form-group { min-width: 0; }
             .tabs-list .list-header { display: none; }
-            .tab-item { grid-template-columns: 1fr; gap: 6px; padding: 14px 16px; border-bottom: 1px solid var(--gray-200); }
+            .tab-item {
+                grid-template-columns: 1fr;
+                gap: 6px;
+                padding: 14px 16px;
+                border-bottom: 1px solid var(--gray-200);
+            }
             .tab-item .tab-actions { justify-content: flex-start; }
             .tab-item .tab-type { display: inline-block; }
         }
@@ -392,7 +422,6 @@
             body { padding: 12px; }
             .header { flex-direction: column; align-items: flex-start; }
             .header .back-btn { width: 100%; justify-content: center; }
-            .add-form .btn-add { width: 100%; justify-content: center; }
             .toast-container { top: 12px; right: 12px; max-width: 95%; }
         }
     </style>
@@ -421,6 +450,21 @@
                     <option value="out">صادر فقط</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label>الجدول المرتبط</label>
+                <select id="newTabLinkedTable">
+                    <option value="">غير مرتبط (إدخال يدوي)</option>
+                    <option value="clients">العملاء</option>
+                    <option value="suppliers">الموردين</option>
+                    <option value="employees">الموظفين</option>
+                    <option value="expense_types">أنواع المصروفات</option>
+                    <option value="products">المنتجات</option>
+                    <option value="projects">المشاريع</option>
+                </select>
+                <div class="helper-text">
+                    <i class="fas fa-info-circle"></i> اختيار جدول يعني أن التبويب الخاص سيظهر كقائمة منسدلة من هذا الجدول
+                </div>
+            </div>
             <button class="btn-add" onclick="addGeneralTab()">
                 <i class="fas fa-plus"></i> إضافة
             </button>
@@ -431,6 +475,7 @@
             <div class="list-header">
                 <span>اسم التبويب</span>
                 <span>النوع</span>
+                <span>مرتبط بـ</span>
                 <span style="text-align:left;">الإجراءات</span>
             </div>
             <div id="tabsContainer">
@@ -504,7 +549,7 @@
         }
 
         // ============================================================
-        // SESSION FUNCTIONS - تعريف getToken هنا
+        // SESSION FUNCTIONS
         // ============================================================
         function getSession() {
             var session = localStorage.getItem('rollex_session');
@@ -642,16 +687,30 @@
                 'out': 'out',
                 'both': 'both'
             };
+            var tableLabels = {
+                'clients': 'العملاء',
+                'suppliers': 'الموردين',
+                'employees': 'الموظفين',
+                'expense_types': 'أنواع المصروفات',
+                'products': 'المنتجات',
+                'projects': 'المشاريع'
+            };
 
             tabs.forEach(function(tab) {
                 var isSystem = tab.is_system || false;
                 var typeLabel = typeLabels[tab.type] || 'وارد وصادر';
                 var typeClass = typeClasses[tab.type] || 'both';
+                var linkedLabel = tab.linked_table ? (tableLabels[tab.linked_table] || tab.linked_table) : 'إدخال يدوي';
+                var linkedIcon = tab.linked_table ? '<i class="fas fa-link" style="font-size:0.5rem;color:var(--secondary);"></i>' : '';
 
                 html += `
                     <div class="tab-item ${isSystem ? 'system-tab' : ''}">
-                        <span class="tab-name">${tab.name}</span>
+                        <div>
+                            <span class="tab-name">${tab.name}</span>
+                            <span class="tab-linked">${linkedIcon} ${linkedLabel}</span>
+                        </div>
                         <span class="tab-type ${typeClass}">${typeLabel}</span>
+                        <span style="font-size:0.6rem;color:var(--gray-400);">${tab.linked_table || '-'}</span>
                         <div class="tab-actions">
                             <button onclick="editTab('${tab.id}')" title="تعديل">
                                 <i class="fas fa-edit"></i>
@@ -668,13 +727,16 @@
         }
 
         // ============================================================
-        // ADD GENERAL TAB
+        // ADD GENERAL TAB - مع linked_table
         // ============================================================
         async function addGeneralTab() {
             var nameInput = document.getElementById('newTabName');
             var typeInput = document.getElementById('newTabType');
+            var linkedTableInput = document.getElementById('newTabLinkedTable');
+            
             var name = nameInput.value.trim();
             var type = typeInput.value;
+            var linkedTable = linkedTableInput.value || null;
 
             if (!name) {
                 showToast('⚠️ تنبيه', 'يرجى إدخال اسم التبويب', 'error');
@@ -707,6 +769,7 @@
                         company_id: profile.company_id,
                         name: name,
                         type: type,
+                        linked_table: linkedTable,
                         is_active: true,
                         is_system: false,
                         created_by: profile.id
@@ -725,6 +788,7 @@
 
                 showToast('✅ تم الإضافة', 'تم إضافة التبويب "' + name + '" بنجاح', 'success');
                 nameInput.value = '';
+                linkedTableInput.value = '';
                 renderTabs();
 
             } catch (error) {
@@ -768,41 +832,87 @@
         }
 
         // ============================================================
-        // EDIT TAB
+        // EDIT TAB - مع إمكانية تعديل linked_table
         // ============================================================
-        function editTab(tabId) {
-            var newName = prompt('📝 أدخل الاسم الجديد للتبويب:');
-            if (!newName || newName.trim() === '') return;
-
+        async function editTab(tabId) {
+            // جلب بيانات التبويب الحالي
             var token = getToken();
             if (!token) {
                 showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'error');
                 return;
             }
 
-            fetch(SUPABASE_URL + '/rest/v1/general_tabs?id=eq.' + tabId, {
-                method: 'PATCH',
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    name: newName.trim()
-                })
-            })
-            .then(function(response) {
-                if (!response.ok) throw new Error('فشل التعديل');
-                return response.json();
-            })
-            .then(function() {
-                showToast('✅ تم التعديل', 'تم تحديث اسم التبويب بنجاح', 'success');
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/general_tabs?id=eq.' + tabId, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!response.ok) throw new Error('فشل جلب بيانات التبويب');
+                var data = await response.json();
+                var tab = data && data.length > 0 ? data[0] : null;
+
+                if (!tab) {
+                    showToast('❌ خطأ', 'التبويب غير موجود', 'error');
+                    return;
+                }
+
+                // عرض نافذة تعديل مخصصة
+                var newName = prompt('📝 أدخل الاسم الجديد للتبويب:', tab.name);
+                if (newName === null) return; // إلغاء
+                if (!newName || newName.trim() === '') {
+                    showToast('⚠️ تنبيه', 'الاسم لا يمكن أن يكون فارغاً', 'error');
+                    return;
+                }
+
+                var currentLinked = tab.linked_table || '';
+                var linkedOptions = [
+                    { value: '', label: 'غير مرتبط (إدخال يدوي)' },
+                    { value: 'clients', label: 'العملاء' },
+                    { value: 'suppliers', label: 'الموردين' },
+                    { value: 'employees', label: 'الموظفين' },
+                    { value: 'expense_types', label: 'أنواع المصروفات' },
+                    { value: 'products', label: 'المنتجات' },
+                    { value: 'projects', label: 'المشاريع' }
+                ];
+
+                var linkedList = linkedOptions.map(function(opt) {
+                    var selected = opt.value === currentLinked ? '✅ ' : '';
+                    return selected + opt.value + ' (' + opt.label + ')';
+                }).join('\n');
+
+                var newLinkedTable = prompt(
+                    '🔗 اختر الجدول المرتبط (انسخ الاسم بدقة):\n' +
+                    linkedList,
+                    currentLinked
+                );
+                if (newLinkedTable === null) return; // إلغاء
+
+                // تحديث التبويب
+                var updateResponse = await fetch(SUPABASE_URL + '/rest/v1/general_tabs?id=eq.' + tabId, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: newName.trim(),
+                        linked_table: newLinkedTable.trim() || null
+                    })
+                });
+
+                if (!updateResponse.ok) throw new Error('فشل التعديل');
+
+                showToast('✅ تم التعديل', 'تم تحديث التبويب بنجاح', 'success');
                 renderTabs();
-            })
-            .catch(function(error) {
+
+            } catch (error) {
                 console.error('❌ خطأ في التعديل:', error);
                 showToast('❌ خطأ', error.message || 'فشل تعديل التبويب', 'error');
-            });
+            }
         }
 
         // ============================================================
