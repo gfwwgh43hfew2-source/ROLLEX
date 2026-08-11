@@ -1145,7 +1145,7 @@
         }
 
         // ============================================================
-        // INSERT CLIENT TO SUPABASE
+        // INSERT CLIENT TO SUPABASE - مع UUID التلقائي
         // ============================================================
         async function insertClient(clientData) {
             var token = getToken();
@@ -1187,6 +1187,8 @@
                 open_statement: clientData.open_statement || ''
             };
 
+            console.log('📤 البيانات المرسلة:', payload);
+
             var response = await fetch(SUPABASE_URL + '/rest/v1/clients', {
                 method: 'POST',
                 headers: {
@@ -1198,12 +1200,38 @@
                 body: JSON.stringify(payload)
             });
 
+            var responseText = await response.text();
+
             if (!response.ok) {
-                var errorData = await response.text();
-                throw new Error('فشل إضافة العميل: ' + errorData);
+                console.error('❌ استجابة Supabase:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: responseText
+                });
+
+                var errorMessage = 'HTTP ' + response.status;
+                try {
+                    var errorJson = JSON.parse(responseText);
+                    if (errorJson.message) {
+                        errorMessage += ': ' + errorJson.message;
+                    }
+                    if (errorJson.details) {
+                        errorMessage += ' (تفاصيل: ' + errorJson.details + ')';
+                    }
+                } catch (e) {
+                    if (responseText) {
+                        errorMessage += ': ' + responseText.substring(0, 200);
+                    }
+                }
+
+                throw new Error(errorMessage);
             }
 
-            return await response.json();
+            try {
+                return JSON.parse(responseText);
+            } catch (e) {
+                return responseText;
+            }
         }
 
         // ============================================================
