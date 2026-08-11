@@ -663,14 +663,88 @@
         }
 
         /* ============================================================
-           RESPONSIVE
+           CLIENT SUGGESTIONS
            ============================================================ */
-        @media (max-width: 992px) {
-            .form-grid {
-                gap: 14px 20px;
-            }
+        .client-suggestions-container {
+            position: relative;
+            width: 100%;
         }
 
+        .client-suggestions {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            left: 0;
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 999;
+            display: none;
+            box-shadow: var(--shadow-lg);
+            margin-top: 2px;
+        }
+
+        .client-suggestions.show {
+            display: block;
+        }
+
+        .client-suggestions .suggestion-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--gray-100);
+            font-size: 0.85rem;
+        }
+
+        .client-suggestions .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .client-suggestions .suggestion-item:hover {
+            background: var(--gray-50);
+        }
+
+        .client-suggestions .suggestion-item.selected {
+            background: rgba(201, 168, 76, 0.08);
+            border-right: 3px solid var(--secondary);
+        }
+
+        .client-suggestions .suggestion-item .client-phone {
+            font-size: 0.65rem;
+            color: var(--gray-500);
+        }
+
+        .client-suggestions .suggestion-item.add-new {
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .client-suggestions .suggestion-item.add-new i {
+            margin-left: 6px;
+        }
+
+        .client-suggestions .loading-suggestions {
+            padding: 12px 14px;
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 0.75rem;
+        }
+
+        .client-suggestions .no-results {
+            padding: 12px 14px;
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 0.75rem;
+        }
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
         @media (max-width: 768px) {
             .container {
                 padding: 0 12px;
@@ -972,16 +1046,16 @@
                             </div>
                         </div>
 
-                        <!-- ===== التبويب الخاص ===== -->
+                        <!-- ===== التبويب الخاص مع اقتراحات العملاء ===== -->
                         <div class="form-group">
                             <label for="entryPrivateTab">
                                 <i class="fas fa-folder"></i>
                                 التبويب الخاص
                                 <span class="required">*</span>
                             </label>
-                            <div id="privateTabWrapper">
-                                <!-- سيتم استبدال هذا الحقل ديناميكياً -->
-                                <input type="text" id="entryPrivateTab" placeholder="مثال: العميل محمد" required />
+                            <div class="client-suggestions-container">
+                                <input type="text" id="entryPrivateTab" placeholder="ابحث عن عميل..." required autocomplete="off" />
+                                <div class="client-suggestions" id="clientSuggestions"></div>
                             </div>
                         </div>
 
@@ -1022,7 +1096,7 @@
     </section>
 
     <!-- ============================================================
-    JAVASCRIPT - النسخة المُعدّلة مع دعم اقتراحات العملاء
+    JAVASCRIPT - النسخة المُعدّلة مع اقتراحات العملاء
     ============================================================ -->
     <script>
         // ============================================================
@@ -1050,14 +1124,18 @@
         var incomingInput = document.getElementById('entryIncoming');
         var outgoingInput = document.getElementById('entryOutgoing');
         var generalTabSelect = document.getElementById('entryGeneralTab');
-        var privateTabWrapper = document.getElementById('privateTabWrapper');
         var privateTabInput = document.getElementById('entryPrivateTab');
+        var clientSuggestions = document.getElementById('clientSuggestions');
         var notesInput = document.getElementById('entryNotes');
         var editIndexInput = document.getElementById('editIndex');
         var submitBtn = document.getElementById('submitBtn');
         var resetBtn = document.getElementById('resetBtn');
         var descCounter = document.getElementById('descCounter');
         var notesCounter = document.getElementById('notesCounter');
+
+        var clientsList = [];
+        var selectedClientId = null;
+        var selectedSuggestionIndex = -1;
 
         // ============================================================
         // TOAST SYSTEM
@@ -1108,7 +1186,214 @@
         }
 
         // ============================================================
-        // تهيئة Supabase مع الجلسة من localStorage - نسخة مُحسّنة
+        // جلب العملاء من Supabase
+        // ============================================================
+        async function loadClients() {
+            try {
+                var session = await initSupabaseWithSession();
+                if (!session) return;
+
+                var token = session.access_token;
+
+                var { data: userData } = await supabase.auth.getUser();
+                if (!userData?.user) return;
+
+                var { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('company_id')
+                    .eq('id', userData.user.id)
+                    .single();
+
+                if (!profileData) return;
+
+                var response = await fetch(SUPABASE_URL + '/rest/v1/clients?select=id,name,phone,code&company_id=eq.' + profileData.company_id + '&status=eq.نشط&order=name.asc', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!response.ok) return;
+
+                clientsList = await response.json();
+                console.log('✅ تم جلب العملاء:', clientsList.length);
+
+            } catch (error) {
+                console.error('❌ خطأ في جلب العملاء:', error);
+            }
+        }
+
+        // ============================================================
+        // عرض اقتراحات العملاء
+        // ============================================================
+        function showClientSuggestions(searchTerm) {
+            var input = searchTerm.trim().toLowerCase();
+
+            if (!input || input.length < 1) {
+                clientSuggestions.classList.remove('show');
+                selectedSuggestionIndex = -1;
+                return;
+            }
+
+            var filtered = clientsList.filter(function(client) {
+                return client.name.toLowerCase().includes(input) ||
+                    (client.phone && client.phone.includes(input));
+            });
+
+            var results = filtered.slice(0, 10);
+
+            if (results.length === 0) {
+                clientSuggestions.innerHTML = `
+                            <div class="suggestion-item add-new" onclick="openAddClientModal('${input}')">
+                                <span><i class="fas fa-plus-circle"></i> إضافة عميل جديد: "${input}"</span>
+                            </div>
+                            <div class="no-results">لا توجد نتائج مطابقة</div>
+                        `;
+                clientSuggestions.classList.add('show');
+                selectedSuggestionIndex = -1;
+                return;
+            }
+
+            var html = '';
+            results.forEach(function(client, index) {
+                html += `
+                            <div class="suggestion-item" onclick="selectClient('${client.id}', '${client.name}', '${client.phone || ''}')" data-index="${index}">
+                                <span>${client.name}</span>
+                                ${client.phone ? `<span class="client-phone">📱 ${client.phone}</span>` : ''}
+                            </div>
+                        `;
+            });
+
+            html += `
+                        <div class="suggestion-item add-new" onclick="openAddClientModal('${input}')">
+                            <span><i class="fas fa-plus-circle"></i> إضافة عميل جديد</span>
+                        </div>
+                    `;
+
+            clientSuggestions.innerHTML = html;
+            clientSuggestions.classList.add('show');
+            selectedSuggestionIndex = -1;
+            updateSuggestionHighlight();
+        }
+
+        // ============================================================
+        // تحديث تمييز الاقتراح المحدد
+        // ============================================================
+        function updateSuggestionHighlight() {
+            var items = clientSuggestions.querySelectorAll('.suggestion-item');
+            items.forEach(function(item, index) {
+                item.classList.remove('selected');
+                if (index === selectedSuggestionIndex) {
+                    item.classList.add('selected');
+                    item.scrollIntoView({ block: 'nearest' });
+                }
+            });
+        }
+
+        // ============================================================
+        // اختيار عميل
+        // ============================================================
+        function selectClient(id, name, phone) {
+            privateTabInput.value = name;
+            selectedClientId = id;
+            clientSuggestions.classList.remove('show');
+            selectedSuggestionIndex = -1;
+
+            // تغيير لون الحقل مؤقتاً للتأكيد
+            privateTabInput.style.borderColor = 'var(--success)';
+            setTimeout(function() {
+                privateTabInput.style.borderColor = '';
+            }, 2000);
+        }
+
+        // ============================================================
+        // فتح نافذة إضافة عميل جديد
+        // ============================================================
+        function openAddClientModal(initialName) {
+            var name = initialName || '';
+            var newName = prompt('📝 أدخل اسم العميل الجديد:', name || '');
+            if (!newName) return;
+
+            var newPhone = prompt('📞 أدخل رقم الجوال (اختياري):', '');
+            if (newPhone === null) return;
+
+            addNewClient(newName.trim(), newPhone ? newPhone.trim() : '');
+        }
+
+        // ============================================================
+        // إضافة عميل جديد
+        // ============================================================
+        async function addNewClient(name, phone) {
+            if (!name || name.trim() === '') {
+                showToast('⚠️ تنبيه', 'يرجى إدخال اسم العميل', 'error');
+                return;
+            }
+
+            try {
+                var session = await initSupabaseWithSession();
+                if (!session) {
+                    showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'error');
+                    return;
+                }
+
+                var token = session.access_token;
+
+                var { data: userData } = await supabase.auth.getUser();
+                if (!userData?.user) return;
+
+                var { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('company_id')
+                    .eq('id', userData.user.id)
+                    .single();
+
+                if (!profileData) return;
+
+                var code = 'C' + String(Date.now()).slice(-6);
+
+                var response = await fetch(SUPABASE_URL + '/rest/v1/clients', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({
+                        company_id: profileData.company_id,
+                        user_id: userData.user.id,
+                        name: name,
+                        phone: phone || '',
+                        code: code,
+                        status: 'نشط',
+                        opening_balance: 0,
+                        credit_limit: 0
+                    })
+                });
+
+                if (!response.ok) {
+                    var errorData = await response.text();
+                    throw new Error('فشل إضافة العميل: ' + errorData);
+                }
+
+                var newClient = await response.json();
+                clientsList.push(newClient[0] || newClient);
+
+                selectClient(newClient[0]?.id || newClient.id, name, phone || '');
+
+                showToast('✅ تم الإضافة', 'تم إضافة العميل "' + name + '" بنجاح', 'success');
+
+                // إعادة تحميل العملاء
+                await loadClients();
+
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                showToast('❌ خطأ', error.message || 'فشل إضافة العميل', 'error');
+            }
+        }
+
+        // ============================================================
+        // تهيئة Supabase مع الجلسة من localStorage
         // ============================================================
         async function initSupabaseWithSession() {
             var session = localStorage.getItem('rollex_session');
@@ -1278,7 +1563,6 @@
                     return;
                 }
 
-                // حفظ التبويبات مع linked_table للاستخدام لاحقاً
                 window.generalTabsData = tabsData;
 
                 tabsData.forEach(function(tab) {
@@ -1306,161 +1590,6 @@
                 console.error('❌ خطأ في تحميل التبويبات:', error);
                 var select = generalTabSelect;
                 select.innerHTML = '<option value="">⚠️ حدث خطأ</option>';
-            }
-        }
-
-        // ============================================================
-        // جلب أسماء العملاء من Supabase
-        // ============================================================
-        async function getClients() {
-            var session = await initSupabaseWithSession();
-            if (!session) return [];
-
-            var token = session.access_token;
-
-            try {
-                var { data: userData } = await supabase.auth.getUser();
-                if (!userData?.user) return [];
-
-                var { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('company_id')
-                    .eq('id', userData.user.id)
-                    .single();
-
-                if (!profileData) return [];
-
-                var response = await fetch(SUPABASE_URL + '/rest/v1/clients?select=id,name,code&company_id=eq.' + profileData.company_id + '&status=eq.نشط&order=code.asc', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!response.ok) return [];
-                return await response.json();
-
-            } catch (error) {
-                console.error('❌ خطأ في جلب العملاء:', error);
-                return [];
-            }
-        }
-
-        // ============================================================
-        // تحديث التبويب الخاص عند تغيير التبويب العام
-        // ============================================================
-        async function updatePrivateTabOptions() {
-            var generalTab = generalTabSelect.value;
-
-            if (!generalTab || generalTab === '__add_new__') {
-                // إعادة تعيين التبويب الخاص إلى input عادي
-                if (privateTabInput.tagName === 'SELECT') {
-                    var newInput = document.createElement('input');
-                    newInput.type = 'text';
-                    newInput.id = 'entryPrivateTab';
-                    newInput.name = 'entryPrivateTab';
-                    newInput.placeholder = 'مثال: العميل محمد';
-                    newInput.required = true;
-                    newInput.className = 'form-control';
-                    newInput.style.width = '100%';
-                    newInput.style.padding = '10px 14px';
-                    newInput.style.borderRadius = 'var(--radius-sm)';
-                    newInput.style.border = '1.5px solid var(--gray-200)';
-                    newInput.style.fontSize = '0.85rem';
-                    newInput.style.fontFamily = 'var(--font)';
-                    newInput.style.transition = 'var(--transition)';
-                    newInput.style.background = 'var(--gray-50)';
-                    newInput.style.color = 'var(--gray-900)';
-                    newInput.style.outline = 'none';
-
-                    privateTabWrapper.innerHTML = '';
-                    privateTabWrapper.appendChild(newInput);
-                    privateTabInput = newInput;
-                }
-                return;
-            }
-
-            // جلب linked_table من التبويب المختار
-            var selectedOption = generalTabSelect.options[generalTabSelect.selectedIndex];
-            var linkedTable = selectedOption ? selectedOption.dataset.linkedTable : '';
-
-            // إذا كان التبويب مرتبطاً بجدول العملاء
-            if (linkedTable === 'clients') {
-                var clients = await getClients();
-
-                var select = document.createElement('select');
-                select.id = 'entryPrivateTab';
-                select.name = 'entryPrivateTab';
-                select.className = 'form-control private-tab-select';
-                select.required = true;
-                select.style.width = '100%';
-                select.style.padding = '10px 14px';
-                select.style.borderRadius = 'var(--radius-sm)';
-                select.style.border = '1.5px solid var(--gray-200)';
-                select.style.fontSize = '0.85rem';
-                select.style.fontFamily = 'var(--font)';
-                select.style.transition = 'var(--transition)';
-                select.style.background = 'var(--gray-50)';
-                select.style.color = 'var(--gray-900)';
-                select.style.outline = 'none';
-                select.style.appearance = 'none';
-                select.style.webkitAppearance = 'none';
-                select.style.backgroundImage = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238a96a8\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")';
-                select.style.backgroundRepeat = 'no-repeat';
-                select.style.backgroundPosition = 'left 12px center';
-                select.style.backgroundSize = '14px';
-                select.style.cursor = 'pointer';
-                select.style.paddingLeft = '36px';
-
-                var defaultOption = document.createElement('option');
-                defaultOption.value = '';
-                defaultOption.textContent = 'اختر العميل...';
-                select.appendChild(defaultOption);
-
-                if (clients && clients.length > 0) {
-                    clients.forEach(function(client) {
-                        var option = document.createElement('option');
-                        option.value = client.name;
-                        option.textContent = client.code ? client.code + ' - ' + client.name : client.name;
-                        select.appendChild(option);
-                    });
-                } else {
-                    var emptyOption = document.createElement('option');
-                    emptyOption.value = '';
-                    emptyOption.textContent = '⚠️ لا يوجد عملاء';
-                    emptyOption.disabled = true;
-                    select.appendChild(emptyOption);
-                }
-
-                privateTabWrapper.innerHTML = '';
-                privateTabWrapper.appendChild(select);
-                privateTabInput = select;
-
-            } else {
-                // إذا كان الإدخال يدوياً، نعيد input عادي
-                if (privateTabInput.tagName === 'SELECT') {
-                    var newInput = document.createElement('input');
-                    newInput.type = 'text';
-                    newInput.id = 'entryPrivateTab';
-                    newInput.name = 'entryPrivateTab';
-                    newInput.placeholder = 'مثال: ' + (generalTab || 'التبويب الخاص');
-                    newInput.required = true;
-                    newInput.className = 'form-control';
-                    newInput.style.width = '100%';
-                    newInput.style.padding = '10px 14px';
-                    newInput.style.borderRadius = 'var(--radius-sm)';
-                    newInput.style.border = '1.5px solid var(--gray-200)';
-                    newInput.style.fontSize = '0.85rem';
-                    newInput.style.fontFamily = 'var(--font)';
-                    newInput.style.transition = 'var(--transition)';
-                    newInput.style.background = 'var(--gray-50)';
-                    newInput.style.color = 'var(--gray-900)';
-                    newInput.style.outline = 'none';
-
-                    privateTabWrapper.innerHTML = '';
-                    privateTabWrapper.appendChild(newInput);
-                    privateTabInput = newInput;
-                }
             }
         }
 
@@ -1556,19 +1685,14 @@
                 var success = await quickAddGeneralTab(tabName.trim(), selectedType);
                 if (success) {
                     this.value = tabName.trim();
-                    // تحديث التبويب الخاص بعد إضافة التبويب
-                    await updatePrivateTabOptions();
                 } else {
                     this.value = '';
                 }
-            } else {
-                // تحديث التبويب الخاص عند تغيير التبويب العام
-                await updatePrivateTabOptions();
             }
         });
 
         // ============================================================
-        // SAVE TO SUPABASE - مع user_id والتبويبات
+        // SAVE TO SUPABASE
         // ============================================================
         async function saveToSupabase(entry) {
             var session = await initSupabaseWithSession();
@@ -1661,34 +1785,8 @@
             incomingInput.style.opacity = '1';
             outgoingInput.style.opacity = '1';
             generalTabSelect.value = '';
-
-            // إعادة تعيين التبويب الخاص إلى input عادي
-            if (privateTabInput.tagName === 'SELECT') {
-                var newInput = document.createElement('input');
-                newInput.type = 'text';
-                newInput.id = 'entryPrivateTab';
-                newInput.name = 'entryPrivateTab';
-                newInput.placeholder = 'مثال: العميل محمد';
-                newInput.required = true;
-                newInput.className = 'form-control';
-                newInput.style.width = '100%';
-                newInput.style.padding = '10px 14px';
-                newInput.style.borderRadius = 'var(--radius-sm)';
-                newInput.style.border = '1.5px solid var(--gray-200)';
-                newInput.style.fontSize = '0.85rem';
-                newInput.style.fontFamily = 'var(--font)';
-                newInput.style.transition = 'var(--transition)';
-                newInput.style.background = 'var(--gray-50)';
-                newInput.style.color = 'var(--gray-900)';
-                newInput.style.outline = 'none';
-
-                privateTabWrapper.innerHTML = '';
-                privateTabWrapper.appendChild(newInput);
-                privateTabInput = newInput;
-            } else {
-                privateTabInput.value = '';
-            }
-
+            privateTabInput.value = '';
+            selectedClientId = null;
             notesInput.value = '';
             editIndexInput.value = '-1';
 
@@ -1891,6 +1989,9 @@
             }
 
             if (event.key === 'Escape') {
+                clientSuggestions.classList.remove('show');
+                selectedSuggestionIndex = -1;
+
                 var activeElement = document.activeElement;
                 if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'SELECT' ||
                         activeElement.tagName === 'TEXTAREA')) {
@@ -2032,19 +2133,82 @@
 
             await testConnection();
             await loadGeneralTabs();
-
-            // تحديث التبويب الخاص بعد تحميل التبويبات
-            setTimeout(function() {
-                if (generalTabSelect.value && generalTabSelect.value !== '__add_new__') {
-                    updatePrivateTabOptions();
-                }
-            }, 100);
+            await loadClients();
 
             setTimeout(function() {
                 showToast('👋 مرحباً', 'نموذج إدخال الخزينة الرئيسية جاهز للاستخدام', 'success');
             }, 1000);
         }
 
+        // ============================================================
+        // CLIENT SUGGESTIONS EVENTS
+        // ============================================================
+        privateTabInput.addEventListener('input', function() {
+            var value = this.value.trim();
+            if (value.length >= 1) {
+                showClientSuggestions(value);
+            } else {
+                clientSuggestions.classList.remove('show');
+                selectedClientId = null;
+                selectedSuggestionIndex = -1;
+            }
+        });
+
+        privateTabInput.addEventListener('keydown', function(e) {
+            var items = clientSuggestions.querySelectorAll('.suggestion-item');
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, items.length - 1);
+                    updateSuggestionHighlight();
+                }
+            }
+
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, 0);
+                    updateSuggestionHighlight();
+                }
+            }
+
+            if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
+                e.preventDefault();
+                var selectedItem = items[selectedSuggestionIndex];
+                if (selectedItem) {
+                    selectedItem.click();
+                }
+            }
+
+            if (e.key === 'Escape') {
+                clientSuggestions.classList.remove('show');
+                selectedSuggestionIndex = -1;
+            }
+        });
+
+        privateTabInput.addEventListener('blur', function() {
+            setTimeout(function() {
+                if (!document.activeElement || !document.activeElement.closest('.client-suggestions-container')) {
+                    clientSuggestions.classList.remove('show');
+                    selectedSuggestionIndex = -1;
+                }
+            }, 200);
+        });
+
+        document.addEventListener('click', function(e) {
+            var container = document.querySelector('.client-suggestions-container');
+            if (container && !container.contains(e.target)) {
+                clientSuggestions.classList.remove('show');
+                selectedSuggestionIndex = -1;
+            }
+        });
+
+        // جعل الدوال عامة للاستخدام في HTML
+        window.openAddClientModal = openAddClientModal;
+        window.selectClient = selectClient;
+
+        // بدء التهيئة
         document.addEventListener('DOMContentLoaded', initPage);
     </script>
 
