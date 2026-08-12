@@ -1580,7 +1580,7 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- ============================================================
-    JAVASCRIPT - مع إصلاحات الجلسة
+    JAVASCRIPT - مع إصلاحات الجلسة ومراقبة انتهاء الصلاحية
     ============================================================ -->
     <script>
         // ============================================================
@@ -1609,10 +1609,15 @@
         });
 
         // ============================================================
-        // LOGOUT
+        // LOGOUT - مع إيقاف مراقبة الجلسة
         // ============================================================
         function logout() {
             if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                // إيقاف مراقبة الجلسة
+                if (monitorInterval) {
+                    clearInterval(monitorInterval);
+                    monitorInterval = null;
+                }
                 localStorage.removeItem('rollex_session');
                 sessionStorage.removeItem('rollex_session');
                 window.location.href = 'login.html';
@@ -1662,7 +1667,7 @@
         }
 
         // ============================================================
-        // SESSION - محسّن
+        // SESSION - محسّن مع مراقبة الانتهاء
         // ============================================================
         function getSession() {
             var s = localStorage.getItem('rollex_session');
@@ -1692,8 +1697,146 @@
             }
         }
 
-        // إعادة توجيه لتسجيل الدخول
+        // ============================================================
+        // SESSION EXPIRY WARNING - تحذير قبل انتهاء الجلسة
+        // ============================================================
+        var monitorInterval = null;
+        var warningShown = false;
+        var warningShown2 = false;
+        var warningShown3 = false;
+
+        // دالة لحساب الوقت المتبقي للجلسة
+        function getSessionExpiryTime() {
+            var session = getSession();
+            if (!session) return null;
+            
+            // محاولة استخراج وقت الانتهاء من session
+            if (session.expires_at) {
+                return session.expires_at;
+            }
+            
+            // إذا كان موجود created_at نحسب الوقت
+            if (session.created_at) {
+                return new Date(session.created_at).getTime() + (60 * 60 * 1000);
+            }
+            
+            // إذا كان موجود access_token نحاول استخراج الوقت منه
+            if (session.access_token) {
+                try {
+                    // فك تشفير JWT للحصول على وقت الانتهاء
+                    var parts = session.access_token.split('.');
+                    if (parts.length === 3) {
+                        var payload = JSON.parse(atob(parts[1]));
+                        if (payload.exp) {
+                            return payload.exp * 1000; // تحويل من ثواني إلى مللي ثانية
+                        }
+                    }
+                } catch(e) {
+                    console.warn('⚠️ تعذر فك تشفير التوكن:', e);
+                }
+            }
+            
+            return null;
+        }
+
+        // دالة للتحقق من الوقت المتبقي وعرض تحذير
+        function checkSessionExpiry() {
+            var expiryTime = getSessionExpiryTime();
+            if (!expiryTime) return true;
+            
+            var now = Date.now();
+            var timeLeft = expiryTime - now;
+            var minutesLeft = Math.floor(timeLeft / (60 * 1000));
+            var secondsLeft = Math.floor((timeLeft % (60 * 1000)) / 1000);
+            
+            // إذا كانت الجلسة منتهية بالفعل
+            if (timeLeft <= 0) {
+                showToast('⚠️ انتهت الجلسة', 'جلسة العمل منتهية، يرجى تسجيل الدخول مجدداً', 'error');
+                redirectToLogin();
+                return false;
+            }
+            
+            // عرض تحذير عند 5 دقائق متبقية
+            if (timeLeft < 300000 && timeLeft > 240000 && !warningShown) {
+                warningShown = true;
+                showToast(
+                    '⏳ تنبيه هام',
+                    `جلسة العمل ستنتهي خلال ${minutesLeft} دقيقة، يرجى حفظ عملك`,
+                    'warning'
+                );
+                return true;
+            }
+            
+            // عرض تحذير عند 3 دقائق متبقية
+            if (timeLeft < 180000 && timeLeft > 120000 && !warningShown2) {
+                warningShown2 = true;
+                showToast(
+                    '⏳ تنبيه عاجل',
+                    `جلسة العمل ستنتهي خلال ${minutesLeft} دقائق!`,
+                    'warning'
+                );
+                return true;
+            }
+            
+            // عرض تحذير عند دقيقة واحدة متبقية
+            if (timeLeft < 60000 && timeLeft > 30000 && !warningShown3) {
+                warningShown3 = true;
+                showToast(
+                    '⏳ تنبيه أخير',
+                    `جلسة العمل ستنتهي خلال ${secondsLeft} ثانية!`,
+                    'error'
+                );
+                return true;
+            }
+            
+            // تحديث الوقت المتبقي في console كل دقيقة
+            if (minutesLeft > 0 && secondsLeft === 0) {
+                console.log(`⏳ الوقت المتبقي للجلسة: ${minutesLeft} دقيقة`);
+            }
+            
+            return true;
+        }
+
+        // دالة لبدء مراقبة الجلسة
+        function startSessionMonitor() {
+            // إعادة تعيين المتغيرات
+            warningShown = false;
+            warningShown2 = false;
+            warningShown3 = false;
+            
+            // إيقاف المراقبة السابقة إن وجدت
+            if (monitorInterval) {
+                clearInterval(monitorInterval);
+                monitorInterval = null;
+            }
+            
+            // التحقق فوراً عند بدء التشغيل
+            setTimeout(function() {
+                checkSessionExpiry();
+            }, 2000);
+            
+            // التحقق كل 15 ثانية
+            monitorInterval = setInterval(function() {
+                var isValid = checkSessionExpiry();
+                if (!isValid && monitorInterval) {
+                    clearInterval(monitorInterval);
+                    monitorInterval = null;
+                }
+            }, 15000); // كل 15 ثانية للحصول على تحديث دقيق
+            
+            console.log('✅ بدأ مراقبة الجلسة - سيتم عرض تحذير قبل 5 دقائق من الانتهاء');
+        }
+
+        // ============================================================
+        // إعادة توجيه لتسجيل الدخول - مع إيقاف المراقبة
+        // ============================================================
         function redirectToLogin() {
+            // إيقاف مراقبة الجلسة
+            if (monitorInterval) {
+                clearInterval(monitorInterval);
+                monitorInterval = null;
+            }
+            
             localStorage.removeItem('rollex_session');
             sessionStorage.removeItem('rollex_session');
             showToast('⚠️ جلسة منتهية', 'يرجى تسجيل الدخول مجدداً', 'warning');
@@ -2152,7 +2295,7 @@
         window.logout = logout;
 
         // ============================================================
-        // INIT
+        // INIT - مع مراقبة الجلسة
         // ============================================================
         (async function init() {
             console.log('👤 صفحة بيانات العملاء - QuickData ProSoft');
@@ -2172,6 +2315,10 @@
             }
 
             await loadData();
+            
+            // ✅ بدء مراقبة الجلسة وعرض التحذيرات
+            startSessionMonitor();
+            
             // تحديث تلقائي كل 30 ثانية
             setInterval(loadData, 30000);
         })();
