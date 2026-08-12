@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>بيانات العملاء - QuickData ProSoft</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
@@ -1225,6 +1225,141 @@
         }
 
         /* ============================================================
+           FILTERS TOGGLE (mobile only)
+           ============================================================ */
+        .filters-toggle {
+            display: none;
+            width: 100%;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 16px;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-family: var(--font);
+            font-weight: 700;
+            font-size: 0.78rem;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 12px;
+            min-height: 44px;
+        }
+        .filters-toggle span { display: inline-flex; align-items: center; gap: 8px; }
+        .filters-toggle span i { color: var(--gold); }
+        .filters-toggle .toggle-icon { transition: transform 0.25s ease; color: var(--text-light); }
+        .filters-toggle.active .toggle-icon { transform: rotate(180deg); }
+        .filters-toggle .active-dot {
+            display: none;
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--gold); margin-inline-start: 6px;
+        }
+        .filters-toggle.has-filters .active-dot { display: inline-block; }
+
+        /* ============================================================
+           CLIENT CARDS (mobile list — replaces table on small screens)
+           ============================================================ */
+        .client-cards { display: none; flex-direction: column; gap: 12px; }
+        .client-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            padding: 14px 16px;
+            transition: var(--transition);
+        }
+        .client-card:active { background: var(--bg-card-hover); }
+        .cc-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .cc-name-wrap { min-width: 0; }
+        .cc-name-wrap .code-cell { margin-bottom: 6px; font-size: 0.62rem; padding: 2px 9px; }
+        .cc-name {
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            overflow-wrap: anywhere;
+        }
+        .cc-body {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            padding: 10px 0;
+            border-top: 1px dashed var(--border-color);
+            border-bottom: 1px dashed var(--border-color);
+            margin-bottom: 10px;
+        }
+        .cc-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 0.72rem;
+        }
+        .cc-row .cc-label {
+            color: var(--text-light);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .cc-row .cc-label i { color: var(--gold); width: 12px; text-align: center; }
+        .cc-row .cc-value {
+            color: var(--text-secondary);
+            font-weight: 700;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .cc-call {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--success-bg);
+            color: var(--success);
+            flex-shrink: 0;
+            font-size: 0.7rem;
+        }
+        .cc-footer {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .cc-stat {
+            background: var(--bg-primary);
+            border-radius: var(--radius-md);
+            padding: 7px 8px;
+            text-align: center;
+        }
+        .cc-stat span { display: block; font-size: 0.55rem; color: var(--text-light); font-weight: 700; margin-bottom: 3px; }
+        .cc-stat b { font-size: 0.72rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+        .cc-balance {
+            grid-column: 1 / -1;
+            background: var(--gold-glow);
+            border: 1px solid rgba(179,129,58,0.16);
+            border-radius: var(--radius-md);
+            padding: 9px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 2px;
+        }
+        .cc-balance span { font-size: 0.62rem; color: var(--text-muted); font-weight: 700; }
+        .cc-balance b { font-size: 0.9rem; font-weight: 800; color: var(--gold-dark); font-variant-numeric: tabular-nums; }
+        .cc-balance.negative b { color: var(--danger); }
+        .cc-balance.positive b { color: var(--success); }
+
+        /* ============================================================
            RESPONSIVE
            ============================================================ */
         @media (max-width: 1024px) {
@@ -1248,31 +1383,45 @@
             }
             .page-header h1 { font-size: 1.1rem; }
             .page-header .subtitle { font-size: 0.65rem; }
-            .page-header .actions .btn-action {
-                flex: 1;
-                min-width: 80px;
-                justify-content: center;
-                padding: 7px 12px;
-                font-size: 0.65rem;
+            .page-header .actions {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
             }
-            .page-header .actions .btn-action span { display: none; }
+            .page-header .actions .btn-action {
+                justify-content: center;
+                padding: 11px 12px;
+                font-size: 0.68rem;
+                min-height: 44px;
+            }
+            .page-header .actions .btn-action.primary {
+                grid-column: 1 / -1;
+            }
+            .page-header .actions .btn-action span { display: inline; }
 
+            /* Filters collapse behind a toggle button to save vertical space */
+            .filters-toggle { display: flex; }
             .filters-section {
                 flex-direction: column;
                 align-items: stretch;
                 padding: 14px 16px;
-                gap: 10px;
+                gap: 12px;
+                display: none;
             }
+            .filters-section.mobile-open { display: flex; }
             .filters-section .filter-group { min-width: unset; }
+            .filters-section .filter-group label { font-size: 0.7rem; }
             .filters-section .filter-group input,
             .filters-section .filter-group select {
-                font-size: 0.72rem;
-                padding: 7px 12px;
+                font-size: 16px; /* prevents iOS Safari auto-zoom on focus */
+                padding: 10px 12px;
+                min-height: 44px;
             }
             .btn-filter, .btn-reset {
                 width: 100%;
                 justify-content: center;
-                padding: 9px;
+                padding: 12px;
+                min-height: 44px;
             }
 
             .summary-bar {
@@ -1283,9 +1432,9 @@
             .summary-bar .stat-item { min-width: unset; }
             .summary-bar .badge-stat { justify-content: center; }
 
-            table { font-size: 0.62rem; min-width: 750px; }
-            th, td { padding: 9px 10px; }
-            .badge-status { font-size: 0.5rem; padding: 3px 10px; }
+            /* Table becomes a stacked card list on mobile — no horizontal scrolling */
+            .table-wrapper { display: none; }
+            .client-cards { display: flex; }
 
             header {
                 padding: 0 14px;
@@ -1293,17 +1442,34 @@
                 border-radius: var(--radius-lg);
                 margin-bottom: 14px;
             }
-            .header-right button { width: 32px; height: 32px; font-size: 0.75rem; }
+            .header-right button { width: 40px; height: 40px; font-size: 0.8rem; }
             .sidebar { width: 290px; right: calc(-1 * 290px); }
             .logo-text h1 { font-size: 0.9rem; }
             .logo-text .sub { display: none; }
             .logo-icon { width: 32px; height: 32px; font-size: 0.85rem; }
-            .hamburger { width: 34px; height: 34px; font-size: 0.9rem; }
+            .hamburger { width: 40px; height: 40px; font-size: 0.95rem; }
 
-            .modal-box { padding: 20px; margin: 10px; }
+            .modal-overlay { align-items: flex-end; padding: 0; }
+            .modal-box {
+                padding: 20px;
+                margin: 0;
+                width: 100%;
+                max-height: 92vh;
+                overflow-y: auto;
+                border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+            }
+            .modal-box .form-group input,
+            .modal-box .form-group select {
+                font-size: 16px;
+                min-height: 44px;
+            }
             .modal-box .form-actions { flex-direction: column; }
             .modal-box .form-actions .btn-save,
-            .modal-box .form-actions .btn-cancel { width: 100%; justify-content: center; }
+            .modal-box .form-actions .btn-cancel {
+                width: 100%;
+                justify-content: center;
+                min-height: 44px;
+            }
 
             .toast-container { top: 65px; left: 10px; max-width: 95%; }
             .toast { padding: 12px 16px; font-size: 0.7rem; width: 100%; }
@@ -1317,25 +1483,26 @@
                 font-size: 0.85rem;
             }
             .page-header .actions .btn-action {
-                font-size: 0.58rem;
-                padding: 6px 8px;
-                min-width: 60px;
+                font-size: 0.62rem;
+                padding: 11px 8px;
+                min-width: unset;
             }
-            .filters-section { padding: 10px 12px; gap: 8px; }
-            .filters-section .filter-group label { font-size: 0.55rem; }
+            .filters-section { padding: 10px 12px; gap: 10px; }
+            .filters-section .filter-group label { font-size: 0.58rem; }
             .filters-section .filter-group input,
             .filters-section .filter-group select {
-                font-size: 0.65rem;
-                padding: 6px 10px;
+                font-size: 16px;
+                padding: 9px 10px;
+                min-height: 42px;
             }
-            table { font-size: 0.55rem; min-width: 650px; }
-            th, td { padding: 7px 8px; }
-            .code-cell { font-size: 0.66rem; padding: 2px 8px; }
+            .client-card { padding: 12px 14px; }
+            .cc-name { font-size: 0.82rem; }
+            .cc-footer { grid-template-columns: 1fr 1fr; }
             .summary-bar .stat-item .stat-info .stat-value { font-size: 1.05rem; }
             .summary-bar .stat-item .stat-icon { width: 34px; height: 34px; font-size: 0.8rem; }
             header { height: 50px; padding: 0 10px; }
-            .header-right button { width: 28px; height: 28px; font-size: 0.65rem; }
-            .hamburger { width: 30px; height: 30px; font-size: 0.8rem; }
+            .header-right button { width: 36px; height: 36px; font-size: 0.7rem; }
+            .hamburger { width: 36px; height: 36px; font-size: 0.85rem; }
             .logo-icon { width: 28px; height: 28px; font-size: 0.75rem; }
             .logo-text h1 { font-size: 0.8rem; }
             .modal-box { padding: 14px; }
@@ -1469,7 +1636,11 @@
         </div>
 
         <!-- FILTERS -->
-        <div class="filters-section">
+        <button type="button" class="filters-toggle" id="filtersToggle" onclick="toggleFilters()">
+            <span><i class="fas fa-sliders-h"></i> فلاتر البحث<span class="active-dot" id="filtersActiveDot"></span></span>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+        </button>
+        <div class="filters-section" id="filtersSection">
             <div class="filter-group">
                 <label><i class="fas fa-user"></i> اسم العميل</label>
                 <input type="text" id="filterClient" placeholder="بحث باسم العميل..." />
@@ -1544,6 +1715,14 @@
             </table>
         </div>
 
+        <!-- MOBILE CARD LIST -->
+        <div class="client-cards" id="entriesCards">
+            <div class="loading-state">
+                <i class="fas fa-spinner"></i>
+                <p>جاري تحميل البيانات...</p>
+            </div>
+        </div>
+
     </div>
 
     <!-- IMPORT MODAL -->
@@ -1571,6 +1750,40 @@
                         <i class="fas fa-upload"></i> استيراد
                     </button>
                     <button type="button" class="btn-cancel" onclick="closeImportModal()">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADD CLIENT MODAL -->
+    <div class="modal-overlay" id="addClientModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-plus"></i> إضافة عميل جديد</h3>
+                <button class="close-modal" onclick="closeAddClientModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="addClientForm" onsubmit="submitAddClient(event)">
+                <div class="form-group">
+                    <label>اسم العميل <span class="required">*</span></label>
+                    <input type="text" id="newClientName" placeholder="أدخل اسم العميل" required />
+                </div>
+                <div class="form-group">
+                    <label>رقم الهاتف</label>
+                    <input type="tel" id="newClientPhone" placeholder="أدخل رقم الهاتف (اختياري)" />
+                </div>
+                <div class="form-group">
+                    <label>العنوان</label>
+                    <input type="text" id="newClientAddress" placeholder="أدخل العنوان (اختياري)" />
+                </div>
+                <div class="form-group">
+                    <label>اسم المندوب</label>
+                    <input type="text" id="newClientSalesman" placeholder="أدخل اسم المندوب (اختياري)" />
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-save" id="addClientSubmitBtn">
+                        <i class="fas fa-check"></i> إضافة العميل
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="closeAddClientModal()">إلغاء</button>
                 </div>
             </form>
         </div>
@@ -1605,7 +1818,7 @@
         closeBtn.addEventListener('click', closeSidebarFn);
         overlay.addEventListener('click', closeSidebarFn);
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') { closeSidebarFn(); closeImportModal(); }
+            if (e.key === 'Escape') { closeSidebarFn(); closeImportModal(); closeAddClientModal(); }
         });
 
         // ============================================================
@@ -2068,12 +2281,15 @@
             var now = new Date();
             lastUpdate.textContent = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
 
+            var cardsEl = document.getElementById('entriesCards');
             if (filtered.length === 0) {
                 entriesBody.innerHTML = '<tr><td colspan="12"><div class="empty-state"><i class="fas fa-users-slash"></i><p>لا يوجد عملاء</p></div></td></tr>';
+                if (cardsEl) cardsEl.innerHTML = '<div class="empty-state"><i class="fas fa-users-slash"></i><p>لا يوجد عملاء</p></div>';
                 return;
             }
 
             var html = '';
+            var cardsHtml = '';
             filtered.forEach(function(c, i) {
                 var status = getStatusBadge(c.status || '');
                 var bal = parseFloat(c.due_balance) || 0;
@@ -2092,8 +2308,36 @@
                     '<td style="text-align:center;">' + formatNumber(c.collections) + '</td>' +
                     '<td style="text-align:center;font-weight:800;font-size:0.78rem;" class="amount-cell ' + balClass + '">' + formatNumber(bal) + '</td>' +
                     '</tr>';
+
+                var balCardClass = bal > 0 ? 'gold' : (bal < 0 ? 'negative' : 'positive');
+                var phoneRow = c.phone
+                    ? '<div class="cc-row"><span class="cc-label"><i class="fas fa-phone"></i> الهاتف</span>' +
+                      '<span class="cc-value" style="display:flex;align-items:center;gap:8px;" dir="ltr">' + c.phone +
+                      '<a class="cc-call" href="tel:' + c.phone.replace(/\s+/g,'') + '" onclick="event.stopPropagation();" title="اتصال"><i class="fas fa-phone"></i></a></span></div>'
+                    : '';
+                var addressRow = c.address
+                    ? '<div class="cc-row"><span class="cc-label"><i class="fas fa-location-dot"></i> العنوان</span><span class="cc-value">' + c.address + '</span></div>'
+                    : '';
+                var salesmanRow = c.salesman
+                    ? '<div class="cc-row"><span class="cc-label"><i class="fas fa-user-tie"></i> المندوب</span><span class="cc-value">' + c.salesman + '</span></div>'
+                    : '';
+
+                cardsHtml += '<div class="client-card">' +
+                    '<div class="cc-top">' +
+                        '<div class="cc-name-wrap"><span class="code-cell">' + (c.code || '-') + '</span><h4 class="cc-name">' + (c.name || '-') + '</h4></div>' +
+                        status +
+                    '</div>' +
+                    '<div class="cc-body">' + phoneRow + addressRow + salesmanRow + '</div>' +
+                    '<div class="cc-footer">' +
+                        '<div class="cc-stat"><span>مبيعات</span><b>' + formatNumber(c.total_sales) + '</b></div>' +
+                        '<div class="cc-stat"><span>تحصيلات</span><b>' + formatNumber(c.collections) + '</b></div>' +
+                        '<div class="cc-stat"><span>حد الائتمان</span><b>' + formatNumber(c.credit_limit) + '</b></div>' +
+                        '<div class="cc-balance ' + balCardClass + '"><span>الرصيد المستحق</span><b>' + formatNumber(bal) + ' ج.م</b></div>' +
+                    '</div>' +
+                '</div>';
             });
             entriesBody.innerHTML = html;
+            if (cardsEl) cardsEl.innerHTML = cardsHtml;
         }
 
         // ============================================================
@@ -2119,14 +2363,22 @@
         // ============================================================
         // APPLY / RESET FILTERS
         // ============================================================
+        function updateFiltersActiveDot() {
+            var toggle = document.getElementById('filtersToggle');
+            if (!toggle) return;
+            var active = !!(filterClient.value.trim() || filterPhone.value.trim() || (filterStatus.value !== 'all'));
+            toggle.classList.toggle('has-filters', active);
+        }
         function applyFilters() { 
             displayClients(allClients); 
+            updateFiltersActiveDot();
         }
         function resetFilters() {
             filterClient.value = '';
             filterPhone.value = '';
             filterStatus.value = 'all';
             displayClients(allClients);
+            updateFiltersActiveDot();
         }
 
         // ============================================================
@@ -2202,36 +2454,69 @@
         // ADD CLIENT
         // ============================================================
         function openAddClientModal() {
-            var name = prompt('📝 أدخل اسم العميل:');
-            if (!name || name.trim() === '') {
+            document.getElementById('addClientForm').reset();
+            document.getElementById('addClientModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            setTimeout(function() {
+                document.getElementById('newClientName').focus();
+            }, 100);
+        }
+        function closeAddClientModal() {
+            document.getElementById('addClientModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        document.getElementById('addClientModal').addEventListener('click', function(e) {
+            if (e.target === this) closeAddClientModal();
+        });
+
+        function submitAddClient(event) {
+            event.preventDefault();
+            var name = document.getElementById('newClientName').value.trim();
+            if (!name) {
                 showToast('⚠️ تنبيه', 'يرجى إدخال اسم العميل', 'warning');
+                document.getElementById('newClientName').focus();
                 return;
             }
-            var phone = prompt('📞 أدخل رقم الهاتف (اختياري):');
-            if (phone === null) return;
-            var address = prompt('📍 أدخل العنوان (اختياري):');
-            if (address === null) return;
-            var salesman = prompt('👤 أدخل اسم المندوب (اختياري):');
-            if (salesman === null) return;
+            var phone = document.getElementById('newClientPhone').value.trim();
+            var address = document.getElementById('newClientAddress').value.trim();
+            var salesman = document.getElementById('newClientSalesman').value.trim();
             var code = 'C' + String(Date.now()).slice(-6);
+
+            var btn = document.getElementById('addClientSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإضافة...';
 
             insertClient({
                 code: code,
-                name: name.trim(),
-                phone: phone ? phone.trim() : '',
-                address: address ? address.trim() : '',
+                name: name,
+                phone: phone,
+                address: address,
                 opening_balance: 0,
                 credit_limit: 0,
-                salesman: salesman ? salesman.trim() : '',
+                salesman: salesman,
                 status: 'نشط',
                 credit_status: 'جيد',
                 open_statement: ''
             }).then(function() {
                 showToast('✅ تم الإضافة', 'تم إضافة العميل بنجاح', 'success');
+                closeAddClientModal();
                 loadData();
             }).catch(function(err) {
                 showToast('❌ خطأ', err.message || 'فشل إضافة العميل', 'error');
+            }).finally(function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i> إضافة العميل';
             });
+        }
+
+        // ============================================================
+        // MOBILE FILTERS TOGGLE
+        // ============================================================
+        function toggleFilters() {
+            var section = document.getElementById('filtersSection');
+            var toggle = document.getElementById('filtersToggle');
+            section.classList.toggle('mobile-open');
+            toggle.classList.toggle('active');
         }
 
         // ============================================================
@@ -2293,10 +2578,20 @@
         }
 
         // ============================================================
+        // STATE MESSAGE (keeps table + mobile cards in sync)
+        // ============================================================
+        function setStateMessage(stateClass, iconClass, text) {
+            var markup = '<div class="' + stateClass + '"><i class="' + iconClass + '"></i><p>' + text + '</p></div>';
+            entriesBody.innerHTML = '<tr><td colspan="12">' + markup + '</td></tr>';
+            var cardsEl = document.getElementById('entriesCards');
+            if (cardsEl) cardsEl.innerHTML = markup;
+        }
+
+        // ============================================================
         // LOAD DATA
         // ============================================================
         async function loadData() {
-            entriesBody.innerHTML = '<tr><td colspan="12"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
+            setStateMessage('loading-state', 'fas fa-spinner', 'جاري تحميل البيانات...');
             try {
                 var clients = await getClients();
                 allClients = clients;
@@ -2304,7 +2599,7 @@
                 console.log('✅ تم تحميل ' + clients.length + ' عميل');
             } catch(e) {
                 console.error('❌ خطأ في تحميل البيانات:', e);
-                entriesBody.innerHTML = '<tr><td colspan="12"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p></div></td></tr>';
+                setStateMessage('empty-state', 'fas fa-exclamation-circle', 'حدث خطأ في تحميل البيانات');
             }
         }
 
@@ -2319,6 +2614,9 @@
         window.openImportModal = openImportModal;
         window.closeImportModal = closeImportModal;
         window.openAddClientModal = openAddClientModal;
+        window.closeAddClientModal = closeAddClientModal;
+        window.submitAddClient = submitAddClient;
+        window.toggleFilters = toggleFilters;
         window.importFromExcel = importFromExcel;
         window.logout = logout;
 
@@ -2330,7 +2628,7 @@
             
             var token = getToken();
             if (!token) {
-                entriesBody.innerHTML = '<tr><td colspan="12"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول للوصول إلى هذه الصفحة</p></div></td></tr>';
+                setStateMessage('empty-state', 'fas fa-exclamation-circle', 'يرجى تسجيل الدخول للوصول إلى هذه الصفحة');
                 setTimeout(function() { window.location.href = 'login.html'; }, 2000);
                 return;
             }
