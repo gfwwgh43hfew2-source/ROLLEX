@@ -630,7 +630,7 @@
         }
 
         /* ============================================================
-           SUMMARY - بطاقات إحصائية أنيقة
+           SUMMARY
            ============================================================ */
         .summary-bar {
             display: flex;
@@ -697,7 +697,7 @@
         }
 
         /* ============================================================
-           TABLE - تصميم راقٍ
+           TABLE
            ============================================================ */
         .table-wrapper {
             background: var(--bg-card);
@@ -759,7 +759,6 @@
             border-bottom: none;
         }
 
-        /* Badge Status أنيق */
         .badge-status {
             display: inline-flex;
             align-items: center;
@@ -1439,21 +1438,21 @@
         var openBtn = document.getElementById('openSidebar');
         var closeBtn = document.getElementById('closeSidebar');
 
-        function openSidebar() {
+        function openSidebarFn() {
             sidebar.classList.add('open');
             overlay.classList.add('active');
             document.body.style.overflow = 'hidden';
         }
-        function closeSidebar() {
+        function closeSidebarFn() {
             sidebar.classList.remove('open');
             overlay.classList.remove('active');
             document.body.style.overflow = '';
         }
-        openBtn.addEventListener('click', openSidebar);
-        closeBtn.addEventListener('click', closeSidebar);
-        overlay.addEventListener('click', closeSidebar);
+        openBtn.addEventListener('click', openSidebarFn);
+        closeBtn.addEventListener('click', closeSidebarFn);
+        overlay.addEventListener('click', closeSidebarFn);
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') { closeSidebar(); closeImportModal(); }
+            if (e.key === 'Escape') { closeSidebarFn(); closeImportModal(); }
         });
 
         // ============================================================
@@ -1472,7 +1471,7 @@
         // ============================================================
         var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
         var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
-        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ============================================================
         // DOM REFS
@@ -1540,7 +1539,10 @@
                 if (!profRes.ok) return null;
                 var data = await profRes.json();
                 return data && data.length > 0 ? data[0].company_id : null;
-            } catch(e) { return null; }
+            } catch(e) { 
+                console.error('❌ خطأ في جلب company_id:', e);
+                return null; 
+            }
         }
 
         // ============================================================
@@ -1548,23 +1550,42 @@
         // ============================================================
         async function getClients() {
             var token = getToken();
-            if (!token) return [];
+            if (!token) {
+                console.warn('⚠️ لا يوجد توكن');
+                return [];
+            }
             var companyId = await getCompanyId();
-            if (!companyId) return [];
+            if (!companyId) {
+                console.warn('⚠️ لم يتم العثور على company_id');
+                return [];
+            }
 
             try {
                 var res = await fetch(SUPABASE_URL + '/rest/v1/clients?select=*&company_id=eq.' + companyId, {
-                    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
+                    headers: { 
+                        'apikey': SUPABASE_ANON_KEY, 
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    }
                 });
-                if (!res.ok) return [];
+                if (!res.ok) {
+                    console.warn('⚠️ فشل جلب العملاء:', res.status);
+                    return [];
+                }
                 var data = await res.json();
+                console.log('✅ تم جلب العملاء:', data ? data.length : 0);
+                
+                // ترتيب حسب الكود رقمياً
                 data.sort(function(a, b) {
                     var ca = parseInt(a.code) || 0;
                     var cb = parseInt(b.code) || 0;
                     return ca - cb;
                 });
                 return data || [];
-            } catch(e) { return []; }
+            } catch(e) { 
+                console.error('❌ خطأ في جلب العملاء:', e);
+                return []; 
+            }
         }
 
         // ============================================================
@@ -1646,7 +1667,10 @@
             var filtered = filterClients(clients);
             var total = filtered.length;
             var totalBal = 0;
-            filtered.forEach(function(c) { totalBal += parseFloat(c.due_balance) || 0; });
+            filtered.forEach(function(c) { 
+                var bal = parseFloat(c.due_balance) || 0;
+                totalBal += bal; 
+            });
             totalCount.textContent = total;
             totalBalance.textContent = formatNumber(totalBal) + ' ج.م';
             var now = new Date();
@@ -1703,7 +1727,9 @@
         // ============================================================
         // APPLY / RESET FILTERS
         // ============================================================
-        function applyFilters() { displayClients(allClients); }
+        function applyFilters() { 
+            displayClients(allClients); 
+        }
         function resetFilters() {
             filterClient.value = '';
             filterPhone.value = '';
@@ -1879,9 +1905,15 @@
         // ============================================================
         async function loadData() {
             entriesBody.innerHTML = '<tr><td colspan="12"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
-            var clients = await getClients();
-            allClients = clients;
-            displayClients(clients);
+            try {
+                var clients = await getClients();
+                allClients = clients;
+                displayClients(clients);
+                console.log('✅ تم تحميل ' + clients.length + ' عميل');
+            } catch(e) {
+                console.error('❌ خطأ في تحميل البيانات:', e);
+                entriesBody.innerHTML = '<tr><td colspan="12"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p></div></td></tr>';
+            }
         }
 
         // ============================================================
@@ -1902,6 +1934,7 @@
         // INIT
         // ============================================================
         (async function init() {
+            console.log('👤 صفحة بيانات العملاء - QuickData ProSoft');
             var token = getToken();
             if (!token) {
                 entriesBody.innerHTML = '<tr><td colspan="12"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول للوصول إلى هذه الصفحة</p></div></td></tr>';
@@ -1909,6 +1942,7 @@
                 return;
             }
             await loadData();
+            // تحديث تلقائي كل 30 ثانية
             setInterval(loadData, 30000);
         })();
     </script>
