@@ -1440,7 +1440,7 @@
         }
 
         // ============================================================
-        // GET CLIENTS FROM SUPABASE - مرتب حسب الكود تصاعدياً
+        // GET CLIENTS FROM SUPABASE - مرتب حسب الكود تصاعدياً (رقمياً)
         // ============================================================
         async function getClients() {
             var token = getToken();
@@ -1453,8 +1453,8 @@
             }
 
             try {
-                // ✅ ترتيب حسب الكود (code) تصاعدياً (من الأصغر إلى الأكبر)
-                var response = await fetch(SUPABASE_URL + '/rest/v1/clients?select=*&company_id=eq.' + companyId + '&order=code.asc', {
+                // جلب جميع العملاء بدون ترتيب من Supabase
+                var response = await fetch(SUPABASE_URL + '/rest/v1/clients?select=*&company_id=eq.' + companyId, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': 'Bearer ' + token
@@ -1467,7 +1467,15 @@
                 }
 
                 var data = await response.json();
-                console.log('✅ تم جلب العملاء (مرتب حسب الكود):', data ? data.length : 0);
+                
+                // ✅ ترتيب يدوي حسب الكود كرقم (تصاعدي)
+                data.sort(function(a, b) {
+                    var codeA = parseInt(a.code) || 0;
+                    var codeB = parseInt(b.code) || 0;
+                    return codeA - codeB; // تصاعدي
+                });
+
+                console.log('✅ تم جلب العملاء (مرتب حسب الكود رقمياً):', data ? data.length : 0);
                 return data || [];
 
             } catch (error) {
