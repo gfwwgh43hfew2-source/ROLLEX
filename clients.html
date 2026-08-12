@@ -1580,7 +1580,7 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- ============================================================
-    JAVASCRIPT - مع إصلاحات الجلسة ومراقبة انتهاء الصلاحية
+    JAVASCRIPT - مع إصلاح مشكلة انتهاء الجلسة الفورية
     ============================================================ -->
     <script>
         // ============================================================
@@ -1613,11 +1613,11 @@
         // ============================================================
         function logout() {
             if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
-                // إيقاف مراقبة الجلسة
                 if (monitorInterval) {
                     clearInterval(monitorInterval);
                     monitorInterval = null;
                 }
+                sessionMonitorStarted = false;
                 localStorage.removeItem('rollex_session');
                 sessionStorage.removeItem('rollex_session');
                 window.location.href = 'login.html';
@@ -1667,7 +1667,7 @@
         }
 
         // ============================================================
-        // SESSION - محسّن مع مراقبة الانتهاء
+        // SESSION - محسّن
         // ============================================================
         function getSession() {
             var s = localStorage.getItem('rollex_session');
@@ -1680,55 +1680,33 @@
             return s ? s.access_token : null;
         }
 
-        // التحقق من صحة التوكن
-        async function validateToken() {
-            var token = getToken();
-            if (!token) return false;
-            try {
-                var res = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-                return res.ok;
-            } catch(e) {
-                return false;
-            }
-        }
-
         // ============================================================
-        // SESSION EXPIRY WARNING - تحذير قبل انتهاء الجلسة
+        // SESSION EXPIRY WARNING - تحذير قبل انتهاء الجلسة (معدل)
         // ============================================================
         var monitorInterval = null;
         var warningShown = false;
         var warningShown2 = false;
         var warningShown3 = false;
+        var sessionMonitorStarted = false;
 
-        // دالة لحساب الوقت المتبقي للجلسة
+        // دالة لحساب الوقت المتبقي للجلسة - معدلة
         function getSessionExpiryTime() {
             var session = getSession();
             if (!session) return null;
             
-            // محاولة استخراج وقت الانتهاء من session
+            // 1. محاولة استخراج وقت الانتهاء من expires_at
             if (session.expires_at) {
                 return session.expires_at;
             }
             
-            // إذا كان موجود created_at نحسب الوقت
-            if (session.created_at) {
-                return new Date(session.created_at).getTime() + (60 * 60 * 1000);
-            }
-            
-            // إذا كان موجود access_token نحاول استخراج الوقت منه
+            // 2. محاولة استخراج من access_token (JWT)
             if (session.access_token) {
                 try {
-                    // فك تشفير JWT للحصول على وقت الانتهاء
                     var parts = session.access_token.split('.');
                     if (parts.length === 3) {
                         var payload = JSON.parse(atob(parts[1]));
                         if (payload.exp) {
-                            return payload.exp * 1000; // تحويل من ثواني إلى مللي ثانية
+                            return payload.exp * 1000;
                         }
                     }
                 } catch(e) {
@@ -1736,24 +1714,49 @@
                 }
             }
             
-            return null;
+            // 3. إذا كان هناك created_at، نضيف ساعة واحدة
+            if (session.created_at) {
+                try {
+                    var created = new Date(session.created_at).getTime();
+                    if (!isNaN(created)) {
+                        return created + (60 * 60 * 1000);
+                    }
+                } catch(e) {
+                    console.warn('⚠️ تعذر قراءة created_at:', e);
+                }
+            }
+            
+            // 4. وقت افتراضي (ساعة من الآن) - يمنع إنهاء الجلسة فوراً
+            console.warn('⚠️ لم نتمكن من تحديد وقت انتهاء الجلسة، نستخدم وقت افتراضي');
+            return Date.now() + (60 * 60 * 1000);
         }
 
-        // دالة للتحقق من الوقت المتبقي وعرض تحذير
+        // دالة للتحقق من الوقت المتبقي - معدلة
         function checkSessionExpiry() {
+            var token = getToken();
+            if (!token) return true;
+            
             var expiryTime = getSessionExpiryTime();
-            if (!expiryTime) return true;
+            if (!expiryTime) {
+                console.log('⏳ لا يمكن تحديد وقت الانتهاء، نعتبر الجلسة صالحة');
+                return true;
+            }
             
             var now = Date.now();
             var timeLeft = expiryTime - now;
             var minutesLeft = Math.floor(timeLeft / (60 * 1000));
             var secondsLeft = Math.floor((timeLeft % (60 * 1000)) / 1000);
             
-            // إذا كانت الجلسة منتهية بالفعل
+            // إذا كان الوقت المتبقي أقل من دقيقة، نعتبر الجلسة على وشك الانتهاء
+            if (timeLeft < 60000 && timeLeft > 0) {
+                console.log(`⏳ الوقت المتبقي للجلسة: ${secondsLeft} ثانية`);
+                return true;
+            }
+            
+            // إذا كانت الجلسة منتهية (وقت سالب) - نترك validateToken يتعامل معها
             if (timeLeft <= 0) {
-                showToast('⚠️ انتهت الجلسة', 'جلسة العمل منتهية، يرجى تسجيل الدخول مجدداً', 'error');
-                redirectToLogin();
-                return false;
+                console.warn('⚠️ الجلسة منتهية حسب الوقت المحسوب');
+                return true;
             }
             
             // عرض تحذير عند 5 دقائق متبقية
@@ -1789,54 +1792,47 @@
                 return true;
             }
             
-            // تحديث الوقت المتبقي في console كل دقيقة
-            if (minutesLeft > 0 && secondsLeft === 0) {
-                console.log(`⏳ الوقت المتبقي للجلسة: ${minutesLeft} دقيقة`);
-            }
-            
             return true;
         }
 
-        // دالة لبدء مراقبة الجلسة
+        // دالة لبدء مراقبة الجلسة - معدلة
         function startSessionMonitor() {
-            // إعادة تعيين المتغيرات
+            if (sessionMonitorStarted) {
+                console.log('⏳ مراقبة الجلسة قيد التشغيل بالفعل');
+                return;
+            }
+            
             warningShown = false;
             warningShown2 = false;
             warningShown3 = false;
+            sessionMonitorStarted = true;
             
-            // إيقاف المراقبة السابقة إن وجدت
             if (monitorInterval) {
                 clearInterval(monitorInterval);
                 monitorInterval = null;
             }
             
-            // التحقق فوراً عند بدء التشغيل
+            // تأخير التحقق الأولي لتجنب المشاكل
             setTimeout(function() {
                 checkSessionExpiry();
-            }, 2000);
+            }, 5000);
             
-            // التحقق كل 15 ثانية
             monitorInterval = setInterval(function() {
-                var isValid = checkSessionExpiry();
-                if (!isValid && monitorInterval) {
-                    clearInterval(monitorInterval);
-                    monitorInterval = null;
-                }
-            }, 15000); // كل 15 ثانية للحصول على تحديث دقيق
+                checkSessionExpiry();
+            }, 30000);
             
-            console.log('✅ بدأ مراقبة الجلسة - سيتم عرض تحذير قبل 5 دقائق من الانتهاء');
+            console.log('✅ بدأ مراقبة الجلسة');
         }
 
         // ============================================================
         // إعادة توجيه لتسجيل الدخول - مع إيقاف المراقبة
         // ============================================================
         function redirectToLogin() {
-            // إيقاف مراقبة الجلسة
             if (monitorInterval) {
                 clearInterval(monitorInterval);
                 monitorInterval = null;
             }
-            
+            sessionMonitorStarted = false;
             localStorage.removeItem('rollex_session');
             sessionStorage.removeItem('rollex_session');
             showToast('⚠️ جلسة منتهية', 'يرجى تسجيل الدخول مجدداً', 'warning');
@@ -1846,7 +1842,41 @@
         }
 
         // ============================================================
-        // GET COMPANY ID - محسّن
+        // التحقق من صحة التوكن - معدلة
+        // ============================================================
+        async function validateToken() {
+            var token = getToken();
+            if (!token) {
+                console.warn('⚠️ لا يوجد توكن');
+                return false;
+            }
+            try {
+                var res = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                
+                if (res.status === 403) {
+                    console.warn('⚠️ التوكن غير صالح (403)');
+                    return false;
+                }
+                
+                if (res.ok) {
+                    return true;
+                }
+                
+                console.warn(`⚠️ استجابة غير متوقعة: ${res.status}`);
+                return false;
+            } catch(e) {
+                console.error('❌ خطأ في التحقق من التوكن:', e);
+                return false;
+            }
+        }
+
+        // ============================================================
+        // GET COMPANY ID
         // ============================================================
         async function getCompanyId() {
             var token = getToken();
@@ -1884,10 +1914,9 @@
         }
 
         // ============================================================
-        // GET CLIENTS - مع التحقق من الجلسة
+        // GET CLIENTS
         // ============================================================
         async function getClients() {
-            // التحقق من صحة التوكن أولاً
             var isValid = await validateToken();
             if (!isValid) {
                 redirectToLogin();
@@ -1927,7 +1956,6 @@
                 var data = await res.json();
                 console.log('✅ تم جلب العملاء:', data ? data.length : 0);
                 
-                // ترتيب حسب الكود رقمياً
                 data.sort(function(a, b) {
                     var ca = parseInt(a.code) || 0;
                     var cb = parseInt(b.code) || 0;
@@ -2265,7 +2293,7 @@
         }
 
         // ============================================================
-        // LOAD DATA - محسّن مع معالجة الأخطاء
+        // LOAD DATA
         // ============================================================
         async function loadData() {
             entriesBody.innerHTML = '<tr><td colspan="12"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
@@ -2295,7 +2323,7 @@
         window.logout = logout;
 
         // ============================================================
-        // INIT - مع مراقبة الجلسة
+        // INIT - معدل لتجنب الإنتهاء الفوري
         // ============================================================
         (async function init() {
             console.log('👤 صفحة بيانات العملاء - QuickData ProSoft');
@@ -2308,16 +2336,25 @@
             }
 
             // التحقق من صحة التوكن
-            var isValid = await validateToken();
-            if (!isValid) {
-                redirectToLogin();
-                return;
+            try {
+                var isValid = await validateToken();
+                if (!isValid) {
+                    console.warn('⚠️ التوكن غير صالح، سيتم إعادة التوجيه');
+                    redirectToLogin();
+                    return;
+                }
+            } catch(e) {
+                console.error('❌ خطأ في التحقق من التوكن:', e);
+                // لا نعيد التوجيه فوراً، نحاول تحميل البيانات
+                console.warn('⚠️ استمرار المحاولة رغم خطأ التحقق');
             }
 
             await loadData();
             
-            // ✅ بدء مراقبة الجلسة وعرض التحذيرات
-            startSessionMonitor();
+            // بدء مراقبة الجلسة بعد 5 ثواني (تجنب الإنتهاء الفوري)
+            setTimeout(function() {
+                startSessionMonitor();
+            }, 5000);
             
             // تحديث تلقائي كل 30 ثانية
             setInterval(loadData, 30000);
