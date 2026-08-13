@@ -1392,6 +1392,25 @@
                     var privateTab = row['التبويب الخاص'] || row['private_tab'] || row['تبويب خاص'] || '';
                     var notes = row['ملاحظات'] || row['notes'] || '';
 
+                    // استخراج التاريخ من الإكسيل (بيدعم خلايا التاريخ الحقيقية والنصوص)
+                    var rawDate = row['التاريخ'] || row['date'] || row['Date'] || null;
+                    var transactionDate = null;
+                    if (rawDate instanceof Date && !isNaN(rawDate)) {
+                        transactionDate = rawDate.toISOString();
+                    } else if (typeof rawDate === 'string' && rawDate.trim() !== '') {
+                        var parsedDate = new Date(rawDate);
+                        if (!isNaN(parsedDate)) {
+                            transactionDate = parsedDate.toISOString();
+                        }
+                    } else if (typeof rawDate === 'number' && rawDate > 0) {
+                        // رقم تسلسلي إكسيل احتياطي (لو cellDates ما اشتغلش لأي سبب)
+                        var excelEpoch = new Date(Date.UTC(1899, 11, 30));
+                        var parsedFromSerial = new Date(excelEpoch.getTime() + rawDate * 86400000);
+                        if (!isNaN(parsedFromSerial)) {
+                            transactionDate = parsedFromSerial.toISOString();
+                        }
+                    }
+
                     // قراءة المبلغ من عدة أسماء محتملة
                     var incoming = 0;
                     var outgoing = 0;
@@ -1455,7 +1474,8 @@
                                 p_type: type,
                                 p_description: description,
                                 p_general_tab: generalTab || 'عام',
-                                p_private_tab: privateTab || 'خاص'
+                                p_private_tab: privateTab || 'خاص',
+                                p_date: transactionDate
                             })
                         });
 
