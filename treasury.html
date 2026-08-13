@@ -1629,7 +1629,7 @@
         }
 
         // ============================================================
-        // GET TRANSACTIONS
+        // GET TRANSACTIONS - جلب جميع الحركات وترتيبها حسب التاريخ
         // ============================================================
         async function getTransactions(treasuryId) {
             var token = getToken();
@@ -1638,6 +1638,7 @@
             var allTransactions = [];
 
             try {
+                // 1. محاولة RPC أولاً (الأسرع)
                 try {
                     console.log('🔄 محاولة جلب الحركات عبر RPC...');
                     var rpcResponse = await fetchWithRetry(SUPABASE_URL + '/rest/v1/rpc/get_all_treasury_transactions', {
@@ -1658,10 +1659,9 @@
                             
                             if (rpcData.length < 1000) {
                                 console.log('✅ RPC: تم جلب جميع البيانات');
+                                // ✅ ترتيب حسب date
                                 allTransactions.sort(function(a, b) {
-                                    var dateA = new Date(a.date || a.created_at);
-                                    var dateB = new Date(b.date || b.created_at);
-                                    return dateA - dateB;
+                                    return new Date(a.date) - new Date(b.date);
                                 });
                                 return allTransactions;
                             } else {
@@ -1677,6 +1677,7 @@
                     console.warn('⚠️ RPC فشل:', rpcError.message);
                 }
 
+                // 2. الترحيل المباشر (Pagination) - ✅ مرتب حسب date
                 console.log('🔄 جلب باقي الحركات عبر الترحيل المباشر...');
                 var page = allTransactions.length > 0 ? 1 : 0;
                 var pageSize = 1000;
@@ -1685,7 +1686,7 @@
                 while (hasMore) {
                     var response = await fetchWithRetry(
                         SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + treasuryId +
-                        '&order=created_at.asc&limit=' + pageSize + '&offset=' + (page * pageSize),
+                        '&order=date.asc&limit=' + pageSize + '&offset=' + (page * pageSize),
                         {
                             headers: {
                                 'apikey': SUPABASE_ANON_KEY,
@@ -1723,10 +1724,9 @@
                     }
                 }
 
+                // ✅ ترتيب نهائي حسب date
                 allTransactions.sort(function(a, b) {
-                    var dateA = new Date(a.date || a.created_at);
-                    var dateB = new Date(b.date || b.created_at);
-                    return dateA - dateB;
+                    return new Date(a.date) - new Date(b.date);
                 });
 
                 console.log('✅ تم جلب ' + allTransactions.length + ' حركة (مرتبة حسب التاريخ)');
@@ -2099,7 +2099,6 @@
 
             try {
                 var data = await file.arrayBuffer();
-                // ✅ خيارات قراءة Excel مع دعم التواريخ
                 var workbook = XLSX.read(data, { 
                     type: 'array', 
                     cellDates: true,
@@ -2151,7 +2150,6 @@
 
                         if (rawDate) {
                             if (rawDate instanceof Date && !isNaN(rawDate)) {
-                                // ✅ طريقة صحيحة لاستخراج التاريخ من كائن Date
                                 var year = rawDate.getFullYear();
                                 var month = String(rawDate.getMonth() + 1).padStart(2, '0');
                                 var day = String(rawDate.getDate()).padStart(2, '0');
@@ -2172,7 +2170,6 @@
                                     transactionDate = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0') + 'T00:00:00';
                                 }
                             } else if (typeof rawDate === 'number' && rawDate > 0) {
-                                // ✅ رقم تسلسلي إكسيل - مع إصلاح المنطقة الزمنية
                                 var excelEpoch = new Date(Date.UTC(1899, 11, 30));
                                 var parsedDate = new Date(excelEpoch.getTime() + rawDate * 86400000);
                                 var y = parsedDate.getFullYear();
@@ -2376,8 +2373,8 @@
                 var isIncoming = amount > 0;
                 var displayAmount = Math.abs(amount);
                 
-                // ✅ استخدام دالة formatDate لعرض التاريخ بشكل صحيح
-                var date = formatDate(item.date || item.created_at);
+                // ✅ استخدام date بدلاً من created_at
+                var date = item.date ? new Date(item.date).toLocaleDateString('ar-EG') : '-';
 
                 runningBalance += amount;
 
@@ -2509,7 +2506,7 @@
                 document.getElementById('editGeneralTab').value = transaction.general_tab || '';
                 document.getElementById('editPrivateTab').value = transaction.private_tab || '';
                 
-                // ✅ عرض التاريخ في مودال التعديل بشكل صحيح
+                // ✅ عرض التاريخ في مودال التعديل
                 if (transaction.date) {
                     var date = new Date(transaction.date);
                     var year = date.getFullYear();
@@ -2528,7 +2525,7 @@
         }
 
         // ============================================================
-        // UPDATE TRANSACTION - تحديث الحركة
+        // UPDATE TRANSACTION - تحديث الحركة (مع دعم التاريخ)
         // ============================================================
         async function updateTransaction(event) {
             event.preventDefault();
@@ -2560,6 +2557,7 @@
                     return;
                 }
 
+                // ✅ تحديث جميع الحقول بما فيها date
                 var updateData = {
                     amount: finalAmount,
                     type: type,
@@ -2585,6 +2583,7 @@
                     throw new Error('فشل تحديث الحركة: ' + errorText);
                 }
 
+                // جلب بيانات الخزينة من الحركة
                 var getResponse = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=treasury_id&id=eq.' + transactionId, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
