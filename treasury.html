@@ -1476,7 +1476,7 @@
         }
 
         // ============================================================
-        // GET TRANSACTIONS - جلب جميع الحركات بدون حد 1000
+        // GET TRANSACTIONS - جلب جميع الحركات (مدمج RPC + Pagination)
         // ============================================================
         async function getTransactions(treasuryId) {
             var token = getToken();
@@ -1501,8 +1501,14 @@
                     if (rpcResponse.ok) {
                         var rpcData = await rpcResponse.json();
                         if (rpcData && rpcData.length > 0) {
-                            console.log('✅ RPC: تم جلب ' + rpcData.length + ' حركة');
-                            return rpcData;
+                            // التحقق من أن RPC جلب جميع البيانات
+                            // Supabase عادةً يحدد عدد النتائج بـ 1000
+                            if (rpcData.length === 1000) {
+                                console.log('⚠️ RPC جلب 1000 حركة فقط (قد يكون هناك المزيد)، ننتقل للترحيل...');
+                            } else {
+                                console.log('✅ RPC: تم جلب ' + rpcData.length + ' حركة');
+                                return rpcData;
+                            }
                         }
                         if (rpcData && rpcData.length === 0) {
                             console.log('📭 RPC: لا توجد حركات');
@@ -1513,8 +1519,8 @@
                     console.warn('⚠️ RPC فشل:', rpcError.message);
                 }
 
-                // 2. الترحيل باستخدام Range Headers (الطريقة الاحتياطية)
-                console.log('🔄 جلب الحركات عبر الترحيل (Pagination)...');
+                // 2. الترحيل المباشر (Pagination) - الحل الأكثر موثوقية
+                console.log('🔄 جلب الحركات عبر الترحيل المباشر...');
                 var page = 0;
                 var pageSize = 1000;
                 var hasMore = true;
@@ -1538,14 +1544,14 @@
                     }
 
                     var data = await response.json();
-
+                    
                     if (!data || data.length === 0) {
                         hasMore = false;
                     } else {
                         allTransactions = allTransactions.concat(data);
                         console.log(`📄 صفحة ${page + 1}: ${data.length} حركة (إجمالي: ${allTransactions.length})`);
                         page++;
-
+                        
                         if (data.length < pageSize) {
                             hasMore = false;
                         }
@@ -1557,9 +1563,6 @@
 
             } catch (error) {
                 console.error('❌ خطأ في جلب الحركات:', error);
-                if (error.message.includes('TIMED_OUT') || error.message.includes('timeout')) {
-                    showToast('⚠️ انتهت المهلة', 'جاري المحاولة مرة أخرى...', 'warning');
-                }
                 return allTransactions;
             }
         }
