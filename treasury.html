@@ -497,7 +497,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.72rem;
-            min-width: 1000px;
+            min-width: 1100px;
         }
 
         thead {
@@ -600,6 +600,31 @@
             font-family: 'JetBrains Mono', monospace;
         }
 
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            transition: var(--transition);
+            border-radius: var(--radius-sm);
+        }
+        .action-btn:hover {
+            transform: scale(1.1);
+        }
+        .action-btn.edit {
+            color: var(--gold);
+        }
+        .action-btn.edit:hover {
+            background: var(--gold-glow);
+        }
+        .action-btn.delete {
+            color: var(--danger);
+        }
+        .action-btn.delete:hover {
+            background: var(--danger-bg);
+        }
+
         /* ============================================================
            EMPTY STATE
            ============================================================ */
@@ -659,6 +684,7 @@
             animation: modalIn 0.3s ease;
             max-height: 90vh;
             overflow-y: auto;
+            position: relative;
         }
         @keyframes modalIn {
             from {
@@ -982,6 +1008,10 @@
                 font-size: 0.5rem;
                 padding: 2px 10px;
             }
+            .action-btn {
+                font-size: 0.7rem;
+                padding: 2px 6px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1006,6 +1036,10 @@
             }
             .stat-card .value {
                 font-size: 1rem;
+            }
+            .action-btn {
+                font-size: 0.6rem;
+                padding: 2px 4px;
             }
         }
 
@@ -1146,10 +1180,11 @@
                             <th><i class="fas fa-folder"></i> التبويب العام</th>
                             <th><i class="fas fa-folder-open"></i> التبويب الخاص</th>
                             <th><i class="fas fa-scale-balanced"></i> الرصيد</th>
+                            <th><i class="fas fa-cog"></i> إجراءات</th>
                         </tr>
                     </thead>
                     <tbody id="transactionsBody">
-                        <tr><td colspan="9"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>
+                        <tr><td colspan="10"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -1222,6 +1257,65 @@
         </div>
     </div>
 
+    <!-- ===== EDIT TRANSACTION MODAL ===== -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> تعديل الحركة</h3>
+                <button class="close-modal" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="editForm" onsubmit="updateTransaction(event)">
+                <input type="hidden" id="editTransactionId" />
+                <div class="form-group">
+                    <label>التاريخ <span class="required">*</span></label>
+                    <input type="date" id="editDate" required />
+                </div>
+                <div class="form-group">
+                    <label>الاتجاه <span class="required">*</span></label>
+                    <select id="editDirection" required>
+                        <option value="incoming">وارد (+) </option>
+                        <option value="outgoing">صادر (-) </option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>المبلغ <span class="required">*</span></label>
+                    <input type="number" id="editAmount" placeholder="0.00" min="0.01" step="0.01" required />
+                </div>
+                <div class="form-group">
+                    <label>النوع <span class="required">*</span></label>
+                    <select id="editType" required>
+                        <option value="incoming">إيداع</option>
+                        <option value="outgoing">سحب</option>
+                        <option value="transfer_in">تحويل وارد</option>
+                        <option value="transfer_out">تحويل صادر</option>
+                        <option value="opening">رصيد افتتاحي</option>
+                        <option value="salary">راتب</option>
+                        <option value="expense">مصروف</option>
+                        <option value="revenue">إيراد</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>البيان</label>
+                    <input type="text" id="editDescription" placeholder="وصف الحركة" />
+                </div>
+                <div class="form-group">
+                    <label>التبويب العام</label>
+                    <input type="text" id="editGeneralTab" placeholder="التبويب العام" />
+                </div>
+                <div class="form-group">
+                    <label>التبويب الخاص</label>
+                    <input type="text" id="editPrivateTab" placeholder="التبويب الخاص" />
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-save" id="editSubmitBtn">
+                        <i class="fas fa-save"></i> تحديث الحركة
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="closeEditModal()">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- ===== TOAST ===== -->
     <div class="toast-container" id="toastContainer"></div>
 
@@ -1274,7 +1368,7 @@
         }
 
         // ============================================================
-        // REFRESH SESSION - تجديد الجلسة
+        // REFRESH SESSION
         // ============================================================
         async function refreshSession() {
             var session = getSession();
@@ -1320,7 +1414,7 @@
         }
 
         // ============================================================
-        // REDIRECT TO LOGIN - إعادة التوجيه لتسجيل الدخول
+        // REDIRECT TO LOGIN
         // ============================================================
         function redirectToLogin() {
             if (monitorInterval) {
@@ -1337,7 +1431,7 @@
         }
 
         // ============================================================
-        // RETRY FUNCTION - إعادة المحاولة عند فشل الاتصال مع التعامل مع 401
+        // RETRY FUNCTION
         // ============================================================
         async function fetchWithRetry(url, options, maxRetries = 3) {
             var lastError = null;
@@ -1346,7 +1440,6 @@
                 try {
                     console.log(`🔄 محاولة ${attempt}/${maxRetries}...`);
 
-                    // التأكد من وجود التوكن
                     var token = getToken();
                     if (!token && attempt === 1) {
                         var refreshed = await refreshSession();
@@ -1363,7 +1456,6 @@
 
                     var response = await fetch(url, options);
 
-                    // إذا كان الخطأ 401 (غير مصرح به)، نحاول تجديد الجلسة
                     if (response.status === 401) {
                         console.warn('⚠️ توكن غير صالح (401)، محاولة تجديد الجلسة...');
                         var refreshed = await refreshSession();
@@ -1404,7 +1496,7 @@
         }
 
         // ============================================================
-        // SESSION MONITOR - تحذيرات فقط (بدون إنهاء)
+        // SESSION MONITOR
         // ============================================================
         var monitorInterval = null;
         var warningShown = false;
@@ -1520,7 +1612,7 @@
         }
 
         // ============================================================
-        // GET TRANSACTIONS - جلب جميع الحركات وترتيبها حسب التاريخ
+        // GET TRANSACTIONS
         // ============================================================
         async function getTransactions(treasuryId) {
             var token = getToken();
@@ -1529,7 +1621,6 @@
             var allTransactions = [];
 
             try {
-                // 1. محاولة RPC أولاً (الأسرع)
                 try {
                     console.log('🔄 محاولة جلب الحركات عبر RPC...');
                     var rpcResponse = await fetchWithRetry(SUPABASE_URL + '/rest/v1/rpc/get_all_treasury_transactions', {
@@ -1569,7 +1660,6 @@
                     console.warn('⚠️ RPC فشل:', rpcError.message);
                 }
 
-                // 2. الترحيل المباشر (Pagination)
                 console.log('🔄 جلب باقي الحركات عبر الترحيل المباشر...');
                 var page = allTransactions.length > 0 ? 1 : 0;
                 var pageSize = 1000;
@@ -1616,7 +1706,6 @@
                     }
                 }
 
-                // ✅ ترتيب نهائي حسب التاريخ (oldest first)
                 allTransactions.sort(function(a, b) {
                     var dateA = new Date(a.date || a.created_at);
                     var dateB = new Date(b.date || b.created_at);
@@ -1969,7 +2058,7 @@
         }
 
         // ============================================================
-        // IMPORT FORM SUBMIT - محسّن مع دعم جميع الصفوف وعرض التقدم والحفاظ على التاريخ
+        // IMPORT FORM SUBMIT - مع إصلاح مشكلة التاريخ
         // ============================================================
         document.getElementById('importForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1986,7 +2075,6 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاستيراد...';
 
-            // إظهار شريط التقدم
             var progressDiv = document.getElementById('importProgress');
             progressDiv.style.display = 'block';
             var progressBar = document.getElementById('importProgressBar');
@@ -2021,63 +2109,61 @@
                 var errors = [];
                 var totalRows = jsonData.length;
 
-                // معالجة كل صف على حدة
                 for (var i = 0; i < totalRows; i++) {
                     var row = jsonData[i];
                     var rowNum = i + 2;
 
-                    // تحديث شريط التقدم
                     var progress = ((i + 1) / totalRows) * 100;
                     progressBar.style.width = progress + '%';
                     progressCount.textContent = i + 1;
 
                     try {
-                        // قراءة البيانات مع دعم أسماء متعددة
                         var description = row['البيان'] || row['description'] || row['الوصف'] || row['ملاحظات'] || 'حركة مستوردة';
                         var type = row['النوع'] || row['type'] || 'incoming';
                         var generalTab = row['التبويب العام'] || row['general_tab'] || row['تبويب عام'] || '';
                         var privateTab = row['التبويب الخاص'] || row['private_tab'] || row['تبويب خاص'] || '';
 
-                        // ✅ قراءة التاريخ من Excel
+                        // ✅ قراءة التاريخ من Excel بشكل صحيح - إصلاح مشكلة المنطقة الزمنية
                         var rawDate = row['التاريخ'] || row['date'] || row['Date'] || null;
                         var transactionDate = null;
-                        
+
                         if (rawDate) {
                             if (rawDate instanceof Date && !isNaN(rawDate)) {
-                                transactionDate = rawDate.toISOString();
+                                // ✅ إصلاح مشكلة المنطقة الزمنية
+                                var year = rawDate.getFullYear();
+                                var month = String(rawDate.getMonth() + 1).padStart(2, '0');
+                                var day = String(rawDate.getDate()).padStart(2, '0');
+                                transactionDate = year + '-' + month + '-' + day + 'T00:00:00';
                             } else if (typeof rawDate === 'string' && rawDate.trim() !== '') {
-                                var parsedDate = new Date(rawDate);
-                                if (!isNaN(parsedDate)) {
-                                    transactionDate = parsedDate.toISOString();
-                                } else {
-                                    // محاولة تحويل بتنسيق مختلف
-                                    var parts = rawDate.split(/[-/.]/);
-                                    if (parts.length === 3) {
-                                        if (parts[0].length === 4) {
-                                            var d = new Date(parts[0], parts[1] - 1, parts[2]);
-                                            if (!isNaN(d)) transactionDate = d.toISOString();
-                                        } else {
-                                            var d = new Date(parts[2], parts[1] - 1, parts[0]);
-                                            if (!isNaN(d)) transactionDate = d.toISOString();
-                                        }
+                                var parts = rawDate.split(/[-/.]/);
+                                if (parts.length === 3) {
+                                    var y, m, d;
+                                    if (parts[0].length === 4) {
+                                        y = parts[0];
+                                        m = parts[1];
+                                        d = parts[2];
+                                    } else {
+                                        y = parts[2];
+                                        m = parts[1];
+                                        d = parts[0];
                                     }
+                                    transactionDate = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0') + 'T00:00:00';
                                 }
                             } else if (typeof rawDate === 'number' && rawDate > 0) {
                                 var excelEpoch = new Date(Date.UTC(1899, 11, 30));
-                                var parsedFromSerial = new Date(excelEpoch.getTime() + rawDate * 86400000);
-                                if (!isNaN(parsedFromSerial)) {
-                                    transactionDate = parsedFromSerial.toISOString();
-                                }
+                                var parsedDate = new Date(excelEpoch.getTime() + rawDate * 86400000);
+                                var y = parsedDate.getFullYear();
+                                var m = String(parsedDate.getMonth() + 1).padStart(2, '0');
+                                var d = String(parsedDate.getDate()).padStart(2, '0');
+                                transactionDate = y + '-' + m + '-' + d + 'T00:00:00';
                             }
                         }
 
-                        // إذا لم يتم العثور على تاريخ، نستخدم التاريخ الحالي
                         if (!transactionDate) {
                             transactionDate = new Date().toISOString();
                             console.warn(`⚠️ صف ${rowNum}: لم يتم العثور على تاريخ، تم استخدام التاريخ الحالي`);
                         }
 
-                        // قراءة المبلغ
                         var incoming = 0;
                         var outgoing = 0;
 
@@ -2105,7 +2191,6 @@
 
                         var amount = incoming - outgoing;
 
-                        // التحقق من المبلغ
                         if (amount === 0) {
                             var hasValue = false;
                             for (var key in row) {
@@ -2149,7 +2234,7 @@
                                     p_description: description || 'حركة مستوردة',
                                     p_general_tab: generalTab || 'عام',
                                     p_private_tab: privateTab || 'خاص',
-                                    p_date: transactionDate // ✅ إرسال التاريخ من Excel
+                                    p_date: transactionDate
                                 })
                             });
 
@@ -2172,7 +2257,6 @@
                     }
                 }
 
-                // عرض النتائج
                 var message = '';
                 if (successCount > 0) {
                     message = 'تم استيراد ' + successCount + ' حركة';
@@ -2186,7 +2270,6 @@
                     showToast('❌ فشل الاستيراد', 'لم يتم استيراد أي حركة. تحقق من البيانات', 'error');
                 }
 
-                // عرض الأخطاء في console
                 if (errors.length > 0) {
                     console.log('❌ أخطاء الاستيراد (' + errors.length + '):');
                     errors.forEach(function(err) {
@@ -2210,7 +2293,7 @@
         });
 
         // ============================================================
-        // DISPLAY DATA - عرض الحركات مرتبة حسب التاريخ
+        // DISPLAY DATA - مع أزرار التعديل والحذف
         // ============================================================
         function displayData(transactions, treasury) {
             var tbody = document.getElementById('transactionsBody');
@@ -2239,7 +2322,7 @@
 
             if (!transactions || transactions.length === 0) {
                 tbody.innerHTML =
-                    `<tr><td colspan="9"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>`;
+                    `<tr><td colspan="10"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>`;
                 return;
             }
 
@@ -2270,7 +2353,6 @@
                 var isIncoming = amount > 0;
                 var displayAmount = Math.abs(amount);
                 
-                // ✅ استخدام التاريخ المخزن في قاعدة البيانات
                 var date = item.date ? new Date(item.date).toLocaleDateString('ar-EG') : 
                            (item.created_at ? new Date(item.created_at).toLocaleDateString('ar-EG') : '-');
 
@@ -2290,11 +2372,266 @@
                         <td>${item.general_tab || '-'}</td>
                         <td>${item.private_tab || '-'}</td>
                         <td class="balance-cell">${runningBalance.toLocaleString()}</td>
+                        <td>
+                            <button class="action-btn edit" onclick="editTransaction('${item.id}')" title="تعديل">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn delete" onclick="deleteTransaction('${item.id}')" title="حذف">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
                     </tr>
                 `;
             });
 
             tbody.innerHTML = rows;
+        }
+
+        // ============================================================
+        // DELETE TRANSACTION - حذف حركة
+        // ============================================================
+        async function deleteTransaction(transactionId) {
+            if (!confirm('⚠️ هل أنت متأكد من حذف هذه الحركة؟\nهذا الإجراء لا يمكن التراجع عنه!')) {
+                return;
+            }
+
+            var token = getToken();
+            if (!token) {
+                redirectToLogin();
+                return;
+            }
+
+            try {
+                // جلب الحركة للحصول على المبلغ
+                var getResponse = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&id=eq.' + transactionId, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!getResponse.ok) throw new Error('فشل جلب الحركة');
+                var transaction = await getResponse.json();
+                if (!transaction || transaction.length === 0) throw new Error('الحركة غير موجودة');
+
+                var treasuryId = transaction[0].treasury_id;
+
+                // حذف الحركة
+                var deleteResponse = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?id=eq.' + transactionId, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!deleteResponse.ok) throw new Error('فشل حذف الحركة');
+
+                // تحديث رصيد الخزينة
+                await updateTreasuryBalance(treasuryId);
+
+                showToast('✅ تم الحذف', 'تم حذف الحركة بنجاح', 'success');
+                loadData();
+
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                showToast('❌ خطأ', error.message, 'error');
+            }
+        }
+
+        // ============================================================
+        // EDIT TRANSACTION - تعديل حركة
+        // ============================================================
+        function editTransaction(transactionId) {
+            openEditModal(transactionId);
+        }
+
+        // ============================================================
+        // OPEN EDIT MODAL
+        // ============================================================
+        function openEditModal(transactionId) {
+            document.getElementById('editTransactionId').value = transactionId;
+            fetchTransactionData(transactionId);
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        // ============================================================
+        // CLOSE EDIT MODAL
+        // ============================================================
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+
+        // ============================================================
+        // FETCH TRANSACTION DATA
+        // ============================================================
+        async function fetchTransactionData(transactionId) {
+            var token = getToken();
+            if (!token) return;
+
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&id=eq.' + transactionId, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!response.ok) throw new Error('فشل جلب بيانات الحركة');
+                var data = await response.json();
+                if (!data || data.length === 0) throw new Error('الحركة غير موجودة');
+
+                var transaction = data[0];
+                
+                document.getElementById('editAmount').value = Math.abs(transaction.amount);
+                document.getElementById('editType').value = transaction.type || 'incoming';
+                document.getElementById('editDescription').value = transaction.description || '';
+                document.getElementById('editGeneralTab').value = transaction.general_tab || '';
+                document.getElementById('editPrivateTab').value = transaction.private_tab || '';
+                
+                if (transaction.date) {
+                    var date = new Date(transaction.date);
+                    var year = date.getFullYear();
+                    var month = String(date.getMonth() + 1).padStart(2, '0');
+                    var day = String(date.getDate()).padStart(2, '0');
+                    document.getElementById('editDate').value = year + '-' + month + '-' + day;
+                }
+
+                var isIncoming = transaction.amount > 0;
+                document.getElementById('editDirection').value = isIncoming ? 'incoming' : 'outgoing';
+
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                showToast('❌ خطأ', error.message, 'error');
+            }
+        }
+
+        // ============================================================
+        // UPDATE TRANSACTION - تحديث الحركة
+        // ============================================================
+        async function updateTransaction(event) {
+            event.preventDefault();
+
+            var transactionId = document.getElementById('editTransactionId').value;
+            var direction = document.getElementById('editDirection').value;
+            var amount = parseFloat(document.getElementById('editAmount').value);
+            var type = document.getElementById('editType').value;
+            var description = document.getElementById('editDescription').value.trim();
+            var generalTab = document.getElementById('editGeneralTab').value.trim();
+            var privateTab = document.getElementById('editPrivateTab').value.trim();
+            var date = document.getElementById('editDate').value;
+
+            if (!amount || amount <= 0) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال مبلغ صحيح', 'error');
+                return;
+            }
+
+            var finalAmount = direction === 'incoming' ? amount : -amount;
+
+            var btn = document.getElementById('editSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
+
+            try {
+                var token = getToken();
+                if (!token) {
+                    redirectToLogin();
+                    return;
+                }
+
+                var updateData = {
+                    amount: finalAmount,
+                    type: type,
+                    description: description || 'حركة محدثة',
+                    general_tab: generalTab || 'عام',
+                    private_tab: privateTab || 'خاص',
+                    date: date ? date + 'T00:00:00' : new Date().toISOString()
+                };
+
+                var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?id=eq.' + transactionId, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(updateData)
+                });
+
+                if (!response.ok) {
+                    var errorText = await response.text();
+                    throw new Error('فشل تحديث الحركة: ' + errorText);
+                }
+
+                // جلب بيانات الخزينة من الحركة
+                var getResponse = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=treasury_id&id=eq.' + transactionId, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                if (getResponse.ok) {
+                    var data = await getResponse.json();
+                    if (data && data.length > 0) {
+                        await updateTreasuryBalance(data[0].treasury_id);
+                    }
+                }
+
+                showToast('✅ تم التحديث', 'تم تحديث الحركة بنجاح', 'success');
+                closeEditModal();
+                loadData();
+
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                showToast('❌ خطأ', error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> تحديث الحركة';
+        }
+
+        // ============================================================
+        // UPDATE TREASURY BALANCE - تحديث رصيد الخزينة
+        // ============================================================
+        async function updateTreasuryBalance(treasuryId) {
+            var token = getToken();
+            if (!token) return;
+
+            try {
+                var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=amount&treasury_id=eq.' + treasuryId, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!response.ok) throw new Error('فشل جلب الحركات لحساب الرصيد');
+                var transactions = await response.json();
+                
+                var totalBalance = 0;
+                transactions.forEach(function(t) {
+                    totalBalance += t.amount || 0;
+                });
+
+                var updateResponse = await fetch(SUPABASE_URL + '/rest/v1/treasuries?id=eq.' + treasuryId, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        balance: totalBalance
+                    })
+                });
+
+                if (!updateResponse.ok) throw new Error('فشل تحديث الرصيد');
+
+            } catch (error) {
+                console.error('❌ خطأ في تحديث الرصيد:', error);
+                throw error;
+            }
         }
 
         // ============================================================
@@ -2348,6 +2685,7 @@
             if (e.key === 'Escape') {
                 closeOpeningModal();
                 closeImportModal();
+                closeEditModal();
             }
         });
 
@@ -2356,6 +2694,9 @@
         });
         document.getElementById('importModal').addEventListener('click', function(e) {
             if (e.target === this) closeImportModal();
+        });
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) closeEditModal();
         });
 
         // ============================================================
