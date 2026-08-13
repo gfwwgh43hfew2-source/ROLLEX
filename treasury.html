@@ -2322,7 +2322,6 @@
 
             if (treasury) {
                 document.getElementById('treasuryName').textContent = treasury.name;
-                document.getElementById('treasuryBalance').textContent = (treasury.balance || 0).toLocaleString() + ' ج.م';
             }
 
             var totalIn = 0;
@@ -2341,6 +2340,11 @@
             document.getElementById('totalIncoming').textContent = totalIn.toLocaleString() + ' ج.م';
             document.getElementById('totalOutgoing').textContent = totalOut.toLocaleString() + ' ج.م';
             document.getElementById('totalTransactions').textContent = transactions ? transactions.length : 0;
+
+            // ✅ الرصيد الحالي = إجمالي الوارد - إجمالي الصادر (يشمل الرصيد الافتتاحي كحركة)
+            // وهو نفس رصيد آخر حركة، ولا يعتمد على القيمة المخزنة في قاعدة البيانات
+            var currentBalance = totalIn - totalOut;
+            document.getElementById('treasuryBalance').textContent = currentBalance.toLocaleString() + ' ج.م';
 
             if (!transactions || transactions.length === 0) {
                 tbody.innerHTML =
@@ -2630,18 +2634,40 @@
             if (!token) return;
 
             try {
-                var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=amount&treasury_id=eq.' + treasuryId, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
+                // جلب كل الحركات عبر الترحيل (Pagination) لتجنب حد الـ 1000 صف الافتراضي في Supabase
+                var allAmounts = [];
+                var page = 0;
+                var pageSize = 1000;
+                var hasMore = true;
 
-                if (!response.ok) throw new Error('فشل جلب الحركات لحساب الرصيد');
-                var transactions = await response.json();
-                
+                while (hasMore) {
+                    var response = await fetch(
+                        SUPABASE_URL + '/rest/v1/treasury_transactions?select=amount&treasury_id=eq.' + treasuryId +
+                        '&limit=' + pageSize + '&offset=' + (page * pageSize),
+                        {
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': 'Bearer ' + token
+                            }
+                        }
+                    );
+
+                    if (!response.ok) throw new Error('فشل جلب الحركات لحساب الرصيد');
+                    var data = await response.json();
+
+                    if (!data || data.length === 0) {
+                        hasMore = false;
+                    } else {
+                        allAmounts = allAmounts.concat(data);
+                        page++;
+                        if (data.length < pageSize) {
+                            hasMore = false;
+                        }
+                    }
+                }
+
                 var totalBalance = 0;
-                transactions.forEach(function(t) {
+                allAmounts.forEach(function(t) {
                     totalBalance += t.amount || 0;
                 });
 
