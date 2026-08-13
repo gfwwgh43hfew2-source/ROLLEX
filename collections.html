@@ -2,1213 +2,1124 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
-    <title>تحصيلات العملاء - شركة رولكس</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تحصيلات العملاء - QuickData ProSoft</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         /* ============================================================
-           RESET & BASE
+           تصميم فاخر - ثيم فاتح أنيق (Light Theme Premium)
            ============================================================ */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --gold: #b8942a;
+            --gold-light: #f0e3c4;
+            --gold-dark: #8a6b1f;
+            --gold-glow: rgba(184, 148, 42, 0.10);
+            --gold-gradient: linear-gradient(135deg, #d4a84a 0%, #b8942a 50%, #8a6b1f 100%);
+            --bg-page: #f4f1ea;
+            --bg-card: #ffffff;
+            --bg-card-hover: #faf8f2;
+            --bg-input: #f8f6f0;
+            --text-primary: #1a1a1a;
+            --text-secondary: #2d2d2d;
+            --text-muted: #6b6b6b;
+            --text-light: #9a9a9a;
+            --border-color: #e5dfd0;
+            --success: #1a8a5a;
+            --success-bg: rgba(26, 138, 90, 0.08);
+            --danger: #b8453a;
+            --danger-bg: rgba(184, 69, 58, 0.08);
+            --warning: #b87a1a;
+            --warning-bg: rgba(184, 122, 26, 0.08);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.08);
+            --shadow-gold: 0 4px 20px rgba(184, 148, 42, 0.20);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --radius-xl: 18px;
+            --radius-2xl: 22px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --font: 'Cairo', sans-serif;
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
-            background: #0a0f1f;
-            color: #eee;
+            font-family: var(--font);
+            background: var(--bg-page);
+            background-image: 
+                radial-gradient(ellipse 800px 600px at 10% -10%, rgba(184, 148, 42, 0.04), transparent 60%),
+                radial-gradient(ellipse 600px 400px at 90% 100%, rgba(184, 148, 42, 0.03), transparent 50%);
+            color: var(--text-primary);
             direction: rtl;
-            overflow-x: hidden;
-            scroll-behavior: smooth;
-        }
-
-        a {
-            text-decoration: none;
-            color: inherit;
+            min-height: 100vh;
+            padding: 20px;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1300px;
             margin: 0 auto;
-            padding: 0 24px;
+            padding: 0 16px;
         }
 
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0a0f1f;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #f5c842;
-            border-radius: 10px;
-        }
+        /* ============================================================
+           SCROLLBAR
+           ============================================================ */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg-page); }
+        ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--gold-dark); }
 
         /* ============================================================
            HEADER
            ============================================================ */
-        header {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            padding: 10px 0;
-            background: rgba(10, 15, 31, 0.95);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        header .container {
+        .header {
             display: flex;
-            align-items: center;
             justify-content: space-between;
+            align-items: center;
+            padding: 8px 0 18px;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .logo-icon {
-            width: 34px;
-            height: 34px;
-            background: linear-gradient(135deg, #f5c842, #d4a020);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
+        .header h1 {
+            font-size: 1.5rem;
             font-weight: 900;
-            color: #0a0f1f;
-        }
-
-        .logo-text h1 {
-            font-size: 1rem;
-            font-weight: 900;
-            background: linear-gradient(135deg, #f5c842, #d4a020);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            line-height: 1.2;
-        }
-
-        .logo-text span {
-            font-size: 0.5rem;
-            color: rgba(255, 255, 255, 0.3);
-            display: block;
-            -webkit-text-fill-color: rgba(255, 255, 255, 0.3);
-        }
-
-        nav {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        nav a {
-            color: rgba(255, 255, 255, 0.6);
-            font-weight: 600;
-            font-size: 0.85rem;
-            transition: 0.3s;
-            position: relative;
-            padding: 4px 8px;
-            border-radius: 6px;
-        }
-
-        nav a::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            right: 0;
-            width: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #f5c842, #d4a020);
-            transition: 0.3s;
-            border-radius: 10px;
-        }
-
-        nav a:hover {
-            color: #fff;
-        }
-        nav a:hover::after {
-            width: 100%;
-        }
-        nav a.active {
-            color: #f5c842;
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .header-actions button {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(255, 255, 255, 0.03);
-            color: rgba(255, 255, 255, 0.4);
-            cursor: pointer;
-            transition: 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .header-actions button:hover {
-            background: rgba(245, 200, 66, 0.1);
-            border-color: rgba(245, 200, 66, 0.2);
-            color: #f5c842;
-        }
-
-        .hamburger {
-            display: none;
-            font-size: 1.4rem;
-            color: #fff;
-            cursor: pointer;
-            padding: 6px 10px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(255, 255, 255, 0.03);
-            transition: 0.3s;
-            z-index: 1001;
-        }
-
-        .hamburger:hover {
-            background: rgba(245, 200, 66, 0.08);
-            border-color: rgba(245, 200, 66, 0.15);
-        }
-
-        .mobile-nav-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            backdrop-filter: blur(4px);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .mobile-nav-overlay.active {
-            opacity: 1;
-        }
-
-        .mobile-nav-menu {
-            display: none;
-            position: fixed;
-            top: 0;
-            right: -280px;
-            width: 280px;
-            height: 100vh;
-            background: rgba(10, 15, 31, 0.98);
-            backdrop-filter: blur(20px);
-            border-left: 1px solid rgba(255, 255, 255, 0.05);
-            z-index: 1000;
-            padding: 80px 24px 30px;
-            transition: right 0.35s cubic-bezier(0.23, 1, 0.32, 1);
-            overflow-y: auto;
-            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.4);
-        }
-
-        .mobile-nav-menu.open {
-            right: 0;
-        }
-
-        .mobile-nav-menu .close-btn {
-            position: absolute;
-            top: 16px;
-            left: 16px;
-            font-size: 1.6rem;
-            color: rgba(255, 255, 255, 0.4);
-            cursor: pointer;
-            padding: 6px 10px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            background: rgba(255, 255, 255, 0.02);
-            transition: 0.3s;
-        }
-
-        .mobile-nav-menu .close-btn:hover {
-            background: rgba(245, 200, 66, 0.08);
-            border-color: rgba(245, 200, 66, 0.15);
-            color: #f5c842;
-        }
-
-        .mobile-nav-menu .menu-header {
-            margin-bottom: 30px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .mobile-nav-menu .menu-items {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .mobile-nav-menu .menu-items a {
+            color: var(--text-secondary);
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px 14px;
-            border-radius: 10px;
-            color: rgba(255, 255, 255, 0.6);
+        }
+        .header h1 i {
+            width: 42px;
+            height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: #fff;
+            background: var(--gold-gradient);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-gold);
+        }
+        .header h1 span { color: var(--gold); }
+
+        .header .back-btn {
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 8px 18px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            font-size: 0.78rem;
             font-weight: 600;
-            font-size: 0.95rem;
-            transition: 0.3s;
-        }
-
-        .mobile-nav-menu .menu-items a i {
-            width: 20px;
-            color: rgba(255, 255, 255, 0.3);
-            font-size: 1rem;
-        }
-
-        .mobile-nav-menu .menu-items a:hover {
-            background: rgba(245, 200, 66, 0.06);
-            color: #f5c842;
-        }
-
-        .mobile-nav-menu .menu-items a.active {
-            background: rgba(245, 200, 66, 0.08);
-            color: #f5c842;
-        }
-
-        .mobile-nav-bottom {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 998;
-            background: rgba(10, 15, 31, 0.95);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
-        }
-
-        .mobile-nav-bottom ul {
-            display: flex;
-            justify-content: space-around;
-            list-style: none;
-        }
-
-        .mobile-nav-bottom ul li {
-            display: flex;
-            flex-direction: column;
+            transition: var(--transition);
+            display: inline-flex;
             align-items: center;
-            gap: 1px;
-            font-size: 0.5rem;
-            color: rgba(255, 255, 255, 0.4);
-            transition: 0.3s;
-            padding: 4px 12px;
-            border-radius: 8px;
+            gap: 8px;
         }
-
-        .mobile-nav-bottom ul li i {
-            font-size: 1rem;
-        }
-
-        .mobile-nav-bottom ul li:hover,
-        .mobile-nav-bottom ul li.active {
-            color: #f5c842;
-        }
-
-        .mobile-nav-bottom ul li a {
-            color: inherit;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1px;
-        }
-
-        /* ============================================================
-           PAGE HEADER
-           ============================================================ */
-        .page-header {
-            padding: 20px 0 10px;
-        }
-
-        .page-header h1 {
-            font-size: 1.8rem;
-            font-weight: 900;
-            background: linear-gradient(135deg, #f5c842, #d4a020);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .page-header p {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.9rem;
-            margin-top: 4px;
+        .header .back-btn:hover {
+            background: var(--bg-page);
+            border-color: var(--gold);
+            color: var(--text-secondary);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
         }
 
         /* ============================================================
            FILTERS
            ============================================================ */
         .filters-section {
-            display: flex;
-            flex-wrap: wrap;
+            background: var(--bg-card);
+            border-radius: var(--radius-xl);
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .filters-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
             gap: 12px;
-            margin-bottom: 16px;
-            background: linear-gradient(145deg, #121a2e, #0e1525);
-            border-radius: 14px;
-            padding: 16px 20px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            align-items: center;
+            align-items: end;
         }
-
-        .filters-section .filter-group {
+        .filters-row .form-group {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-            min-width: 150px;
+            flex-direction: column;
+            gap: 5px;
         }
-
-        .filters-section .filter-group label {
-            font-size: 0.7rem;
-            color: rgba(255, 255, 255, 0.4);
-            font-weight: 600;
-            white-space: nowrap;
+        .filters-row .form-group label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-muted);
         }
-
-        .filters-section .filter-group input,
-        .filters-section .filter-group select {
-            width: 100%;
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(255, 255, 255, 0.03);
-            color: #eee;
+        .filters-row .form-group input,
+        .filters-row .form-group select {
+            padding: 8px 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: var(--bg-input);
+            color: var(--text-secondary);
             font-size: 0.8rem;
             font-family: inherit;
-            transition: 0.3s;
             outline: none;
+            width: 100%;
+            transition: var(--transition);
         }
-
-        .filters-section .filter-group input:focus,
-        .filters-section .filter-group select:focus {
-            border-color: #f5c842;
-            background: rgba(245, 200, 66, 0.04);
-        }
-
-        .filters-section .filter-group input::placeholder {
-            color: rgba(255, 255, 255, 0.2);
-        }
-
-        .filters-section .filter-group select option {
-            background: #0a0f1f;
-            color: #eee;
+        .filters-row .form-group input:focus,
+        .filters-row .form-group select:focus {
+            border-color: var(--gold);
+            background: var(--bg-card);
+            box-shadow: 0 0 0 3px var(--gold-glow);
         }
 
         .btn-filter {
-            padding: 8px 20px;
-            border-radius: 50px;
-            background: linear-gradient(135deg, #f5c842, #d4a020);
-            border: none;
-            color: #0a0f1f;
-            font-weight: 700;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-
-        .btn-filter:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(245, 200, 66, 0.3);
-        }
-
-        .btn-reset {
-            padding: 8px 16px;
-            border-radius: 50px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            color: rgba(255, 255, 255, 0.5);
-            font-weight: 600;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-
-        .btn-reset:hover {
-            background: rgba(255, 255, 255, 0.08);
+            padding: 8px 24px;
+            background: var(--gold-gradient);
             color: #fff;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 0.78rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: var(--transition);
+            box-shadow: var(--shadow-gold);
+            white-space: nowrap;
+        }
+        .btn-filter:hover {
+            box-shadow: 0 6px 28px rgba(184, 148, 42, 0.30);
+            transform: translateY(-2px);
+        }
+
+        .btn-export {
+            padding: 8px 18px;
+            background: transparent;
+            color: var(--success);
+            border: 1px solid rgba(26, 138, 90, 0.25);
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 0.78rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .btn-export:hover {
+            background: var(--success-bg);
+            border-color: var(--success);
+        }
+
+        /* ============================================================
+           SUMMARY CARDS
+           ============================================================ */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--gold-gradient);
+        }
+        .summary-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        .summary-card .value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .summary-card .value.green { color: var(--success); }
+        .summary-card .value.gold { color: var(--gold); }
+        .summary-card .label {
+            font-size: 0.62rem;
+            color: var(--text-light);
+            font-weight: 700;
+            margin-top: 4px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
 
         /* ============================================================
            TABLE
            ============================================================ */
         .table-wrapper {
-            background: linear-gradient(145deg, #121a2e, #0e1525);
-            border-radius: 14px;
+            background: var(--bg-card);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        .table-wrapper:hover {
+            box-shadow: var(--shadow-md);
+        }
+        .table-scroll {
             overflow-x: auto;
-            border: 1px solid rgba(255, 255, 255, 0.03);
-            padding: 0 4px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.7rem;
-            min-width: 750px;
+            font-size: 0.72rem;
+            min-width: 900px;
         }
 
-        th {
-            background: rgba(26, 47, 68, 0.4);
-            color: #f5c842;
-            padding: 8px 4px;
-            text-align: right;
-            font-weight: 700;
-            white-space: nowrap;
+        thead {
+            background: var(--bg-page);
+            border-bottom: 2px solid var(--border-color);
+        }
+        thead th {
+            padding: 12px 14px;
+            text-align: center;
             font-size: 0.6rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+        }
+        thead th i {
+            margin-left: 4px;
+            color: var(--gold);
+            font-size: 0.55rem;
         }
 
-        td {
-            padding: 6px 4px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-            color: #ffffff;  /* أبيض بدلاً من الرمادي */
-            font-size: 0.65rem;
+        tbody tr {
+            transition: var(--transition);
+        }
+        tbody tr:nth-child(even) {
+            background: rgba(184, 148, 42, 0.02);
+        }
+        tbody tr:hover {
+            background: var(--bg-card-hover);
+        }
+        tbody td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+            color: var(--text-secondary);
+            transition: var(--transition);
+        }
+        tbody tr:last-child td {
+            border-bottom: none;
         }
 
-        tr:hover td {
-            background: rgba(245, 200, 66, 0.02);
+        .badge-client {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 50px;
+            font-size: 0.56rem;
+            font-weight: 700;
+            background: var(--gold-glow);
+            color: var(--gold);
+            border: 1px solid rgba(184, 148, 42, 0.15);
         }
 
-        .badge-source {
+        .amount-col {
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .amount-col.incoming { color: var(--success); }
+        .amount-col.outgoing { color: var(--danger); }
+
+        .treasury-badge {
             display: inline-block;
             padding: 2px 10px;
             border-radius: 50px;
             font-size: 0.5rem;
-            font-weight: 600;
-        }
-
-        .badge-source.main {
-            background: rgba(245, 200, 66, 0.12);
-            border: 1px solid rgba(245, 200, 66, 0.15);
-            color: #f5c842;
-        }
-
-        .badge-source.accounts {
-            background: rgba(33, 150, 243, 0.12);
-            border: 1px solid rgba(33, 150, 243, 0.15);
-            color: #2196f3;
-        }
-
-        .badge-source.driver {
-            background: rgba(76, 175, 80, 0.12);
-            border: 1px solid rgba(76, 175, 80, 0.15);
-            color: #4caf50;
-        }
-
-        .badge-type {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 50px;
-            font-size: 0.5rem;
-            font-weight: 600;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.03);
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .badge-type.deposit {
-            background: rgba(76, 175, 80, 0.12);
-            border-color: rgba(76, 175, 80, 0.15);
-            color: #4caf50;
-        }
-
-        .badge-type.withdraw {
-            background: rgba(239, 83, 80, 0.12);
-            border-color: rgba(239, 83, 80, 0.15);
-            color: #ef5350;
-        }
-
-        .badge-type.transfer {
-            background: rgba(33, 150, 243, 0.12);
-            border-color: rgba(33, 150, 243, 0.15);
-            color: #2196f3;
+            font-weight: 700;
+            background: var(--bg-input);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
         }
 
         .empty-state {
             text-align: center;
-            padding: 40px 20px;
-            color: rgba(255, 255, 255, 0.2);
+            padding: 48px 20px;
+            color: var(--text-light);
         }
-
         .empty-state i {
-            font-size: 2.5rem;
-            opacity: 0.2;
-            margin-bottom: 12px;
+            font-size: 2.4rem;
             display: block;
+            margin-bottom: 12px;
+            opacity: 0.3;
+            color: var(--gold);
         }
-
         .empty-state p {
             font-size: 0.85rem;
         }
 
-        .loading-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #f5c842;
-        }
-
-        .loading-state i {
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
         /* ============================================================
-           SUMMARY
+           TOAST
            ============================================================ */
-        .summary-bar {
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 99999;
             display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 16px;
-            padding: 12px 16px;
-            background: linear-gradient(145deg, #121a2e, #0e1525);
-            border-radius: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.03);
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+            width: 100%;
+        }
+        .toast {
+            background: var(--bg-card);
+            padding: 14px 20px;
+            border-radius: var(--radius-lg);
+            border-right: 4px solid var(--gold);
+            box-shadow: var(--shadow-lg);
+            display: flex;
             align-items: center;
-            justify-content: space-between;
+            gap: 12px;
+            animation: slideIn 0.35s ease;
+            border: 1px solid var(--border-color);
+            width: 100%;
         }
+        .toast.success { border-right-color: var(--success); }
+        .toast.error { border-right-color: var(--danger); }
+        .toast .icon { font-size: 1.1rem; flex-shrink: 0; }
+        .toast .icon.success { color: var(--success); }
+        .toast .icon.error { color: var(--danger); }
+        .toast .content { flex: 1; }
+        .toast .content .title { font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); }
+        .toast .content .message { font-size: 0.7rem; color: var(--text-muted); }
 
-        .summary-bar .total {
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .summary-bar .total span {
-            color: #f5c842;
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-
-        .summary-bar .count {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.4);
-        }
-
-        .summary-bar .count span {
-            color: #fff;
-            font-weight: 700;
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         /* ============================================================
            RESPONSIVE
            ============================================================ */
-        @media (min-width: 769px) {
-            .mobile-nav-bottom {
-                display: none !important;
-            }
-            .mobile-nav-overlay {
-                display: none !important;
-            }
-            .mobile-nav-menu {
-                display: none !important;
-            }
-            .hamburger {
-                display: none !important;
-            }
-            nav {
-                display: flex !important;
-            }
-            .container {
-                padding: 0 24px;
-            }
-        }
-
         @media (max-width: 768px) {
-            nav {
-                display: none !important;
-            }
-            .hamburger {
-                display: flex !important;
-            }
-            .mobile-nav-bottom {
-                display: flex !important;
-            }
-            .mobile-nav-menu {
-                display: block;
-            }
-            .mobile-nav-overlay {
-                display: block;
-            }
-            .mobile-nav-menu.open {
-                right: 0;
-            }
-            .mobile-nav-overlay.active {
-                opacity: 1;
-                pointer-events: auto;
-            }
-            .page-header h1 {
-                font-size: 1.4rem;
-            }
-            .filters-section {
-                flex-direction: column;
-                align-items: stretch;
-                padding: 14px;
-            }
-            .filters-section .filter-group {
-                min-width: unset;
-            }
-            .btn-filter,
-            .btn-reset {
-                width: 100%;
-                justify-content: center;
-            }
-            .summary-bar {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-                gap: 6px;
-            }
-            .container {
-                padding: 0 14px;
-            }
-            .table-wrapper table {
-                font-size: 0.6rem;
-                min-width: 550px;
-            }
-            .table-wrapper table thead th,
-            .table-wrapper table tbody td {
-                padding: 4px 4px;
-            }
+            body { padding: 12px; }
+            .container { padding: 0 6px; }
+            .filters-row { grid-template-columns: 1fr; }
+            .summary-grid { grid-template-columns: 1fr 1fr; }
+            .header { flex-direction: column; gap: 12px; align-items: flex-start; }
+            .header h1 { font-size: 1.2rem; }
+            .header h1 i { width: 36px; height: 36px; font-size: 0.85rem; }
+            table { font-size: 0.65rem; min-width: 700px; }
+            thead th, tbody td { padding: 8px 10px; }
         }
 
         @media (max-width: 480px) {
-            .page-header h1 {
-                font-size: 1.2rem;
-            }
-            .filters-section {
-                padding: 10px;
-            }
-            .filters-section .filter-group input,
-            .filters-section .filter-group select {
-                font-size: 0.7rem;
-                padding: 6px 10px;
-            }
-            .table-wrapper table {
-                font-size: 0.5rem;
-                min-width: 420px;
-            }
-            .badge-source {
-                font-size: 0.4rem;
-                padding: 1px 6px;
-            }
-            .badge-type {
-                font-size: 0.4rem;
-                padding: 1px 6px;
-            }
+            .summary-grid { grid-template-columns: 1fr; }
+            .header h1 { font-size: 1rem; }
+            .header h1 i { width: 32px; height: 32px; font-size: 0.75rem; }
+            table { font-size: 0.58rem; min-width: 600px; }
+            thead th, tbody td { padding: 6px 8px; }
+        }
+
+        /* ============================================================
+           PROGRESS
+           ============================================================ */
+        #loadingOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            z-index: 99999;
+            justify-content: center;
+            align-items: center;
+        }
+        #loadingOverlay.active {
+            display: flex;
+        }
+        #loadingOverlay .spinner {
+            background: var(--bg-card);
+            padding: 30px 40px;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-xl);
+            text-align: center;
+        }
+        #loadingOverlay .spinner i {
+            font-size: 2rem;
+            color: var(--gold);
+            animation: spin 1s linear infinite;
+        }
+        #loadingOverlay .spinner p {
+            margin-top: 12px;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
 
-    <!-- ============================================================
-    HEADER
-    ============================================================ -->
-    <header id="header">
-        <div class="container">
-            <div class="logo">
-                <div class="logo-icon">👥</div>
-                <div class="logo-text">
-                    <h1>تحصيلات العملاء</h1>
-                    <span>شركة رولكس</span>
-                </div>
-            </div>
-            <nav>
-                <a href="treasury.html">الخزينة</a>
-                <a href="#" class="active">تحصيلات العملاء</a>
-                <a href="#">التقارير</a>
-                <a href="#">تواصل</a>
-            </nav>
-            <div class="header-actions">
-                <button aria-label="بحث"><i class="fas fa-search"></i></button>
-                <button aria-label="إشعارات"><i class="fas fa-bell"></i></button>
-                <div class="hamburger" id="navToggle"><i class="fas fa-bars"></i></div>
-            </div>
-        </div>
-    </header>
-
-    <!-- ============================================================
-    MOBILE NAV
-    ============================================================ -->
-    <div class="mobile-nav-overlay" id="mobileOverlay"></div>
-    <div class="mobile-nav-menu" id="mobileMenu">
-        <div class="close-btn" id="closeMenu"><i class="fas fa-times"></i></div>
-        <div class="menu-header">
-            <div class="logo-text">
-                <h1 style="font-size:1.2rem; background: linear-gradient(135deg, #f5c842, #d4a020); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">تحصيلات العملاء</h1>
-                <span style="font-size:0.6rem; color:rgba(255,255,255,0.3); display:block;">شركة رولكس</span>
-            </div>
-        </div>
-        <div class="menu-items">
-            <a href="treasury.html"><i class="fas fa-coins"></i> الخزينة</a>
-            <a href="#" class="active"><i class="fas fa-users"></i> تحصيلات العملاء</a>
-            <a href="#"><i class="fas fa-chart-pie"></i> التقارير</a>
-            <a href="#"><i class="fas fa-phone"></i> تواصل</a>
-        </div>
-    </div>
-
-    <!-- ============================================================
-    MOBILE BOTTOM NAV
-    ============================================================ -->
-    <nav class="mobile-nav-bottom" id="mobileNavBottom">
-        <ul>
-            <li><a href="treasury.html"><i class="fas fa-coins"></i><span>الخزينة</span></a></li>
-            <li class="active"><a href="#"><i class="fas fa-users"></i><span>تحصيلات</span></a></li>
-            <li><a href="#"><i class="fas fa-chart-pie"></i><span>التقارير</span></a></li>
-            <li><a href="#"><i class="fas fa-phone"></i><span>تواصل</span></a></li>
-        </ul>
-    </nav>
-
-    <!-- ============================================================
-    PAGE CONTENT
-    ============================================================ -->
     <div class="container">
 
-        <!-- ===== PAGE HEADER ===== -->
-        <div class="page-header">
-            <h1>👥 تحصيلات العملاء</h1>
-            <p>عرض جميع حركات تحصيلات العملاء من جميع الخزائن (الرئيسية، الحسابات، السائق)</p>
+        <!-- ===== HEADER ===== -->
+        <div class="header">
+            <h1><i class="fas fa-users"></i> <span>تحصيلات العملاء</span></h1>
+            <a href="treasuries.html" class="back-btn"><i class="fas fa-arrow-right"></i> العودة للخزائن</a>
         </div>
 
         <!-- ===== FILTERS ===== -->
         <div class="filters-section">
-            <div class="filter-group">
-                <label><i class="fas fa-calendar-alt"></i> من</label>
-                <input type="date" id="filterDateFrom" />
+            <div class="filters-row">
+                <div class="form-group">
+                    <label>من تاريخ</label>
+                    <input type="date" id="filterDateFrom" />
+                </div>
+                <div class="form-group">
+                    <label>إلى تاريخ</label>
+                    <input type="date" id="filterDateTo" />
+                </div>
+                <div class="form-group">
+                    <label>الخزينة</label>
+                    <select id="filterTreasury">
+                        <option value="">جميع الخزائن</option>
+                    </select>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn-filter" onclick="loadData()">
+                        <i class="fas fa-search"></i> عرض
+                    </button>
+                    <button class="btn-export" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel"></i> تصدير
+                    </button>
+                </div>
             </div>
-            <div class="filter-group">
-                <label><i class="fas fa-calendar-alt"></i> إلى</label>
-                <input type="date" id="filterDateTo" />
-            </div>
-            <div class="filter-group">
-                <label><i class="fas fa-user"></i> العميل</label>
-                <input type="text" id="filterClient" placeholder="اسم العميل..." />
-            </div>
-            <div class="filter-group" style="flex:0.5;min-width:120px;">
-                <label><i class="fas fa-source"></i> المصدر</label>
-                <select id="filterSource">
-                    <option value="all">الكل</option>
-                    <option value="main">الخزينة الرئيسية</option>
-                    <option value="accounts">خزينة الحسابات</option>
-                    <option value="driver">خزينة السائق</option>
-                </select>
-            </div>
-            <button class="btn-filter" id="btnApplyFilter"><i class="fas fa-filter"></i> تطبيق</button>
-            <button class="btn-reset" id="btnResetFilter"><i class="fas fa-undo"></i> إلغاء</button>
         </div>
 
-        <!-- ===== SUMMARY ===== -->
-        <div class="summary-bar" id="summaryBar">
-            <div class="total">إجمالي المبلغ المحصل: <span id="totalAmount">0</span></div>
-            <div class="count">عدد الحركات: <span id="totalCount">0</span></div>
+        <!-- ===== SUMMARY CARDS ===== -->
+        <div class="summary-grid" id="summaryGrid">
+            <div class="summary-card">
+                <span class="value gold" id="totalClients">0</span>
+                <span class="label">عدد العملاء</span>
+            </div>
+            <div class="summary-card">
+                <span class="value green" id="totalCollections">0 ج.م</span>
+                <span class="label">إجمالي التحصيلات</span>
+            </div>
+            <div class="summary-card">
+                <span class="value" id="avgCollection" style="color:#3a7a6a;">0 ج.م</span>
+                <span class="label">متوسط التحصيل لكل عميل</span>
+            </div>
+            <div class="summary-card">
+                <span class="value gold" id="totalTransactions">0</span>
+                <span class="label">عدد الحركات</span>
+            </div>
         </div>
 
         <!-- ===== TABLE ===== -->
         <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>التاريخ</th>
-                        <th>رقم السند</th>
-                        <th>نوع الحركة</th>
-                        <th>البيان</th>
-                        <th style="text-align:center;">المبلغ</th>
-                        <th>المصدر</th>
-                        <th>التبويب الخاص</th>
-                        <th>ملاحظات</th>
-                    </tr>
-                </thead>
-                <tbody id="entriesBody">
-                    <tr>
-                        <td colspan="8">
-                            <div class="loading-state">
-                                <i class="fas fa-spinner"></i>
-                                <p>جاري تحميل البيانات...</p>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th><i class="fas fa-user"></i> اسم العميل</th>
+                            <th><i class="fas fa-university"></i> الخزينة</th>
+                            <th><i class="fas fa-calendar"></i> التاريخ</th>
+                            <th><i class="fas fa-align-right"></i> البيان</th>
+                            <th><i class="fas fa-arrow-down"></i> المبلغ</th>
+                            <th><i class="fas fa-tag"></i> النوع</th>
+                            <th><i class="fas fa-folder"></i> التبويب</th>
+                        </tr>
+                    </thead>
+                    <tbody id="collectionsBody">
+                        <tr><td colspan="8"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد تحصيلات</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
     </div>
 
-    <!-- ============================================================
-    JAVASCRIPT - نفس منطق الخزينة الرئيسية
-    ============================================================ -->
+    <!-- ===== LOADING OVERLAY ===== -->
+    <div id="loadingOverlay">
+        <div class="spinner">
+            <i class="fas fa-spinner"></i>
+            <p>جاري تحميل البيانات...</p>
+        </div>
+    </div>
+
+    <!-- ===== TOAST ===== -->
+    <div class="toast-container" id="toastContainer"></div>
+
     <script>
-        // ============================================================
-        // HEADER SCROLL
-        // ============================================================
-        var header = document.getElementById('header');
-        window.addEventListener('scroll', function() {
-            if (window.pageYOffset > 10) {
-                header.style.background = 'rgba(10, 15, 31, 0.98)';
-                header.style.borderBottom = '1px solid rgba(255,255,255,0.08)';
-            } else {
-                header.style.background = 'rgba(10, 15, 31, 0.95)';
-                header.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
-            }
-        });
-
-        // ============================================================
-        // MOBILE NAV
-        // ============================================================
-        var navToggle = document.getElementById('navToggle');
-        var mobileMenu = document.getElementById('mobileMenu');
-        var mobileOverlay = document.getElementById('mobileOverlay');
-        var closeMenu = document.getElementById('closeMenu');
-
-        function openMenu() {
-            mobileMenu.classList.add('open');
-            mobileOverlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
-            navToggle.innerHTML = '<i class="fas fa-times"></i>';
-            navToggle.classList.add('open');
-        }
-
-        function closeMenuFn() {
-            mobileMenu.classList.remove('open');
-            mobileOverlay.classList.remove('active');
-            document.body.style.overflow = '';
-            navToggle.innerHTML = '<i class="fas fa-bars"></i>';
-            navToggle.classList.remove('open');
-        }
-
-        navToggle.addEventListener('click', function() {
-            if (mobileMenu.classList.contains('open')) {
-                closeMenuFn();
-            } else {
-                openMenu();
-            }
-        });
-
-        closeMenu.addEventListener('click', closeMenuFn);
-        mobileOverlay.addEventListener('click', closeMenuFn);
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && mobileMenu.classList.contains('open')) {
-                closeMenuFn();
-            }
-        });
-
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 768 && mobileMenu.classList.contains('open')) {
-                closeMenuFn();
-            }
-        });
-
         // ============================================================
         // CONFIGURATION
         // ============================================================
-        var SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
-        var SHEET_MAIN = 'الخزينة الرئيسية';
-        var SHEET_ACCOUNTS = 'خزينة الحسابات';
-        var SHEET_DRIVER = 'خزينة السائق';
+        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
+        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
+
+        var allTransactions = [];
+        var allTreasuries = [];
+        var filteredData = [];
+        var currentTreasuryId = null;
 
         // ============================================================
-        // DOM REFS
+        // TOAST
         // ============================================================
-        var entriesBody = document.getElementById('entriesBody');
-        var totalAmount = document.getElementById('totalAmount');
-        var totalCount = document.getElementById('totalCount');
-
-        var filterDateFrom = document.getElementById('filterDateFrom');
-        var filterDateTo = document.getElementById('filterDateTo');
-        var filterClient = document.getElementById('filterClient');
-        var filterSource = document.getElementById('filterSource');
-        var btnApplyFilter = document.getElementById('btnApplyFilter');
-        var btnResetFilter = document.getElementById('btnResetFilter');
-
-        var allEntries = [];
-
-        // ============================================================
-        // دالة تنسيق الأرقام - إنجليزية بدون علامات
-        // ============================================================
-        function formatNumber(num) {
-            if (num === undefined || num === null || isNaN(num)) return '0';
-            var rounded = Math.round(num);
-            return rounded.toString(); // أرقام إنجليزية بدون علامات
+        function showToast(title, message, type) {
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + (type || '');
+            var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            var iconClass = type === 'success' ? 'success' : 'error';
+            toast.innerHTML = `
+                <span class="icon ${iconClass}"><i class="fas ${icon}"></i></span>
+                <div class="content">
+                    <div class="title">${title}</div>
+                    <div class="message">${message}</div>
+                </div>
+            `;
+            container.appendChild(toast);
+            setTimeout(function() {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(-30px)';
+                setTimeout(function() { toast.remove(); }, 400);
+            }, 4000);
         }
 
         // ============================================================
-        // FETCH DATA FROM GOOGLE SHEETS (نفس منطق الخزينة الرئيسية)
+        // SESSION FUNCTIONS
         // ============================================================
-        function fetchSheetData(sheetName) {
-            var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + sheetName;
-            return fetch(url)
-                .then(function(response) {
-                    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
-                    return response.text();
-                })
-                .then(function(csvText) {
-                    var lines = csvText.split('\n').filter(function(line) {
-                        return line.trim() !== '';
-                    });
-                    return lines.map(function(line) {
-                        var row = [];
-                        var current = '';
-                        var insideQuotes = false;
-                        for (var i = 0; i < line.length; i++) {
-                            var char = line[i];
-                            if (char === '"') {
-                                insideQuotes = !insideQuotes;
-                            } else if (char === ',' && !insideQuotes) {
-                                row.push(current.trim());
-                                current = '';
-                            } else {
-                                current += char;
-                            }
-                        }
-                        row.push(current.trim());
-                        return row;
-                    });
+        function getSession() {
+            var session = localStorage.getItem('rollex_session');
+            if (!session) return null;
+            try { return JSON.parse(session); } catch(e) { return null; }
+        }
+
+        function getToken() {
+            var session = getSession();
+            return session ? session.access_token : null;
+        }
+
+        // ============================================================
+        // REFRESH SESSION
+        // ============================================================
+        async function refreshSession() {
+            var session = getSession();
+            if (!session || !session.refresh_token) {
+                console.warn('⚠️ لا يوجد refresh_token لتجديد الجلسة');
+                return false;
+            }
+            try {
+                var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ refresh_token: session.refresh_token })
                 });
+                if (!response.ok) {
+                    console.warn('⚠️ فشل تجديد الجلسة:', response.status);
+                    return false;
+                }
+                var data = await response.json();
+                if (data.access_token) {
+                    var newSession = {
+                        access_token: data.access_token,
+                        refresh_token: data.refresh_token || session.refresh_token,
+                        expires_at: Date.now() + ((data.expires_in || 3600) * 1000)
+                    };
+                    localStorage.setItem('rollex_session', JSON.stringify(newSession));
+                    console.log('✅ تم تجديد الجلسة بنجاح');
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('❌ خطأ في تجديد الجلسة:', error);
+                return false;
+            }
         }
 
-        function cleanNumber(value) {
-            if (!value) return 0;
-            if (typeof value === 'number') return value;
-            var cleaned = String(value).replace(/[^0-9.]/g, '');
-            return parseFloat(cleaned) || 0;
+        function redirectToLogin() {
+            localStorage.removeItem('rollex_session');
+            sessionStorage.removeItem('rollex_session');
+            showToast('⚠️ انتهت الجلسة', 'يرجى تسجيل الدخول مجدداً', 'warning');
+            setTimeout(function() { window.location.href = 'login.html'; }, 1500);
         }
 
         // ============================================================
-        // MAP ROW TO ENTRY
+        // RETRY FUNCTION
         // ============================================================
-        function mapRowToEntry(row, source) {
-            if (!row || row.length < 11) return null;
+        async function fetchWithRetry(url, options, maxRetries = 3) {
+            var lastError = null;
+            for (var attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    var token = getToken();
+                    if (!token && attempt === 1) {
+                        var refreshed = await refreshSession();
+                        if (refreshed) {
+                            token = getToken();
+                            if (token && options.headers) {
+                                options.headers['Authorization'] = 'Bearer ' + token;
+                            }
+                        } else {
+                            redirectToLogin();
+                            throw new Error('لا توجد جلسة صالحة');
+                        }
+                    }
+                    var response = await fetch(url, options);
+                    if (response.status === 401) {
+                        console.warn('⚠️ توكن غير صالح (401)، محاولة تجديد الجلسة...');
+                        var refreshed = await refreshSession();
+                        if (refreshed) {
+                            var newToken = getToken();
+                            if (options.headers) {
+                                options.headers['Authorization'] = 'Bearer ' + newToken;
+                            }
+                            console.log('✅ تم تجديد الجلسة، إعادة المحاولة...');
+                            continue;
+                        } else {
+                            redirectToLogin();
+                            throw new Error('انتهت الجلسة، يرجى تسجيل الدخول مجدداً');
+                        }
+                    }
+                    if (response.ok) return response;
+                    if (response.status === 429 || response.status >= 500) {
+                        console.warn(`⚠️ محاولة ${attempt}/${maxRetries} فشلت (${response.status})، إعادة المحاولة...`);
+                        await new Promise(resolve => setTimeout(resolve, attempt * 1500));
+                        continue;
+                    }
+                    return response;
+                } catch (error) {
+                    lastError = error;
+                    console.warn(`⚠️ محاولة ${attempt}/${maxRetries} فشلت:`, error.message);
+                    if (attempt < maxRetries) {
+                        await new Promise(resolve => setTimeout(resolve, attempt * 1500));
+                    }
+                }
+            }
+            throw lastError || new Error('فشل بعد عدة محاولات');
+        }
 
-            var date = row[0] || '';
-            var number = row[1] || '';
-            var type = row[2] || '';
-            var description = row[4] || '';
-            var incoming = cleanNumber(row[5]);
-            var outgoing = cleanNumber(row[6]);
-            var notes = row[7] || '';
-            var generalTab = row[9] || '';
-            var privateTab = row[10] || '';
+        // ============================================================
+        // FORMAT DATE
+        // ============================================================
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            try {
+                var date = new Date(dateString);
+                if (isNaN(date.getTime())) return '-';
+                return date.toLocaleDateString('ar-EG');
+            } catch(e) { return '-'; }
+        }
 
-            var amount = 0;
-            var actualType = type;
-            if (incoming > 0) {
-                amount = incoming;
-                actualType = 'إيداع';
-            } else if (outgoing > 0) {
-                amount = outgoing;
-                actualType = 'سحب';
+        // ============================================================
+        // GET TREASURIES
+        // ============================================================
+        async function getTreasuries() {
+            var token = getToken();
+            if (!token) return [];
+            try {
+                var response = await fetchWithRetry(SUPABASE_URL + '/rest/v1/treasuries?select=*&is_active=eq.true', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                if (!response.ok) return [];
+                var data = await response.json();
+                return data || [];
+            } catch (error) {
+                console.error('❌ خطأ في جلب الخزائن:', error);
+                return [];
+            }
+        }
+
+        // ============================================================
+        // GET ALL TRANSACTIONS FROM ALL TREASURIES
+        // ============================================================
+        async function getAllTransactions() {
+            var token = getToken();
+            if (!token) return [];
+
+            var allTransactions = [];
+
+            try {
+                // جلب جميع الخزائن أولاً
+                var treasuries = await getTreasuries();
+                if (!treasuries || treasuries.length === 0) {
+                    console.log('📭 لا توجد خزائن');
+                    return [];
+                }
+
+                allTreasuries = treasuries;
+
+                // جلب الحركات من كل خزينة
+                for (var t of treasuries) {
+                    try {
+                        var response = await fetchWithRetry(
+                            SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + t.id +
+                            '&order=date.asc',
+                            {
+                                headers: {
+                                    'apikey': SUPABASE_ANON_KEY,
+                                    'Authorization': 'Bearer ' + token,
+                                    'Content-Type': 'application/json'
+                                }
+                            }
+                        );
+
+                        if (!response.ok) {
+                            console.warn(`⚠️ فشل جلب حركات الخزينة ${t.name}:`, response.status);
+                            continue;
+                        }
+
+                        var data = await response.json();
+                        if (data && data.length > 0) {
+                            // إضافة اسم الخزينة لكل حركة
+                            data.forEach(function(item) {
+                                item.treasury_name = t.name;
+                            });
+                            allTransactions = allTransactions.concat(data);
+                            console.log(`📥 ${t.name}: ${data.length} حركة`);
+                        }
+                    } catch (err) {
+                        console.warn(`⚠️ خطأ في جلب حركات الخزينة ${t.name}:`, err.message);
+                    }
+                }
+
+                // ترتيب حسب التاريخ
+                allTransactions.sort(function(a, b) {
+                    return new Date(a.date || a.created_at) - new Date(b.date || b.created_at);
+                });
+
+                console.log('✅ تم جلب ' + allTransactions.length + ' حركة من جميع الخزائن');
+                return allTransactions;
+
+            } catch (error) {
+                console.error('❌ خطأ في جلب الحركات:', error);
+                return allTransactions;
+            }
+        }
+
+        // ============================================================
+        // FILTER TRANSACTIONS - تصفية حركات العملاء (الخاص)
+        // ============================================================
+        function filterClientTransactions(transactions, dateFrom, dateTo, treasuryId) {
+            var filtered = [];
+
+            for (var item of transactions) {
+                // تصفية حسب الخزينة
+                if (treasuryId && item.treasury_id !== treasuryId) continue;
+
+                // تصفية حسب التاريخ
+                var itemDate = new Date(item.date || item.created_at);
+                if (dateFrom && itemDate < new Date(dateFrom)) continue;
+                if (dateTo && itemDate > new Date(dateTo)) continue;
+
+                // ✅ فقط حركات العملاء (التبويب الخاص = اسم عميل)
+                // نعتبر أي حركة لها private_tab غير فارغ وغير "عام" و"خاص" هي تحصيل عميل
+                var privateTab = item.private_tab || '';
+                if (privateTab && privateTab !== 'عام' && privateTab !== 'خاص' && privateTab !== 'رصيد افتتاحي') {
+                    filtered.push(item);
+                }
             }
 
-            if (amount === 0) return null;
-
-            var isCollection = (
-                generalTab.includes('تحصيلات العملاء') ||
-                generalTab.includes('تحصيلات_العملاء') ||
-                generalTab.includes('تحصيلات') ||
-                generalTab.includes('عملاء')
-            );
-
-            if (!isCollection) return null;
-
-            return {
-                date: date,
-                number: number,
-                type: actualType,
-                description: description,
-                amount: amount,
-                generalTab: generalTab,
-                privateTab: privateTab,
-                notes: notes,
-                source: source
-            };
+            return filtered;
         }
 
         // ============================================================
-        // LOAD ALL DATA
+        // DISPLAY DATA
         // ============================================================
-        function loadAllData() {
-            entriesBody.innerHTML = '<tr><td colspan="8"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات من جميع الخزائن...</p></div></td></tr>';
+        function displayData(transactions) {
+            var tbody = document.getElementById('collectionsBody');
 
-            var mainPromise = fetchSheetData(SHEET_MAIN);
-            var accountsPromise = fetchSheetData(SHEET_ACCOUNTS);
-            var driverPromise = fetchSheetData(SHEET_DRIVER);
+            // تحديث الإحصائيات
+            var totalClients = new Set();
+            var totalCollections = 0;
+            var totalTransactions = transactions.length;
 
-            Promise.all([mainPromise, accountsPromise, driverPromise])
-                .then(function(results) {
-                    var entries = [];
-                    var sources = ['main', 'accounts', 'driver'];
-
-                    results.forEach(function(data, index) {
-                        if (!data || data.length < 2) return;
-                        var source = sources[index];
-                        for (var i = 1; i < data.length; i++) {
-                            var entry = mapRowToEntry(data[i], source);
-                            if (entry) {
-                                entries.push(entry);
-                            }
-                        }
-                    });
-
-                    allEntries = entries;
-                    displayEntries(entries);
-                })
-                .catch(function(error) {
-                    console.error('Error loading data:', error);
-                    entriesBody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات<br><small style="color:rgba(255,255,255,0.2);">' +
-                        error.message + '</small></p></div></td></tr>';
-                });
-        }
-
-        // ============================================================
-        // DISPLAY ENTRIES
-        // ============================================================
-        function displayEntries(entries) {
-            var filtered = filterEntries(entries);
-
-            var total = filtered.length;
-            var totalAmt = 0;
-            filtered.forEach(function(entry) {
-                totalAmt += entry.amount || 0;
+            transactions.forEach(function(item) {
+                if (item.private_tab) {
+                    totalClients.add(item.private_tab);
+                }
+                if (item.amount > 0) {
+                    totalCollections += item.amount;
+                }
             });
-            totalCount.textContent = total;
-            totalAmount.textContent = formatNumber(totalAmt); // بدون علامات
 
-            if (filtered.length === 0) {
-                entriesBody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد حركات تحصيلات للعملاء</p></div></td></tr>';
+            document.getElementById('totalClients').textContent = totalClients.size;
+            document.getElementById('totalCollections').textContent = totalCollections.toLocaleString() + ' ج.م';
+            document.getElementById('avgCollection').textContent = (totalClients.size > 0 ? (totalCollections / totalClients
+                .size).toLocaleString() : '0') + ' ج.م';
+            document.getElementById('totalTransactions').textContent = totalTransactions;
+
+            if (!transactions || transactions.length === 0) {
+                tbody.innerHTML =
+                    `<tr><td colspan="8"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد تحصيلات</div></td></tr>`;
                 return;
             }
 
-            var html = '';
-            var sorted = filtered.slice().sort(function(a, b) {
-                return (b.date || '').localeCompare(a.date || '');
-            });
-
-            sorted.forEach(function(entry) {
-                var sourceLabel = '';
-                var sourceClass = '';
-                if (entry.source === 'main') {
-                    sourceLabel = 'الخزينة الرئيسية';
-                    sourceClass = 'main';
-                } else if (entry.source === 'accounts') {
-                    sourceLabel = 'خزينة الحسابات';
-                    sourceClass = 'accounts';
-                } else if (entry.source === 'driver') {
-                    sourceLabel = 'خزينة السائق';
-                    sourceClass = 'driver';
+            // تجميع حسب العميل
+            var clientMap = {};
+            transactions.forEach(function(item) {
+                var clientName = item.private_tab || 'غير محدد';
+                if (!clientMap[clientName]) {
+                    clientMap[clientName] = {
+                        client: clientName,
+                        total: 0,
+                        transactions: []
+                    };
                 }
-
-                var badgeClass = 'badge-type';
-                if (entry.type === 'إيداع') badgeClass += ' deposit';
-                else if (entry.type === 'سحب') badgeClass += ' withdraw';
-                else if (entry.type === 'تحويل') badgeClass += ' transfer';
-
-                html += '<tr>' +
-                    '<td>' + (entry.date || '-') + '</td>' +
-                    '<td>' + (entry.number || '-') + '</td>' +
-                    '<td><span class="' + badgeClass + '">' + (entry.type || '-') + '</span></td>' +
-                    '<td>' + (entry.description || '-') + '</td>' +
-                    '<td style="text-align:center;color:#f5c842;font-weight:700;">' + formatNumber(entry.amount) +
-                    '</td>' +
-                    '<td><span class="badge-source ' + sourceClass + '">' + sourceLabel + '</span></td>' +
-                    '<td style="color:#ffffff;opacity:0.85;">' + (entry.privateTab || '-') + '</td>' +
-                    '<td style="font-size:0.55rem;color:rgba(255,255,255,0.5);">' + (entry.notes || '-') + '</td>' +
-                    '</tr>';
+                clientMap[clientName].total += item.amount > 0 ? item.amount : 0;
+                clientMap[clientName].transactions.push(item);
             });
 
-            entriesBody.innerHTML = html;
+            // تحويل إلى مصفوفة وترتيب حسب الإجمالي
+            var clientArray = Object.values(clientMap);
+            clientArray.sort(function(a, b) { return b.total - a.total; });
+
+            var rows = '';
+            var counter = 0;
+
+            clientArray.forEach(function(client) {
+                // عرض العميل كمجموعة
+                counter++;
+                var firstItem = client.transactions[0];
+                rows += `
+                    <tr style="background:var(--gold-glow);font-weight:700;">
+                        <td>${counter}</td>
+                        <td><span class="badge-client">${client.client}</span></td>
+                        <td colspan="5"></td>
+                        <td style="color:var(--gold);font-weight:800;">${client.total.toLocaleString()} ج.م</td>
+                    </tr>
+                `;
+
+                // عرض تفاصيل حركات العميل
+                client.transactions.forEach(function(item, index) {
+                    var amount = item.amount || 0;
+                    var isIncoming = amount > 0;
+                    var displayAmount = Math.abs(amount);
+
+                    var typeLabels = {
+                        'incoming': 'إيداع',
+                        'outgoing': 'سحب',
+                        'transfer_in': 'تحويل وارد',
+                        'transfer_out': 'تحويل صادر',
+                        'opening': 'رصيد افتتاحي',
+                        'salary': 'راتب',
+                        'expense': 'مصروف',
+                        'revenue': 'إيراد'
+                    };
+                    var displayType = typeLabels[item.type] || item.type || '-';
+
+                    rows += `
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td><span class="treasury-badge">${item.treasury_name || '-'}</span></td>
+                            <td>${formatDate(item.date || item.created_at)}</td>
+                            <td style="text-align:right;">${item.description || '-'}</td>
+                            <td class="amount-col ${isIncoming ? 'incoming' : 'outgoing'}">${isIncoming ? '+' : '-'} ${displayAmount.toLocaleString()}</td>
+                            <td>${displayType}</td>
+                            <td>${item.general_tab || '-'}</td>
+                        </tr>
+                    `;
+                });
+            });
+
+            tbody.innerHTML = rows;
         }
 
         // ============================================================
-        // FILTER ENTRIES
+        // POPULATE TREASURY FILTER
         // ============================================================
-        function filterEntries(entries) {
-            var fromDate = filterDateFrom.value;
-            var toDate = filterDateTo.value;
-            var client = filterClient.value.trim().toLowerCase();
-            var source = filterSource.value;
-
-            return entries.filter(function(entry) {
-                if (fromDate && entry.date < fromDate) return false;
-                if (toDate && entry.date > toDate) return false;
-
-                if (client) {
-                    var searchText = (entry.description || '').toLowerCase() + ' ' + (entry.privateTab || '').toLowerCase();
-                    if (!searchText.includes(client)) return false;
-                }
-
-                if (source !== 'all' && entry.source !== source) return false;
-
-                return true;
+        function populateTreasuryFilter(treasuries) {
+            var select = document.getElementById('filterTreasury');
+            select.innerHTML = '<option value="">جميع الخزائن</option>';
+            treasuries.forEach(function(t) {
+                var option = document.createElement('option');
+                option.value = t.id;
+                option.textContent = t.name;
+                select.appendChild(option);
             });
         }
 
         // ============================================================
-        // FILTER EVENTS
+        // LOAD DATA
         // ============================================================
-        btnApplyFilter.addEventListener('click', function() {
-            displayEntries(allEntries);
-        });
+        async function loadData() {
+            var overlay = document.getElementById('loadingOverlay');
+            overlay.classList.add('active');
 
-        btnResetFilter.addEventListener('click', function() {
-            filterDateFrom.value = '';
-            filterDateTo.value = '';
-            filterClient.value = '';
-            filterSource.value = 'all';
-            displayEntries(allEntries);
-        });
+            try {
+                var token = getToken();
+                if (!token) {
+                    var refreshed = await refreshSession();
+                    if (!refreshed) {
+                        redirectToLogin();
+                        return;
+                    }
+                }
+
+                // جلب جميع الخزائن
+                allTreasuries = await getTreasuries();
+                populateTreasuryFilter(allTreasuries);
+
+                // جلب جميع الحركات
+                allTransactions = await getAllTransactions();
+
+                // تطبيق الفلاتر
+                var dateFrom = document.getElementById('filterDateFrom').value;
+                var dateTo = document.getElementById('filterDateTo').value;
+                var treasuryId = document.getElementById('filterTreasury').value;
+
+                filteredData = filterClientTransactions(allTransactions, dateFrom, dateTo, treasuryId);
+
+                displayData(filteredData);
+
+                if (filteredData.length === 0) {
+                    showToast('📭 معلومات', 'لا توجد تحصيلات للعملاء في الفترة المحددة', 'warning');
+                } else {
+                    showToast('✅ تم التحميل', 'تم عرض ' + filteredData.length + ' حركة تحصيل', 'success');
+                }
+
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                showToast('❌ خطأ', error.message, 'error');
+            }
+
+            overlay.classList.remove('active');
+        }
 
         // ============================================================
-        // INIT - التاريخ من أول السنة
+        // EXPORT TO EXCEL
         // ============================================================
-        (function init() {
-            var today = new Date();
-            var currentYear = today.getFullYear();
+        function exportToExcel() {
+            try {
+                if (!filteredData || filteredData.length === 0) {
+                    showToast('⚠️ تنبيه', 'لا توجد بيانات لتصديرها', 'warning');
+                    return;
+                }
 
-            // تاريخ اليوم
-            filterDateTo.value = today.toISOString().split('T')[0];
+                var excelData = filteredData.map(function(item, index) {
+                    var amount = item.amount || 0;
+                    var isIncoming = amount > 0;
 
-            // أول يوم في السنة الحالية (1 يناير)
-            var firstDayOfYear = new Date(currentYear, 0, 1);
-            filterDateFrom.value = firstDayOfYear.toISOString().split('T')[0];
+                    var typeLabels = {
+                        'incoming': 'إيداع',
+                        'outgoing': 'سحب',
+                        'transfer_in': 'تحويل وارد',
+                        'transfer_out': 'تحويل صادر',
+                        'opening': 'رصيد افتتاحي',
+                        'salary': 'راتب',
+                        'expense': 'مصروف',
+                        'revenue': 'إيراد'
+                    };
 
-            loadAllData();
+                    return {
+                        '#': index + 1,
+                        'العميل': item.private_tab || '-',
+                        'الخزينة': item.treasury_name || '-',
+                        'التاريخ': formatDate(item.date || item.created_at),
+                        'البيان': item.description || '-',
+                        'المبلغ': (isIncoming ? '+' : '-') + Math.abs(amount).toLocaleString(),
+                        'النوع': typeLabels[item.type] || item.type || '-',
+                        'التبويب العام': item.general_tab || '-'
+                    };
+                });
 
-            console.log('🚀 صفحة تحصيلات العملاء - تم التحميل');
-            console.log('📅 الفترة: من ' + filterDateFrom.value + ' إلى ' + filterDateTo.value);
+                var ws = XLSX.utils.json_to_sheet(excelData);
+                var wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'تحصيلات العملاء');
+
+                ws['!cols'] = [
+                    { wch: 5 }, { wch: 20 }, { wch: 15 }, { wch: 15 },
+                    { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 20 }
+                ];
+
+                var filename = 'تحصيلات_العملاء_' + new Date().toISOString().split('T')[0] + '.xlsx';
+                XLSX.writeFile(wb, filename);
+
+                showToast('✅ تم التصدير', 'تم تصدير ' + filteredData.length + ' حركة بنجاح', 'success');
+
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                showToast('❌ خطأ', error.message, 'error');
+            }
+        }
+
+        // ============================================================
+        // SET DEFAULT DATES
+        // ============================================================
+        function setDefaultDates() {
+            var now = new Date();
+            // أول يوم في الشهر الحالي
+            var firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            // اليوم الحالي
+            var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            document.getElementById('filterDateFrom').value = firstDay.toISOString().split('T')[0];
+            document.getElementById('filterDateTo').value = today.toISOString().split('T')[0];
+        }
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        (async function init() {
+            console.log('📊 تحصيلات العملاء - QuickData ProSoft');
+
+            setDefaultDates();
+
+            var token = getToken();
+            if (!token) {
+                showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول لعرض البيانات', 'warning');
+                var refreshed = await refreshSession();
+                if (!refreshed) {
+                    redirectToLogin();
+                    return;
+                }
+            }
+
+            try {
+                await loadData();
+            } catch (e) {
+                console.error('❌ خطأ في تحميل البيانات:', e);
+                showToast('❌ خطأ', 'حدث خطأ في تحميل البيانات', 'error');
+            }
         })();
-
-        // تحديث البيانات كل 5 دقائق
-        setInterval(function() {
-            loadAllData();
-        }, 300000);
     </script>
 
 </body>
