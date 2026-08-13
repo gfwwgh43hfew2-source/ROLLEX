@@ -1545,16 +1545,19 @@
                     if (rpcResponse.ok) {
                         var rpcData = await rpcResponse.json();
                         if (rpcData && rpcData.length > 0) {
+                            allTransactions = allTransactions.concat(rpcData);
+                            console.log(`📥 RPC: تم جلب ${rpcData.length} حركة`);
+                            
                             if (rpcData.length < 1000) {
-                                console.log('✅ RPC: تم جلب ' + rpcData.length + ' حركة (جميع البيانات)');
-                                // ✅ ترتيب حسب التاريخ (oldest first)
-                                rpcData.sort(function(a, b) {
-                                    return new Date(a.date) - new Date(b.date);
+                                console.log('✅ RPC: تم جلب جميع البيانات');
+                                allTransactions.sort(function(a, b) {
+                                    var dateA = new Date(a.date || a.created_at);
+                                    var dateB = new Date(b.date || b.created_at);
+                                    return dateA - dateB;
                                 });
-                                return rpcData;
+                                return allTransactions;
                             } else {
-                                console.log('⚠️ RPC جلب 1000 حركة (قد يكون هناك المزيد)، نبدأ الترحيل من الصفحة 1');
-                                allTransactions = allTransactions.concat(rpcData);
+                                console.log('⚠️ RPC جلب 1000 حركة (قد يكون هناك المزيد)، نواصل الترحيل...');
                             }
                         }
                         if (rpcData && rpcData.length === 0) {
@@ -1566,7 +1569,7 @@
                     console.warn('⚠️ RPC فشل:', rpcError.message);
                 }
 
-                // 2. الترحيل المباشر (Pagination) - مرتب حسب التاريخ
+                // 2. الترحيل المباشر (Pagination)
                 console.log('🔄 جلب باقي الحركات عبر الترحيل المباشر...');
                 var page = allTransactions.length > 0 ? 1 : 0;
                 var pageSize = 1000;
@@ -1575,7 +1578,7 @@
                 while (hasMore) {
                     var response = await fetchWithRetry(
                         SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + treasuryId +
-                        '&order=date.asc&limit=' + pageSize + '&offset=' + (page * pageSize),
+                        '&order=created_at.asc&limit=' + pageSize + '&offset=' + (page * pageSize),
                         {
                             headers: {
                                 'apikey': SUPABASE_ANON_KEY,
@@ -1595,8 +1598,16 @@
                     if (!data || data.length === 0) {
                         hasMore = false;
                     } else {
-                        allTransactions = allTransactions.concat(data);
-                        console.log(`📄 صفحة ${page + 1}: ${data.length} حركة (إجمالي: ${allTransactions.length})`);
+                        var newData = data.filter(function(item) {
+                            return !allTransactions.some(function(existing) {
+                                return existing.id === item.id;
+                            });
+                        });
+                        
+                        if (newData.length > 0) {
+                            allTransactions = allTransactions.concat(newData);
+                            console.log(`📄 صفحة ${page + 1}: ${newData.length} حركة جديدة (إجمالي: ${allTransactions.length})`);
+                        }
                         page++;
                         
                         if (data.length < pageSize) {
@@ -1607,7 +1618,9 @@
 
                 // ✅ ترتيب نهائي حسب التاريخ (oldest first)
                 allTransactions.sort(function(a, b) {
-                    return new Date(a.date) - new Date(b.date);
+                    var dateA = new Date(a.date || a.created_at);
+                    var dateB = new Date(b.date || b.created_at);
+                    return dateA - dateB;
                 });
 
                 console.log('✅ تم جلب ' + allTransactions.length + ' حركة (مرتبة حسب التاريخ)');
@@ -1821,7 +1834,7 @@
         }
 
         // ============================================================
-        // EXPORT TO EXCEL - تصدير مع الحفاظ على الترتيب
+        // EXPORT TO EXCEL
         // ============================================================
         async function exportToExcel() {
             try {
