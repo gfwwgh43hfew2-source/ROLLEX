@@ -768,7 +768,7 @@
         }
 
         // ============================================================
-        // GET ALL TRANSACTIONS FROM ALL TREASURIES
+        // GET ALL TRANSACTIONS FROM ALL TREASURIES - مع دعم الترحيل الكامل
         // ============================================================
         async function getAllTransactions() {
             var token = getToken();
@@ -786,37 +786,60 @@
 
                 allTreasuries = treasuries;
 
-                // جلب الحركات من كل خزينة
+                // جلب الحركات من كل خزينة مع الترحيل الكامل
                 for (var t of treasuries) {
-                    try {
-                        var response = await fetchWithRetry(
-                            SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + t.id +
-                            '&order=date.asc',
-                            {
-                                headers: {
-                                    'apikey': SUPABASE_ANON_KEY,
-                                    'Authorization': 'Bearer ' + token,
-                                    'Content-Type': 'application/json'
+                    var page = 0;
+                    var pageSize = 1000;
+                    var hasMore = true;
+                    var treasuryTransactions = [];
+
+                    console.log(`🔄 جلب حركات الخزينة: ${t.name}...`);
+
+                    while (hasMore) {
+                        try {
+                            var response = await fetchWithRetry(
+                                SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + t.id +
+                                '&order=date.asc&limit=' + pageSize + '&offset=' + (page * pageSize),
+                                {
+                                    headers: {
+                                        'apikey': SUPABASE_ANON_KEY,
+                                        'Authorization': 'Bearer ' + token,
+                                        'Content-Type': 'application/json'
+                                    }
+                                }
+                            );
+
+                            if (!response.ok) {
+                                console.warn(`⚠️ فشل جلب حركات الخزينة ${t.name}:`, response.status);
+                                break;
+                            }
+
+                            var data = await response.json();
+                            
+                            if (!data || data.length === 0) {
+                                hasMore = false;
+                            } else {
+                                // إضافة اسم الخزينة لكل حركة
+                                data.forEach(function(item) {
+                                    item.treasury_name = t.name;
+                                });
+                                treasuryTransactions = treasuryTransactions.concat(data);
+                                console.log(`📄 صفحة ${page + 1}: ${data.length} حركة (إجمالي: ${treasuryTransactions.length})`);
+                                page++;
+                                
+                                if (data.length < pageSize) {
+                                    hasMore = false;
                                 }
                             }
-                        );
-
-                        if (!response.ok) {
-                            console.warn(`⚠️ فشل جلب حركات الخزينة ${t.name}:`, response.status);
-                            continue;
+                        } catch (err) {
+                            console.warn(`⚠️ خطأ في جلب حركات الخزينة ${t.name}:`, err.message);
+                            hasMore = false;
                         }
+                    }
 
-                        var data = await response.json();
-                        if (data && data.length > 0) {
-                            // إضافة اسم الخزينة لكل حركة
-                            data.forEach(function(item) {
-                                item.treasury_name = t.name;
-                            });
-                            allTransactions = allTransactions.concat(data);
-                            console.log(`📥 ${t.name}: ${data.length} حركة`);
-                        }
-                    } catch (err) {
-                        console.warn(`⚠️ خطأ في جلب حركات الخزينة ${t.name}:`, err.message);
+                    if (treasuryTransactions.length > 0) {
+                        allTransactions = allTransactions.concat(treasuryTransactions);
+                        console.log(`📥 ${t.name}: ${treasuryTransactions.length} حركة (تم جلبها بالكامل)`);
                     }
                 }
 
@@ -978,6 +1001,20 @@
         }
 
         // ============================================================
+        // SET DEFAULT DATES - بداية العام الحالي
+        // ============================================================
+        function setDefaultDates() {
+            var now = new Date();
+            // أول يوم في العام الحالي (1 يناير)
+            var firstDayOfYear = new Date(now.getFullYear(), 0, 1);
+            // اليوم الحالي
+            var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            document.getElementById('filterDateFrom').value = firstDayOfYear.toISOString().split('T')[0];
+            document.getElementById('filterDateTo').value = today.toISOString().split('T')[0];
+        }
+
+        // ============================================================
         // LOAD DATA
         // ============================================================
         async function loadData() {
@@ -1082,25 +1119,12 @@
         }
 
         // ============================================================
-        // SET DEFAULT DATES
-        // ============================================================
-        function setDefaultDates() {
-            var now = new Date();
-            // أول يوم في الشهر الحالي
-            var firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-            // اليوم الحالي
-            var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-            document.getElementById('filterDateFrom').value = firstDay.toISOString().split('T')[0];
-            document.getElementById('filterDateTo').value = today.toISOString().split('T')[0];
-        }
-
-        // ============================================================
         // INIT
         // ============================================================
         (async function init() {
             console.log('📊 تحصيلات العملاء - QuickData ProSoft');
 
+            // تعيين التواريخ الافتراضية (بداية العام الحالي)
             setDefaultDates();
 
             var token = getToken();
