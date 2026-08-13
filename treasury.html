@@ -839,18 +839,12 @@
                 toast.style.opacity = '0';
                 toast.style.transform = 'translateX(20px)';
                 setTimeout(function() { toast.remove(); }, 300);
-            }, 3000);
+            }, 4000);
         }
 
         // ============================================================
-        // SESSION & TOKEN - مع مراقبة الجلسة
+        // SESSION - بدون إنهاء تلقائي أبداً
         // ============================================================
-        var monitorInterval = null;
-        var warningShown = false;
-        var warningShown2 = false;
-        var warningShown3 = false;
-        var sessionMonitorStarted = false;
-
         function getSession() {
             var session = localStorage.getItem('rollex_session');
             if (!session) return null;
@@ -862,10 +856,13 @@
             return session ? session.access_token : null;
         }
 
-        // التحقق من صحة التوكن
+        // التحقق من صحة التوكن - عرض تحذير فقط (بدون إنهاء)
         async function validateToken() {
             var token = getToken();
-            if (!token) return false;
+            if (!token) {
+                console.warn('⚠️ لا يوجد توكن');
+                return false;
+            }
             try {
                 var res = await fetch(SUPABASE_URL + '/auth/v1/user', {
                     headers: {
@@ -873,25 +870,23 @@
                         'Authorization': 'Bearer ' + token
                     }
                 });
-                return res.ok;
+                
+                if (res.status === 403) {
+                    console.warn('⚠️ التوكن غير صالح (403)');
+                    showToast('⚠️ تنبيه', 'توكن غير صالح، قد تحتاج لتسجيل الدخول مجدداً', 'warning');
+                    return false;
+                }
+                
+                if (res.ok) {
+                    return true;
+                }
+                
+                console.warn(`⚠️ استجابة غير متوقعة: ${res.status}`);
+                return false;
             } catch(e) {
+                console.error('❌ خطأ في التحقق من التوكن:', e);
                 return false;
             }
-        }
-
-        // إعادة توجيه لتسجيل الدخول
-        function redirectToLogin() {
-            if (monitorInterval) {
-                clearInterval(monitorInterval);
-                monitorInterval = null;
-            }
-            sessionMonitorStarted = false;
-            localStorage.removeItem('rollex_session');
-            sessionStorage.removeItem('rollex_session');
-            showToast('⚠️ جلسة منتهية', 'يرجى تسجيل الدخول مجدداً', 'warning');
-            setTimeout(function() {
-                window.location.href = 'login.html';
-            }, 1500);
         }
 
         // دالة لحساب الوقت المتبقي للجلسة
@@ -914,50 +909,91 @@
             return Date.now() + (60 * 60 * 1000);
         }
 
-        // دالة للتحقق من الوقت المتبقي وعرض تحذير
+        // ============================================================
+        // SESSION MONITOR - تحذيرات فقط (بدون إنهاء)
+        // ============================================================
+        var monitorInterval = null;
+        var warningShown = false;
+        var warningShown2 = false;
+        var warningShown3 = false;
+        var sessionMonitorStarted = false;
+
+        // دالة للتحقق من الوقت المتبقي - عرض تحذيرات فقط (بدون إنهاء)
         function checkSessionExpiry() {
             var token = getToken();
-            if (!token) return true;
+            if (!token) {
+                console.log('⏳ لا يوجد توكن');
+                return true;
+            }
             
             var expiryTime = getSessionExpiryTime();
-            if (!expiryTime) return true;
+            if (!expiryTime) {
+                console.log('⏳ لا يمكن تحديد وقت الانتهاء');
+                return true;
+            }
             
-            var timeLeft = expiryTime - Date.now();
+            var now = Date.now();
+            var timeLeft = expiryTime - now;
             var minutesLeft = Math.floor(timeLeft / (60 * 1000));
             var secondsLeft = Math.floor((timeLeft % (60 * 1000)) / 1000);
             
+            // ✅ لا ننهي الجلسة أبداً، فقط تحذيرات
             if (timeLeft <= 0) {
-                console.warn('⚠️ الجلسة منتهية حسب الوقت المحسوب');
+                console.log('⏳ الجلسة منتهية حسب الوقت المحسوب، لكننا لن ننهيها تلقائياً');
+                // نعرض تحذير فقط
+                if (!warningShown3) {
+                    warningShown3 = true;
+                    showToast(
+                        '⏳ انتهت الجلسة',
+                        'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً عند الحاجة',
+                        'warning'
+                    );
+                }
                 return true;
             }
             
-            // تحذير 5 دقائق
+            // عرض تحذير عند 5 دقائق متبقية
             if (timeLeft < 300000 && timeLeft > 240000 && !warningShown) {
                 warningShown = true;
-                showToast('⏳ تنبيه هام', `جلسة العمل ستنتهي خلال ${minutesLeft} دقيقة، يرجى حفظ عملك`, 'warning');
+                showToast(
+                    '⏳ تنبيه هام',
+                    `جلسة العمل ستنتهي خلال ${minutesLeft} دقيقة`,
+                    'warning'
+                );
                 return true;
             }
             
-            // تحذير 3 دقائق
+            // عرض تحذير عند 3 دقائق متبقية
             if (timeLeft < 180000 && timeLeft > 120000 && !warningShown2) {
                 warningShown2 = true;
-                showToast('⏳ تنبيه عاجل', `جلسة العمل ستنتهي خلال ${minutesLeft} دقائق!`, 'warning');
+                showToast(
+                    '⏳ تنبيه عاجل',
+                    `جلسة العمل ستنتهي خلال ${minutesLeft} دقائق!`,
+                    'warning'
+                );
                 return true;
             }
             
-            // تحذير 1 دقيقة
+            // عرض تحذير عند دقيقة واحدة متبقية
             if (timeLeft < 60000 && timeLeft > 30000 && !warningShown3) {
                 warningShown3 = true;
-                showToast('⏳ تنبيه أخير', `جلسة العمل ستنتهي خلال ${secondsLeft} ثانية!`, 'error');
+                showToast(
+                    '⏳ تنبيه أخير',
+                    `جلسة العمل ستنتهي خلال ${secondsLeft} ثانية!`,
+                    'error'
+                );
                 return true;
             }
             
             return true;
         }
 
-        // بدء مراقبة الجلسة
+        // بدء مراقبة الجلسة - تحذيرات فقط
         function startSessionMonitor() {
-            if (sessionMonitorStarted) return;
+            if (sessionMonitorStarted) {
+                console.log('⏳ مراقبة الجلسة قيد التشغيل بالفعل');
+                return;
+            }
             
             warningShown = false;
             warningShown2 = false;
@@ -969,13 +1005,23 @@
                 monitorInterval = null;
             }
             
-            setTimeout(function() { checkSessionExpiry(); }, 5000);
+            setTimeout(function() {
+                checkSessionExpiry();
+            }, 3000);
             
             monitorInterval = setInterval(function() {
                 checkSessionExpiry();
             }, 30000);
             
-            console.log('✅ بدأ مراقبة الجلسة');
+            console.log('✅ بدأ مراقبة الجلسة - تحذيرات فقط (بدون إنهاء)');
+        }
+
+        // ❌ تم تعطيل إعادة التوجيه التلقائي - لن ننهي الجلسة أبداً
+        function redirectToLogin() {
+            // لا تفعل شيئاً - فقط عرض تحذير
+            showToast('⚠️ تنبيه', 'جلسة العمل غير صالحة، يرجى تسجيل الدخول مجدداً عند الحاجة', 'warning');
+            // ❌ لا نعيد التوجيه
+            // window.location.href = 'login.html';
         }
 
         // ============================================================
@@ -1000,7 +1046,6 @@
                     }
                 });
                 if (!userResponse.ok) {
-                    redirectToLogin();
                     return null;
                 }
                 var user = await userResponse.json();
@@ -1755,39 +1800,47 @@
         });
 
         // ============================================================
-        // INIT
+        // LOGOUT - فقط هذا هو ما ينهي الجلسة
+        // ============================================================
+        function logout() {
+            if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                if (monitorInterval) {
+                    clearInterval(monitorInterval);
+                    monitorInterval = null;
+                }
+                sessionMonitorStarted = false;
+                localStorage.removeItem('rollex_session');
+                sessionStorage.removeItem('rollex_session');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // ============================================================
+        // INIT - بدون إنهاء الجلسة
         // ============================================================
         (async function init() {
             console.log('🏛️ الخزينة - QuickData ProSoft');
             
             var token = getToken();
             if (!token) {
-                document.getElementById('treasuryName').textContent = '⚠️ جلسة منتهية';
+                document.getElementById('treasuryName').textContent = '⚠️ جلسة غير موجودة';
                 document.getElementById('treasuryBalance').textContent = '0 ج.م';
-                document.querySelector('.table-wrapper').innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <p>يرجى تسجيل الدخول للوصول إلى هذه الصفحة</p>
-                        <br />
-                        <a href="login.html"><i class="fas fa-sign-in-alt"></i> تسجيل الدخول</a>
-                    </div>
-                `;
-                return;
+                showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول لعرض البيانات', 'warning');
+                // ❌ لا نعيد التوجيه
             }
 
-            // التحقق من صحة التوكن
-            var isValid = await validateToken();
-            if (!isValid) {
-                redirectToLogin();
-                return;
+            // نحاول تحميل البيانات حتى لو كان التوكن غير صالح
+            try {
+                await loadData();
+            } catch(e) {
+                console.error('❌ خطأ في تحميل البيانات:', e);
+                showToast('❌ خطأ', 'حدث خطأ في تحميل البيانات', 'error');
             }
-
-            await loadData();
             
-            // بدء مراقبة الجلسة بعد 5 ثواني
+            // بدء مراقبة الجلسة (تحذيرات فقط)
             setTimeout(function() {
                 startSessionMonitor();
-            }, 5000);
+            }, 3000);
             
             // ❌ تم إلغاء التحديث التلقائي - التحديث يدوي فقط عبر زر التحديث
         })();
