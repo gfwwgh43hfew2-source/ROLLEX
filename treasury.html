@@ -1008,6 +1008,41 @@
                 font-size: 1rem;
             }
         }
+
+        /* ============================================================
+           IMPORT PROGRESS
+           ============================================================ */
+        #importProgress {
+            margin-top: 12px;
+            padding: 10px 12px;
+            background: var(--bg-input);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+        #importProgress .progress-bar {
+            background: var(--bg-page);
+            border-radius: var(--radius-sm);
+            height: 6px;
+            overflow: hidden;
+        }
+        #importProgress .progress-bar .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: var(--gold-gradient);
+            transition: width 0.3s ease;
+            border-radius: var(--radius-sm);
+        }
+        #importProgress .progress-text {
+            font-size: 0.65rem;
+            color: var(--text-light);
+            margin-top: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+        #importProgress .progress-text .status {
+            color: var(--text-secondary);
+            font-weight: 700;
+        }
     </style>
 </head>
 <body>
@@ -1167,6 +1202,15 @@
                     <label>ملف Excel <span class="required">*</span></label>
                     <input type="file" id="importFile" accept=".xlsx,.xls" required />
                     <div class="helper-text">الصيغ المدعومة: .xlsx, .xls</div>
+                </div>
+                <div id="importProgress" style="display:none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="importProgressBar"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span>جاري الاستيراد...</span>
+                        <span><span id="importProgressCount">0</span> / <span id="importTotalCount">0</span></span>
+                    </div>
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="btn-save" id="importSubmitBtn">
@@ -1522,7 +1566,7 @@
 
                 // 2. الترحيل المباشر (Pagination) - نجلب الباقي
                 console.log('🔄 جلب باقي الحركات عبر الترحيل المباشر...');
-                var page = allTransactions.length > 0 ? 1 : 0; // إذا كان لدينا بيانات من RPC، نبدأ من الصفحة 1
+                var page = allTransactions.length > 0 ? 1 : 0;
                 var pageSize = 1000;
                 var hasMore = true;
 
@@ -1889,11 +1933,12 @@
         }
 
         // ============================================================
-        // IMPORT EXCEL
+        // IMPORT EXCEL - محسّن للتعامل مع جميع الصفوف
         // ============================================================
         function openImportModal() {
             document.getElementById('importModal').classList.add('active');
             document.getElementById('importFile').value = '';
+            document.getElementById('importProgress').style.display = 'none';
         }
 
         function closeImportModal() {
@@ -1901,7 +1946,7 @@
         }
 
         // ============================================================
-        // IMPORT FORM SUBMIT
+        // IMPORT FORM SUBMIT - محسّن مع دعم جميع الصفوف وعرض التقدم
         // ============================================================
         document.getElementById('importForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1918,11 +1963,25 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاستيراد...';
 
+            // إظهار شريط التقدم
+            var progressDiv = document.getElementById('importProgress');
+            progressDiv.style.display = 'block';
+            var progressBar = document.getElementById('importProgressBar');
+            var progressCount = document.getElementById('importProgressCount');
+            var totalCount = document.getElementById('importTotalCount');
+
             try {
                 var data = await file.arrayBuffer();
-                var workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                var workbook = XLSX.read(data, { type: 'array', cellDates: true, raw: true });
                 var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                var jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                var jsonData = XLSX.utils.sheet_to_json(firstSheet, { 
+                    defval: '',
+                    raw: true,
+                    dateNF: 'yyyy-mm-dd'
+                });
+
+                console.log('📊 إجمالي الصفوف في الملف:', jsonData.length);
+                totalCount.textContent = jsonData.length;
 
                 if (!jsonData || jsonData.length === 0) {
                     throw new Error('الملف فارغ أو غير صحيح');
@@ -1937,106 +1996,188 @@
                 var successCount = 0;
                 var errorCount = 0;
                 var errors = [];
+                var totalRows = jsonData.length;
 
-                for (var i = 0; i < jsonData.length; i++) {
+                // معالجة كل صف على حدة
+                for (var i = 0; i < totalRows; i++) {
                     var row = jsonData[i];
+                    var rowNum = i + 2;
 
-                    var description = row['البيان'] || row['description'] || row['الوصف'] || 'حركة مستوردة';
-                    var type = row['النوع'] || row['type'] || 'incoming';
-                    var generalTab = row['التبويب العام'] || row['general_tab'] || row['تبويب عام'] || '';
-                    var privateTab = row['التبويب الخاص'] || row['private_tab'] || row['تبويب خاص'] || '';
-
-                    var rawDate = row['التاريخ'] || row['date'] || null;
-                    var transactionDate = null;
-                    if (rawDate instanceof Date && !isNaN(rawDate)) {
-                        transactionDate = rawDate.toISOString();
-                    } else if (typeof rawDate === 'string' && rawDate.trim() !== '') {
-                        var parsedDate = new Date(rawDate);
-                        if (!isNaN(parsedDate)) transactionDate = parsedDate.toISOString();
-                    }
-
-                    var incoming = 0;
-                    var outgoing = 0;
-
-                    if (row['وارد'] !== undefined) incoming = parseFloat(row['وارد']) || 0;
-                    else if (row['incoming'] !== undefined) incoming = parseFloat(row['incoming']) || 0;
-
-                    if (row['صادر'] !== undefined) outgoing = parseFloat(row['صادر']) || 0;
-                    else if (row['outgoing'] !== undefined) outgoing = parseFloat(row['outgoing']) || 0;
-
-                    if (incoming === 0 && outgoing === 0) {
-                        var amountFromColumn = parseFloat(row['المبلغ'] || row['amount'] || 0);
-                        if (amountFromColumn > 0) incoming = amountFromColumn;
-                        else if (amountFromColumn < 0) outgoing = Math.abs(amountFromColumn);
-                    }
-
-                    var amount = incoming - outgoing;
-
-                    if (amount === 0) {
-                        errorCount++;
-                        errors.push('صف ' + (i + 1) + ': المبلغ صفر');
-                        continue;
-                    }
-
-                    var validTypes = ['incoming', 'outgoing', 'transfer_in', 'transfer_out', 'opening', 'salary', 'expense',
-                        'revenue'
-                    ];
-                    if (!validTypes.includes(type)) type = 'incoming';
+                    // تحديث شريط التقدم
+                    var progress = ((i + 1) / totalRows) * 100;
+                    progressBar.style.width = progress + '%';
+                    progressCount.textContent = i + 1;
 
                     try {
-                        var response = await fetchWithRetry(SUPABASE_URL + '/rest/v1/rpc/add_transaction', {
-                            method: 'POST',
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + token,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                p_treasury_id: currentTreasuryId,
-                                p_amount: amount,
-                                p_type: type,
-                                p_description: description,
-                                p_general_tab: generalTab || 'عام',
-                                p_private_tab: privateTab || 'خاص',
-                                p_date: transactionDate
-                            })
-                        });
+                        // قراءة البيانات مع دعم أسماء متعددة
+                        var description = row['البيان'] || row['description'] || row['الوصف'] || row['ملاحظات'] || 'حركة مستوردة';
+                        var type = row['النوع'] || row['type'] || 'incoming';
+                        var generalTab = row['التبويب العام'] || row['general_tab'] || row['تبويب عام'] || '';
+                        var privateTab = row['التبويب الخاص'] || row['private_tab'] || row['تبويب خاص'] || '';
 
-                        var result = await response.json();
-                        if (!response.ok || !result?.success) {
-                            errorCount++;
-                            errors.push('صف ' + (i + 1) + ': ' + (result?.message || 'فشل الإدراج'));
-                        } else {
-                            successCount++;
+                        // قراءة التاريخ
+                        var rawDate = row['التاريخ'] || row['date'] || row['Date'] || null;
+                        var transactionDate = null;
+                        
+                        if (rawDate) {
+                            if (rawDate instanceof Date && !isNaN(rawDate)) {
+                                transactionDate = rawDate.toISOString();
+                            } else if (typeof rawDate === 'string' && rawDate.trim() !== '') {
+                                var parsedDate = new Date(rawDate);
+                                if (!isNaN(parsedDate)) {
+                                    transactionDate = parsedDate.toISOString();
+                                } else {
+                                    // محاولة تحويل بتنسيق مختلف
+                                    var parts = rawDate.split(/[-/.]/);
+                                    if (parts.length === 3) {
+                                        if (parts[0].length === 4) {
+                                            var d = new Date(parts[0], parts[1] - 1, parts[2]);
+                                            if (!isNaN(d)) transactionDate = d.toISOString();
+                                        } else {
+                                            var d = new Date(parts[2], parts[1] - 1, parts[0]);
+                                            if (!isNaN(d)) transactionDate = d.toISOString();
+                                        }
+                                    }
+                                }
+                            } else if (typeof rawDate === 'number' && rawDate > 0) {
+                                var excelEpoch = new Date(Date.UTC(1899, 11, 30));
+                                var parsedFromSerial = new Date(excelEpoch.getTime() + rawDate * 86400000);
+                                if (!isNaN(parsedFromSerial)) {
+                                    transactionDate = parsedFromSerial.toISOString();
+                                }
+                            }
                         }
 
-                    } catch (err) {
+                        // قراءة المبلغ
+                        var incoming = 0;
+                        var outgoing = 0;
+
+                        if (row['وارد'] !== undefined && row['وارد'] !== '') incoming = parseFloat(row['وارد']) || 0;
+                        else if (row['incoming'] !== undefined && row['incoming'] !== '') incoming = parseFloat(row['incoming']) || 0;
+                        else if (row['إيداع'] !== undefined && row['إيداع'] !== '') incoming = parseFloat(row['إيداع']) || 0;
+                        else if (row['داخل'] !== undefined && row['داخل'] !== '') incoming = parseFloat(row['داخل']) || 0;
+
+                        if (row['صادر'] !== undefined && row['صادر'] !== '') outgoing = parseFloat(row['صادر']) || 0;
+                        else if (row['outgoing'] !== undefined && row['outgoing'] !== '') outgoing = parseFloat(row['outgoing']) || 0;
+                        else if (row['سحب'] !== undefined && row['سحب'] !== '') outgoing = parseFloat(row['سحب']) || 0;
+                        else if (row['خارج'] !== undefined && row['خارج'] !== '') outgoing = parseFloat(row['خارج']) || 0;
+
+                        if (incoming === 0 && outgoing === 0) {
+                            var amountFromColumn = 0;
+                            if (row['المبلغ'] !== undefined && row['المبلغ'] !== '') amountFromColumn = parseFloat(row['المبلغ']) || 0;
+                            else if (row['amount'] !== undefined && row['amount'] !== '') amountFromColumn = parseFloat(row['amount']) || 0;
+                            
+                            if (amountFromColumn > 0) {
+                                incoming = amountFromColumn;
+                            } else if (amountFromColumn < 0) {
+                                outgoing = Math.abs(amountFromColumn);
+                            }
+                        }
+
+                        var amount = incoming - outgoing;
+
+                        // التحقق من المبلغ
+                        if (amount === 0) {
+                            var hasValue = false;
+                            for (var key in row) {
+                                var val = row[key];
+                                if (typeof val === 'number' && val !== 0) {
+                                    hasValue = true;
+                                    break;
+                                }
+                            }
+                            if (!hasValue) {
+                                errorCount++;
+                                errors.push('صف ' + rowNum + ': لا توجد بيانات صالحة');
+                                continue;
+                            }
+                            if (hasValue && amount === 0) {
+                                errorCount++;
+                                errors.push('صف ' + rowNum + ': المبلغ صفر');
+                                continue;
+                            }
+                        }
+
+                        var validTypes = ['incoming', 'outgoing', 'transfer_in', 'transfer_out', 'opening', 'salary', 'expense', 'revenue'];
+                        if (!validTypes.includes(type)) {
+                            if (amount > 0) type = 'incoming';
+                            else if (amount < 0) type = 'outgoing';
+                            else type = 'incoming';
+                        }
+
+                        try {
+                            var response = await fetchWithRetry(SUPABASE_URL + '/rest/v1/rpc/add_transaction', {
+                                method: 'POST',
+                                headers: {
+                                    'apikey': SUPABASE_ANON_KEY,
+                                    'Authorization': 'Bearer ' + token,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    p_treasury_id: currentTreasuryId,
+                                    p_amount: amount,
+                                    p_type: type,
+                                    p_description: description || 'حركة مستوردة',
+                                    p_general_tab: generalTab || 'عام',
+                                    p_private_tab: privateTab || 'خاص',
+                                    p_date: transactionDate
+                                })
+                            });
+
+                            var result = await response.json();
+                            if (!response.ok || !result?.success) {
+                                errorCount++;
+                                errors.push('صف ' + rowNum + ': ' + (result?.message || 'فشل الإدراج'));
+                            } else {
+                                successCount++;
+                            }
+
+                        } catch (err) {
+                            errorCount++;
+                            errors.push('صف ' + rowNum + ': ' + err.message);
+                        }
+
+                    } catch (rowError) {
                         errorCount++;
-                        errors.push('صف ' + (i + 1) + ': ' + err.message);
+                        errors.push('صف ' + rowNum + ': ' + rowError.message);
                     }
                 }
 
+                // عرض النتائج
+                var message = '';
                 if (successCount > 0) {
-                    showToast('✅ تم الاستيراد', 'تم استيراد ' + successCount + ' حركة' +
-                        (errorCount > 0 ? '، وفشل ' + errorCount + ' حركة' : ''), 'success');
+                    message = 'تم استيراد ' + successCount + ' حركة';
+                    if (errorCount > 0) {
+                        message += '، وفشل ' + errorCount + ' حركة';
+                    }
+                    showToast('✅ تم الاستيراد', message, 'success');
                     closeImportModal();
                     loadData();
                 } else {
                     showToast('❌ فشل الاستيراد', 'لم يتم استيراد أي حركة. تحقق من البيانات', 'error');
                 }
 
+                // عرض الأخطاء في console
                 if (errors.length > 0) {
-                    console.log('❌ أخطاء الاستيراد:');
-                    errors.forEach(function(err) { console.log('  - ' + err); });
+                    console.log('❌ أخطاء الاستيراد (' + errors.length + '):');
+                    errors.forEach(function(err) {
+                        console.log('  - ' + err);
+                    });
                 }
+
+                console.log('📊 ملخص الاستيراد:');
+                console.log(`  ✅ نجاح: ${successCount} صف`);
+                console.log(`  ❌ فشل: ${errorCount} صف`);
+                console.log(`  📄 إجمالي: ${totalRows} صف`);
 
             } catch (error) {
                 console.error('❌ خطأ:', error);
-                showToast('❌ خطأ', error.message, 'error');
+                showToast('❌ خطأ', error.message || 'فشل استيراد البيانات', 'error');
             }
 
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-upload"></i> استيراد';
+            progressDiv.style.display = 'none';
         });
 
         // ============================================================
@@ -2212,7 +2353,6 @@
                 document.getElementById('treasuryName').textContent = '⚠️ جلسة غير موجودة';
                 document.getElementById('treasuryBalance').textContent = '0 ج.م';
                 showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول لعرض البيانات', 'warning');
-                // محاولة تجديد الجلسة
                 var refreshed = await refreshSession();
                 if (!refreshed) {
                     redirectToLogin();
