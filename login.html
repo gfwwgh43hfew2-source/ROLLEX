@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover" />
     <title>تسجيل الدخول - QuickData ProSoft</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -33,20 +33,34 @@
             --whatsapp: #25D366;
         }
 
-        html { scroll-behavior: smooth; }
+        html {
+            scroll-behavior: smooth;
+            background: var(--navy-bg-2);
+            height: 100%;
+        }
 
         body {
             font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
             direction: rtl;
+            /* --vh is set via JS to the real (address-bar-aware) viewport height,
+               so the layout no longer jumps/shifts when the mobile browser's
+               toolbar shows or hides. 100dvh is used as a native fallback. */
             min-height: 100vh;
+            min-height: calc(var(--vh, 1vh) * 100);
             min-height: 100dvh;
+            width: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 40px 20px;
+            padding: 24px 20px;
+            padding-top: max(24px, env(safe-area-inset-top));
+            padding-bottom: max(24px, env(safe-area-inset-bottom));
+            padding-left: max(20px, env(safe-area-inset-left));
+            padding-right: max(20px, env(safe-area-inset-right));
             position: relative;
             background: radial-gradient(ellipse at 50% 40%, #232f40 0%, var(--navy-bg) 55%, var(--navy-bg-2) 100%);
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
         .ring-wrap {
@@ -381,6 +395,13 @@
             .login-container { padding: 30px 22px 24px; border-radius: 20px; }
             .title { font-size: 1.6rem; }
         }
+
+        /* When the on-screen keyboard opens (or on very short screens),
+           centering vertically can push the top of the form off-screen.
+           Switch to top-aligned + scrollable so every field stays reachable. */
+        @media (max-width: 480px) and (max-height: 700px) {
+            body { align-items: flex-start; padding-top: 20px; }
+        }
     </style>
 </head>
 <body>
@@ -466,6 +487,24 @@
     </div>
 
     <script>
+        /**
+         * ============================================================
+         * REAL VIEWPORT HEIGHT FIX (موبايل)
+         * ============================================================
+         * شريط العنوان في متصفحات الموبايل يظهر ويختفي أثناء التمرير،
+         * و100vh لا يأخذ ذلك بعين الاعتبار مما يسبب اهتزاز/إزاحة الفورم.
+         * هذا الحل يحسب الارتفاع الفعلي للشاشة ويحدّثه عند أي تغيير.
+         */
+        function setRealViewportHeight() {
+            document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+        }
+        setRealViewportHeight();
+        window.addEventListener('resize', setRealViewportHeight);
+        window.addEventListener('orientationchange', setRealViewportHeight);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', setRealViewportHeight);
+        }
+
         /**
          * ============================================================
          * SUPABASE CONFIGURATION
