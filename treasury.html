@@ -1354,6 +1354,23 @@
         }
 
         // ============================================================
+        // FORMAT DATE - تنسيق التاريخ بشكل صحيح (DD/MM/YYYY)
+        // ============================================================
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            try {
+                var date = new Date(dateString);
+                if (isNaN(date.getTime())) return '-';
+                var year = date.getFullYear();
+                var month = String(date.getMonth() + 1).padStart(2, '0');
+                var day = String(date.getDate()).padStart(2, '0');
+                return day + '/' + month + '/' + year;
+            } catch(e) {
+                return '-';
+            }
+        }
+
+        // ============================================================
         // SESSION FUNCTIONS
         // ============================================================
         function getSession() {
@@ -1954,8 +1971,7 @@
 
                     var isIncoming = amount > 0;
                     var displayAmount = Math.abs(amount);
-                    var date = item.date ? new Date(item.date).toLocaleDateString('ar-EG') : 
-                               (item.created_at ? new Date(item.created_at).toLocaleDateString('ar-EG') : '-');
+                    var date = formatDate(item.date || item.created_at);
 
                     return {
                         '#': '',
@@ -2083,11 +2099,17 @@
 
             try {
                 var data = await file.arrayBuffer();
-                var workbook = XLSX.read(data, { type: 'array', cellDates: true, raw: true });
+                // ✅ خيارات قراءة Excel مع دعم التواريخ
+                var workbook = XLSX.read(data, { 
+                    type: 'array', 
+                    cellDates: true,
+                    raw: false,
+                    dateNF: 'yyyy-mm-dd'
+                });
                 var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 var jsonData = XLSX.utils.sheet_to_json(firstSheet, { 
                     defval: '',
-                    raw: true,
+                    raw: false,
                     dateNF: 'yyyy-mm-dd'
                 });
 
@@ -2129,7 +2151,7 @@
 
                         if (rawDate) {
                             if (rawDate instanceof Date && !isNaN(rawDate)) {
-                                // ✅ إصلاح مشكلة المنطقة الزمنية
+                                // ✅ طريقة صحيحة لاستخراج التاريخ من كائن Date
                                 var year = rawDate.getFullYear();
                                 var month = String(rawDate.getMonth() + 1).padStart(2, '0');
                                 var day = String(rawDate.getDate()).padStart(2, '0');
@@ -2150,6 +2172,7 @@
                                     transactionDate = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0') + 'T00:00:00';
                                 }
                             } else if (typeof rawDate === 'number' && rawDate > 0) {
+                                // ✅ رقم تسلسلي إكسيل - مع إصلاح المنطقة الزمنية
                                 var excelEpoch = new Date(Date.UTC(1899, 11, 30));
                                 var parsedDate = new Date(excelEpoch.getTime() + rawDate * 86400000);
                                 var y = parsedDate.getFullYear();
@@ -2293,7 +2316,7 @@
         });
 
         // ============================================================
-        // DISPLAY DATA - مع أزرار التعديل والحذف
+        // DISPLAY DATA - مع أزرار التعديل والحذف وعرض التاريخ بشكل صحيح
         // ============================================================
         function displayData(transactions, treasury) {
             var tbody = document.getElementById('transactionsBody');
@@ -2353,8 +2376,8 @@
                 var isIncoming = amount > 0;
                 var displayAmount = Math.abs(amount);
                 
-                var date = item.date ? new Date(item.date).toLocaleDateString('ar-EG') : 
-                           (item.created_at ? new Date(item.created_at).toLocaleDateString('ar-EG') : '-');
+                // ✅ استخدام دالة formatDate لعرض التاريخ بشكل صحيح
+                var date = formatDate(item.date || item.created_at);
 
                 runningBalance += amount;
 
@@ -2402,7 +2425,6 @@
             }
 
             try {
-                // جلب الحركة للحصول على المبلغ
                 var getResponse = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&id=eq.' + transactionId, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
@@ -2416,7 +2438,6 @@
 
                 var treasuryId = transaction[0].treasury_id;
 
-                // حذف الحركة
                 var deleteResponse = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?id=eq.' + transactionId, {
                     method: 'DELETE',
                     headers: {
@@ -2427,7 +2448,6 @@
 
                 if (!deleteResponse.ok) throw new Error('فشل حذف الحركة');
 
-                // تحديث رصيد الخزينة
                 await updateTreasuryBalance(treasuryId);
 
                 showToast('✅ تم الحذف', 'تم حذف الحركة بنجاح', 'success');
@@ -2463,7 +2483,7 @@
         }
 
         // ============================================================
-        // FETCH TRANSACTION DATA
+        // FETCH TRANSACTION DATA - مع عرض التاريخ بشكل صحيح
         // ============================================================
         async function fetchTransactionData(transactionId) {
             var token = getToken();
@@ -2489,6 +2509,7 @@
                 document.getElementById('editGeneralTab').value = transaction.general_tab || '';
                 document.getElementById('editPrivateTab').value = transaction.private_tab || '';
                 
+                // ✅ عرض التاريخ في مودال التعديل بشكل صحيح
                 if (transaction.date) {
                     var date = new Date(transaction.date);
                     var year = date.getFullYear();
@@ -2564,7 +2585,6 @@
                     throw new Error('فشل تحديث الحركة: ' + errorText);
                 }
 
-                // جلب بيانات الخزينة من الحركة
                 var getResponse = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=treasury_id&id=eq.' + transactionId, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
