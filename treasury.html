@@ -1216,6 +1216,37 @@
         }
 
         // ============================================================
+        // RETRY FUNCTION - إعادة المحاولة عند فشل الاتصال
+        // ============================================================
+        async function fetchWithRetry(url, options, maxRetries = 3) {
+            var lastError = null;
+            
+            for (var attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    console.log(`🔄 محاولة ${attempt}/${maxRetries}...`);
+                    var response = await fetch(url, options);
+                    if (response.ok) {
+                        return response;
+                    }
+                    if (response.status === 429 || response.status >= 500) {
+                        console.warn(`⚠️ محاولة ${attempt}/${maxRetries} فشلت (${response.status})، إعادة المحاولة...`);
+                        await new Promise(resolve => setTimeout(resolve, attempt * 1500));
+                        continue;
+                    }
+                    return response;
+                } catch (error) {
+                    lastError = error;
+                    console.warn(`⚠️ محاولة ${attempt}/${maxRetries} فشلت:`, error.message);
+                    if (attempt < maxRetries) {
+                        await new Promise(resolve => setTimeout(resolve, attempt * 1500));
+                    }
+                }
+            }
+            
+            throw lastError || new Error('فشل بعد عدة محاولات');
+        }
+
+        // ============================================================
         // SESSION - بدون إنهاء تلقائي أبداً
         // ============================================================
         function getSession() {
@@ -1347,7 +1378,7 @@
             var token = getToken();
             if (!token) return null;
             try {
-                var response = await fetch(SUPABASE_URL + '/rest/v1/treasuries?select=*&id=eq.' + treasuryId, {
+                var response = await fetchWithRetry(SUPABASE_URL + '/rest/v1/treasuries?select=*&id=eq.' + treasuryId, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': 'Bearer ' + token
@@ -1369,7 +1400,7 @@
             var token = getToken();
             if (!token) return [];
             try {
-                var response = await fetch(SUPABASE_URL + '/rest/v1/treasuries?select=*&company_id=eq.' + companyId + '&is_active=eq.true', {
+                var response = await fetchWithRetry(SUPABASE_URL + '/rest/v1/treasuries?select=*&company_id=eq.' + companyId + '&is_active=eq.true', {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': 'Bearer ' + token
@@ -1388,90 +1419,103 @@
         }
 
         // ============================================================
-        // GET TRANSACTIONS - باستخدام RPC Function
+        // GET TRANSACTIONS - جلب جميع الحركات بدون حد 1000
         // ============================================================
         async function getTransactions(treasuryId) {
             var token = getToken();
             if (!token) return [];
 
-            try {
-                var response = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_all_treasury_transactions', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ p_treasury_id: treasuryId })
-                });
+            var allTransactions = [];
 
-                if (!response.ok) {
-                    console.warn('⚠️ فشل جلب الحركات عبر RPC:', response.status);
-                    return await getTransactionsFallback(treasuryId);
+            try {
+                // 1. محاولة RPC أولاً (الأسرع)
+                try {
+                    console.log('🔄 محاولة جلب الحركات عبر RPC...');
+                    var rpcResponse = await fetchWithRetry(SUPABASE_URL + '/rest/v1/rpc/get_all_treasury_transactions', {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + token,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ p_treasury_id: treasuryId })
+                    });
+
+                    if (rpcResponse.ok) {
+                        var rpcData = await rpcResponse.json();
+                        if (rpcData && rpcData.length > 0) {
+                            console.log('✅ RPC: تم جلب ' + rpcData.length + ' حركة');
+                            return rpcData;
+                        }
+                        if (rpcData && rpcData.length === 0) {
+                            console.log('📭 RPC: لا توجد حركات');
+                            return [];
+                        }
+                    }
+                } catch (rpcError) {
+                    console.warn('⚠️ RPC فشل:', rpcError.message);
                 }
 
-                var data = await response.json();
-                console.log('✅ تم جلب ' + (data ? data.length : 0) + ' حركة عبر RPC');
-                return data || [];
+                // 2. الترحيل باستخدام Range Headers (الطريقة الاحتياطية)
+                console.log('🔄 جلب الحركات عبر الترحيل (Pagination)...');
+                var page = 0;
+                var pageSize = 1000;
+                var hasMore = true;
 
-            } catch (error) {
-                console.error('❌ خطأ في جلب الحركات:', error);
-                return await getTransactionsFallback(treasuryId);
-            }
-        }
-
-        // ============================================================
-        // GET TRANSACTIONS FALLBACK - طريقة تقليدية مع ترحيل
-        // ============================================================
-        async function getTransactionsFallback(treasuryId) {
-            var token = getToken();
-            if (!token) return [];
-
-            var allTransactions = [];
-            var page = 0;
-            var pageSize = 1000;
-            var hasMore = true;
-
-            try {
                 while (hasMore) {
-                    var response = await fetch(
+                    var response = await fetchWithRetry(
                         SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + treasuryId +
-                        '&order=created_at.asc&limit=' + pageSize + '&offset=' + (page * pageSize), {
+                        '&order=created_at.asc&limit=' + pageSize + '&offset=' + (page * pageSize),
+                        {
                             headers: {
                                 'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + token
+                                'Authorization': 'Bearer ' + token,
+                                'Content-Type': 'application/json'
                             }
                         }
                     );
 
-                    if (!response.ok) break;
+                    if (!response.ok) {
+                        console.warn('⚠️ فشل جلب الصفحة:', response.status);
+                        break;
+                    }
 
                     var data = await response.json();
+                    
                     if (!data || data.length === 0) {
                         hasMore = false;
                     } else {
                         allTransactions = allTransactions.concat(data);
+                        console.log(`📄 صفحة ${page + 1}: ${data.length} حركة (إجمالي: ${allTransactions.length})`);
                         page++;
-                        if (data.length < pageSize) hasMore = false;
+                        
+                        if (data.length < pageSize) {
+                            hasMore = false;
+                        }
                     }
                 }
-                console.log('✅ تم جلب ' + allTransactions.length + ' حركة (طريقة احتياطية)');
+
+                console.log('✅ تم جلب ' + allTransactions.length + ' حركة (إجمالي)');
                 return allTransactions;
+
             } catch (error) {
                 console.error('❌ خطأ في جلب الحركات:', error);
+                if (error.message.includes('TIMED_OUT') || error.message.includes('timeout')) {
+                    showToast('⚠️ انتهت المهلة', 'جاري المحاولة مرة أخرى...', 'warning');
+                }
                 return allTransactions;
             }
         }
 
         // ============================================================
-        // ADD OPENING BALANCE
+        // ADD OPENING BALANCE - مع إعادة المحاولة
         // ============================================================
         async function addOpeningBalance(treasuryId, amount, description) {
             var token = getToken();
             if (!token) return null;
 
             try {
-                var response = await fetch(SUPABASE_URL + '/rest/v1/rpc/add_transaction', {
+                var response = await fetchWithRetry(SUPABASE_URL + '/rest/v1/rpc/add_transaction', {
                     method: 'POST',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
@@ -1494,6 +1538,9 @@
 
             } catch (error) {
                 console.error('❌ خطأ:', error);
+                if (error.message.includes('TIMED_OUT') || error.message.includes('timeout')) {
+                    throw new Error('انتهت مهلة الاتصال، يرجى التحقق من اتصال الإنترنت وإعادة المحاولة');
+                }
                 throw error;
             }
         }
@@ -1578,7 +1625,7 @@
         }
 
         // ============================================================
-        // TRANSFER MONEY
+        // TRANSFER MONEY - مع إعادة المحاولة
         // ============================================================
         async function transferMoney() {
             var fromId = currentTreasuryId;
@@ -1616,7 +1663,7 @@
 
                 var fromName = document.getElementById('treasuryName').textContent || 'الخزينة الحالية';
 
-                var response = await fetch(SUPABASE_URL + '/rest/v1/rpc/transfer_money', {
+                var response = await fetchWithRetry(SUPABASE_URL + '/rest/v1/rpc/transfer_money', {
                     method: 'POST',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
@@ -1643,7 +1690,12 @@
                 loadData();
 
             } catch (error) {
-                showToast('❌ خطأ', error.message || 'فشل التحويل', 'error');
+                console.error('❌ خطأ:', error);
+                if (error.message.includes('TIMED_OUT') || error.message.includes('timeout')) {
+                    showToast('⚠️ انتهت المهلة', 'يرجى التحقق من اتصال الإنترنت وإعادة المحاولة', 'warning');
+                } else {
+                    showToast('❌ خطأ', error.message || 'فشل التحويل', 'error');
+                }
             }
 
             btn.disabled = false;
@@ -1865,7 +1917,7 @@
                     if (!validTypes.includes(type)) type = 'incoming';
 
                     try {
-                        var response = await fetch(SUPABASE_URL + '/rest/v1/rpc/add_transaction', {
+                        var response = await fetchWithRetry(SUPABASE_URL + '/rest/v1/rpc/add_transaction', {
                             method: 'POST',
                             headers: {
                                 'apikey': SUPABASE_ANON_KEY,
