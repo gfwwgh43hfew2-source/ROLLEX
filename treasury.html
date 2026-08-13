@@ -922,13 +922,11 @@
         function checkSessionExpiry() {
             var token = getToken();
             if (!token) {
-                console.log('⏳ لا يوجد توكن');
                 return true;
             }
             
             var expiryTime = getSessionExpiryTime();
             if (!expiryTime) {
-                console.log('⏳ لا يمكن تحديد وقت الانتهاء');
                 return true;
             }
             
@@ -939,8 +937,7 @@
             
             // ✅ لا ننهي الجلسة أبداً، فقط تحذيرات
             if (timeLeft <= 0) {
-                console.log('⏳ الجلسة منتهية حسب الوقت المحسوب، لكننا لن ننهيها تلقائياً');
-                // نعرض تحذير فقط
+                // نعرض تحذير فقط للمستخدم
                 if (!warningShown3) {
                     warningShown3 = true;
                     showToast(
@@ -1018,10 +1015,7 @@
 
         // ❌ تم تعطيل إعادة التوجيه التلقائي - لن ننهي الجلسة أبداً
         function redirectToLogin() {
-            // لا تفعل شيئاً - فقط عرض تحذير
             showToast('⚠️ تنبيه', 'جلسة العمل غير صالحة، يرجى تسجيل الدخول مجدداً عند الحاجة', 'warning');
-            // ❌ لا نعيد التوجيه
-            // window.location.href = 'login.html';
         }
 
         // ============================================================
@@ -1112,23 +1106,93 @@
         }
 
         // ============================================================
-        // GET TRANSACTIONS
+        // GET TRANSACTIONS - باستخدام RPC Function لجلب جميع الحركات بدون حد 1000
         // ============================================================
         async function getTransactions(treasuryId) {
             var token = getToken();
             if (!token) return [];
+
             try {
-                var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + treasuryId + '&order=created_at.asc', {
+                // استخدام RPC function التي أنشأناها في Supabase
+                var response = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_all_treasury_transactions', {
+                    method: 'POST',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        p_treasury_id: treasuryId
+                    })
                 });
-                if (!response.ok) return [];
-                return await response.json();
+
+                if (!response.ok) {
+                    console.warn('⚠️ فشل جلب الحركات عبر RPC:', response.status);
+                    // محاولة الطريقة التقليدية كحل احتياطي
+                    return await getTransactionsFallback(treasuryId);
+                }
+
+                var data = await response.json();
+                console.log('✅ تم جلب ' + (data ? data.length : 0) + ' حركة عبر RPC');
+                return data || [];
+
             } catch (error) {
-                console.error('❌ خطأ:', error);
-                return [];
+                console.error('❌ خطأ في جلب الحركات:', error);
+                // محاولة الطريقة التقليدية كحل احتياطي
+                return await getTransactionsFallback(treasuryId);
+            }
+        }
+
+        // ============================================================
+        // GET TRANSACTIONS FALLBACK - طريقة تقليدية مع ترحيل (Pagination)
+        // ============================================================
+        async function getTransactionsFallback(treasuryId) {
+            var token = getToken();
+            if (!token) return [];
+
+            var allTransactions = [];
+            var page = 0;
+            var pageSize = 1000;
+            var hasMore = true;
+
+            try {
+                while (hasMore) {
+                    var response = await fetch(
+                        SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + treasuryId + 
+                        '&order=created_at.asc&limit=' + pageSize + '&offset=' + (page * pageSize),
+                        {
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': 'Bearer ' + token
+                            }
+                        }
+                    );
+
+                    if (!response.ok) {
+                        console.warn('⚠️ فشل جلب الصفحة:', response.status);
+                        break;
+                    }
+
+                    var data = await response.json();
+                    
+                    if (!data || data.length === 0) {
+                        hasMore = false;
+                    } else {
+                        allTransactions = allTransactions.concat(data);
+                        page++;
+                        
+                        if (data.length < pageSize) {
+                            hasMore = false;
+                        }
+                    }
+                }
+
+                console.log('✅ تم جلب ' + allTransactions.length + ' حركة (طريقة احتياطية)');
+                return allTransactions;
+
+            } catch (error) {
+                console.error('❌ خطأ في جلب الحركات:', error);
+                return allTransactions;
             }
         }
 
@@ -1338,18 +1402,7 @@
                 var token = getToken();
                 if (!token) return;
 
-                var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + currentTreasuryId + '&order=created_at.asc', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('فشل جلب البيانات');
-                }
-
-                var transactions = await response.json();
+                var transactions = await getTransactions(currentTreasuryId);
 
                 if (!transactions || transactions.length === 0) {
                     showToast('⚠️ تنبيه', 'لا توجد حركات لتصديرها', 'warning');
@@ -1826,10 +1879,8 @@
                 document.getElementById('treasuryName').textContent = '⚠️ جلسة غير موجودة';
                 document.getElementById('treasuryBalance').textContent = '0 ج.م';
                 showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول لعرض البيانات', 'warning');
-                // ❌ لا نعيد التوجيه
             }
 
-            // نحاول تحميل البيانات حتى لو كان التوكن غير صالح
             try {
                 await loadData();
             } catch(e) {
