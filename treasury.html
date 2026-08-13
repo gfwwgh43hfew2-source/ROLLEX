@@ -1501,13 +1501,14 @@
                     if (rpcResponse.ok) {
                         var rpcData = await rpcResponse.json();
                         if (rpcData && rpcData.length > 0) {
-                            // التحقق من أن RPC جلب جميع البيانات
-                            // Supabase عادةً يحدد عدد النتائج بـ 1000
-                            if (rpcData.length === 1000) {
-                                console.log('⚠️ RPC جلب 1000 حركة فقط (قد يكون هناك المزيد)، ننتقل للترحيل...');
-                            } else {
-                                console.log('✅ RPC: تم جلب ' + rpcData.length + ' حركة');
+                            // ✅ إذا كان العدد أقل من 1000، فهذه كل البيانات
+                            if (rpcData.length < 1000) {
+                                console.log('✅ RPC: تم جلب ' + rpcData.length + ' حركة (جميع البيانات)');
                                 return rpcData;
+                            } else {
+                                // العدد 1000 بالضبط، قد يكون هناك المزيد
+                                console.log('⚠️ RPC جلب 1000 حركة (قد يكون هناك المزيد)، نبدأ الترحيل من الصفحة 1');
+                                allTransactions = allTransactions.concat(rpcData);
                             }
                         }
                         if (rpcData && rpcData.length === 0) {
@@ -1519,9 +1520,9 @@
                     console.warn('⚠️ RPC فشل:', rpcError.message);
                 }
 
-                // 2. الترحيل المباشر (Pagination) - الحل الأكثر موثوقية
-                console.log('🔄 جلب الحركات عبر الترحيل المباشر...');
-                var page = 0;
+                // 2. الترحيل المباشر (Pagination) - نجلب الباقي
+                console.log('🔄 جلب باقي الحركات عبر الترحيل المباشر...');
+                var page = allTransactions.length > 0 ? 1 : 0; // إذا كان لدينا بيانات من RPC، نبدأ من الصفحة 1
                 var pageSize = 1000;
                 var hasMore = true;
 
