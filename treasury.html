@@ -1520,7 +1520,7 @@
         }
 
         // ============================================================
-        // GET TRANSACTIONS - جلب جميع الحركات (مدمج RPC + Pagination)
+        // GET TRANSACTIONS - جلب جميع الحركات وترتيبها حسب التاريخ
         // ============================================================
         async function getTransactions(treasuryId) {
             var token = getToken();
@@ -1545,12 +1545,14 @@
                     if (rpcResponse.ok) {
                         var rpcData = await rpcResponse.json();
                         if (rpcData && rpcData.length > 0) {
-                            // ✅ إذا كان العدد أقل من 1000، فهذه كل البيانات
                             if (rpcData.length < 1000) {
                                 console.log('✅ RPC: تم جلب ' + rpcData.length + ' حركة (جميع البيانات)');
+                                // ✅ ترتيب حسب التاريخ (oldest first)
+                                rpcData.sort(function(a, b) {
+                                    return new Date(a.date) - new Date(b.date);
+                                });
                                 return rpcData;
                             } else {
-                                // العدد 1000 بالضبط، قد يكون هناك المزيد
                                 console.log('⚠️ RPC جلب 1000 حركة (قد يكون هناك المزيد)، نبدأ الترحيل من الصفحة 1');
                                 allTransactions = allTransactions.concat(rpcData);
                             }
@@ -1564,7 +1566,7 @@
                     console.warn('⚠️ RPC فشل:', rpcError.message);
                 }
 
-                // 2. الترحيل المباشر (Pagination) - نجلب الباقي
+                // 2. الترحيل المباشر (Pagination) - مرتب حسب التاريخ
                 console.log('🔄 جلب باقي الحركات عبر الترحيل المباشر...');
                 var page = allTransactions.length > 0 ? 1 : 0;
                 var pageSize = 1000;
@@ -1573,7 +1575,7 @@
                 while (hasMore) {
                     var response = await fetchWithRetry(
                         SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + treasuryId +
-                        '&order=created_at.asc&limit=' + pageSize + '&offset=' + (page * pageSize),
+                        '&order=date.asc&limit=' + pageSize + '&offset=' + (page * pageSize),
                         {
                             headers: {
                                 'apikey': SUPABASE_ANON_KEY,
@@ -1603,7 +1605,12 @@
                     }
                 }
 
-                console.log('✅ تم جلب ' + allTransactions.length + ' حركة (إجمالي)');
+                // ✅ ترتيب نهائي حسب التاريخ (oldest first)
+                allTransactions.sort(function(a, b) {
+                    return new Date(a.date) - new Date(b.date);
+                });
+
+                console.log('✅ تم جلب ' + allTransactions.length + ' حركة (مرتبة حسب التاريخ)');
                 return allTransactions;
 
             } catch (error) {
@@ -1633,7 +1640,8 @@
                         p_type: 'opening',
                         p_description: description || 'رصيد افتتاحي',
                         p_general_tab: 'رأس مال',
-                        p_private_tab: 'رصيد افتتاحي'
+                        p_private_tab: 'رصيد افتتاحي',
+                        p_date: new Date().toISOString()
                     })
                 });
 
@@ -1813,7 +1821,7 @@
         }
 
         // ============================================================
-        // EXPORT TO EXCEL
+        // EXPORT TO EXCEL - تصدير مع الحفاظ على الترتيب
         // ============================================================
         async function exportToExcel() {
             try {
@@ -1844,10 +1852,12 @@
 
                     var isIncoming = amount > 0;
                     var displayAmount = Math.abs(amount);
+                    var date = item.date ? new Date(item.date).toLocaleDateString('ar-EG') : 
+                               (item.created_at ? new Date(item.created_at).toLocaleDateString('ar-EG') : '-');
 
                     return {
                         '#': '',
-                        'التاريخ': new Date(item.created_at).toLocaleDateString('ar-EG'),
+                        'التاريخ': date,
                         'البيان': item.description || '-',
                         'النوع': typeLabels[item.type] || item.type || '-',
                         'وارد': isIncoming ? displayAmount : '',
@@ -1933,7 +1943,7 @@
         }
 
         // ============================================================
-        // IMPORT EXCEL - محسّن للتعامل مع جميع الصفوف
+        // IMPORT EXCEL
         // ============================================================
         function openImportModal() {
             document.getElementById('importModal').classList.add('active');
@@ -1946,7 +1956,7 @@
         }
 
         // ============================================================
-        // IMPORT FORM SUBMIT - محسّن مع دعم جميع الصفوف وعرض التقدم
+        // IMPORT FORM SUBMIT - محسّن مع دعم جميع الصفوف وعرض التقدم والحفاظ على التاريخ
         // ============================================================
         document.getElementById('importForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -2015,7 +2025,7 @@
                         var generalTab = row['التبويب العام'] || row['general_tab'] || row['تبويب عام'] || '';
                         var privateTab = row['التبويب الخاص'] || row['private_tab'] || row['تبويب خاص'] || '';
 
-                        // قراءة التاريخ
+                        // ✅ قراءة التاريخ من Excel
                         var rawDate = row['التاريخ'] || row['date'] || row['Date'] || null;
                         var transactionDate = null;
                         
@@ -2046,6 +2056,12 @@
                                     transactionDate = parsedFromSerial.toISOString();
                                 }
                             }
+                        }
+
+                        // إذا لم يتم العثور على تاريخ، نستخدم التاريخ الحالي
+                        if (!transactionDate) {
+                            transactionDate = new Date().toISOString();
+                            console.warn(`⚠️ صف ${rowNum}: لم يتم العثور على تاريخ، تم استخدام التاريخ الحالي`);
                         }
 
                         // قراءة المبلغ
@@ -2120,7 +2136,7 @@
                                     p_description: description || 'حركة مستوردة',
                                     p_general_tab: generalTab || 'عام',
                                     p_private_tab: privateTab || 'خاص',
-                                    p_date: transactionDate
+                                    p_date: transactionDate // ✅ إرسال التاريخ من Excel
                                 })
                             });
 
@@ -2181,7 +2197,7 @@
         });
 
         // ============================================================
-        // DISPLAY DATA
+        // DISPLAY DATA - عرض الحركات مرتبة حسب التاريخ
         // ============================================================
         function displayData(transactions, treasury) {
             var tbody = document.getElementById('transactionsBody');
@@ -2240,7 +2256,10 @@
                 var amount = item.amount || 0;
                 var isIncoming = amount > 0;
                 var displayAmount = Math.abs(amount);
-                var date = item.created_at ? new Date(item.created_at).toLocaleDateString('ar-EG') : '-';
+                
+                // ✅ استخدام التاريخ المخزن في قاعدة البيانات
+                var date = item.date ? new Date(item.date).toLocaleDateString('ar-EG') : 
+                           (item.created_at ? new Date(item.created_at).toLocaleDateString('ar-EG') : '-');
 
                 runningBalance += amount;
 
