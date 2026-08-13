@@ -10,161 +10,234 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         /* ============================================================
-           DESIGN TOKENS — دفتر الخزينة (Ledger)
+           تصميم فاخر - ثيم فاتح أنيق (Light Theme Premium)
+           مستوحى من دفاتر الحسابات الكلاسيكية الفاخرة
            ============================================================ */
         :root {
-            --ink: #12161d;
-            --surface: #1a2029;
-            --surface-raised: #212833;
-            --surface-inset: #171d25;
-            --line: rgba(255,255,255,0.07);
-            --line-soft: rgba(255,255,255,0.035);
+            /* --- الألوان الأساسية --- */
+            --gold: #b8942a;
+            --gold-light: #f0e3c4;
+            --gold-dark: #8a6b1f;
+            --gold-glow: rgba(184, 148, 42, 0.10);
+            --gold-gradient: linear-gradient(135deg, #d4a84a 0%, #b8942a 50%, #8a6b1f 100%);
 
-            --brass: #c1873f;
-            --brass-bright: #d9a15c;
-            --brass-ink: #1c1204;
-            --brass-wash: rgba(193,135,63,0.12);
+            /* --- الأسطح الورقية الفاتحة --- */
+            --bg-page: #f4f1ea;
+            --bg-card: #ffffff;
+            --bg-card-hover: #faf8f2;
+            --bg-input: #f8f6f0;
+            --bg-header: #ffffff;
 
-            --teal: #4a938d;
-            --teal-wash: rgba(74,147,141,0.12);
+            /* --- النصوص --- */
+            --text-primary: #1a1a1a;
+            --text-secondary: #2d2d2d;
+            --text-muted: #6b6b6b;
+            --text-light: #9a9a9a;
 
-            --emerald: #3fae7f;
-            --emerald-wash: rgba(63,174,127,0.12);
+            /* --- الحدود --- */
+            --border-color: #e5dfd0;
+            --border-focus: #b8942a;
 
-            --brick: #c96a5c;
-            --brick-wash: rgba(201,106,92,0.12);
+            /* --- الألوان الدلالية --- */
+            --success: #1a8a5a;
+            --success-bg: rgba(26, 138, 90, 0.08);
+            --danger: #b8453a;
+            --danger-bg: rgba(184, 69, 58, 0.08);
+            --warning: #b87a1a;
+            --warning-bg: rgba(184, 122, 26, 0.08);
 
-            --text: #edf0f2;
-            --text-muted: #8b93a1;
-            --text-faint: #5b6472;
+            /* --- الظلال الدافئة --- */
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.08);
+            --shadow-xl: 0 16px 56px rgba(0, 0, 0, 0.10);
+            --shadow-gold: 0 4px 20px rgba(184, 148, 42, 0.20);
 
-            --radius: 10px;
+            /* --- الزوايا --- */
+            --radius-sm: 6px;
+            --radius-md: 10px;
             --radius-lg: 14px;
+            --radius-xl: 18px;
+            --radius-2xl: 22px;
+
+            /* --- الانتقالات --- */
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --font: 'Cairo', sans-serif;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Cairo', sans-serif;
+            font-family: var(--font);
+            background: var(--bg-page);
+            background-image: 
+                radial-gradient(ellipse 800px 600px at 10% -10%, rgba(184, 148, 42, 0.04), transparent 60%),
+                radial-gradient(ellipse 600px 400px at 90% 100%, rgba(184, 148, 42, 0.03), transparent 50%);
+            color: var(--text-primary);
             direction: rtl;
-            background: var(--ink);
-            background-image:
-                radial-gradient(ellipse 900px 500px at 15% -10%, rgba(193,135,63,0.05), transparent 60%);
-            color: var(--text);
             min-height: 100vh;
-            padding: 24px 20px;
-        }
-        .container { max-width: 1200px; margin: 0 auto; }
-
-        .mono, .stat-card .value, .treasury-info .balance #treasuryBalance,
-        .amount-in, .amount-out, .balance-cell, thead th:nth-child(1) {
-            font-family: 'JetBrains Mono', 'Cairo', monospace;
-            font-variant-numeric: tabular-nums;
-            letter-spacing: -0.01em;
+            padding: 20px;
         }
 
-        a { color: inherit; }
-        :focus-visible {
-            outline: 2px solid var(--brass-bright);
-            outline-offset: 2px;
-            border-radius: 4px;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 16px;
         }
 
-        /* Header */
+        /* ============================================================
+           SCROLLBAR
+           ============================================================ */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-page);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--gold);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--gold-dark);
+        }
+
+        /* ============================================================
+           HEADER
+           ============================================================ */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 4px 0 20px;
-            border-bottom: 1px solid var(--line);
-            margin-bottom: 24px;
+            padding: 8px 0 18px;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 22px;
             flex-wrap: wrap;
             gap: 12px;
         }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
         .header h1 {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: var(--text);
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--text-secondary);
             display: flex;
             align-items: center;
             gap: 12px;
         }
         .header h1 i {
-            width: 38px;
-            height: 38px;
+            width: 42px;
+            height: 42px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.95rem;
-            color: var(--brass-bright);
-            background: var(--brass-wash);
-            border: 1px solid rgba(193,135,63,0.3);
-            border-radius: 8px;
-            margin: 0;
+            font-size: 1rem;
+            color: #fff;
+            background: var(--gold-gradient);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-gold);
         }
+        .header h1 span {
+            color: var(--gold);
+        }
+
         .header .back-btn {
             color: var(--text-muted);
             text-decoration: none;
-            padding: 9px 16px;
-            border-radius: var(--radius);
-            border: 1px solid var(--line);
-            font-size: 0.8rem;
+            padding: 8px 18px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            font-size: 0.78rem;
             font-weight: 600;
-            transition: border-color 0.2s, color 0.2s, background 0.2s;
+            transition: var(--transition);
             display: inline-flex;
             align-items: center;
             gap: 8px;
         }
-        .header .back-btn:hover { background: var(--surface); color: var(--text); border-color: var(--line); }
+        .header .back-btn:hover {
+            background: var(--bg-page);
+            border-color: var(--gold);
+            color: var(--text-secondary);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
 
-        /* Treasury Info — ledger head band */
+        /* ============================================================
+           TREASURY INFO CARD
+           ============================================================ */
         .treasury-info {
-            position: relative;
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            padding: 22px 26px;
+            background: var(--bg-card);
+            border-radius: var(--radius-xl);
+            padding: 22px 28px;
             margin-bottom: 20px;
-            border: 1px solid var(--line);
-            border-top: 1px solid var(--line);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 16px;
+            transition: var(--transition);
+            position: relative;
             overflow: hidden;
         }
         .treasury-info::before {
             content: '';
             position: absolute;
-            top: 0; right: 0; left: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--brass) 0%, transparent 65%);
+            top: 0;
+            right: 0;
+            left: 0;
+            height: 3px;
+            background: var(--gold-gradient);
         }
-        .treasury-info .name {
-            font-size: 1.15rem;
-            font-weight: 800;
-            color: var(--text);
-        }
-        .treasury-info > div:first-child > div:last-child {
-            font-size: 0.72rem;
-            color: var(--text-faint);
-            margin-top: 3px;
-        }
-        .treasury-info .balance { text-align: left; }
-        .treasury-info .balance .label {
-            font-size: 0.65rem;
-            color: var(--text-faint);
-            font-weight: 700;
-            display: block;
-            margin-bottom: 4px;
-            letter-spacing: 0.03em;
-        }
-        .treasury-info .balance #treasuryBalance {
-            font-size: 1.7rem;
-            font-weight: 700;
-            color: var(--emerald);
+        .treasury-info:hover {
+            box-shadow: var(--shadow-md);
         }
 
-        /* Stats — tabbed ledger cards */
+        .treasury-info .name {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--text-secondary);
+        }
+        .treasury-info .sub {
+            font-size: 0.7rem;
+            color: var(--text-light);
+            margin-top: 2px;
+        }
+
+        .treasury-info .balance {
+            text-align: left;
+        }
+        .treasury-info .balance .label {
+            font-size: 0.65rem;
+            color: var(--text-light);
+            font-weight: 700;
+            display: block;
+            margin-bottom: 2px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .treasury-info .balance #treasuryBalance {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--success);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ============================================================
+           STATS GRID
+           ============================================================ */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -172,29 +245,50 @@
             margin-bottom: 20px;
         }
         .stat-card {
-            background: var(--surface);
-            border-radius: var(--radius);
-            padding: 14px 18px 14px 20px;
-            border: 1px solid var(--line);
-            border-right: 3px solid var(--line);
-            text-align: right;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
         }
-        .stat-card .value { font-size: 1.25rem; font-weight: 700; display: block; }
-        .stat-card .value.green { color: var(--emerald); }
-        .stat-card .value.red { color: var(--brick); }
-        .stat-card .value.gold { color: var(--brass-bright); }
-        .stat-card:has(.value.green) { border-right-color: var(--emerald); }
-        .stat-card:has(.value.red) { border-right-color: var(--brick); }
-        .stat-card:has(.value.gold) { border-right-color: var(--brass); }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--gold-gradient);
+        }
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        .stat-card .value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .stat-card .value.green { color: var(--success); }
+        .stat-card .value.red { color: var(--danger); }
+        .stat-card .value.gold { color: var(--gold); }
         .stat-card .label {
             font-size: 0.62rem;
-            color: var(--text-faint);
+            color: var(--text-light);
             font-weight: 700;
             margin-top: 4px;
             display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
 
-        /* Actions Row */
+        /* ============================================================
+           ACTIONS ROW
+           ============================================================ */
         .actions-row {
             display: flex;
             gap: 10px;
@@ -202,71 +296,106 @@
             margin-bottom: 20px;
         }
         .actions-row .btn-action {
-            padding: 10px 18px;
-            border-radius: var(--radius);
-            border: 1px solid transparent;
+            padding: 9px 18px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-muted);
             font-weight: 700;
-            font-size: 0.78rem;
+            font-size: 0.75rem;
             cursor: pointer;
             font-family: inherit;
-            transition: border-color 0.2s, background 0.2s, color 0.2s, transform 0.15s;
+            transition: var(--transition);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 7px;
+            box-shadow: var(--shadow-sm);
+        }
+        .actions-row .btn-action:hover {
+            background: var(--bg-page);
+            border-color: var(--gold);
+            color: var(--text-secondary);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
         }
         .actions-row .btn-action.primary {
-            background: var(--brass);
-            color: var(--brass-ink);
+            background: var(--gold-gradient);
+            color: #fff;
+            border: none;
+            box-shadow: var(--shadow-gold);
         }
-        .actions-row .btn-action.primary:hover { background: var(--brass-bright); }
+        .actions-row .btn-action.primary:hover {
+            box-shadow: 0 6px 28px rgba(184, 148, 42, 0.30);
+            transform: translateY(-2px);
+            color: #fff;
+        }
         .actions-row .btn-action.secondary {
-            background: var(--teal);
-            color: #0d1f1d;
+            background: linear-gradient(135deg, #3a7a6a, #2a6a5a);
+            color: #fff;
+            border: none;
+            box-shadow: 0 4px 16px rgba(42, 106, 90, 0.20);
         }
-        .actions-row .btn-action.secondary:hover { background: #5aa39d; }
+        .actions-row .btn-action.secondary:hover {
+            box-shadow: 0 6px 24px rgba(42, 106, 90, 0.30);
+            transform: translateY(-2px);
+            color: #fff;
+        }
         .actions-row .btn-action.export {
             background: transparent;
-            color: var(--emerald);
-            border-color: rgba(63,174,127,0.35);
+            color: var(--success);
+            border-color: rgba(26, 138, 90, 0.25);
         }
-        .actions-row .btn-action.export:hover { background: var(--emerald-wash); }
+        .actions-row .btn-action.export:hover {
+            background: var(--success-bg);
+            border-color: var(--success);
+        }
         .actions-row .btn-action.import {
             background: transparent;
-            color: var(--brass-bright);
-            border-color: rgba(193,135,63,0.35);
+            color: var(--gold);
+            border-color: rgba(184, 148, 42, 0.25);
         }
-        .actions-row .btn-action.import:hover { background: var(--brass-wash); }
+        .actions-row .btn-action.import:hover {
+            background: var(--gold-glow);
+            border-color: var(--gold);
+        }
         .actions-row .btn-action.refresh {
             background: transparent;
-            color: var(--text-muted);
-            border-color: var(--line);
+            color: var(--text-light);
+            border-color: var(--border-color);
         }
-        .actions-row .btn-action.refresh:hover { background: var(--surface); color: var(--text); }
-        .actions-row .btn-action:active { transform: scale(0.98); }
-        .actions-row .btn-action:disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-            transform: none !important;
+        .actions-row .btn-action.refresh:hover {
+            background: var(--bg-page);
+            color: var(--text-secondary);
         }
 
-        /* Transfer Form */
+        /* ============================================================
+           TRANSFER SECTION
+           ============================================================ */
         .transfer-section {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
+            background: var(--bg-card);
+            border-radius: var(--radius-xl);
             padding: 20px 24px;
             margin-bottom: 20px;
-            border: 1px solid var(--line);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+        }
+        .transfer-section:hover {
+            box-shadow: var(--shadow-md);
         }
         .transfer-section h3 {
             font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--text);
+            font-weight: 800;
+            color: var(--text-secondary);
             margin-bottom: 14px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        .transfer-section h3 i { color: var(--teal); margin: 0; }
+        .transfer-section h3 i {
+            color: var(--gold);
+        }
+
         .transfer-row {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr auto;
@@ -276,364 +405,608 @@
         .transfer-row .form-group {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 5px;
         }
         .transfer-row .form-group label {
             font-size: 0.65rem;
             font-weight: 700;
-            color: var(--text-faint);
+            color: var(--text-muted);
         }
-        .transfer-row .form-group label .required { color: var(--brick); }
+        .transfer-row .form-group label .required {
+            color: var(--danger);
+        }
         .transfer-row .form-group select,
         .transfer-row .form-group input {
-            padding: 9px 12px;
-            border-radius: 8px;
-            border: 1px solid var(--line);
-            background: var(--surface-inset);
-            color: var(--text);
+            padding: 8px 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: var(--bg-input);
+            color: var(--text-secondary);
             font-size: 0.8rem;
             font-family: inherit;
             outline: none;
             width: 100%;
-            transition: border-color 0.2s;
+            transition: var(--transition);
         }
         .transfer-row .form-group select:focus,
         .transfer-row .form-group input:focus {
-            border-color: var(--brass);
+            border-color: var(--gold);
+            background: var(--bg-card);
+            box-shadow: 0 0 0 3px var(--gold-glow);
         }
         .transfer-row .form-group select option {
-            background: var(--surface-raised);
-            color: var(--text);
+            background: var(--bg-card);
+            color: var(--text-secondary);
         }
+
         .btn-transfer {
-            padding: 9px 22px;
-            background: var(--teal);
-            color: #0d1f1d;
+            padding: 8px 24px;
+            background: linear-gradient(135deg, #3a7a6a, #2a6a5a);
+            color: #fff;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             font-weight: 700;
             font-size: 0.78rem;
             cursor: pointer;
             font-family: inherit;
             white-space: nowrap;
-            transition: background 0.2s, transform 0.15s;
+            transition: var(--transition);
+            box-shadow: 0 4px 16px rgba(42, 106, 90, 0.20);
         }
-        .btn-transfer:hover { background: #5aa39d; }
-        .btn-transfer:active { transform: scale(0.98); }
-        .btn-transfer:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+        .btn-transfer:hover {
+            box-shadow: 0 6px 24px rgba(42, 106, 90, 0.30);
+            transform: translateY(-2px);
+        }
+        .btn-transfer:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
         .transfer-note {
             margin-top: 10px;
             font-size: 0.68rem;
-            color: var(--text-faint);
+            color: var(--text-light);
             display: flex;
             align-items: center;
             gap: 6px;
         }
-        .transfer-note strong { color: var(--brass-bright); }
-
-        /* Table — ledger sheet */
-        .table-wrapper {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--line);
-            overflow: hidden;
+        .transfer-note strong {
+            color: var(--gold);
         }
-        .table-scroll { overflow-x: auto; }
+
+        /* ============================================================
+           TABLE
+           ============================================================ */
+        .table-wrapper {
+            background: var(--bg-card);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        .table-wrapper:hover {
+            box-shadow: var(--shadow-md);
+        }
+        .table-scroll {
+            overflow-x: auto;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.72rem;
             min-width: 1000px;
         }
+
         thead {
-            background: var(--surface-raised);
-            border-bottom: 1px solid var(--line);
+            background: var(--bg-page);
+            border-bottom: 2px solid var(--border-color);
         }
         thead th {
-            padding: 12px 12px;
+            padding: 12px 14px;
             text-align: center;
-            font-size: 0.62rem;
-            font-weight: 700;
-            color: var(--text-faint);
-            letter-spacing: 0.03em;
+            font-size: 0.6rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
             white-space: nowrap;
             position: sticky;
             top: 0;
         }
-        tbody tr:nth-child(even) { background: var(--line-soft); }
-        tbody tr:hover { background: rgba(193,135,63,0.05); }
-        tbody td {
-            padding: 9px 12px;
-            border-bottom: 1px solid var(--line-soft);
-            text-align: center;
-            color: var(--text);
+        thead th i {
+            margin-left: 4px;
+            color: var(--gold);
+            font-size: 0.55rem;
         }
+
+        tbody tr {
+            transition: var(--transition);
+        }
+        tbody tr:nth-child(even) {
+            background: rgba(184, 148, 42, 0.02);
+        }
+        tbody tr:hover {
+            background: var(--bg-card-hover);
+        }
+        tbody tr:hover td {
+            position: relative;
+        }
+        tbody tr:hover td:first-child::before {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--gold-gradient);
+        }
+        tbody td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+            color: var(--text-secondary);
+            transition: var(--transition);
+        }
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
         .badge-type {
             display: inline-block;
-            padding: 3px 11px;
-            border-radius: 6px;
-            border: 1px solid transparent;
-            font-size: 0.58rem;
+            padding: 3px 12px;
+            border-radius: 50px;
+            font-size: 0.56rem;
             font-weight: 700;
             white-space: nowrap;
+            border: 1px solid transparent;
         }
-        .badge-type.incoming { background: var(--emerald-wash); color: var(--emerald); border-color: rgba(63,174,127,0.25); }
-        .badge-type.outgoing { background: var(--brick-wash); color: var(--brick); border-color: rgba(201,106,92,0.25); }
-        .badge-type.transfer { background: var(--teal-wash); color: #6cb5af; border-color: rgba(74,147,141,0.25); }
-        .badge-type.opening { background: var(--brass-wash); color: var(--brass-bright); border-color: rgba(193,135,63,0.25); }
+        .badge-type.incoming {
+            background: var(--success-bg);
+            color: var(--success);
+            border-color: rgba(26, 138, 90, 0.15);
+        }
+        .badge-type.outgoing {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border-color: rgba(184, 69, 58, 0.15);
+        }
+        .badge-type.transfer {
+            background: rgba(42, 106, 90, 0.08);
+            color: #3a7a6a;
+            border-color: rgba(42, 106, 90, 0.15);
+        }
+        .badge-type.opening {
+            background: var(--gold-glow);
+            color: var(--gold);
+            border-color: rgba(184, 148, 42, 0.15);
+        }
 
-        .amount-in { color: var(--emerald); font-weight: 700; }
-        .amount-out { color: var(--brick); font-weight: 700; }
-        .balance-cell { color: var(--brass-bright); font-weight: 700; }
+        .amount-in {
+            color: var(--success);
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .amount-out {
+            color: var(--danger);
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .balance-cell {
+            color: var(--gold);
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
 
+        /* ============================================================
+           EMPTY STATE
+           ============================================================ */
         .empty-state {
             text-align: center;
             padding: 48px 20px;
-            color: var(--text-faint);
+            color: var(--text-light);
         }
-        .empty-state i { font-size: 2.2rem; display: block; margin-bottom: 12px; opacity: 0.5; }
-        .empty-state a { color: var(--brass-bright); text-decoration: none; font-weight: 700; }
-        .empty-state a:hover { text-decoration: underline; }
+        .empty-state i {
+            font-size: 2.4rem;
+            display: block;
+            margin-bottom: 12px;
+            opacity: 0.3;
+            color: var(--gold);
+        }
+        .empty-state p {
+            font-size: 0.85rem;
+        }
+        .empty-state a {
+            color: var(--gold);
+            text-decoration: none;
+            font-weight: 700;
+        }
+        .empty-state a:hover {
+            text-decoration: underline;
+        }
 
-        /* Modal */
+        /* ============================================================
+           MODAL
+           ============================================================ */
         .modal-overlay {
             display: none;
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(8,10,13,0.7);
-            backdrop-filter: blur(4px);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(6px);
             z-index: 9999;
             justify-content: center;
             align-items: center;
             padding: 20px;
         }
-        .modal-overlay.active { display: flex; }
+        .modal-overlay.active {
+            display: flex;
+        }
+
         .modal-box {
-            background: var(--surface-raised);
-            border-radius: var(--radius-lg);
-            max-width: 500px;
+            background: var(--bg-card);
+            border-radius: var(--radius-2xl);
+            max-width: 520px;
             width: 100%;
-            padding: 28px;
-            border: 1px solid var(--line);
-            border-top: 2px solid var(--brass);
-            animation: modalIn 0.25s ease;
+            padding: 32px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-xl);
+            animation: modalIn 0.3s ease;
             max-height: 90vh;
             overflow-y: auto;
         }
         @keyframes modalIn {
-            from { transform: translateY(12px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+                transform: scale(0.96) translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
         }
+
+        .modal-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            height: 4px;
+            background: var(--gold-gradient);
+            border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+        }
+
         .modal-box .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 2px solid var(--bg-page);
         }
         .modal-box .modal-header h3 {
             font-size: 1.05rem;
             font-weight: 800;
-            color: var(--text);
+            color: var(--text-secondary);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
-        .modal-box .modal-header h3 i { color: var(--brass-bright); margin: 0; }
+        .modal-box .modal-header h3 i {
+            color: var(--gold);
+        }
         .modal-box .modal-header .close-modal {
             background: none;
             border: none;
-            color: var(--text-faint);
+            color: var(--text-light);
             font-size: 1.1rem;
             cursor: pointer;
-            width: 30px;
-            height: 30px;
-            border-radius: 6px;
-            transition: background 0.2s, color 0.2s;
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .modal-box .modal-header .close-modal:hover { color: var(--text); background: var(--surface); }
+        .modal-box .modal-header .close-modal:hover {
+            background: var(--bg-page);
+            color: var(--text-secondary);
+        }
+
         .modal-box .form-group {
-            margin-bottom: 14px;
+            margin-bottom: 16px;
         }
         .modal-box .form-group label {
             display: block;
             font-size: 0.7rem;
             font-weight: 700;
-            color: var(--text-faint);
+            color: var(--text-muted);
             margin-bottom: 5px;
         }
-        .modal-box .form-group label .required { color: var(--brick); }
+        .modal-box .form-group label .required {
+            color: var(--danger);
+        }
         .modal-box .form-group input,
         .modal-box .form-group textarea,
         .modal-box .form-group select {
             width: 100%;
             padding: 10px 14px;
-            border-radius: 8px;
-            border: 1px solid var(--line);
-            background: var(--surface-inset);
-            color: var(--text);
-            font-size: 0.85rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: var(--bg-input);
+            color: var(--text-secondary);
+            font-size: 0.82rem;
             font-family: inherit;
             outline: none;
-            transition: border-color 0.2s;
+            transition: var(--transition);
         }
         .modal-box .form-group input:focus,
         .modal-box .form-group textarea:focus,
         .modal-box .form-group select:focus {
-            border-color: var(--brass);
+            border-color: var(--gold);
+            background: var(--bg-card);
+            box-shadow: 0 0 0 3px var(--gold-glow);
         }
         .modal-box .form-group textarea {
             min-height: 60px;
             resize: vertical;
         }
         .modal-box .form-group input[type="file"] {
-            padding: 8px;
-            background: var(--ink);
+            padding: 10px;
+            background: var(--bg-page);
+            cursor: pointer;
         }
         .modal-box .form-group input[type="file"]::-webkit-file-upload-button {
-            background: var(--brass);
-            color: var(--brass-ink);
+            background: var(--gold-gradient);
+            color: #fff;
             border: none;
-            padding: 6px 16px;
-            border-radius: 6px;
+            padding: 6px 18px;
+            border-radius: var(--radius-sm);
             font-weight: 700;
             font-size: 0.7rem;
             cursor: pointer;
             font-family: inherit;
+            transition: var(--transition);
         }
+        .modal-box .form-group input[type="file"]::-webkit-file-upload-button:hover {
+            transform: scale(1.02);
+        }
+        .modal-box .helper-text {
+            font-size: 0.6rem;
+            color: var(--text-light);
+            margin-top: 5px;
+        }
+
         .modal-box .form-actions {
             display: flex;
             gap: 10px;
             margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
         }
         .modal-box .form-actions .btn-save {
-            padding: 11px 28px;
-            background: var(--brass);
-            color: var(--brass-ink);
+            padding: 10px 28px;
+            background: var(--gold-gradient);
+            color: #fff;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             font-weight: 700;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             cursor: pointer;
             font-family: inherit;
-            transition: background 0.2s, transform 0.15s;
+            transition: var(--transition);
             flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: var(--shadow-gold);
         }
-        .modal-box .form-actions .btn-save:hover { background: var(--brass-bright); }
-        .modal-box .form-actions .btn-save:active { transform: scale(0.98); }
+        .modal-box .form-actions .btn-save:hover {
+            box-shadow: 0 6px 28px rgba(184, 148, 42, 0.30);
+            transform: translateY(-2px);
+        }
         .modal-box .form-actions .btn-save:disabled {
-            opacity: 0.45;
+            opacity: 0.5;
             cursor: not-allowed;
-            transform: none;
+            transform: none !important;
         }
         .modal-box .form-actions .btn-cancel {
-            padding: 11px 24px;
-            background: transparent;
+            padding: 10px 24px;
+            background: var(--bg-page);
             color: var(--text-muted);
-            border: 1px solid var(--line);
-            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
             font-weight: 600;
             font-size: 0.8rem;
             cursor: pointer;
             font-family: inherit;
-            transition: background 0.2s, color 0.2s;
+            transition: var(--transition);
         }
-        .modal-box .form-actions .btn-cancel:hover { background: var(--surface); color: var(--text); }
-        .modal-box .helper-text {
-            font-size: 0.62rem;
-            color: var(--text-faint);
-            margin-top: 5px;
-        }
-        .modal-box .helper-text a {
-            color: var(--brass-bright);
-            text-decoration: none;
-        }
-        .modal-box .helper-text a:hover {
-            text-decoration: underline;
+        .modal-box .form-actions .btn-cancel:hover {
+            background: var(--bg-card);
+            color: var(--text-secondary);
         }
 
-        /* Toast */
+        /* ============================================================
+           TOAST
+           ============================================================ */
         .toast-container {
             position: fixed;
             top: 20px;
-            right: 20px;
+            left: 20px;
             z-index: 99999;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
+            max-width: 400px;
+            width: 100%;
         }
         .toast {
-            background: var(--surface-raised);
+            background: var(--bg-card);
             padding: 14px 20px;
-            border-radius: 10px;
-            border-right: 3px solid var(--brass);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+            border-radius: var(--radius-lg);
+            border-right: 4px solid var(--gold);
+            box-shadow: var(--shadow-lg);
             display: flex;
             align-items: center;
             gap: 12px;
-            min-width: 280px;
-            animation: slideIn 0.25s ease;
-            border: 1px solid var(--line);
-            border-right: 3px solid var(--brass);
+            animation: slideIn 0.35s ease;
+            border: 1px solid var(--border-color);
+            width: 100%;
         }
-        .toast.success { border-right-color: var(--emerald); }
-        .toast.error { border-right-color: var(--brick); }
-        .toast .icon { font-size: 1.05rem; }
-        .toast .icon.success { color: var(--emerald); }
-        .toast .icon.error { color: var(--brick); }
-        .toast .content .title { font-size: 0.8rem; font-weight: 700; }
-        .toast .content .message { font-size: 0.7rem; color: var(--text-muted); }
+        .toast.success {
+            border-right-color: var(--success);
+        }
+        .toast.error {
+            border-right-color: var(--danger);
+        }
+        .toast .icon {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .toast .icon.success {
+            color: var(--success);
+        }
+        .toast .icon.error {
+            color: var(--danger);
+        }
+        .toast .content {
+            flex: 1;
+        }
+        .toast .content .title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+        .toast .content .message {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
 
         @keyframes slideIn {
-            from { opacity: 0; transform: translateX(20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .transfer-row { grid-template-columns: 1fr; }
-            .stats-grid { grid-template-columns: 1fr; }
-            .header { flex-direction: column; gap: 12px; align-items: flex-start; }
-            .treasury-info { flex-direction: column; align-items: flex-start; }
-            .treasury-info .balance { text-align: right; }
-            .actions-row { flex-direction: column; }
-            .actions-row .btn-action { width: 100%; justify-content: center; }
-            .modal-box { padding: 20px; margin: 10px; }
-            .modal-box .form-actions { flex-direction: column; }
-            .modal-box .form-actions .btn-save { width: 100%; justify-content: center; }
-            .modal-box .form-actions .btn-cancel { width: 100%; justify-content: center; }
-
-            /* عرض أعمدة التاريخ / البيان / وارد / صادر / الرصيد فقط في الموبايل */
-            table { font-size: 0.68rem; min-width: 0; width: 100%; table-layout: fixed; }
-            .table-scroll { overflow-x: visible; }
-            thead th:nth-child(1):not([colspan]),
-            tbody td:nth-child(1):not([colspan]),
-            thead th:nth-child(4):not([colspan]),
-            tbody td:nth-child(4):not([colspan]),
-            thead th:nth-child(7):not([colspan]),
-            tbody td:nth-child(7):not([colspan]),
-            thead th:nth-child(8):not([colspan]),
-            tbody td:nth-child(8):not([colspan]) {
-                display: none;
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
             }
-            thead th:nth-child(2), tbody td:nth-child(2) { width: 20%; }
-            thead th:nth-child(3), tbody td:nth-child(3) { width: 28%; }
-            thead th:nth-child(5), tbody td:nth-child(5) { width: 17%; }
-            thead th:nth-child(6), tbody td:nth-child(6) { width: 17%; }
-            thead th:nth-child(9), tbody td:nth-child(9) { width: 18%; }
-            thead th, tbody td { padding: 8px 6px; word-break: break-word; }
-            tbody td[style*="text-align:right"] { text-align: right; }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+            .container {
+                padding: 0 6px;
+            }
+
+            .transfer-row {
+                grid-template-columns: 1fr;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+            .header h1 {
+                font-size: 1.2rem;
+            }
+            .header h1 i {
+                width: 36px;
+                height: 36px;
+                font-size: 0.85rem;
+            }
+
+            .treasury-info {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 18px 20px;
+            }
+            .treasury-info .balance {
+                text-align: right;
+                width: 100%;
+            }
+            .treasury-info .balance #treasuryBalance {
+                font-size: 1.4rem;
+            }
+
+            .actions-row {
+                flex-direction: column;
+            }
+            .actions-row .btn-action {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .modal-box {
+                padding: 20px;
+                margin: 10px;
+            }
+            .modal-box .form-actions {
+                flex-direction: column;
+            }
+            .modal-box .form-actions .btn-save {
+                width: 100%;
+                justify-content: center;
+            }
+            .modal-box .form-actions .btn-cancel {
+                width: 100%;
+                justify-content: center;
+            }
+
+            table {
+                font-size: 0.65rem;
+                min-width: 700px;
+            }
+            thead th,
+            tbody td {
+                padding: 8px 10px;
+            }
+            .badge-type {
+                font-size: 0.5rem;
+                padding: 2px 10px;
+            }
+        }
+
         @media (max-width: 480px) {
-            .container { padding: 0; }
-            body { padding: 16px 12px; }
-            .header h1 { font-size: 1.15rem; }
-            .treasury-info .balance #treasuryBalance { font-size: 1.3rem; }
-            table { font-size: 0.62rem; }
-            thead th, tbody td { padding: 7px 5px; }
+            .header h1 {
+                font-size: 1rem;
+            }
+            .header h1 i {
+                width: 32px;
+                height: 32px;
+                font-size: 0.75rem;
+            }
+            .treasury-info .balance #treasuryBalance {
+                font-size: 1.2rem;
+            }
+            table {
+                font-size: 0.58rem;
+                min-width: 600px;
+            }
+            thead th,
+            tbody td {
+                padding: 6px 8px;
+            }
+            .stat-card .value {
+                font-size: 1rem;
+            }
         }
     </style>
 </head>
@@ -643,7 +1016,9 @@
 
         <!-- ===== HEADER ===== -->
         <div class="header">
-            <h1><i class="fas fa-university"></i> الخزينة</h1>
+            <div class="header-left">
+                <h1><i class="fas fa-university"></i> <span>الخزينة</span></h1>
+            </div>
             <a href="treasuries.html" class="back-btn"><i class="fas fa-arrow-right"></i> العودة للخزائن</a>
         </div>
 
@@ -651,29 +1026,27 @@
         <div class="treasury-info" id="treasuryInfo">
             <div>
                 <div class="name" id="treasuryName">جاري التحميل...</div>
-                <div style="font-size:0.7rem;color:rgba(255,255,255,0.3);">الخزينة الحالية</div>
+                <div class="sub">الخزينة الحالية</div>
             </div>
-            <div>
-                <div class="balance">
-                    <span class="label">الرصيد الحالي</span>
-                    <span id="treasuryBalance">0 ج.م</span>
-                </div>
+            <div class="balance">
+                <span class="label">الرصيد الحالي</span>
+                <span id="treasuryBalance">0 ج.م</span>
             </div>
         </div>
 
         <!-- ===== STATS ===== -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="value green" id="totalIncoming">0</div>
-                <div class="label">إجمالي الإيداعات</div>
+                <span class="value green" id="totalIncoming">0</span>
+                <span class="label">إجمالي الإيداعات</span>
             </div>
             <div class="stat-card">
-                <div class="value red" id="totalOutgoing">0</div>
-                <div class="label">إجمالي السحوبات</div>
+                <span class="value red" id="totalOutgoing">0</span>
+                <span class="label">إجمالي السحوبات</span>
             </div>
             <div class="stat-card">
-                <div class="value gold" id="totalTransactions">0</div>
-                <div class="label">عدد الحركات</div>
+                <span class="value gold" id="totalTransactions">0</span>
+                <span class="label">عدد الحركات</span>
             </div>
         </div>
 
@@ -730,14 +1103,14 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>التاريخ</th>
-                            <th>البيان</th>
-                            <th>النوع</th>
-                            <th>وارد</th>
-                            <th>صادر</th>
-                            <th>التبويب العام</th>
-                            <th>التبويب الخاص</th>
-                            <th>الرصيد</th>
+                            <th><i class="fas fa-calendar"></i> التاريخ</th>
+                            <th><i class="fas fa-align-right"></i> البيان</th>
+                            <th><i class="fas fa-tag"></i> النوع</th>
+                            <th><i class="fas fa-arrow-down"></i> وارد</th>
+                            <th><i class="fas fa-arrow-up"></i> صادر</th>
+                            <th><i class="fas fa-folder"></i> التبويب العام</th>
+                            <th><i class="fas fa-folder-open"></i> التبويب الخاص</th>
+                            <th><i class="fas fa-scale-balanced"></i> الرصيد</th>
                         </tr>
                     </thead>
                     <tbody id="transactionsBody">
@@ -785,7 +1158,7 @@
             <form id="importForm">
                 <div class="form-group">
                     <label>تحميل قالب Excel</label>
-                    <button type="button" class="btn-action export" onclick="downloadTemplate()" style="width:100%;justify-content:center;padding:10px;">
+                    <button type="button" class="btn-action import" onclick="downloadTemplate()" style="width:100%;justify-content:center;padding:10px;">
                         <i class="fas fa-download"></i> تحميل القالب
                     </button>
                     <div class="helper-text">قم بتحميل القالب واملأ البيانات ثم ارفعه</div>
@@ -837,8 +1210,8 @@
             container.appendChild(toast);
             setTimeout(function() {
                 toast.style.opacity = '0';
-                toast.style.transform = 'translateX(20px)';
-                setTimeout(function() { toast.remove(); }, 300);
+                toast.style.transform = 'translateX(-30px)';
+                setTimeout(function() { toast.remove(); }, 400);
             }, 4000);
         }
 
@@ -859,10 +1232,7 @@
         // التحقق من صحة التوكن - عرض تحذير فقط (بدون إنهاء)
         async function validateToken() {
             var token = getToken();
-            if (!token) {
-                console.warn('⚠️ لا يوجد توكن');
-                return false;
-            }
+            if (!token) return false;
             try {
                 var res = await fetch(SUPABASE_URL + '/auth/v1/user', {
                     headers: {
@@ -870,21 +1240,12 @@
                         'Authorization': 'Bearer ' + token
                     }
                 });
-                
                 if (res.status === 403) {
-                    console.warn('⚠️ التوكن غير صالح (403)');
                     showToast('⚠️ تنبيه', 'توكن غير صالح، قد تحتاج لتسجيل الدخول مجدداً', 'warning');
                     return false;
                 }
-                
-                if (res.ok) {
-                    return true;
-                }
-                
-                console.warn(`⚠️ استجابة غير متوقعة: ${res.status}`);
-                return false;
+                return res.ok;
             } catch(e) {
-                console.error('❌ خطأ في التحقق من التوكن:', e);
                 return false;
             }
         }
@@ -893,9 +1254,7 @@
         function getSessionExpiryTime() {
             var session = getSession();
             if (!session) return null;
-            
             if (session.expires_at) return session.expires_at;
-            
             if (session.access_token) {
                 try {
                     var parts = session.access_token.split('.');
@@ -905,7 +1264,6 @@
                     }
                 } catch(e) {}
             }
-            
             return Date.now() + (60 * 60 * 1000);
         }
 
@@ -918,104 +1276,60 @@
         var warningShown3 = false;
         var sessionMonitorStarted = false;
 
-        // دالة للتحقق من الوقت المتبقي - عرض تحذيرات فقط (بدون إنهاء)
         function checkSessionExpiry() {
             var token = getToken();
-            if (!token) {
-                return true;
-            }
-            
+            if (!token) return true;
+
             var expiryTime = getSessionExpiryTime();
-            if (!expiryTime) {
-                return true;
-            }
-            
-            var now = Date.now();
-            var timeLeft = expiryTime - now;
+            if (!expiryTime) return true;
+
+            var timeLeft = expiryTime - Date.now();
             var minutesLeft = Math.floor(timeLeft / (60 * 1000));
             var secondsLeft = Math.floor((timeLeft % (60 * 1000)) / 1000);
-            
-            // ✅ لا ننهي الجلسة أبداً، فقط تحذيرات
+
+            // ✅ لا ننهي الجلسة أبداً، فقط تحذيرات عند الاقتراب
             if (timeLeft <= 0) {
-                // نعرض تحذير فقط للمستخدم
-                if (!warningShown3) {
-                    warningShown3 = true;
-                    showToast(
-                        '⏳ انتهت الجلسة',
-                        'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً عند الحاجة',
-                        'warning'
-                    );
-                }
+                // ❌ تم إزالة التحذير عند انتهاء الجلسة
                 return true;
             }
-            
+
             // عرض تحذير عند 5 دقائق متبقية
             if (timeLeft < 300000 && timeLeft > 240000 && !warningShown) {
                 warningShown = true;
-                showToast(
-                    '⏳ تنبيه هام',
-                    `جلسة العمل ستنتهي خلال ${minutesLeft} دقيقة`,
-                    'warning'
-                );
+                showToast('⏳ تنبيه هام', `جلسة العمل ستنتهي خلال ${minutesLeft} دقيقة`, 'warning');
                 return true;
             }
-            
+
             // عرض تحذير عند 3 دقائق متبقية
             if (timeLeft < 180000 && timeLeft > 120000 && !warningShown2) {
                 warningShown2 = true;
-                showToast(
-                    '⏳ تنبيه عاجل',
-                    `جلسة العمل ستنتهي خلال ${minutesLeft} دقائق!`,
-                    'warning'
-                );
+                showToast('⏳ تنبيه عاجل', `جلسة العمل ستنتهي خلال ${minutesLeft} دقائق!`, 'warning');
                 return true;
             }
-            
+
             // عرض تحذير عند دقيقة واحدة متبقية
             if (timeLeft < 60000 && timeLeft > 30000 && !warningShown3) {
                 warningShown3 = true;
-                showToast(
-                    '⏳ تنبيه أخير',
-                    `جلسة العمل ستنتهي خلال ${secondsLeft} ثانية!`,
-                    'error'
-                );
+                showToast('⏳ تنبيه أخير', `جلسة العمل ستنتهي خلال ${secondsLeft} ثانية!`, 'error');
                 return true;
             }
-            
+
             return true;
         }
 
-        // بدء مراقبة الجلسة - تحذيرات فقط
         function startSessionMonitor() {
-            if (sessionMonitorStarted) {
-                console.log('⏳ مراقبة الجلسة قيد التشغيل بالفعل');
-                return;
-            }
-            
+            if (sessionMonitorStarted) return;
             warningShown = false;
             warningShown2 = false;
             warningShown3 = false;
             sessionMonitorStarted = true;
-            
             if (monitorInterval) {
                 clearInterval(monitorInterval);
                 monitorInterval = null;
             }
-            
-            setTimeout(function() {
-                checkSessionExpiry();
-            }, 3000);
-            
-            monitorInterval = setInterval(function() {
-                checkSessionExpiry();
-            }, 30000);
-            
+            setTimeout(function() { checkSessionExpiry(); }, 3000);
+            monitorInterval = setInterval(function() { checkSessionExpiry(); }, 30000);
             console.log('✅ بدأ مراقبة الجلسة - تحذيرات فقط (بدون إنهاء)');
-        }
-
-        // ❌ تم تعطيل إعادة التوجيه التلقائي - لن ننهي الجلسة أبداً
-        function redirectToLogin() {
-            showToast('⚠️ تنبيه', 'جلسة العمل غير صالحة، يرجى تسجيل الدخول مجدداً عند الحاجة', 'warning');
         }
 
         // ============================================================
@@ -1024,38 +1338,6 @@
         function getTreasuryIdFromUrl() {
             var params = new URLSearchParams(window.location.search);
             return params.get('treasury_id');
-        }
-
-        // ============================================================
-        // GET CURRENT USER PROFILE
-        // ============================================================
-        async function getCurrentUserProfile() {
-            var token = getToken();
-            if (!token) return null;
-            try {
-                var userResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-                if (!userResponse.ok) {
-                    return null;
-                }
-                var user = await userResponse.json();
-                var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=*&id=eq.' + user.id, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-                if (!profileResponse.ok) return null;
-                var data = await profileResponse.json();
-                return data && data.length > 0 ? data[0] : null;
-            } catch (error) {
-                console.error('❌ خطأ:', error);
-                return null;
-            }
         }
 
         // ============================================================
@@ -1106,14 +1388,13 @@
         }
 
         // ============================================================
-        // GET TRANSACTIONS - باستخدام RPC Function لجلب جميع الحركات بدون حد 1000
+        // GET TRANSACTIONS - باستخدام RPC Function
         // ============================================================
         async function getTransactions(treasuryId) {
             var token = getToken();
             if (!token) return [];
 
             try {
-                // استخدام RPC function التي أنشأناها في Supabase
                 var response = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_all_treasury_transactions', {
                     method: 'POST',
                     headers: {
@@ -1121,14 +1402,11 @@
                         'Authorization': 'Bearer ' + token,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        p_treasury_id: treasuryId
-                    })
+                    body: JSON.stringify({ p_treasury_id: treasuryId })
                 });
 
                 if (!response.ok) {
                     console.warn('⚠️ فشل جلب الحركات عبر RPC:', response.status);
-                    // محاولة الطريقة التقليدية كحل احتياطي
                     return await getTransactionsFallback(treasuryId);
                 }
 
@@ -1138,13 +1416,12 @@
 
             } catch (error) {
                 console.error('❌ خطأ في جلب الحركات:', error);
-                // محاولة الطريقة التقليدية كحل احتياطي
                 return await getTransactionsFallback(treasuryId);
             }
         }
 
         // ============================================================
-        // GET TRANSACTIONS FALLBACK - طريقة تقليدية مع ترحيل (Pagination)
+        // GET TRANSACTIONS FALLBACK - طريقة تقليدية مع ترحيل
         // ============================================================
         async function getTransactionsFallback(treasuryId) {
             var token = getToken();
@@ -1158,9 +1435,8 @@
             try {
                 while (hasMore) {
                     var response = await fetch(
-                        SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + treasuryId + 
-                        '&order=created_at.asc&limit=' + pageSize + '&offset=' + (page * pageSize),
-                        {
+                        SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + treasuryId +
+                        '&order=created_at.asc&limit=' + pageSize + '&offset=' + (page * pageSize), {
                             headers: {
                                 'apikey': SUPABASE_ANON_KEY,
                                 'Authorization': 'Bearer ' + token
@@ -1168,28 +1444,19 @@
                         }
                     );
 
-                    if (!response.ok) {
-                        console.warn('⚠️ فشل جلب الصفحة:', response.status);
-                        break;
-                    }
+                    if (!response.ok) break;
 
                     var data = await response.json();
-                    
                     if (!data || data.length === 0) {
                         hasMore = false;
                     } else {
                         allTransactions = allTransactions.concat(data);
                         page++;
-                        
-                        if (data.length < pageSize) {
-                            hasMore = false;
-                        }
+                        if (data.length < pageSize) hasMore = false;
                     }
                 }
-
                 console.log('✅ تم جلب ' + allTransactions.length + ' حركة (طريقة احتياطية)');
                 return allTransactions;
-
             } catch (error) {
                 console.error('❌ خطأ في جلب الحركات:', error);
                 return allTransactions;
@@ -1222,11 +1489,7 @@
                 });
 
                 var data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.message || 'فشل إضافة الرصيد الافتتاحي');
-                }
-
+                if (!response.ok) throw new Error(data.message || 'فشل إضافة الرصيد الافتتاحي');
                 return data;
 
             } catch (error) {
@@ -1269,7 +1532,6 @@
 
             try {
                 var result = await addOpeningBalance(currentTreasuryId, amount, description);
-
                 if (result && result.success) {
                     showToast('✅ تم الإضافة', 'تم إضافة الرصيد الافتتاحي بنجاح', 'success');
                     closeOpeningModal();
@@ -1277,7 +1539,6 @@
                 } else {
                     throw new Error(result?.message || 'فشل الإضافة');
                 }
-
             } catch (error) {
                 showToast('❌ خطأ', error.message, 'error');
             }
@@ -1329,12 +1590,10 @@
                 showToast('⚠️ تنبيه', 'يرجى اختيار الخزينة الهدف', 'error');
                 return;
             }
-
             if (toId === fromId) {
                 showToast('⚠️ تنبيه', 'لا يمكن التحويل لنفس الخزينة', 'error');
                 return;
             }
-
             if (!amount || amount <= 0) {
                 showToast('⚠️ تنبيه', 'يرجى إدخال مبلغ صحيح', 'error');
                 return;
@@ -1373,10 +1632,7 @@
                 });
 
                 var data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.message || 'فشل التحويل');
-                }
+                if (!response.ok) throw new Error(data.message || 'فشل التحويل');
 
                 showToast('✅ تم التحويل', 'تم تحويل ' + amount.toLocaleString() + ' ج.م بنجاح', 'success');
 
@@ -1403,7 +1659,6 @@
                 if (!token) return;
 
                 var transactions = await getTransactions(currentTreasuryId);
-
                 if (!transactions || transactions.length === 0) {
                     showToast('⚠️ تنبيه', 'لا توجد حركات لتصديرها', 'warning');
                     return;
@@ -1413,7 +1668,7 @@
                 var excelData = transactions.map(function(item) {
                     var amount = item.amount || 0;
                     runningBalance += amount;
-                    
+
                     var typeLabels = {
                         'incoming': 'إيداع',
                         'outgoing': 'سحب',
@@ -1424,10 +1679,10 @@
                         'expense': 'مصروف',
                         'revenue': 'إيراد'
                     };
-                    
+
                     var isIncoming = amount > 0;
                     var displayAmount = Math.abs(amount);
-                    
+
                     return {
                         '#': '',
                         'التاريخ': new Date(item.created_at).toLocaleDateString('ar-EG'),
@@ -1450,15 +1705,8 @@
                 XLSX.utils.book_append_sheet(wb, ws, 'الحركات');
 
                 ws['!cols'] = [
-                    { wch: 5 },   // #
-                    { wch: 15 },  // التاريخ
-                    { wch: 35 },  // البيان
-                    { wch: 15 },  // النوع
-                    { wch: 15 },  // وارد
-                    { wch: 15 },  // صادر
-                    { wch: 20 },  // التبويب العام
-                    { wch: 20 },  // التبويب الخاص
-                    { wch: 15 }   // الرصيد
+                    { wch: 5 }, { wch: 15 }, { wch: 35 }, { wch: 15 },
+                    { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 15 }
                 ];
 
                 var treasuryName = document.getElementById('treasuryName').textContent || 'الخزينة';
@@ -1477,60 +1725,48 @@
         // DOWNLOAD TEMPLATE
         // ============================================================
         function downloadTemplate() {
-            var templateData = [
-                {
-                    'التاريخ': '2026-08-09',
-                    'البيان': 'فاتورة مبيعات - مثال',
-                    'النوع': 'incoming',
-                    'وارد': 1000,
-                    'صادر': '',
-                    'رقم السند': 'INV-001',
-                    'التبويب العام': 'مبيعات',
-                    'التبويب الخاص': 'عميل 1',
-                    'ملاحظات': 'ملاحظات اختيارية'
-                },
-                {
-                    'التاريخ': '2026-08-09',
-                    'البيان': 'مصروفات - مثال',
-                    'النوع': 'outgoing',
-                    'وارد': '',
-                    'صادر': 500,
-                    'رقم السند': 'EXP-001',
-                    'التبويب العام': 'مصاريف',
-                    'التبويب الخاص': 'مورد 1',
-                    'ملاحظات': ''
-                },
-                {
-                    'التاريخ': '2026-08-09',
-                    'البيان': 'راتب موظف - مثال',
-                    'النوع': 'salary',
-                    'وارد': '',
-                    'صادر': 300,
-                    'رقم السند': 'SAL-001',
-                    'التبويب العام': 'رواتب',
-                    'التبويب الخاص': 'موظف 1',
-                    'ملاحظات': ''
-                }
-            ];
+            var templateData = [{
+                'التاريخ': '2026-08-09',
+                'البيان': 'فاتورة مبيعات - مثال',
+                'النوع': 'incoming',
+                'وارد': 1000,
+                'صادر': '',
+                'رقم السند': 'INV-001',
+                'التبويب العام': 'مبيعات',
+                'التبويب الخاص': 'عميل 1',
+                'ملاحظات': 'ملاحظات اختيارية'
+            }, {
+                'التاريخ': '2026-08-09',
+                'البيان': 'مصروفات - مثال',
+                'النوع': 'outgoing',
+                'وارد': '',
+                'صادر': 500,
+                'رقم السند': 'EXP-001',
+                'التبويب العام': 'مصاريف',
+                'التبويب الخاص': 'مورد 1',
+                'ملاحظات': ''
+            }, {
+                'التاريخ': '2026-08-09',
+                'البيان': 'راتب موظف - مثال',
+                'النوع': 'salary',
+                'وارد': '',
+                'صادر': 300,
+                'رقم السند': 'SAL-001',
+                'التبويب العام': 'رواتب',
+                'التبويب الخاص': 'موظف 1',
+                'ملاحظات': ''
+            }];
 
             var ws = XLSX.utils.json_to_sheet(templateData);
             var wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'قالب الحركات');
 
             ws['!cols'] = [
-                { wch: 15 },  // التاريخ
-                { wch: 30 },  // البيان
-                { wch: 15 },  // النوع
-                { wch: 15 },  // وارد
-                { wch: 15 },  // صادر
-                { wch: 15 },  // رقم السند
-                { wch: 20 },  // التبويب العام
-                { wch: 20 },  // التبويب الخاص
-                { wch: 25 }   // ملاحظات
+                { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 15 },
+                { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 25 }
             ];
 
             XLSX.writeFile(wb, 'قالب_استيراد_الخزينة.xlsx');
-            
             showToast('✅ تم التحميل', 'تم تحميل القالب بنجاح', 'success');
         }
 
@@ -1585,49 +1821,36 @@
 
                 for (var i = 0; i < jsonData.length; i++) {
                     var row = jsonData[i];
-                    
+
                     var description = row['البيان'] || row['description'] || row['الوصف'] || 'حركة مستوردة';
                     var type = row['النوع'] || row['type'] || 'incoming';
-                    var voucherNumber = row['رقم السند'] || row['voucher_number'] || row['السند'] || '';
                     var generalTab = row['التبويب العام'] || row['general_tab'] || row['تبويب عام'] || '';
                     var privateTab = row['التبويب الخاص'] || row['private_tab'] || row['تبويب خاص'] || '';
-                    var notes = row['ملاحظات'] || row['notes'] || '';
 
-                    var rawDate = row['التاريخ'] || row['date'] || row['Date'] || null;
+                    var rawDate = row['التاريخ'] || row['date'] || null;
                     var transactionDate = null;
                     if (rawDate instanceof Date && !isNaN(rawDate)) {
                         transactionDate = rawDate.toISOString();
                     } else if (typeof rawDate === 'string' && rawDate.trim() !== '') {
                         var parsedDate = new Date(rawDate);
-                        if (!isNaN(parsedDate)) {
-                            transactionDate = parsedDate.toISOString();
-                        }
-                    } else if (typeof rawDate === 'number' && rawDate > 0) {
-                        var excelEpoch = new Date(Date.UTC(1899, 11, 30));
-                        var parsedFromSerial = new Date(excelEpoch.getTime() + rawDate * 86400000);
-                        if (!isNaN(parsedFromSerial)) {
-                            transactionDate = parsedFromSerial.toISOString();
-                        }
+                        if (!isNaN(parsedDate)) transactionDate = parsedDate.toISOString();
                     }
 
                     var incoming = 0;
                     var outgoing = 0;
-                    
+
                     if (row['وارد'] !== undefined) incoming = parseFloat(row['وارد']) || 0;
                     else if (row['incoming'] !== undefined) incoming = parseFloat(row['incoming']) || 0;
-                    
+
                     if (row['صادر'] !== undefined) outgoing = parseFloat(row['صادر']) || 0;
                     else if (row['outgoing'] !== undefined) outgoing = parseFloat(row['outgoing']) || 0;
-                    
+
                     if (incoming === 0 && outgoing === 0) {
                         var amountFromColumn = parseFloat(row['المبلغ'] || row['amount'] || 0);
-                        if (amountFromColumn > 0) {
-                            incoming = amountFromColumn;
-                        } else if (amountFromColumn < 0) {
-                            outgoing = Math.abs(amountFromColumn);
-                        }
+                        if (amountFromColumn > 0) incoming = amountFromColumn;
+                        else if (amountFromColumn < 0) outgoing = Math.abs(amountFromColumn);
                     }
-                    
+
                     var amount = incoming - outgoing;
 
                     if (amount === 0) {
@@ -1636,10 +1859,10 @@
                         continue;
                     }
 
-                    var validTypes = ['incoming', 'outgoing', 'transfer_in', 'transfer_out', 'opening', 'salary', 'expense', 'revenue'];
-                    if (!validTypes.includes(type)) {
-                        type = 'incoming';
-                    }
+                    var validTypes = ['incoming', 'outgoing', 'transfer_in', 'transfer_out', 'opening', 'salary', 'expense',
+                        'revenue'
+                    ];
+                    if (!validTypes.includes(type)) type = 'incoming';
 
                     try {
                         var response = await fetch(SUPABASE_URL + '/rest/v1/rpc/add_transaction', {
@@ -1661,7 +1884,6 @@
                         });
 
                         var result = await response.json();
-
                         if (!response.ok || !result?.success) {
                             errorCount++;
                             errors.push('صف ' + (i + 1) + ': ' + (result?.message || 'فشل الإدراج'));
@@ -1676,12 +1898,8 @@
                 }
 
                 if (successCount > 0) {
-                    showToast(
-                        '✅ تم الاستيراد',
-                        'تم استيراد ' + successCount + ' حركة' + 
-                        (errorCount > 0 ? '، وفشل ' + errorCount + ' حركة' : ''),
-                        'success'
-                    );
+                    showToast('✅ تم الاستيراد', 'تم استيراد ' + successCount + ' حركة' +
+                        (errorCount > 0 ? '، وفشل ' + errorCount + ' حركة' : ''), 'success');
                     closeImportModal();
                     loadData();
                 } else {
@@ -1690,9 +1908,7 @@
 
                 if (errors.length > 0) {
                     console.log('❌ أخطاء الاستيراد:');
-                    errors.forEach(function(err) {
-                        console.log('  - ' + err);
-                    });
+                    errors.forEach(function(err) { console.log('  - ' + err); });
                 }
 
             } catch (error) {
@@ -1733,7 +1949,8 @@
             document.getElementById('totalTransactions').textContent = transactions ? transactions.length : 0;
 
             if (!transactions || transactions.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>`;
+                tbody.innerHTML =
+                    `<tr><td colspan="9"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>`;
                 return;
             }
 
@@ -1764,7 +1981,7 @@
                 var isIncoming = amount > 0;
                 var displayAmount = Math.abs(amount);
                 var date = item.created_at ? new Date(item.created_at).toLocaleDateString('ar-EG') : '-';
-                
+
                 runningBalance += amount;
 
                 var incoming = isIncoming ? displayAmount.toLocaleString() : '-';
@@ -1833,7 +2050,7 @@
         }
 
         // ============================================================
-        // CLOSE MODALS ON ESCAPE
+        // CLOSE MODALS
         // ============================================================
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
@@ -1842,9 +2059,6 @@
             }
         });
 
-        // ============================================================
-        // CLOSE MODALS ON OVERLAY CLICK
-        // ============================================================
         document.getElementById('openingModal').addEventListener('click', function(e) {
             if (e.target === this) closeOpeningModal();
         });
@@ -1853,7 +2067,7 @@
         });
 
         // ============================================================
-        // LOGOUT - فقط هذا هو ما ينهي الجلسة
+        // LOGOUT
         // ============================================================
         function logout() {
             if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
@@ -1869,11 +2083,11 @@
         }
 
         // ============================================================
-        // INIT - بدون إنهاء الجلسة
+        // INIT
         // ============================================================
         (async function init() {
             console.log('🏛️ الخزينة - QuickData ProSoft');
-            
+
             var token = getToken();
             if (!token) {
                 document.getElementById('treasuryName').textContent = '⚠️ جلسة غير موجودة';
@@ -1883,17 +2097,14 @@
 
             try {
                 await loadData();
-            } catch(e) {
+            } catch (e) {
                 console.error('❌ خطأ في تحميل البيانات:', e);
                 showToast('❌ خطأ', 'حدث خطأ في تحميل البيانات', 'error');
             }
-            
-            // بدء مراقبة الجلسة (تحذيرات فقط)
+
             setTimeout(function() {
                 startSessionMonitor();
             }, 3000);
-            
-            // ❌ تم إلغاء التحديث التلقائي - التحديث يدوي فقط عبر زر التحديث
         })();
     </script>
 
