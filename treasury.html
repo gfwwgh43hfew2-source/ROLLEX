@@ -1216,38 +1216,7 @@
         }
 
         // ============================================================
-        // RETRY FUNCTION - إعادة المحاولة عند فشل الاتصال
-        // ============================================================
-        async function fetchWithRetry(url, options, maxRetries = 3) {
-            var lastError = null;
-            
-            for (var attempt = 1; attempt <= maxRetries; attempt++) {
-                try {
-                    console.log(`🔄 محاولة ${attempt}/${maxRetries}...`);
-                    var response = await fetch(url, options);
-                    if (response.ok) {
-                        return response;
-                    }
-                    if (response.status === 429 || response.status >= 500) {
-                        console.warn(`⚠️ محاولة ${attempt}/${maxRetries} فشلت (${response.status})، إعادة المحاولة...`);
-                        await new Promise(resolve => setTimeout(resolve, attempt * 1500));
-                        continue;
-                    }
-                    return response;
-                } catch (error) {
-                    lastError = error;
-                    console.warn(`⚠️ محاولة ${attempt}/${maxRetries} فشلت:`, error.message);
-                    if (attempt < maxRetries) {
-                        await new Promise(resolve => setTimeout(resolve, attempt * 1500));
-                    }
-                }
-            }
-            
-            throw lastError || new Error('فشل بعد عدة محاولات');
-        }
-
-        // ============================================================
-        // SESSION - بدون إنهاء تلقائي أبداً
+        // SESSION FUNCTIONS
         // ============================================================
         function getSession() {
             var session = localStorage.getItem('rollex_session');
@@ -1260,42 +1229,134 @@
             return session ? session.access_token : null;
         }
 
-        // التحقق من صحة التوكن - عرض تحذير فقط (بدون إنهاء)
-        async function validateToken() {
-            var token = getToken();
-            if (!token) return false;
+        // ============================================================
+        // REFRESH SESSION - تجديد الجلسة
+        // ============================================================
+        async function refreshSession() {
+            var session = getSession();
+            if (!session || !session.refresh_token) {
+                console.warn('⚠️ لا يوجد refresh_token لتجديد الجلسة');
+                return false;
+            }
+
             try {
-                var res = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+                    method: 'POST',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        refresh_token: session.refresh_token
+                    })
                 });
-                if (res.status === 403) {
-                    showToast('⚠️ تنبيه', 'توكن غير صالح، قد تحتاج لتسجيل الدخول مجدداً', 'warning');
+
+                if (!response.ok) {
+                    console.warn('⚠️ فشل تجديد الجلسة:', response.status);
                     return false;
                 }
-                return res.ok;
-            } catch(e) {
+
+                var data = await response.json();
+                if (data.access_token) {
+                    var newSession = {
+                        access_token: data.access_token,
+                        refresh_token: data.refresh_token || session.refresh_token,
+                        expires_at: Date.now() + ((data.expires_in || 3600) * 1000)
+                    };
+                    localStorage.setItem('rollex_session', JSON.stringify(newSession));
+                    console.log('✅ تم تجديد الجلسة بنجاح');
+                    return true;
+                }
+
+                return false;
+            } catch (error) {
+                console.error('❌ خطأ في تجديد الجلسة:', error);
                 return false;
             }
         }
 
-        // دالة لحساب الوقت المتبقي للجلسة
-        function getSessionExpiryTime() {
-            var session = getSession();
-            if (!session) return null;
-            if (session.expires_at) return session.expires_at;
-            if (session.access_token) {
-                try {
-                    var parts = session.access_token.split('.');
-                    if (parts.length === 3) {
-                        var payload = JSON.parse(atob(parts[1]));
-                        if (payload.exp) return payload.exp * 1000;
-                    }
-                } catch(e) {}
+        // ============================================================
+        // REDIRECT TO LOGIN - إعادة التوجيه لتسجيل الدخول
+        // ============================================================
+        function redirectToLogin() {
+            if (monitorInterval) {
+                clearInterval(monitorInterval);
+                monitorInterval = null;
             }
-            return Date.now() + (60 * 60 * 1000);
+            sessionMonitorStarted = false;
+            localStorage.removeItem('rollex_session');
+            sessionStorage.removeItem('rollex_session');
+            showToast('⚠️ انتهت الجلسة', 'يرجى تسجيل الدخول مجدداً', 'warning');
+            setTimeout(function() {
+                window.location.href = 'login.html';
+            }, 1500);
+        }
+
+        // ============================================================
+        // RETRY FUNCTION - إعادة المحاولة عند فشل الاتصال مع التعامل مع 401
+        // ============================================================
+        async function fetchWithRetry(url, options, maxRetries = 3) {
+            var lastError = null;
+
+            for (var attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    console.log(`🔄 محاولة ${attempt}/${maxRetries}...`);
+
+                    // التأكد من وجود التوكن
+                    var token = getToken();
+                    if (!token && attempt === 1) {
+                        var refreshed = await refreshSession();
+                        if (refreshed) {
+                            token = getToken();
+                            if (token && options.headers) {
+                                options.headers['Authorization'] = 'Bearer ' + token;
+                            }
+                        } else {
+                            redirectToLogin();
+                            throw new Error('لا توجد جلسة صالحة');
+                        }
+                    }
+
+                    var response = await fetch(url, options);
+
+                    // إذا كان الخطأ 401 (غير مصرح به)، نحاول تجديد الجلسة
+                    if (response.status === 401) {
+                        console.warn('⚠️ توكن غير صالح (401)، محاولة تجديد الجلسة...');
+                        var refreshed = await refreshSession();
+                        if (refreshed) {
+                            var newToken = getToken();
+                            if (options.headers) {
+                                options.headers['Authorization'] = 'Bearer ' + newToken;
+                            }
+                            console.log('✅ تم تجديد الجلسة، إعادة المحاولة...');
+                            continue;
+                        } else {
+                            redirectToLogin();
+                            throw new Error('انتهت الجلسة، يرجى تسجيل الدخول مجدداً');
+                        }
+                    }
+
+                    if (response.ok) {
+                        return response;
+                    }
+
+                    if (response.status === 429 || response.status >= 500) {
+                        console.warn(`⚠️ محاولة ${attempt}/${maxRetries} فشلت (${response.status})، إعادة المحاولة...`);
+                        await new Promise(resolve => setTimeout(resolve, attempt * 1500));
+                        continue;
+                    }
+
+                    return response;
+                } catch (error) {
+                    lastError = error;
+                    console.warn(`⚠️ محاولة ${attempt}/${maxRetries} فشلت:`, error.message);
+                    if (attempt < maxRetries) {
+                        await new Promise(resolve => setTimeout(resolve, attempt * 1500));
+                    }
+                }
+            }
+
+            throw lastError || new Error('فشل بعد عدة محاولات');
         }
 
         // ============================================================
@@ -1311,34 +1372,30 @@
             var token = getToken();
             if (!token) return true;
 
-            var expiryTime = getSessionExpiryTime();
-            if (!expiryTime) return true;
+            var session = getSession();
+            if (!session) return true;
 
+            var expiryTime = session.expires_at || Date.now() + 3600000;
             var timeLeft = expiryTime - Date.now();
             var minutesLeft = Math.floor(timeLeft / (60 * 1000));
             var secondsLeft = Math.floor((timeLeft % (60 * 1000)) / 1000);
 
-            // ✅ لا ننهي الجلسة أبداً، فقط تحذيرات عند الاقتراب
             if (timeLeft <= 0) {
-                // ❌ تم إزالة التحذير عند انتهاء الجلسة
                 return true;
             }
 
-            // عرض تحذير عند 5 دقائق متبقية
             if (timeLeft < 300000 && timeLeft > 240000 && !warningShown) {
                 warningShown = true;
                 showToast('⏳ تنبيه هام', `جلسة العمل ستنتهي خلال ${minutesLeft} دقيقة`, 'warning');
                 return true;
             }
 
-            // عرض تحذير عند 3 دقائق متبقية
             if (timeLeft < 180000 && timeLeft > 120000 && !warningShown2) {
                 warningShown2 = true;
                 showToast('⏳ تنبيه عاجل', `جلسة العمل ستنتهي خلال ${minutesLeft} دقائق!`, 'warning');
                 return true;
             }
 
-            // عرض تحذير عند دقيقة واحدة متبقية
             if (timeLeft < 60000 && timeLeft > 30000 && !warningShown3) {
                 warningShown3 = true;
                 showToast('⏳ تنبيه أخير', `جلسة العمل ستنتهي خلال ${secondsLeft} ثانية!`, 'error');
@@ -1481,14 +1538,14 @@
                     }
 
                     var data = await response.json();
-                    
+
                     if (!data || data.length === 0) {
                         hasMore = false;
                     } else {
                         allTransactions = allTransactions.concat(data);
                         console.log(`📄 صفحة ${page + 1}: ${data.length} حركة (إجمالي: ${allTransactions.length})`);
                         page++;
-                        
+
                         if (data.length < pageSize) {
                             hasMore = false;
                         }
@@ -1508,7 +1565,7 @@
         }
 
         // ============================================================
-        // ADD OPENING BALANCE - مع إعادة المحاولة
+        // ADD OPENING BALANCE
         // ============================================================
         async function addOpeningBalance(treasuryId, amount, description) {
             var token = getToken();
@@ -1625,7 +1682,7 @@
         }
 
         // ============================================================
-        // TRANSFER MONEY - مع إعادة المحاولة
+        // TRANSFER MONEY
         // ============================================================
         async function transferMoney() {
             var fromId = currentTreasuryId;
@@ -1659,7 +1716,10 @@
 
             try {
                 var token = getToken();
-                if (!token) return;
+                if (!token) {
+                    redirectToLogin();
+                    return;
+                }
 
                 var fromName = document.getElementById('treasuryName').textContent || 'الخزينة الحالية';
 
@@ -1693,6 +1753,8 @@
                 console.error('❌ خطأ:', error);
                 if (error.message.includes('TIMED_OUT') || error.message.includes('timeout')) {
                     showToast('⚠️ انتهت المهلة', 'يرجى التحقق من اتصال الإنترنت وإعادة المحاولة', 'warning');
+                } else if (error.message.includes('انتهت الجلسة')) {
+                    showToast('⚠️ انتهت الجلسة', 'يرجى تسجيل الدخول مجدداً', 'warning');
                 } else {
                     showToast('❌ خطأ', error.message || 'فشل التحويل', 'error');
                 }
@@ -1864,7 +1926,8 @@
 
                 var token = getToken();
                 if (!token) {
-                    throw new Error('لم يتم العثور على جلسة صالحة');
+                    redirectToLogin();
+                    return;
                 }
 
                 var successCount = 0;
@@ -2145,13 +2208,23 @@
                 document.getElementById('treasuryName').textContent = '⚠️ جلسة غير موجودة';
                 document.getElementById('treasuryBalance').textContent = '0 ج.م';
                 showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول لعرض البيانات', 'warning');
+                // محاولة تجديد الجلسة
+                var refreshed = await refreshSession();
+                if (!refreshed) {
+                    redirectToLogin();
+                    return;
+                }
             }
 
             try {
                 await loadData();
             } catch (e) {
                 console.error('❌ خطأ في تحميل البيانات:', e);
-                showToast('❌ خطأ', 'حدث خطأ في تحميل البيانات', 'error');
+                if (e.message.includes('انتهت الجلسة')) {
+                    redirectToLogin();
+                } else {
+                    showToast('❌ خطأ', 'حدث خطأ في تحميل البيانات', 'error');
+                }
             }
 
             setTimeout(function() {
