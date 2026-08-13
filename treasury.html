@@ -2348,10 +2348,10 @@
                 return;
             }
 
-            var rows = '';
             var runningBalance = 0;
+            var rowsData = [];
 
-            transactions.forEach(function(item, index) {
+            transactions.forEach(function(item) {
                 var badgeClass = 'badge-type';
                 var typeName = item.type || 'other';
                 var typeLabels = {
@@ -2381,9 +2381,9 @@
                 var incoming = isIncoming ? displayAmount.toLocaleString() : '-';
                 var outgoing = !isIncoming ? displayAmount.toLocaleString() : '-';
 
-                rows += `
+                rowsData.push(`
                     <tr>
-                        <td>${index + 1}</td>
+                        <td>__INDEX__</td>
                         <td>${date}</td>
                         <td style="text-align:right;">${item.description || '-'}</td>
                         <td><span class="${badgeClass}">${displayType}</span></td>
@@ -2401,8 +2401,16 @@
                             </button>
                         </td>
                     </tr>
-                `;
+                `);
             });
+
+            // عكس الترتيب لعرض الأحدث أولاً (فوق) والأقدم أخيراً (تحت)
+            // مع الحفاظ على صحة حساب الرصيد التراكمي (الذي يعتمد على الترتيب الزمني التصاعدي)
+            rowsData.reverse();
+
+            var rows = rowsData.map(function(rowHtml, displayIndex) {
+                return rowHtml.replace('__INDEX__', displayIndex + 1);
+            }).join('');
 
             tbody.innerHTML = rows;
         }
