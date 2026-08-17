@@ -7,6 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- ===== إضافة الملف المركزي ===== -->
+    <script src="supabase-client.js"></script>
     <style>
         /* ==========================================================
            RESET & BASE - LIGHT THEME
@@ -810,25 +812,11 @@
     <script>
         /**
          * ============================================================
-         * SUPABASE CONFIGURATION
+         * CONFIGURATION (مأخوذة من supabase-client.js)
          * ============================================================
          */
         var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
         var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
-
-        /**
-         * ============================================================
-         * INITIALIZE SUPABASE CLIENT
-         * ============================================================
-         */
-        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: {
-                autoRefreshToken: true,
-                persistSession: true,
-                detectSessionInUrl: true,
-                storageKey: 'rollex_session'
-            }
-        });
 
         /**
          * ============================================================
@@ -857,121 +845,27 @@
 
         /**
          * ============================================================
-         * CHECK SESSION
-         * ============================================================
-         */
-        async function checkSession() {
-            debugLog('بدء التحقق من الجلسة...', 'info');
-            try {
-                var { data: { session }, error } = await supabase.auth.getSession();
-                if (error) {
-                    debugLog('خطأ في جلب الجلسة', 'error', error);
-                    return false;
-                }
-                if (session) {
-                    debugLog('تم العثور على جلسة صالحة', 'success', { user: session.user.email });
-                    return true;
-                }
-                debugLog('لا توجد جلسة نشطة', 'info');
-                return false;
-            } catch (error) {
-                debugLog('خطأ في التحقق من الجلسة', 'error', error);
-                return false;
-            }
-        }
-
-        /**
-         * ============================================================
-         * LOGOUT
-         * ============================================================
-         */
-        async function logout() {
-            await supabase.auth.signOut();
-            localStorage.removeItem('rollex_session');
-            window.location.href = 'login.html';
-        }
-
-        /**
-         * ============================================================
-         * TOAST
-         * ============================================================
-         */
-        function showToast(title, message, type) {
-            var container = document.getElementById('toastContainer');
-            var toast = document.createElement('div');
-            toast.className = 'toast ' + (type || '');
-            var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
-            var iconClass = type === 'success' ? 'success' : 'error';
-            toast.innerHTML = `
-                <span class="icon ${iconClass}"><i class="fas ${icon}"></i></span>
-                <div class="content">
-                    <div class="title">${title}</div>
-                    <div class="message">${message}</div>
-                </div>
-            `;
-            container.appendChild(toast);
-            setTimeout(function() {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateX(20px)';
-                setTimeout(function() { toast.remove(); }, 300);
-            }, 3000);
-        }
-
-        /**
-         * ============================================================
-         * GET CURRENT USER PROFILE
-         * ============================================================
-         */
-        async function getCurrentUserProfile() {
-            try {
-                var { data: { user }, error } = await supabase.auth.getUser();
-                if (error || !user) {
-                    debugLog('❌ مفيش مستخدم', 'error', error);
-                    return null;
-                }
-                debugLog('👤 المستخدم من auth:', 'info', user.email);
-
-                var { data, error: pError } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', user.id)
-                    .single();
-
-                if (pError) {
-                    debugLog('❌ مفيش بروفايل:', 'error', pError.message);
-                    return null;
-                }
-                debugLog('📊 البروفايل:', 'info', data);
-                return { ...user, ...data };
-            } catch (error) {
-                debugLog('❌ خطأ في جلب البروفايل:', 'error', error);
-                return null;
-            }
-        }
-
-        /**
-         * ============================================================
-         * GET COMPANY TREASURIES
+         * GET COMPANY TREASURIES - باستخدام getTable من الملف المركزي
          * ============================================================
          */
         async function getTreasuries(companyId) {
             try {
-                var { data, error } = await supabase
-                    .from('treasuries')
-                    .select('*')
-                    .eq('company_id', companyId)
-                    .order('created_at', { ascending: false });
-
-                if (error) {
-                    debugLog('❌ فشل جلب الخزائن:', 'error', error);
-                    return [];
-                }
-                debugLog('📊 عدد الخزائن:', 'info', data ? data.length : 0);
+                var data = await getTable('treasuries', 'created_at.desc');
                 return data || [];
             } catch (error) {
-                debugLog('❌ خطأ في جلب الخزائن:', 'error', error);
+                debugLog('❌ فشل جلب الخزائن:', 'error', error);
                 return [];
             }
+        }
+
+        /**
+         * ============================================================
+         * DELETE TREASURY - باستخدام deleteRows من الملف المركزي
+         * ============================================================
+         */
+        async function deleteTreasury(id) {
+            await deleteRows('treasuries', 'id', id);
+            return true;
         }
 
         /**
@@ -1073,8 +967,6 @@
                 var typeLabel = typeLabels[t.type] || t.type || 'مخصصة';
                 var typeIcon = typeIcons[t.type] || 'fa-university';
 
-                var firstLetter = (t.name || 'خزينة').charAt(0);
-
                 html += `
                     <div class="treasury-card" 
                          data-id="${t.id}"
@@ -1105,7 +997,7 @@
                             <button class="btn-sm secondary" onclick="event.stopPropagation();editTreasury('${t.id}')">
                                 <i class="fas fa-edit"></i> تعديل
                             </button>
-                            <button class="btn-sm danger" onclick="event.stopPropagation();deleteTreasury('${t.id}')">
+                            <button class="btn-sm danger" onclick="event.stopPropagation();deleteTreasuryConfirm('${t.id}')">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </div>
@@ -1136,25 +1028,16 @@
 
         /**
          * ============================================================
-         * DELETE TREASURY
+         * DELETE TREASURY CONFIRM
          * ============================================================
          */
-        async function deleteTreasury(id) {
+        async function deleteTreasuryConfirm(id) {
             if (!confirm('هل أنت متأكد من حذف هذه الخزينة؟')) return;
 
             try {
-                var { error } = await supabase
-                    .from('treasuries')
-                    .delete()
-                    .eq('id', id);
-
-                if (error) {
-                    throw new Error(error.message);
-                }
-
+                await deleteTreasury(id);
                 showToast('✅ تم الحذف', 'تم حذف الخزينة بنجاح', 'success');
                 loadData();
-
             } catch (error) {
                 console.error('❌ خطأ:', error);
                 showToast('❌ خطأ', error.message, 'error');
@@ -1163,10 +1046,19 @@
 
         /**
          * ============================================================
-         * LOAD DATA
+         * LOAD DATA - باستخدام دوال الملف المركزي
          * ============================================================
          */
         async function loadData() {
+            var token = getToken();
+            if (!token) {
+                showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'warning');
+                setTimeout(function() {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+
             var profile = await getCurrentUserProfile();
             if (!profile) {
                 showToast('⚠️ تنبيه', 'لم يتم العثور على بيانات المستخدم', 'error');
@@ -1190,15 +1082,16 @@
             console.log('🏛️ الخزائن - QuickData ProSoft');
             console.log('🔗 Supabase URL:', SUPABASE_URL);
 
-            var hasSession = await checkSession();
-            if (!hasSession) {
-                debugLog('❌ لا توجد جلسة، جاري التوجيه إلى تسجيل الدخول...', 'error');
+            var token = getToken();
+            if (!token) {
                 window.location.href = 'login.html';
                 return;
             }
 
-            debugLog('✅ جلسة موجودة، جاري تحميل البيانات...', 'success');
             await loadData();
+            setTimeout(function() {
+                startSessionMonitor();
+            }, 3000);
         })();
 
         // تحديث تلقائي كل 30 ثانية
