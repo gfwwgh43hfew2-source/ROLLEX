@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- ===== إضافة الملف المركزي ===== -->
+    <script src="supabase-client.js"></script>
     <style>
         /* ============================================================
            تصميم فاخر - ثيم فاتح أنيق (Light Theme Premium)
@@ -1321,257 +1323,13 @@
 
     <script>
         // ============================================================
-        // CONFIGURATION
+        // CONFIGURATION (مأخوذة من supabase-client.js)
         // ============================================================
         var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
         var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
 
         var currentTreasuryId = null;
         var allTreasuries = [];
-
-        // ============================================================
-        // TOAST
-        // ============================================================
-        function showToast(title, message, type) {
-            var container = document.getElementById('toastContainer');
-            var toast = document.createElement('div');
-            toast.className = 'toast ' + (type || '');
-            var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
-            var iconClass = type === 'success' ? 'success' : 'error';
-            toast.innerHTML = `
-                <span class="icon ${iconClass}"><i class="fas ${icon}"></i></span>
-                <div class="content">
-                    <div class="title">${title}</div>
-                    <div class="message">${message}</div>
-                </div>
-            `;
-            container.appendChild(toast);
-            setTimeout(function() {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateX(-30px)';
-                setTimeout(function() { toast.remove(); }, 400);
-            }, 4000);
-        }
-
-        // ============================================================
-        // FORMAT DATE - تنسيق التاريخ بشكل صحيح (DD/MM/YYYY)
-        // ============================================================
-        function formatDate(dateString) {
-            if (!dateString) return '-';
-            try {
-                var date = new Date(dateString);
-                if (isNaN(date.getTime())) return '-';
-                var year = date.getFullYear();
-                var month = String(date.getMonth() + 1).padStart(2, '0');
-                var day = String(date.getDate()).padStart(2, '0');
-                return day + '/' + month + '/' + year;
-            } catch(e) {
-                return '-';
-            }
-        }
-
-        // ============================================================
-        // SESSION FUNCTIONS
-        // ============================================================
-        function getSession() {
-            var session = localStorage.getItem('rollex_session');
-            if (!session) return null;
-            try { return JSON.parse(session); } catch(e) { return null; }
-        }
-
-        function getToken() {
-            var session = getSession();
-            return session ? session.access_token : null;
-        }
-
-        // ============================================================
-        // REFRESH SESSION
-        // ============================================================
-        async function refreshSession() {
-            var session = getSession();
-            if (!session || !session.refresh_token) {
-                console.warn('⚠️ لا يوجد refresh_token لتجديد الجلسة');
-                return false;
-            }
-
-            try {
-                var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        refresh_token: session.refresh_token
-                    })
-                });
-
-                if (!response.ok) {
-                    console.warn('⚠️ فشل تجديد الجلسة:', response.status);
-                    return false;
-                }
-
-                var data = await response.json();
-                if (data.access_token) {
-                    var newSession = {
-                        access_token: data.access_token,
-                        refresh_token: data.refresh_token || session.refresh_token,
-                        expires_at: Date.now() + ((data.expires_in || 3600) * 1000)
-                    };
-                    localStorage.setItem('rollex_session', JSON.stringify(newSession));
-                    console.log('✅ تم تجديد الجلسة بنجاح');
-                    return true;
-                }
-
-                return false;
-            } catch (error) {
-                console.error('❌ خطأ في تجديد الجلسة:', error);
-                return false;
-            }
-        }
-
-        // ============================================================
-        // REDIRECT TO LOGIN
-        // ============================================================
-        function redirectToLogin() {
-            if (monitorInterval) {
-                clearInterval(monitorInterval);
-                monitorInterval = null;
-            }
-            sessionMonitorStarted = false;
-            localStorage.removeItem('rollex_session');
-            sessionStorage.removeItem('rollex_session');
-            showToast('⚠️ انتهت الجلسة', 'يرجى تسجيل الدخول مجدداً', 'warning');
-            setTimeout(function() {
-                window.location.href = 'login.html';
-            }, 1500);
-        }
-
-        // ============================================================
-        // RETRY FUNCTION
-        // ============================================================
-        async function fetchWithRetry(url, options, maxRetries = 3) {
-            var lastError = null;
-
-            for (var attempt = 1; attempt <= maxRetries; attempt++) {
-                try {
-                    console.log(`🔄 محاولة ${attempt}/${maxRetries}...`);
-
-                    var token = getToken();
-                    if (!token && attempt === 1) {
-                        var refreshed = await refreshSession();
-                        if (refreshed) {
-                            token = getToken();
-                            if (token && options.headers) {
-                                options.headers['Authorization'] = 'Bearer ' + token;
-                            }
-                        } else {
-                            redirectToLogin();
-                            throw new Error('لا توجد جلسة صالحة');
-                        }
-                    }
-
-                    var response = await fetch(url, options);
-
-                    if (response.status === 401) {
-                        console.warn('⚠️ توكن غير صالح (401)، محاولة تجديد الجلسة...');
-                        var refreshed = await refreshSession();
-                        if (refreshed) {
-                            var newToken = getToken();
-                            if (options.headers) {
-                                options.headers['Authorization'] = 'Bearer ' + newToken;
-                            }
-                            console.log('✅ تم تجديد الجلسة، إعادة المحاولة...');
-                            continue;
-                        } else {
-                            redirectToLogin();
-                            throw new Error('انتهت الجلسة، يرجى تسجيل الدخول مجدداً');
-                        }
-                    }
-
-                    if (response.ok) {
-                        return response;
-                    }
-
-                    if (response.status === 429 || response.status >= 500) {
-                        console.warn(`⚠️ محاولة ${attempt}/${maxRetries} فشلت (${response.status})، إعادة المحاولة...`);
-                        await new Promise(resolve => setTimeout(resolve, attempt * 1500));
-                        continue;
-                    }
-
-                    return response;
-                } catch (error) {
-                    lastError = error;
-                    console.warn(`⚠️ محاولة ${attempt}/${maxRetries} فشلت:`, error.message);
-                    if (attempt < maxRetries) {
-                        await new Promise(resolve => setTimeout(resolve, attempt * 1500));
-                    }
-                }
-            }
-
-            throw lastError || new Error('فشل بعد عدة محاولات');
-        }
-
-        // ============================================================
-        // SESSION MONITOR
-        // ============================================================
-        var monitorInterval = null;
-        var warningShown = false;
-        var warningShown2 = false;
-        var warningShown3 = false;
-        var sessionMonitorStarted = false;
-
-        function checkSessionExpiry() {
-            var token = getToken();
-            if (!token) return true;
-
-            var session = getSession();
-            if (!session) return true;
-
-            var expiryTime = session.expires_at || Date.now() + 3600000;
-            var timeLeft = expiryTime - Date.now();
-            var minutesLeft = Math.floor(timeLeft / (60 * 1000));
-            var secondsLeft = Math.floor((timeLeft % (60 * 1000)) / 1000);
-
-            if (timeLeft <= 0) {
-                return true;
-            }
-
-            if (timeLeft < 300000 && timeLeft > 240000 && !warningShown) {
-                warningShown = true;
-                showToast('⏳ تنبيه هام', `جلسة العمل ستنتهي خلال ${minutesLeft} دقيقة`, 'warning');
-                return true;
-            }
-
-            if (timeLeft < 180000 && timeLeft > 120000 && !warningShown2) {
-                warningShown2 = true;
-                showToast('⏳ تنبيه عاجل', `جلسة العمل ستنتهي خلال ${minutesLeft} دقائق!`, 'warning');
-                return true;
-            }
-
-            if (timeLeft < 60000 && timeLeft > 30000 && !warningShown3) {
-                warningShown3 = true;
-                showToast('⏳ تنبيه أخير', `جلسة العمل ستنتهي خلال ${secondsLeft} ثانية!`, 'error');
-                return true;
-            }
-
-            return true;
-        }
-
-        function startSessionMonitor() {
-            if (sessionMonitorStarted) return;
-            warningShown = false;
-            warningShown2 = false;
-            warningShown3 = false;
-            sessionMonitorStarted = true;
-            if (monitorInterval) {
-                clearInterval(monitorInterval);
-                monitorInterval = null;
-            }
-            setTimeout(function() { checkSessionExpiry(); }, 3000);
-            monitorInterval = setInterval(function() { checkSessionExpiry(); }, 30000);
-            console.log('✅ بدأ مراقبة الجلسة - تحذيرات فقط (بدون إنهاء)');
-        }
 
         // ============================================================
         // GET TREASURY ID FROM URL
@@ -1582,21 +1340,13 @@
         }
 
         // ============================================================
-        // GET TREASURY DETAILS
+        // GET TREASURY DETAILS - باستخدام getTable من الملف المركزي
         // ============================================================
         async function getTreasuryDetails(treasuryId) {
-            var token = getToken();
-            if (!token) return null;
             try {
-                var response = await fetchWithRetry(SUPABASE_URL + '/rest/v1/treasuries?select=*&id=eq.' + treasuryId, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-                if (!response.ok) return null;
-                var data = await response.json();
-                return data && data.length > 0 ? data[0] : null;
+                var data = await getTable('treasuries');
+                var treasury = data.find(function(t) { return t.id == treasuryId; });
+                return treasury || null;
             } catch (error) {
                 console.error('❌ خطأ:', error);
                 return null;
@@ -1604,24 +1354,12 @@
         }
 
         // ============================================================
-        // GET COMPANY TREASURIES
+        // GET COMPANY TREASURIES - باستخدام getTable من الملف المركزي
         // ============================================================
         async function getCompanyTreasuries(companyId) {
-            var token = getToken();
-            if (!token) return [];
             try {
-                var response = await fetchWithRetry(SUPABASE_URL + '/rest/v1/treasuries?select=*&company_id=eq.' + companyId + '&is_active=eq.true', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-                if (!response.ok) {
-                    console.error('❌ فشل جلب الخزائن:', response.status);
-                    return [];
-                }
-                var data = await response.json();
-                return data || [];
+                var data = await getTable('treasuries');
+                return data.filter(function(t) { return t.company_id == companyId && t.is_active !== false; }) || [];
             } catch (error) {
                 console.error('❌ خطأ في جلب الخزائن:', error);
                 return [];
@@ -1629,238 +1367,74 @@
         }
 
         // ============================================================
-        // GET TRANSACTIONS - جلب جميع الحركات وترتيبها حسب التاريخ
+        // GET TRANSACTIONS - باستخدام getTable من الملف المركزي
         // ============================================================
         async function getTransactions(treasuryId) {
-            var token = getToken();
-            if (!token) return [];
-
-            var allTransactions = [];
-
             try {
-                // 1. محاولة RPC أولاً (الأسرع)
-                try {
-                    console.log('🔄 محاولة جلب الحركات عبر RPC...');
-                    var rpcResponse = await fetchWithRetry(SUPABASE_URL + '/rest/v1/rpc/get_all_treasury_transactions', {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ p_treasury_id: treasuryId })
-                    });
-
-                    if (rpcResponse.ok) {
-                        var rpcData = await rpcResponse.json();
-                        if (rpcData && rpcData.length > 0) {
-                            allTransactions = allTransactions.concat(rpcData);
-                            console.log(`📥 RPC: تم جلب ${rpcData.length} حركة`);
-                            
-                            if (rpcData.length < 1000) {
-                                console.log('✅ RPC: تم جلب جميع البيانات');
-                                allTransactions.sort(function(a, b) {
-                                    var dateA = new Date(a.date || a.created_at);
-                                    var dateB = new Date(b.date || b.created_at);
-                                    return dateA - dateB;
-                                });
-                                return allTransactions;
-                            } else {
-                                console.log('⚠️ RPC جلب 1000 حركة (قد يكون هناك المزيد)، نواصل الترحيل...');
-                            }
-                        }
-                        if (rpcData && rpcData.length === 0) {
-                            console.log('📭 RPC: لا توجد حركات');
-                            return [];
-                        }
-                    }
-                } catch (rpcError) {
-                    console.warn('⚠️ RPC فشل:', rpcError.message);
-                }
-
-                // 2. الترحيل المباشر (Pagination)
-                console.log('🔄 جلب باقي الحركات عبر الترحيل المباشر...');
-                var page = allTransactions.length > 0 ? 1 : 0;
-                var pageSize = 1000;
-                var hasMore = true;
-
-                while (hasMore) {
-                    var response = await fetchWithRetry(
-                        SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&treasury_id=eq.' + treasuryId +
-                        '&order=date.asc&limit=' + pageSize + '&offset=' + (page * pageSize),
-                        {
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + token,
-                                'Content-Type': 'application/json'
-                            }
-                        }
-                    );
-
-                    if (!response.ok) {
-                        console.warn('⚠️ فشل جلب الصفحة:', response.status);
-                        break;
-                    }
-
-                    var data = await response.json();
-                    
-                    if (!data || data.length === 0) {
-                        hasMore = false;
-                    } else {
-                        var newData = data.filter(function(item) {
-                            return !allTransactions.some(function(existing) {
-                                return existing.id === item.id;
-                            });
-                        });
-                        
-                        if (newData.length > 0) {
-                            allTransactions = allTransactions.concat(newData);
-                            console.log(`📄 صفحة ${page + 1}: ${newData.length} حركة جديدة (إجمالي: ${allTransactions.length})`);
-                        }
-                        page++;
-                        
-                        if (data.length < pageSize) {
-                            hasMore = false;
-                        }
-                    }
-                }
-
-                // ✅ ترتيب نهائي حسب التاريخ
-                allTransactions.sort(function(a, b) {
-                    var dateA = new Date(a.date || a.created_at);
-                    var dateB = new Date(b.date || b.created_at);
-                    return dateA - dateB;
-                });
-
-                console.log('✅ تم جلب ' + allTransactions.length + ' حركة (مرتبة حسب التاريخ)');
-                return allTransactions;
-
+                var data = await getTable('treasury_transactions');
+                return data.filter(function(t) { return t.treasury_id == treasuryId; }) || [];
             } catch (error) {
                 console.error('❌ خطأ في جلب الحركات:', error);
-                return allTransactions;
+                return [];
             }
         }
 
         // ============================================================
-        // ADD OPENING BALANCE
+        // ADD OPENING BALANCE - باستخدام insertRow من الملف المركزي
         // ============================================================
         async function addOpeningBalance(treasuryId, amount, description) {
             var token = getToken();
             if (!token) return null;
 
-            try {
-                var response = await fetchWithRetry(SUPABASE_URL + '/rest/v1/rpc/add_transaction', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        p_treasury_id: treasuryId,
-                        p_amount: amount,
-                        p_type: 'opening',
-                        p_description: description || 'رصيد افتتاحي',
-                        p_general_tab: 'رأس مال',
-                        p_private_tab: 'رصيد افتتاحي',
-                        p_date: new Date().toISOString()
-                    })
-                });
+            var companyId = await getCompanyId();
+            var user = await getCurrentUserProfile();
 
-                var data = await response.json();
-                if (!response.ok) throw new Error(data.message || 'فشل إضافة الرصيد الافتتاحي');
-                return data;
+            var payload = {
+                treasury_id: treasuryId,
+                amount: amount,
+                type: 'opening',
+                description: description || 'رصيد افتتاحي',
+                general_tab: 'رأس مال',
+                private_tab: 'رصيد افتتاحي',
+                date: new Date().toISOString(),
+                company_id: companyId,
+                user_id: user ? user.id : null
+            };
 
-            } catch (error) {
-                console.error('❌ خطأ:', error);
-                if (error.message.includes('TIMED_OUT') || error.message.includes('timeout')) {
-                    throw new Error('انتهت مهلة الاتصال، يرجى التحقق من اتصال الإنترنت وإعادة المحاولة');
-                }
-                throw error;
-            }
+            return await insertRow('treasury_transactions', payload);
         }
 
         // ============================================================
-        // OPEN / CLOSE OPENING MODAL
+        // UPDATE TREASURY BALANCE - باستخدام patchRow من الملف المركزي
         // ============================================================
-        function openOpeningModal() {
-            document.getElementById('openingModal').classList.add('active');
-            document.getElementById('openingAmount').value = '';
-            document.getElementById('openingDesc').value = '';
-            document.getElementById('openingAmount').focus();
-        }
-
-        function closeOpeningModal() {
-            document.getElementById('openingModal').classList.remove('active');
-        }
-
-        // ============================================================
-        // OPENING FORM SUBMIT
-        // ============================================================
-        document.getElementById('openingForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            var amount = parseFloat(document.getElementById('openingAmount').value);
-            var description = document.getElementById('openingDesc').value.trim();
-
-            if (!amount || amount <= 0) {
-                showToast('⚠️ تنبيه', 'يرجى إدخال مبلغ صحيح', 'error');
-                return;
-            }
-
-            var btn = document.getElementById('openingSubmitBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
-
-            try {
-                var result = await addOpeningBalance(currentTreasuryId, amount, description);
-                if (result && result.success) {
-                    showToast('✅ تم الإضافة', 'تم إضافة الرصيد الافتتاحي بنجاح', 'success');
-                    closeOpeningModal();
-                    loadData();
-                } else {
-                    throw new Error(result?.message || 'فشل الإضافة');
-                }
-            } catch (error) {
-                showToast('❌ خطأ', error.message, 'error');
-            }
-
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save"></i> إضافة الرصيد';
-        });
-
-        // ============================================================
-        // POPULATE TREASURY SELECTS
-        // ============================================================
-        function populateTreasurySelects(treasuries, currentId, currentName) {
-            var toSelect = document.getElementById('toTreasury');
-            document.getElementById('fromTreasuryName').textContent = currentName || 'الخزينة الحالية';
-
-            toSelect.innerHTML = '<option value="">اختر الخزينة الهدف</option>';
-
-            if (!treasuries || treasuries.length === 0) {
-                toSelect.innerHTML = '<option value="">لا توجد خزائن أخرى</option>';
-                return;
-            }
-
-            var hasOtherTreasuries = false;
-            treasuries.forEach(function(t) {
-                if (t.id !== currentId) {
-                    hasOtherTreasuries = true;
-                    var option = document.createElement('option');
-                    option.value = t.id;
-                    option.textContent = t.name + ' (رصيد: ' + (t.balance || 0).toLocaleString() + ' ج.م)';
-                    toSelect.appendChild(option);
-                }
+        async function updateTreasuryBalance(treasuryId) {
+            var transactions = await getTransactions(treasuryId);
+            var totalBalance = 0;
+            transactions.forEach(function(t) {
+                totalBalance += t.amount || 0;
             });
 
-            if (!hasOtherTreasuries) {
-                toSelect.innerHTML = '<option value="">⚠️ لا توجد خزائن أخرى للتحويل</option>';
-            }
+            await patchRow('treasuries', treasuryId, { balance: totalBalance });
         }
 
         // ============================================================
-        // TRANSFER MONEY
+        // DELETE TRANSACTION - باستخدام deleteRows من الملف المركزي
+        // ============================================================
+        async function deleteTransaction(transactionId) {
+            await deleteRows('treasury_transactions', 'id', transactionId);
+            return true;
+        }
+
+        // ============================================================
+        // UPDATE TRANSACTION - باستخدام patchRow من الملف المركزي
+        // ============================================================
+        async function updateTransactionData(transactionId, data) {
+            await patchRow('treasury_transactions', transactionId, data);
+            return true;
+        }
+
+        // ============================================================
+        // TRANSFER MONEY - باستخدام insertRow من الملف المركزي
         // ============================================================
         async function transferMoney() {
             var fromId = currentTreasuryId;
@@ -1899,25 +1473,39 @@
                     return;
                 }
 
+                var companyId = await getCompanyId();
+                var user = await getCurrentUserProfile();
                 var fromName = document.getElementById('treasuryName').textContent || 'الخزينة الحالية';
 
-                var response = await fetchWithRetry(SUPABASE_URL + '/rest/v1/rpc/transfer_money', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        p_from_treasury_id: fromId,
-                        p_to_treasury_id: toId,
-                        p_amount: amount,
-                        p_description: description + ' (من ' + fromName + ')'
-                    })
+                // حركة صادر من الخزينة الحالية
+                await insertRow('treasury_transactions', {
+                    treasury_id: fromId,
+                    amount: -amount,
+                    type: 'transfer_out',
+                    description: description + ' (إلى ' + fromName + ')',
+                    general_tab: 'تحويلات',
+                    private_tab: 'تحويل بين الخزائن',
+                    date: new Date().toISOString(),
+                    company_id: companyId,
+                    user_id: user ? user.id : null
                 });
 
-                var data = await response.json();
-                if (!response.ok) throw new Error(data.message || 'فشل التحويل');
+                // حركة وارد للخزينة الهدف
+                await insertRow('treasury_transactions', {
+                    treasury_id: toId,
+                    amount: amount,
+                    type: 'transfer_in',
+                    description: description + ' (من ' + fromName + ')',
+                    general_tab: 'تحويلات',
+                    private_tab: 'تحويل بين الخزائن',
+                    date: new Date().toISOString(),
+                    company_id: companyId,
+                    user_id: user ? user.id : null
+                });
+
+                // تحديث أرصدة الخزائن
+                await updateTreasuryBalance(fromId);
+                await updateTreasuryBalance(toId);
 
                 showToast('✅ تم التحويل', 'تم تحويل ' + amount.toLocaleString() + ' ج.م بنجاح', 'success');
 
@@ -1929,17 +1517,87 @@
 
             } catch (error) {
                 console.error('❌ خطأ:', error);
-                if (error.message.includes('TIMED_OUT') || error.message.includes('timeout')) {
-                    showToast('⚠️ انتهت المهلة', 'يرجى التحقق من اتصال الإنترنت وإعادة المحاولة', 'warning');
-                } else if (error.message.includes('انتهت الجلسة')) {
-                    showToast('⚠️ انتهت الجلسة', 'يرجى تسجيل الدخول مجدداً', 'warning');
-                } else {
-                    showToast('❌ خطأ', error.message || 'فشل التحويل', 'error');
-                }
+                showToast('❌ خطأ', error.message || 'فشل التحويل', 'error');
             }
 
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-exchange-alt"></i> تحويل';
+        }
+
+        // ============================================================
+        // OPEN / CLOSE OPENING MODAL
+        // ============================================================
+        function openOpeningModal() {
+            document.getElementById('openingModal').classList.add('active');
+            document.getElementById('openingAmount').value = '';
+            document.getElementById('openingDesc').value = '';
+            document.getElementById('openingAmount').focus();
+        }
+
+        function closeOpeningModal() {
+            document.getElementById('openingModal').classList.remove('active');
+        }
+
+        // ============================================================
+        // OPENING FORM SUBMIT
+        // ============================================================
+        document.getElementById('openingForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            var amount = parseFloat(document.getElementById('openingAmount').value);
+            var description = document.getElementById('openingDesc').value.trim();
+
+            if (!amount || amount <= 0) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال مبلغ صحيح', 'error');
+                return;
+            }
+
+            var btn = document.getElementById('openingSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+
+            try {
+                await addOpeningBalance(currentTreasuryId, amount, description);
+                await updateTreasuryBalance(currentTreasuryId);
+                showToast('✅ تم الإضافة', 'تم إضافة الرصيد الافتتاحي بنجاح', 'success');
+                closeOpeningModal();
+                loadData();
+            } catch (error) {
+                showToast('❌ خطأ', error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> إضافة الرصيد';
+        });
+
+        // ============================================================
+        // POPULATE TREASURY SELECTS
+        // ============================================================
+        function populateTreasurySelects(treasuries, currentId, currentName) {
+            var toSelect = document.getElementById('toTreasury');
+            document.getElementById('fromTreasuryName').textContent = currentName || 'الخزينة الحالية';
+
+            toSelect.innerHTML = '<option value="">اختر الخزينة الهدف</option>';
+
+            if (!treasuries || treasuries.length === 0) {
+                toSelect.innerHTML = '<option value="">لا توجد خزائن أخرى</option>';
+                return;
+            }
+
+            var hasOtherTreasuries = false;
+            treasuries.forEach(function(t) {
+                if (t.id !== currentId) {
+                    hasOtherTreasuries = true;
+                    var option = document.createElement('option');
+                    option.value = t.id;
+                    option.textContent = t.name + ' (رصيد: ' + (t.balance || 0).toLocaleString() + ' ج.م)';
+                    toSelect.appendChild(option);
+                }
+            });
+
+            if (!hasOtherTreasuries) {
+                toSelect.innerHTML = '<option value="">⚠️ لا توجد خزائن أخرى للتحويل</option>';
+            }
         }
 
         // ============================================================
@@ -2038,16 +1696,6 @@
                 'التبويب العام': 'مصاريف',
                 'التبويب الخاص': 'مورد 1',
                 'ملاحظات': ''
-            }, {
-                'التاريخ': '2026-08-09',
-                'البيان': 'راتب موظف - مثال',
-                'النوع': 'salary',
-                'وارد': '',
-                'صادر': 300,
-                'رقم السند': 'SAL-001',
-                'التبويب العام': 'رواتب',
-                'التبويب الخاص': 'موظف 1',
-                'ملاحظات': ''
             }];
 
             var ws = XLSX.utils.json_to_sheet(templateData);
@@ -2064,7 +1712,7 @@
         }
 
         // ============================================================
-        // IMPORT EXCEL
+        // IMPORT MODAL
         // ============================================================
         function openImportModal() {
             document.getElementById('importModal').classList.add('active');
@@ -2102,30 +1750,15 @@
 
             try {
                 var data = await file.arrayBuffer();
-                var workbook = XLSX.read(data, { 
-                    type: 'array', 
-                    cellDates: true,
-                    raw: false,
-                    dateNF: 'yyyy-mm-dd'
-                });
+                var workbook = XLSX.read(data, { type: 'array', cellDates: true, raw: false, dateNF: 'yyyy-mm-dd' });
                 var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                var jsonData = XLSX.utils.sheet_to_json(firstSheet, { 
-                    defval: '',
-                    raw: false,
-                    dateNF: 'yyyy-mm-dd'
-                });
+                var jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: '', raw: false, dateNF: 'yyyy-mm-dd' });
 
                 console.log('📊 إجمالي الصفوف في الملف:', jsonData.length);
                 totalCount.textContent = jsonData.length;
 
                 if (!jsonData || jsonData.length === 0) {
                     throw new Error('الملف فارغ أو غير صحيح');
-                }
-
-                var token = getToken();
-                if (!token) {
-                    redirectToLogin();
-                    return;
                 }
 
                 var successCount = 0;
@@ -2241,43 +1874,31 @@
                             else type = 'incoming';
                         }
 
-                        try {
-                            var response = await fetchWithRetry(SUPABASE_URL + '/rest/v1/rpc/add_transaction', {
-                                method: 'POST',
-                                headers: {
-                                    'apikey': SUPABASE_ANON_KEY,
-                                    'Authorization': 'Bearer ' + token,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    p_treasury_id: currentTreasuryId,
-                                    p_amount: amount,
-                                    p_type: type,
-                                    p_description: description || 'حركة مستوردة',
-                                    p_general_tab: generalTab || 'عام',
-                                    p_private_tab: privateTab || 'خاص',
-                                    p_date: transactionDate
-                                })
-                            });
+                        var companyId = await getCompanyId();
+                        var user = await getCurrentUserProfile();
 
-                            var result = await response.json();
-                            if (!response.ok || !result?.success) {
-                                errorCount++;
-                                errors.push('صف ' + rowNum + ': ' + (result?.message || 'فشل الإدراج'));
-                            } else {
-                                successCount++;
-                            }
+                        await insertRow('treasury_transactions', {
+                            treasury_id: currentTreasuryId,
+                            amount: amount,
+                            type: type,
+                            description: description || 'حركة مستوردة',
+                            general_tab: generalTab || 'عام',
+                            private_tab: privateTab || 'خاص',
+                            date: transactionDate,
+                            company_id: companyId,
+                            user_id: user ? user.id : null
+                        });
 
-                        } catch (err) {
-                            errorCount++;
-                            errors.push('صف ' + rowNum + ': ' + err.message);
-                        }
+                        successCount++;
 
                     } catch (rowError) {
                         errorCount++;
                         errors.push('صف ' + rowNum + ': ' + rowError.message);
                     }
                 }
+
+                // تحديث رصيد الخزينة
+                await updateTreasuryBalance(currentTreasuryId);
 
                 var message = '';
                 if (successCount > 0) {
@@ -2315,7 +1936,7 @@
         });
 
         // ============================================================
-        // DISPLAY DATA - مع أزرار التعديل والحذف
+        // DISPLAY DATA
         // ============================================================
         function displayData(transactions, treasury) {
             var tbody = document.getElementById('transactionsBody');
@@ -2341,8 +1962,6 @@
             document.getElementById('totalOutgoing').textContent = totalOut.toLocaleString() + ' ج.م';
             document.getElementById('totalTransactions').textContent = transactions ? transactions.length : 0;
 
-            // ✅ الرصيد الحالي = إجمالي الوارد - إجمالي الصادر (يشمل الرصيد الافتتاحي كحركة)
-            // وهو نفس رصيد آخر حركة، ولا يعتمد على القيمة المخزنة في قاعدة البيانات
             var currentBalance = totalIn - totalOut;
             document.getElementById('treasuryBalance').textContent = currentBalance.toLocaleString() + ' ج.م';
 
@@ -2400,7 +2019,7 @@
                             <button class="action-btn edit" onclick="editTransaction('${item.id}')" title="تعديل">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="action-btn delete" onclick="deleteTransaction('${item.id}')" title="حذف">
+                            <button class="action-btn delete" onclick="deleteTransactionConfirm('${item.id}')" title="حذف">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -2408,8 +2027,6 @@
                 `);
             });
 
-            // عكس الترتيب لعرض الأحدث أولاً (فوق) والأقدم أخيراً (تحت)
-            // مع الحفاظ على صحة حساب الرصيد التراكمي (الذي يعتمد على الترتيب الزمني التصاعدي)
             rowsData.reverse();
 
             var rows = rowsData.map(function(rowHtml, displayIndex) {
@@ -2420,48 +2037,18 @@
         }
 
         // ============================================================
-        // DELETE TRANSACTION - حذف حركة
+        // DELETE TRANSACTION CONFIRM
         // ============================================================
-        async function deleteTransaction(transactionId) {
+        async function deleteTransactionConfirm(transactionId) {
             if (!confirm('⚠️ هل أنت متأكد من حذف هذه الحركة؟\nهذا الإجراء لا يمكن التراجع عنه!')) {
                 return;
             }
 
-            var token = getToken();
-            if (!token) {
-                redirectToLogin();
-                return;
-            }
-
             try {
-                var getResponse = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&id=eq.' + transactionId, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!getResponse.ok) throw new Error('فشل جلب الحركة');
-                var transaction = await getResponse.json();
-                if (!transaction || transaction.length === 0) throw new Error('الحركة غير موجودة');
-
-                var treasuryId = transaction[0].treasury_id;
-
-                var deleteResponse = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?id=eq.' + transactionId, {
-                    method: 'DELETE',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!deleteResponse.ok) throw new Error('فشل حذف الحركة');
-
-                await updateTreasuryBalance(treasuryId);
-
+                await deleteTransaction(transactionId);
+                await updateTreasuryBalance(currentTreasuryId);
                 showToast('✅ تم الحذف', 'تم حذف الحركة بنجاح', 'success');
                 loadData();
-
             } catch (error) {
                 console.error('❌ خطأ:', error);
                 showToast('❌ خطأ', error.message, 'error');
@@ -2469,56 +2056,38 @@
         }
 
         // ============================================================
-        // EDIT TRANSACTION - تعديل حركة
+        // EDIT TRANSACTION
         // ============================================================
         function editTransaction(transactionId) {
             openEditModal(transactionId);
         }
 
-        // ============================================================
-        // OPEN EDIT MODAL
-        // ============================================================
         function openEditModal(transactionId) {
             document.getElementById('editTransactionId').value = transactionId;
             fetchTransactionData(transactionId);
             document.getElementById('editModal').classList.add('active');
         }
 
-        // ============================================================
-        // CLOSE EDIT MODAL
-        // ============================================================
         function closeEditModal() {
             document.getElementById('editModal').classList.remove('active');
         }
 
-        // ============================================================
-        // FETCH TRANSACTION DATA - مع عرض التاريخ بشكل صحيح
-        // ============================================================
         async function fetchTransactionData(transactionId) {
-            var token = getToken();
-            if (!token) return;
-
             try {
-                var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=*&id=eq.' + transactionId, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
+                var transactions = await getTransactions(currentTreasuryId);
+                var transaction = transactions.find(function(t) { return t.id == transactionId; });
 
-                if (!response.ok) throw new Error('فشل جلب بيانات الحركة');
-                var data = await response.json();
-                if (!data || data.length === 0) throw new Error('الحركة غير موجودة');
+                if (!transaction) {
+                    showToast('❌ خطأ', 'الحركة غير موجودة', 'error');
+                    return;
+                }
 
-                var transaction = data[0];
-                
                 document.getElementById('editAmount').value = Math.abs(transaction.amount);
                 document.getElementById('editType').value = transaction.type || 'incoming';
                 document.getElementById('editDescription').value = transaction.description || '';
                 document.getElementById('editGeneralTab').value = transaction.general_tab || '';
                 document.getElementById('editPrivateTab').value = transaction.private_tab || '';
-                
-                // ✅ عرض التاريخ في مودال التعديل
+
                 if (transaction.date) {
                     var date = new Date(transaction.date);
                     var year = date.getFullYear();
@@ -2536,11 +2105,8 @@
             }
         }
 
-        // ============================================================
-        // UPDATE TRANSACTION - تحديث الحركة (مع دعم التاريخ)
-        // ============================================================
-        async function updateTransaction(event) {
-            event.preventDefault();
+        document.getElementById('editForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
 
             var transactionId = document.getElementById('editTransactionId').value;
             var direction = document.getElementById('editDirection').value;
@@ -2563,13 +2129,6 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
 
             try {
-                var token = getToken();
-                if (!token) {
-                    redirectToLogin();
-                    return;
-                }
-
-                // ✅ تحديث جميع الحقول مع التاريخ
                 var updateData = {
                     amount: finalAmount,
                     type: type,
@@ -2578,40 +2137,12 @@
                     private_tab: privateTab || 'خاص'
                 };
 
-                // ✅ إضافة التاريخ إذا كان موجوداً
                 if (date) {
                     updateData.date = date + 'T00:00:00';
                 }
 
-                var response = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?id=eq.' + transactionId, {
-                    method: 'PATCH',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify(updateData)
-                });
-
-                if (!response.ok) {
-                    var errorText = await response.text();
-                    throw new Error('فشل تحديث الحركة: ' + errorText);
-                }
-
-                // جلب بيانات الخزينة من الحركة
-                var getResponse = await fetch(SUPABASE_URL + '/rest/v1/treasury_transactions?select=treasury_id&id=eq.' + transactionId, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-                if (getResponse.ok) {
-                    var data = await getResponse.json();
-                    if (data && data.length > 0) {
-                        await updateTreasuryBalance(data[0].treasury_id);
-                    }
-                }
+                await updateTransactionData(transactionId, updateData);
+                await updateTreasuryBalance(currentTreasuryId);
 
                 showToast('✅ تم التحديث', 'تم تحديث الحركة بنجاح', 'success');
                 closeEditModal();
@@ -2624,72 +2155,7 @@
 
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-save"></i> تحديث الحركة';
-        }
-
-        // ============================================================
-        // UPDATE TREASURY BALANCE - تحديث رصيد الخزينة
-        // ============================================================
-        async function updateTreasuryBalance(treasuryId) {
-            var token = getToken();
-            if (!token) return;
-
-            try {
-                // جلب كل الحركات عبر الترحيل (Pagination) لتجنب حد الـ 1000 صف الافتراضي في Supabase
-                var allAmounts = [];
-                var page = 0;
-                var pageSize = 1000;
-                var hasMore = true;
-
-                while (hasMore) {
-                    var response = await fetch(
-                        SUPABASE_URL + '/rest/v1/treasury_transactions?select=amount&treasury_id=eq.' + treasuryId +
-                        '&limit=' + pageSize + '&offset=' + (page * pageSize),
-                        {
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + token
-                            }
-                        }
-                    );
-
-                    if (!response.ok) throw new Error('فشل جلب الحركات لحساب الرصيد');
-                    var data = await response.json();
-
-                    if (!data || data.length === 0) {
-                        hasMore = false;
-                    } else {
-                        allAmounts = allAmounts.concat(data);
-                        page++;
-                        if (data.length < pageSize) {
-                            hasMore = false;
-                        }
-                    }
-                }
-
-                var totalBalance = 0;
-                allAmounts.forEach(function(t) {
-                    totalBalance += t.amount || 0;
-                });
-
-                var updateResponse = await fetch(SUPABASE_URL + '/rest/v1/treasuries?id=eq.' + treasuryId, {
-                    method: 'PATCH',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        balance: totalBalance
-                    })
-                });
-
-                if (!updateResponse.ok) throw new Error('فشل تحديث الرصيد');
-
-            } catch (error) {
-                console.error('❌ خطأ في تحديث الرصيد:', error);
-                throw error;
-            }
-        }
+        });
 
         // ============================================================
         // LOAD DATA
@@ -2728,9 +2194,9 @@
 
             var transactions = await getTransactions(currentTreasuryId);
 
-            allTreasuries = await getCompanyTreasuries(treasury.company_id);
+            var treasuries = await getCompanyTreasuries(treasury.company_id);
 
-            populateTreasurySelects(allTreasuries, currentTreasuryId, treasury.name);
+            populateTreasurySelects(treasuries, currentTreasuryId, treasury.name);
 
             displayData(transactions, treasury);
         }
@@ -2757,22 +2223,6 @@
         });
 
         // ============================================================
-        // LOGOUT
-        // ============================================================
-        function logout() {
-            if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
-                if (monitorInterval) {
-                    clearInterval(monitorInterval);
-                    monitorInterval = null;
-                }
-                sessionMonitorStarted = false;
-                localStorage.removeItem('rollex_session');
-                sessionStorage.removeItem('rollex_session');
-                window.location.href = 'login.html';
-            }
-        }
-
-        // ============================================================
         // INIT
         // ============================================================
         (async function init() {
@@ -2794,11 +2244,7 @@
                 await loadData();
             } catch (e) {
                 console.error('❌ خطأ في تحميل البيانات:', e);
-                if (e.message.includes('انتهت الجلسة')) {
-                    redirectToLogin();
-                } else {
-                    showToast('❌ خطأ', 'حدث خطأ في تحميل البيانات', 'error');
-                }
+                showToast('❌ خطأ', 'حدث خطأ في تحميل البيانات', 'error');
             }
 
             setTimeout(function() {
