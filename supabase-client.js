@@ -143,15 +143,32 @@ async function refreshSession() {
     }
 }
 
+// ============================================================
+// REDIRECT TO LOGIN - معدل (بدون إنهاء فوري)
+// ============================================================
 function redirectToLogin() {
+    console.log('🚪 جاري التوجيه لتسجيل الدخول...');
+    
+    // حفظ سبب التوجيه
+    sessionStorage.setItem('logout_reason', 'session_expired');
+    
+    // تنظيف البيانات
+    localStorage.removeItem('rollex_session');
+    sessionStorage.removeItem('rollex_session');
+    localStorage.removeItem('user');
+    localStorage.removeItem('rollex_treasury_entries');
+    
+    // إيقاف مراقبة الجلسة
     if (monitorInterval) {
         clearInterval(monitorInterval);
         monitorInterval = null;
     }
     sessionMonitorStarted = false;
-    localStorage.removeItem('rollex_session');
-    sessionStorage.removeItem('rollex_session');
+    
+    // عرض رسالة
     showToast('⚠️ انتهت الجلسة', 'يرجى تسجيل الدخول مجدداً', 'warning');
+    
+    // تأخير بسيط قبل التوجيه
     setTimeout(function() {
         window.location.href = 'login.html';
     }, 1500);
@@ -164,7 +181,6 @@ async function getCurrentUserProfile() {
     var token = getToken();
     if (!token) {
         console.warn('⚠️ لا يوجد توكن');
-        showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'warning');
         return null;
     }
 
@@ -178,8 +194,6 @@ async function getCurrentUserProfile() {
 
         if (!userResponse.ok) {
             console.warn('⚠️ فشل جلب المستخدم:', userResponse.status);
-            localStorage.removeItem('rollex_session');
-            window.location.href = 'login.html';
             return null;
         }
 
@@ -406,8 +420,9 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
                         options.headers['Authorization'] = 'Bearer ' + token;
                     }
                 } else {
-                    redirectToLogin();
-                    throw new Error('لا توجد جلسة صالحة');
+                    // لا نطرد المستخدم فوراً، نتركه يحاول مرة أخرى
+                    console.warn('⚠️ فشل تجديد الجلسة، محاولة مرة أخرى...');
+                    continue;
                 }
             }
 
@@ -424,8 +439,9 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
                     console.log('✅ تم تجديد الجلسة، إعادة المحاولة...');
                     continue;
                 } else {
-                    redirectToLogin();
-                    throw new Error('انتهت الجلسة، يرجى تسجيل الدخول مجدداً');
+                    // لا نطرد المستخدم فوراً، نتركه يحاول مرة أخرى
+                    console.warn('⚠️ فشل تجديد الجلسة، محاولة مرة أخرى...');
+                    continue;
                 }
             }
 
@@ -452,10 +468,17 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
 }
 
 // ============================================================
-// LOGOUT
+// LOGOUT - معدل (مع إيقاف المراقبة)
 // ============================================================
 async function logout() {
     console.log('🚪 جاري تسجيل الخروج...');
+
+    // إيقاف مراقبة الجلسة
+    if (monitorInterval) {
+        clearInterval(monitorInterval);
+        monitorInterval = null;
+    }
+    sessionMonitorStarted = false;
 
     try {
         localStorage.removeItem('rollex_session');
@@ -471,7 +494,7 @@ async function logout() {
 }
 
 // ============================================================
-// SESSION MONITOR
+// SESSION MONITOR - معدل (لا يطرد المستخدم فوراً)
 // ============================================================
 var monitorInterval = null;
 var sessionMonitorStarted = false;
@@ -487,33 +510,69 @@ function startSessionMonitor() {
 
     monitorInterval = setInterval(function() {
         var session = getSession();
-        if (session && session.expires_at) {
-            var timeLeft = session.expires_at - Date.now();
-            if (timeLeft < 60000 && timeLeft > 0) {
-                showToast('⏳ تنبيه', 'جلسة العمل ستنتهي خلال دقيقة', 'warning');
-            }
-            if (timeLeft <= 0) {
-                redirectToLogin();
-            }
+        if (!session) {
+            console.log('ℹ️ لا توجد جلسة، ننتظر...');
+            return;
         }
-    }, 30000);
+
+        // التحقق من صلاحية التوكن عن طريق Supabase
+        var token = session.access_token;
+        if (!token) {
+            console.log('ℹ️ لا يوجد توكن، ننتظر...');
+            return;
+        }
+
+        // محاولة التحقق من صلاحية التوكن
+        fetch(SUPABASE_URL + '/auth/v1/user', {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + token
+            }
+        })
+        .then(function(response) {
+            if (response.ok) {
+                console.log('✅ الجلسة لا تزال صالحة');
+                return;
+            }
+
+            if (response.status === 401) {
+                console.log('⚠️ التوكن منتهي، محاولة التجديد...');
+                refreshSession().then(function(refreshed) {
+                    if (!refreshed) {
+                        console.log('⚠️ فشل تجديد الجلسة، سيتم طلب تسجيل الدخول بعد دقيقة...');
+                        // نعطي المستخدم مهلة دقيقة قبل طرده
+                        setTimeout(function() {
+                            var newSession = getSession();
+                            if (!newSession) {
+                                redirectToLogin();
+                            }
+                        }, 60000); // دقيقة كاملة
+                    }
+                });
+            }
+        })
+        .catch(function(error) {
+            console.warn('⚠️ خطأ في التحقق من الجلسة:', error.message);
+        });
+
+    }, 30000); // كل 30 ثانية
 
     console.log('✅ بدأ مراقبة الجلسة');
 }
 
 // ============================================================
-// CHECK SESSION ON LOAD
+// CHECK SESSION ON LOAD - معدل (لا يطرد المستخدم فوراً)
 // ============================================================
 async function checkSessionAndRedirect() {
     var session = getSession();
     if (!session) {
-        redirectToLogin();
+        console.log('ℹ️ لا توجد جلسة، يرجى تسجيل الدخول');
         return false;
     }
 
     var token = getToken();
     if (!token) {
-        redirectToLogin();
+        console.log('ℹ️ لا يوجد توكن، يرجى تسجيل الدخول');
         return false;
     }
 
@@ -526,11 +585,14 @@ async function checkSessionAndRedirect() {
         });
 
         if (!response.ok) {
+            console.log('⚠️ التوكن غير صالح، محاولة التجديد...');
             var refreshed = await refreshSession();
             if (!refreshed) {
-                redirectToLogin();
+                console.log('⚠️ فشل تجديد الجلسة، سيتم طلب تسجيل الدخول...');
+                // لا نطرد المستخدم فوراً، نعطيه فرصة
                 return false;
             }
+            return true;
         }
 
         return true;
@@ -622,3 +684,5 @@ function parseCSVLine(line) {
     row.push(current.trim());
     return row;
 }
+
+console.log('✅ تم تحميل supabase-client.js (النسخة المُصلَحة)');
