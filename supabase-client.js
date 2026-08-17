@@ -5,9 +5,9 @@ const SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
 
 // ============================================================
-// TOAST SYSTEM
+// TOAST SYSTEM - نسخة متقدمة مع أزرار
 // ============================================================
-function showToast(title, message, type = 'success') {
+function showToast(title, message, type = 'success', buttons = null) {
     var container = document.getElementById('toastContainer');
     if (!container) {
         container = document.createElement('div');
@@ -26,11 +26,21 @@ function showToast(title, message, type = 'success') {
     };
     var t = iconMap[type] || iconMap['warning'];
 
+    var buttonsHtml = '';
+    if (buttons && buttons.length > 0) {
+        buttonsHtml = '<div class="toast-actions">';
+        buttons.forEach(function(btn) {
+            buttonsHtml += '<button class="' + btn.class + '" data-value="' + btn.value + '">' + btn.label + '</button>';
+        });
+        buttonsHtml += '</div>';
+    }
+
     toast.innerHTML = `
         <span class="icon ${t.cls}"><i class="fas ${t.icon}"></i></span>
         <div class="content">
             <div class="title">${title}</div>
             <div class="message">${message}</div>
+            ${buttonsHtml}
         </div>
         <button class="close"><i class="fas fa-times"></i></button>
     `;
@@ -41,15 +51,31 @@ function showToast(title, message, type = 'success') {
         toast.classList.add('show');
     });
 
-    var timeout = setTimeout(function() {
-        toast.classList.remove('show');
-        setTimeout(function() { if (toast.parentElement) toast.remove(); }, 400);
-    }, 5000);
+    return new Promise(function(resolve) {
+        var timeout = setTimeout(function() {
+            toast.classList.remove('show');
+            setTimeout(function() { if (toast.parentElement) toast.remove(); }, 400);
+            resolve(null);
+        }, 5000);
 
-    toast.querySelector('.close').addEventListener('click', function() {
-        clearTimeout(timeout);
-        toast.classList.remove('show');
-        setTimeout(function() { if (toast.parentElement) toast.remove(); }, 400);
+        toast.querySelector('.close').addEventListener('click', function() {
+            clearTimeout(timeout);
+            toast.classList.remove('show');
+            setTimeout(function() { if (toast.parentElement) toast.remove(); }, 400);
+            resolve(null);
+        });
+
+        if (buttons && buttons.length > 0) {
+            toast.querySelectorAll('.toast-actions button').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var val = this.dataset.value;
+                    clearTimeout(timeout);
+                    toast.classList.remove('show');
+                    setTimeout(function() { if (toast.parentElement) toast.remove(); }, 400);
+                    resolve(val);
+                });
+            });
+        }
     });
 }
 
@@ -536,4 +562,63 @@ function getStatusBadge(status) {
     }
 
     return '<span class="badge-status ' + statusClass + '">' + statusText + '</span>';
+}
+
+// ============================================================
+// GET URL PARAMETER
+// ============================================================
+function getUrlParam(param) {
+    var params = new URLSearchParams(window.location.search);
+    return params.get(param);
+}
+
+// ============================================================
+// FETCH FROM GOOGLE SHEETS
+// ============================================================
+async function fetchSheetData(sheetId, sheetName) {
+    var url = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:csv&sheet=' + sheetName;
+    var response = await fetch(url);
+    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
+    var csvText = await response.text();
+    var lines = csvText.split('\n').filter(function(line) { return line.trim() !== ''; });
+    return lines.map(function(line) {
+        var row = [];
+        var current = '';
+        var insideQuotes = false;
+        for (var i = 0; i < line.length; i++) {
+            var char = line[i];
+            if (char === '"') {
+                insideQuotes = !insideQuotes;
+            } else if (char === ',' && !insideQuotes) {
+                row.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        row.push(current.trim());
+        return row;
+    });
+}
+
+// ============================================================
+// PARSE CSV LINE
+// ============================================================
+function parseCSVLine(line) {
+    var row = [];
+    var current = '';
+    var insideQuotes = false;
+    for (var i = 0; i < line.length; i++) {
+        var char = line[i];
+        if (char === '"') {
+            insideQuotes = !insideQuotes;
+        } else if (char === ',' && !insideQuotes) {
+            row.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    row.push(current.trim());
+    return row;
 }
