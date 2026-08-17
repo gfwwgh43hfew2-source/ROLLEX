@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- ===== إضافة الملف المركزي ===== -->
+    <script src="supabase-client.js"></script>
     <style>
         :root {
             --ink: #121821;
@@ -1119,27 +1121,6 @@
         });
 
         // ============================================================
-        // LOGOUT
-        // ============================================================
-        function logout() {
-            if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
-                localStorage.removeItem('rollex_session');
-                sessionStorage.removeItem('rollex_session');
-                window.location.href = 'login.html';
-            }
-        }
-
-        // ============================================================
-        // SUPABASE CONFIGURATION
-        // ============================================================
-        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
-        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
-
-        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        var TABLE_NAME = 'suppliers';
-        var allSuppliers = [];
-
-        // ============================================================
         // DOM REFS
         // ============================================================
         var entriesBody = document.getElementById('entriesBody');
@@ -1150,141 +1131,16 @@
         var filterPhone = document.getElementById('filterPhone');
         var filterStatus = document.getElementById('filterStatus');
 
-        // ============================================================
-        // TOAST SYSTEM
-        // ============================================================
-        function showToast(title, message, type) {
-            var container = document.getElementById('toastContainer');
-            var toast = document.createElement('div');
-            toast.className = 'toast';
-
-            var iconClass = 'warning';
-            if (type === 'success') iconClass = 'success';
-            else if (type === 'error') iconClass = 'error';
-
-            var iconMap = {
-                'success': 'fa-check-circle',
-                'error': 'fa-times-circle',
-                'warning': 'fa-exclamation-triangle'
-            };
-
-            toast.innerHTML = '' +
-                '<div class="toast-icon ' + iconClass + '"><i class="fas ' + (iconMap[type] || 'fa-info-circle') +
-                '"></i></div>' +
-                '<div class="toast-content">' +
-                '<div class="toast-title">' + title + '</div>' +
-                '<div class="toast-message">' + message + '</div>' +
-                '</div>' +
-                '<button class="toast-close"><i class="fas fa-times"></i></button>';
-
-            container.appendChild(toast);
-
-            requestAnimationFrame(function() { toast.classList.add('show'); });
-
-            var timeout = setTimeout(function() {
-                if (toast.parentElement) {
-                    toast.classList.remove('show');
-                    setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
-                }
-            }, 4000);
-
-            toast.addEventListener('click', function(e) {
-                if (e.target.closest('.toast-close') || e.target.closest('.toast-icon')) {
-                    clearTimeout(timeout);
-                    toast.classList.remove('show');
-                    setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
-                }
-            });
-        }
-
-        // ============================================================
-        // SESSION FUNCTIONS
-        // ============================================================
-        function getSession() {
-            var session = localStorage.getItem('rollex_session');
-            if (!session) {
-                console.warn('⚠️ لا توجد جلسة في localStorage');
-                return null;
-            }
-            try {
-                return JSON.parse(session);
-            } catch (e) {
-                console.error('❌ فشل تحليل الجلسة:', e);
-                return null;
-            }
-        }
-
-        function getToken() {
-            var session = getSession();
-            return session ? session.access_token : null;
-        }
-
-        // ============================================================
-        // GET COMPANY ID
-        // ============================================================
-        async function getCompanyId() {
-            var token = getToken();
-            if (!token) return null;
-
-            try {
-                var userResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!userResponse.ok) return null;
-                var user = await userResponse.json();
-
-                var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=company_id&id=eq.' + user.id, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!profileResponse.ok) return null;
-                var data = await profileResponse.json();
-                return data && data.length > 0 ? data[0].company_id : null;
-
-            } catch (error) {
-                console.error('❌ خطأ في جلب company_id:', error);
-                return null;
-            }
-        }
+        var allSuppliers = [];
 
         // ============================================================
         // GET SUPPLIERS
         // ============================================================
         async function getSuppliers() {
-            var token = getToken();
-            if (!token) return [];
-
-            var companyId = await getCompanyId();
-            if (!companyId) {
-                console.warn('⚠️ لم يتم العثور على company_id');
-                return [];
-            }
-
             try {
-                var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME + '?select=*&company_id=eq.' + companyId +
-                    '&order=code.asc', {
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token
-                        }
-                    });
-
-                if (!response.ok) {
-                    console.warn('⚠️ فشل جلب الموردين:', response.status);
-                    return [];
-                }
-
-                var data = await response.json();
+                var data = await getTable('suppliers', 'code.asc');
                 console.log('✅ تم جلب الموردين:', data ? data.length : 0);
                 return data || [];
-
             } catch (error) {
                 console.error('❌ خطأ في جلب الموردين:', error);
                 return [];
@@ -1295,24 +1151,14 @@
         // INSERT SUPPLIER
         // ============================================================
         async function insertSupplier(data) {
-            var token = getToken();
-            if (!token) {
-                throw new Error('يرجى تسجيل الدخول أولاً');
-            }
+            var isValid = await checkSessionAndRedirect();
+            if (!isValid) throw new Error('جلسة منتهية');
 
             var companyId = await getCompanyId();
-            if (!companyId) {
-                throw new Error('لم يتم العثور على الشركة');
-            }
+            if (!companyId) throw new Error('لم يتم العثور على الشركة');
 
-            var userResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token
-                }
-            });
-            if (!userResponse.ok) throw new Error('فشل جلب المستخدم');
-            var user = await userResponse.json();
+            var user = await getCurrentUserProfile();
+            if (!user) throw new Error('فشل جلب المستخدم');
 
             var payload = {
                 company_id: companyId,
@@ -1332,34 +1178,13 @@
                 due_balance: parseFloat(data.opening_balance) || 0
             };
 
-            var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME, {
-                method: 'POST',
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=representation'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                var errorData = await response.text();
-                throw new Error('فشل إضافة المورد: ' + errorData);
-            }
-
-            return await response.json();
+            return await insertRow('suppliers', payload);
         }
 
         // ============================================================
         // UPDATE SUPPLIER
         // ============================================================
         async function updateSupplier(id, data) {
-            var token = getToken();
-            if (!token) {
-                throw new Error('يرجى تسجيل الدخول أولاً');
-            }
-
             var payload = {
                 name: data.name,
                 code: data.code || '',
@@ -1374,78 +1199,16 @@
                 due_balance: parseFloat(data.opening_balance) || 0
             };
 
-            var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME + '?id=eq.' + id, {
-                method: 'PATCH',
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=representation'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                var errorData = await response.text();
-                throw new Error('فشل تحديث المورد: ' + errorData);
-            }
-
-            return await response.json();
+            await patchRow('suppliers', id, payload);
+            return true;
         }
 
         // ============================================================
         // DELETE SUPPLIER
         // ============================================================
         async function deleteSupplier(id) {
-            var token = getToken();
-            if (!token) {
-                throw new Error('يرجى تسجيل الدخول أولاً');
-            }
-
-            var response = await fetch(SUPABASE_URL + '/rest/v1/' + TABLE_NAME + '?id=eq.' + id, {
-                method: 'DELETE',
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('فشل حذف المورد');
-            }
-
+            await deleteRows('suppliers', 'id', id);
             return true;
-        }
-
-        // ============================================================
-        // FORMAT NUMBER
-        // ============================================================
-        function formatNumber(num) {
-            if (num === undefined || num === null || isNaN(num)) return '0';
-            return Number(num).toLocaleString();
-        }
-
-        // ============================================================
-        // GET STATUS BADGE
-        // ============================================================
-        function getStatusBadge(status) {
-            var statusText = status || '-';
-            var statusClass = '';
-
-            if (statusText.includes('نشط') || statusText.includes('active')) {
-                statusClass = 'active';
-                statusText = 'نشط';
-            } else if (statusText.includes('غير نشط') || statusText.includes('inactive')) {
-                statusClass = 'inactive';
-                statusText = 'غير نشط';
-            } else if (statusText.includes('موقوف') || statusText.includes('suspended')) {
-                statusClass = 'suspended';
-                statusText = 'موقوف';
-            } else {
-                return '<span class="badge-status">' + statusText + '</span>';
-            }
-
-            return '<span class="badge-status ' + statusClass + '">' + statusText + '</span>';
         }
 
         // ============================================================
@@ -1462,7 +1225,7 @@
             });
 
             totalCount.textContent = total;
-            totalBalance.textContent = formatNumber(totalBal) + ' ج.م';
+            totalBalance.textContent = formatNumberWithCommas(totalBal) + ' ج.م';
 
             if (filtered.length === 0) {
                 entriesBody.innerHTML =
@@ -1482,12 +1245,10 @@
                     '<td>' + (s.material_type || '-') + '</td>' +
                     '<td style="font-size:0.6rem;">' + (s.address || '-') + '</td>' +
                     '<td>' + statusDisplay + '</td>' +
-                    '<td style="text-align:center;color:var(--accent-ink);font-weight:700;">' + formatNumber(s
-                        .due_balance) + '</td>' +
+                    '<td style="text-align:center;color:var(--accent-ink);font-weight:700;">' + formatNumber(s.due_balance) + '</td>' +
                     '<td style="text-align:center;">' +
                     '<button class="btn-action" onclick="editSupplier(\'' + s.id + '\')" style="padding:4px 8px;font-size:0.6rem;background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent-soft);"><i class="fas fa-edit"></i></button> ' +
-                    '<button class="btn-action danger" onclick="deleteSupplierConfirm(\'' + s.id +
-                    '\')" style="padding:4px 8px;font-size:0.6rem;"><i class="fas fa-trash"></i></button>' +
+                    '<button class="btn-action danger" onclick="deleteSupplierConfirm(\'' + s.id + '\')" style="padding:4px 8px;font-size:0.6rem;"><i class="fas fa-trash"></i></button>' +
                     '</td>' +
                     '</tr>';
             });
@@ -1508,23 +1269,16 @@
                     var supplierName = (s.name || '').toLowerCase();
                     if (!supplierName.includes(name)) return false;
                 }
-
                 if (phone) {
                     var supplierPhone = (s.phone || '').toLowerCase();
                     if (!supplierPhone.includes(phone)) return false;
                 }
-
                 if (status !== 'all') {
                     var supplierStatus = (s.status || '').toLowerCase();
-                    var statusMap = {
-                        'نشط': 'نشط',
-                        'غير نشط': 'غير نشط',
-                        'موقوف': 'موقوف'
-                    };
+                    var statusMap = { 'نشط': 'نشط', 'غير نشط': 'غير نشط', 'موقوف': 'موقوف' };
                     var statusKey = statusMap[status] || status;
                     if (!supplierStatus.includes(statusKey)) return false;
                 }
-
                 return true;
             });
         }
@@ -1791,7 +1545,6 @@
 
                 for (var i = 0; i < jsonData.length; i++) {
                     var row = jsonData[i];
-
                     var name = row['اسم المورد'] || row['name'] || '';
                     if (!name) {
                         errorCount++;
@@ -1800,31 +1553,19 @@
                     }
 
                     try {
-                        var code = row['كود المورد'] || row['code'] || 'SUP-' + String(Date.now() + i).slice(-6);
-                        var phone = row['الهاتف'] || row['phone'] || '';
-                        var email = row['البريد الإلكتروني'] || row['email'] || '';
-                        var address = row['العنوان'] || row['address'] || '';
-                        var materialType = row['نوع الخامة'] || row['material_type'] || '';
-                        var openingBalance = parseFloat(row['الرصيد الافتتاحي'] || row['opening_balance'] || 0);
-                        var creditLimit = parseFloat(row['حد الائتمان'] || row['credit_limit'] || 0);
-                        var status = row['الحالة'] || row['status'] || 'نشط';
-                        var notes = row['ملاحظات'] || row['notes'] || '';
-
                         await insertSupplier({
                             name: name.trim(),
-                            code: code,
-                            phone: phone ? phone.trim() : '',
-                            email: email ? email.trim() : '',
-                            address: address ? address.trim() : '',
-                            material_type: materialType ? materialType.trim() : '',
-                            opening_balance: openingBalance,
-                            credit_limit: creditLimit,
-                            status: status,
-                            notes: notes
+                            code: row['كود المورد'] || row['code'] || 'SUP-' + String(Date.now() + i).slice(-6),
+                            phone: row['الهاتف'] || row['phone'] || '',
+                            email: row['البريد الإلكتروني'] || row['email'] || '',
+                            address: row['العنوان'] || row['address'] || '',
+                            material_type: row['نوع الخامة'] || row['material_type'] || '',
+                            opening_balance: parseFloat(row['الرصيد الافتتاحي'] || row['opening_balance'] || 0),
+                            credit_limit: parseFloat(row['حد الائتمان'] || row['credit_limit'] || 0),
+                            status: row['الحالة'] || row['status'] || 'نشط',
+                            notes: row['ملاحظات'] || row['notes'] || ''
                         });
-
                         successCount++;
-
                     } catch (err) {
                         errorCount++;
                         errors.push('صف ' + (i + 1) + ': ' + err.message);
@@ -1899,7 +1640,6 @@
         window.closeImportModal = closeImportModal;
         window.importFromExcel = importFromExcel;
         window.saveSupplier = saveSupplier;
-        window.logout = logout;
 
         // ============================================================
         // INIT
@@ -1920,7 +1660,9 @@
 
             await loadData();
 
-            setInterval(loadData, 30000);
+            setTimeout(function() {
+                startSessionMonitor();
+            }, 3000);
         })();
     </script>
 
