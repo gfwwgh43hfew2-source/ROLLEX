@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- ===== إضافة الملف المركزي ===== -->
+    <script src="supabase-client.js"></script>
     <style>
         /* ============================================================
            ROOT VARIABLES
@@ -960,7 +962,7 @@
         }
 
         /* ============================================================
-           IMPORT MODAL - تحسينات
+           IMPORT MODAL
            ============================================================ */
         .modal-box .form-group {
             margin-bottom: 14px;
@@ -1605,60 +1607,6 @@
         });
 
         // ============================================================
-        // TOAST SYSTEM
-        // ============================================================
-        function showToast(title, message, type) {
-            var container = document.getElementById('toastContainer');
-            var toast = document.createElement('div');
-            toast.className = 'toast';
-
-            var iconClass = 'warning';
-            if (type === 'success') iconClass = 'success';
-            else if (type === 'error') iconClass = 'error';
-
-            var iconMap = {
-                'success': 'fa-check-circle',
-                'error': 'fa-times-circle',
-                'warning': 'fa-exclamation-triangle'
-            };
-
-            toast.innerHTML = '' +
-                '<div class="toast-icon ' + iconClass + '"><i class="fas ' + (iconMap[type] || 'fa-info-circle') +
-                '"></i></div>' +
-                '<div class="toast-content">' +
-                '<div class="toast-title">' + title + '</div>' +
-                '<div class="toast-message">' + message + '</div>' +
-                '</div>' +
-                '<button class="toast-close"><i class="fas fa-times"></i></button>';
-
-            container.appendChild(toast);
-
-            requestAnimationFrame(function() { toast.classList.add('show'); });
-
-            var timeout = setTimeout(function() {
-                if (toast.parentElement) {
-                    toast.classList.remove('show');
-                    setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
-                }
-            }, 4000);
-
-            toast.addEventListener('click', function(e) {
-                if (e.target.closest('.toast-close') || e.target.closest('.toast-icon')) {
-                    clearTimeout(timeout);
-                    toast.classList.remove('show');
-                    setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
-                }
-            });
-        }
-
-        // ============================================================
-        // SUPABASE CONFIGURATION
-        // ============================================================
-        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
-        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
-        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // ============================================================
         // DOM REFS
         // ============================================================
         var entriesBody = document.getElementById('entriesBody');
@@ -1673,63 +1621,6 @@
 
         var allInvoices = [];
         var allInvoiceItems = {};
-
-        // ============================================================
-        // SESSION FUNCTIONS
-        // ============================================================
-        function getSession() {
-            var session = localStorage.getItem('rollex_session');
-            if (!session) {
-                console.warn('⚠️ لا توجد جلسة في localStorage');
-                return null;
-            }
-            try {
-                return JSON.parse(session);
-            } catch (e) {
-                console.error('❌ فشل تحليل الجلسة:', e);
-                return null;
-            }
-        }
-
-        function getToken() {
-            var session = getSession();
-            return session ? session.access_token : null;
-        }
-
-        // ============================================================
-        // GET COMPANY ID
-        // ============================================================
-        async function getCompanyId() {
-            var token = getToken();
-            if (!token) return null;
-
-            try {
-                var userResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!userResponse.ok) return null;
-                var user = await userResponse.json();
-
-                var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=company_id&id=eq.' + user.id, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!profileResponse.ok) return null;
-                var data = await profileResponse.json();
-                return data && data.length > 0 ? data[0].company_id : null;
-
-            } catch (error) {
-                console.error('❌ خطأ في جلب company_id:', error);
-                return null;
-            }
-        }
 
         // ============================================================
         // FETCH INVOICES FROM SUPABASE
@@ -1748,138 +1639,21 @@
             }
 
             try {
-                var response = await fetch(SUPABASE_URL + '/rest/v1/invoices?select=*&company_id=eq.' + companyId +
-                    '&order=book_number.desc', {
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token
-                        }
-                    });
-
-                if (!response.ok) {
-                    console.warn('⚠️ فشل جلب الفواتير من Supabase:', response.status);
-                    return await fetchInvoicesFromGoogleSheets();
-                }
-
-                var data = await response.json();
+                var data = await getTable('invoices', 'book_number.desc');
                 console.log('✅ تم جلب الفواتير من Supabase:', data ? data.length : 0);
 
                 for (var i = 0; i < data.length; i++) {
                     var invoice = data[i];
-                    var itemsResponse = await fetch(SUPABASE_URL + '/rest/v1/invoice_items?select=*&invoice_id=eq.' +
-                        invoice.id, {
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + token
-                            }
-                        });
-
-                    if (itemsResponse.ok) {
-                        var items = await itemsResponse.json();
-                        allInvoiceItems[invoice.book_number] = items || [];
-                    }
+                    var items = invoice.items || [];
+                    allInvoiceItems[invoice.book_number] = items;
                 }
 
                 return data;
 
             } catch (error) {
                 console.error('❌ خطأ في جلب الفواتير من Supabase:', error);
-                return await fetchInvoicesFromGoogleSheets();
+                return [];
             }
-        }
-
-        // ============================================================
-        // FETCH INVOICES FROM GOOGLE SHEETS (Backup)
-        // ============================================================
-        function fetchInvoicesFromGoogleSheets() {
-            var SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
-            var SHEET_NAME = 'المبيعات والمرتجعات';
-            var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + SHEET_NAME;
-
-            return fetch(url)
-                .then(function(response) {
-                    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
-                    return response.text();
-                })
-                .then(function(csvText) {
-                    var lines = csvText.split('\n').filter(function(line) {
-                        return line.trim() !== '';
-                    });
-                    var data = lines.map(function(line) {
-                        var row = [];
-                        var current = '';
-                        var insideQuotes = false;
-                        for (var i = 0; i < line.length; i++) {
-                            var char = line[i];
-                            if (char === '"') {
-                                insideQuotes = !insideQuotes;
-                            } else if (char === ',' && !insideQuotes) {
-                                row.push(current.trim());
-                                current = '';
-                            } else {
-                                current += char;
-                            }
-                        }
-                        row.push(current.trim());
-                        return row;
-                    });
-
-                    var invoiceMap = {};
-                    for (var i = 1; i < data.length; i++) {
-                        var row = data[i];
-                        if (row.length < 14) continue;
-
-                        var bookNumber = row[0] ? row[0].trim() : '';
-                        var date = row[3] ? row[3].trim() : '';
-                        var clientName = row[6] ? row[6].trim() : '';
-                        var total = cleanNumber(row[13]);
-
-                        if (!bookNumber || bookNumber === '' || bookNumber === 'الرقم الدفتري') continue;
-
-                        if (!invoiceMap[bookNumber]) {
-                            invoiceMap[bookNumber] = {
-                                book_number: bookNumber,
-                                date: date,
-                                client_name: clientName,
-                                total: 0,
-                                items: []
-                            };
-                        }
-
-                        invoiceMap[bookNumber].items.push({
-                            product_name: row[7] || '',
-                            quantity: cleanNumber(row[8]),
-                            unit_price: cleanNumber(row[9]),
-                            total: cleanNumber(row[13])
-                        });
-
-                        invoiceMap[bookNumber].total += total;
-                    }
-
-                    var invoices = Object.values(invoiceMap);
-
-                    invoices.forEach(function(inv) {
-                        allInvoiceItems[inv.book_number] = inv.items || [];
-                    });
-
-                    console.log('✅ تم جلب الفواتير من Google Sheets:', invoices.length);
-                    return invoices;
-                });
-        }
-
-        function cleanNumber(value) {
-            if (!value) return 0;
-            if (typeof value === 'number') return value;
-            var cleaned = String(value).replace(/[^0-9.]/g, '');
-            return parseFloat(cleaned) || 0;
-        }
-
-        // ============================================================
-        // FORMAT NUMBER
-        // ============================================================
-        function formatNumber(num) {
-            if (num === undefined || num === null || isNaN(num)) return '0';
-            return Math.round(num).toLocaleString('ar-EG');
         }
 
         // ============================================================
@@ -1917,7 +1691,7 @@
             });
 
             totalCount.textContent = filtered.length;
-            totalSales.textContent = formatNumber(totalSalesAmt);
+            totalSales.textContent = formatNumberWithCommas(totalSalesAmt);
 
             if (filtered.length === 0) {
                 entriesBody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد فواتير</p></div></td></tr>';
@@ -1932,9 +1706,9 @@
             });
 
             sorted.forEach(function(inv, index) {
-                var bookNumber = inv.book_number || inv.bookNumber || '-';
+                var bookNumber = inv.book_number || '-';
                 var date = inv.date || '-';
-                var clientName = inv.client_name || inv.clientName || '-';
+                var clientName = inv.client_name || '-';
                 var total = inv.total || 0;
 
                 html += '<tr>' +
@@ -1943,7 +1717,7 @@
                     '<td class="col-date">' + date + '</td>' +
                     '<td class="col-client-name">' + clientName + '</td>' +
                     '<td class="col-total clickable" onclick="showInvoiceDetails(\'' + bookNumber +
-                    '\')" title="اضغط لعرض التفاصيل">' + formatNumber(total) +
+                    '\')" title="اضغط لعرض التفاصيل">' + formatNumberWithCommas(total) +
                     ' <i class="fas fa-chevron-left" style="font-size:0.5rem;color:var(--ink-4);margin-right:4px;"></i></td>' +
                     '</tr>';
             });
@@ -1965,7 +1739,7 @@
                 if (toDate && date > toDate) return false;
 
                 if (client) {
-                    var clientName = (inv.client_name || inv.clientName || '').toLowerCase();
+                    var clientName = (inv.client_name || '').toLowerCase();
                     if (!clientName.includes(client)) return false;
                 }
 
@@ -1978,7 +1752,7 @@
         // ============================================================
         function showInvoiceDetails(bookNumber) {
             var invoice = allInvoices.find(function(inv) {
-                return (inv.book_number || inv.bookNumber) == bookNumber;
+                return inv.book_number == bookNumber;
             });
 
             if (!invoice) {
@@ -1991,12 +1765,12 @@
             var modal = document.getElementById('invoiceModal');
             var content = document.getElementById('invoiceDetailsContent');
 
-            var clientName = invoice.client_name || invoice.clientName || '-';
+            var clientName = invoice.client_name || '-';
             var date = invoice.date || '-';
             var total = invoice.total || 0;
 
             var itemsHtml = '';
-            if (items.length > 0) {
+            if (items && items.length > 0) {
                 itemsHtml = `
                             <table class="invoice-items-table">
                                 <thead>
@@ -2012,14 +1786,14 @@
                         `;
 
                 items.forEach(function(item, index) {
-                    var itemTotal = item.total || (item.quantity * item.unit_price) || 0;
+                    var itemTotal = item.total || (item.qty * item.price) || 0;
                     itemsHtml += `
                                 <tr>
                                     <td>${index + 1}</td>
-                                    <td>${item.product_name || item.product || '-'}</td>
-                                    <td style="text-align:center;">${formatNumber(item.quantity || 0)}</td>
-                                    <td style="text-align:center;">${formatNumber(item.unit_price || 0)}</td>
-                                    <td style="text-align:center;font-weight:700;color:var(--prussian);">${formatNumber(itemTotal)}</td>
+                                    <td>${item.name || '-'}</td>
+                                    <td style="text-align:center;">${formatNumber(item.qty || 0)}</td>
+                                    <td style="text-align:center;">${formatNumber(item.price || 0)}</td>
+                                    <td style="text-align:center;font-weight:700;color:var(--prussian);">${formatNumberWithCommas(itemTotal)}</td>
                                 </tr>
                             `;
                 });
@@ -2028,7 +1802,7 @@
                                 </tbody>
                             </table>
                             <div class="invoice-total-summary">
-                                إجمالي الفاتورة: <span>${formatNumber(total)}</span>
+                                إجمالي الفاتورة: <span>${formatNumberWithCommas(total)}</span>
                             </div>
                         `;
             } else {
@@ -2038,7 +1812,7 @@
                                 <p>لا توجد تفاصيل لهذه الفاتورة</p>
                             </div>
                             <div class="invoice-total-summary">
-                                إجمالي الفاتورة: <span>${formatNumber(total)}</span>
+                                إجمالي الفاتورة: <span>${formatNumberWithCommas(total)}</span>
                             </div>
                         `;
             }
@@ -2093,9 +1867,9 @@
             try {
                 var excelData = allInvoices.map(function(inv) {
                     return {
-                        'الرقم الدفتري': inv.book_number || inv.bookNumber || '',
+                        'الرقم الدفتري': inv.book_number || '',
                         'التاريخ': inv.date || '',
-                        'اسم العميل': inv.client_name || inv.clientName || '',
+                        'اسم العميل': inv.client_name || '',
                         'إجمالي الفاتورة': inv.total || 0
                     };
                 });
@@ -2163,6 +1937,31 @@
         }
 
         // ============================================================
+        // IMPORT MODAL
+        // ============================================================
+        function openImportModal() {
+            document.getElementById('importModal').classList.add('active');
+            document.getElementById('importFile').value = '';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        document.getElementById('importModal').addEventListener('click', function(e) {
+            if (e.target === this) closeImportModal();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeImportModal();
+                closeInvoiceModal();
+            }
+        });
+
+        // ============================================================
         // IMPORT INVOICES
         // ============================================================
         async function importInvoices(event) {
@@ -2191,8 +1990,8 @@
                     throw new Error('لم يتم العثور على الشركة');
                 }
 
-                var { data: userData } = await supabase.auth.getUser();
-                if (!userData?.user) {
+                var user = await getCurrentUserProfile();
+                if (!user) {
                     throw new Error('فشل جلب بيانات المستخدم');
                 }
 
@@ -2226,9 +2025,9 @@
                     var itemTotal = parseFloat(row['الإجمالي'] || row['total'] || (quantity * unitPrice)) || 0;
 
                     invoiceGroups[bookNumber].items.push({
-                        product_name: row['اسم المنتج'] || row['product_name'] || 'منتج غير معروف',
-                        quantity: quantity,
-                        unit_price: unitPrice,
+                        name: row['اسم المنتج'] || row['product_name'] || 'منتج غير معروف',
+                        qty: quantity,
+                        price: unitPrice,
                         total: itemTotal
                     });
 
@@ -2246,57 +2045,17 @@
                     var group = invoiceGroups[key];
 
                     try {
-                        // إنشاء الفاتورة
-                        var invoicePayload = {
+                        var payload = {
                             company_id: companyId,
-                            user_id: userData.user.id,
+                            user_id: user.id,
                             book_number: group.book_number,
                             date: group.date,
                             client_name: group.client_name,
-                            total: group.total
+                            total: group.total,
+                            items: group.items
                         };
 
-                        var invoiceResponse = await fetch(SUPABASE_URL + '/rest/v1/invoices', {
-                            method: 'POST',
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + token,
-                                'Content-Type': 'application/json',
-                                'Prefer': 'return=representation'
-                            },
-                            body: JSON.stringify(invoicePayload)
-                        });
-
-                        if (!invoiceResponse.ok) {
-                            var errorText = await invoiceResponse.text();
-                            throw new Error('فشل إنشاء الفاتورة: ' + errorText);
-                        }
-
-                        var invoiceData = await invoiceResponse.json();
-                        var invoiceId = invoiceData[0]?.id || invoiceData.id;
-
-                        // إنشاء تفاصيل الفاتورة
-                        for (var j = 0; j < group.items.length; j++) {
-                            var item = group.items[j];
-                            var itemPayload = {
-                                invoice_id: invoiceId,
-                                product_name: item.product_name,
-                                quantity: item.quantity,
-                                unit_price: item.unit_price,
-                                total: item.total
-                            };
-
-                            await fetch(SUPABASE_URL + '/rest/v1/invoice_items', {
-                                method: 'POST',
-                                headers: {
-                                    'apikey': SUPABASE_ANON_KEY,
-                                    'Authorization': 'Bearer ' + token,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(itemPayload)
-                            });
-                        }
-
+                        await insertRow('invoices', payload);
                         successCount++;
 
                     } catch (err) {
@@ -2335,31 +2094,6 @@
         }
 
         // ============================================================
-        // IMPORT MODAL FUNCTIONS
-        // ============================================================
-        function openImportModal() {
-            document.getElementById('importModal').classList.add('active');
-            document.getElementById('importFile').value = '';
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeImportModal() {
-            document.getElementById('importModal').classList.remove('active');
-            document.body.style.overflow = '';
-        }
-
-        document.getElementById('importModal').addEventListener('click', function(e) {
-            if (e.target === this) closeImportModal();
-        });
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeImportModal();
-                closeInvoiceModal();
-            }
-        });
-
-        // ============================================================
         // FILTER EVENTS
         // ============================================================
         btnApplyFilter.addEventListener('click', function() {
@@ -2388,6 +2122,16 @@
         // INIT
         // ============================================================
         (function init() {
+            var token = getToken();
+            if (!token) {
+                entriesBody.innerHTML =
+                    '<tr><td colspan="5"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول للوصول إلى هذه الصفحة</p></div></td></tr>';
+                setTimeout(function() {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+
             var today = new Date();
             var currentYear = today.getFullYear();
 
@@ -2396,6 +2140,10 @@
             filterDateFrom.value = firstDayOfYear.toISOString().split('T')[0];
 
             loadData();
+
+            setTimeout(function() {
+                startSessionMonitor();
+            }, 3000);
 
             console.log('📋 ملخص الفواتير - تم التحميل');
             console.log('📅 الفترة: من ' + filterDateFrom.value + ' إلى ' + filterDateTo.value);
