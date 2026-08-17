@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>مخزن المواد الخام - QuickData ProSoft</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- ===== إضافة الملف المركزي ===== -->
+    <script src="supabase-client.js"></script>
+    <style>
+        :root {
+            --ink: #121821;
+            --ink-soft: #2c3644;
+            --ink-mute: #6d7883;
+            --paper: #eef1ef;
+            --surface: #ffffff;
+            --surface-muted: #f4f6f5;
+            --line: #dde3e0;
+            --line-strong: #c7d0cc;
+            --accent: #dd9f2e;
+            --accent-ink: #7a5312;
+            --accent-soft: #faead0;
+            --teal: #1d7b6c;
+            --teal-soft: #e2f2ee;
+            --rust: #bf4f30;
+            --rust-soft: #fbe8e1;
+            --blue: #2f5b8a;
+            --radius: 14px;
+            --radius-sm: 9px;
+            --shadow: 0 14px 34px -16px rgba(18, 24, 33, 0.28);
+            --shadow-sm: 0 3px 10px -4px rgba(18, 24, 33, 0.18);
+            --font-display: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+            --header-height: 60px;
+            --stripe-height: 4px;
+            --sidebar-width: 260px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-display);
+            background: var(--paper);
+            color: var(--ink);
+            direction: rtl;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        a { text-decoration: none; color: inherit; }
+
+        .swatch-stripe { height: var(--stripe-height); flex-shrink: 0; display: flex; }
+        .swatch-stripe span { flex: 1; }
+        .swatch-stripe span:nth-child(1) { background: var(--accent); }
+        .swatch-stripe span:nth-child(2) { background: var(--teal); }
+        .swatch-stripe span:nth-child(3) { background: var(--rust); }
+        .swatch-stripe span:nth-child(4) { background: var(--blue); }
+
+        /* ============================================================
+           SIDEBAR OVERLAY
+           ============================================================ */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* ============================================================
+           SIDEBAR
+           ============================================================ */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: calc(-1 * var(--sidebar-width));
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--surface);
+            border-left: 1px solid var(--line);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow);
+            overflow-y: auto;
+        }
+
+        .sidebar.open {
+            right: 0;
+        }
+
+        .sidebar .brand {
+            padding: 20px 18px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--line);
+            flex-shrink: 0;
+        }
+
+        .sidebar .brand .mark {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .sidebar .brand .text {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--ink);
+            line-height: 1.2;
+        }
+
+        .sidebar .brand .text span {
+            display: block;
+            font-size: 0.55rem;
+            font-weight: 600;
+            color: var(--ink-mute);
+        }
+
+        .sidebar .close-btn {
+            margin-right: auto;
+            background: none;
+            border: none;
+            color: var(--ink-mute);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: 0.2s;
+        }
+
+        .sidebar .close-btn:hover {
+            background: var(--surface-muted);
+            color: var(--ink);
+        }
+
+        .sidebar .menu {
+            flex: 1;
+            padding: 12px 14px;
+            overflow-y: auto;
+        }
+
+        .sidebar .menu .label {
+            font-size: 0.55rem;
+            color: var(--ink-mute);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px 10px 6px;
+            font-weight: 700;
+        }
+
+        .sidebar .menu .label:first-child {
+            padding-top: 4px;
+        }
+
+        .sidebar .menu .item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            color: var(--ink-soft);
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            border-right: 3px solid transparent;
+        }
+
+        .sidebar .menu .item:hover {
+            background: var(--surface-muted);
+            color: var(--ink);
+        }
+
+        .sidebar .menu .item.active {
+            background: var(--accent-soft);
+            color: var(--accent-ink);
+            border-right-color: var(--accent);
+        }
+
+        .sidebar .menu .item i {
+            width: 18px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--ink-mute);
+        }
+
+        .sidebar .menu .item.active i {
+            color: var(--accent);
+        }
+
+        .sidebar .footer {
+            padding: 12px 16px 16px;
+            border-top: 1px solid var(--line);
+            flex-shrink: 0;
+        }
+
+        .sidebar .footer .user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar .footer .user .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--ink-mute);
+        }
+
+        .sidebar .footer .user .info .name {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        .sidebar .footer .user .info .role {
+            font-size: 0.55rem;
+            color: var(--ink-mute);
+        }
+
+        .sidebar .footer .logout-btn {
+            margin-right: auto;
+            background: none;
+            border: none;
+            color: var(--ink-mute);
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: 0.2s;
+        }
+
+        .sidebar .footer .logout-btn:hover {
+            background: var(--surface-muted);
+            color: var(--rust);
+        }
+
+        /* ============================================================
+           HEADER
+           ============================================================ */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 0 20px;
+            background: rgba(255,255,255,0.97);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--line);
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        header .header-content { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .logo { display: flex; align-items: center; gap: 11px; }
+        .logo-mark {
+            width: 36px; height: 36px; border-radius: 10px; background: var(--ink);
+            display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+            gap: 3px; padding: 6px; flex-shrink: 0;
+        }
+        .logo-mark span { border-radius: 2px; }
+        .logo-mark span:nth-child(1) { background: var(--accent); }
+        .logo-mark span:nth-child(2) { background: var(--teal); }
+        .logo-mark span:nth-child(3) { background: var(--rust); }
+        .logo-mark span:nth-child(4) { background: var(--blue); }
+        .logo-text h1 { font-size: 0.95rem; font-weight: 800; color: var(--ink); line-height: 1.25; letter-spacing: -0.2px; }
+        .logo-text span { font-size: 0.62rem; color: var(--ink-mute); display: block; font-weight: 600; }
+
+        nav { display: flex; align-items: center; gap: 22px; }
+        nav a {
+            color: var(--ink-mute); font-weight: 700; font-size: 0.76rem;
+            transition: 0.2s; position: relative; padding: 5px 0;
+        }
+        nav a::after {
+            content: ''; position: absolute; bottom: -2px; right: 0;
+            width: 0; height: 2px; background: var(--accent);
+            transition: 0.25s; border-radius: 10px;
+        }
+        nav a:hover { color: var(--ink); }
+        nav a:hover::after { width: 100%; }
+        nav a.active { color: var(--ink); }
+        nav a.active::after { width: 100%; }
+
+        .header-actions { display: flex; align-items: center; gap: 6px; }
+        .header-actions button {
+            width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line);
+            background: var(--surface); color: var(--ink-mute); cursor: pointer;
+            transition: 0.2s; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+        }
+        .header-actions button:hover { background: var(--ink); border-color: var(--ink); color: #fff; }
+        .hamburger {
+            display: none; font-size: 1.05rem; color: var(--ink); cursor: pointer;
+            padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface);
+        }
+
+        /* ============================================================
+           MAIN CONTENT
+           ============================================================ */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-header h1 {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .page-header h1 i { color: var(--accent); }
+        .page-header .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-action {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-mute);
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-display);
+        }
+        .btn-action:hover {
+            background: var(--surface-muted);
+            border-color: var(--line-strong);
+        }
+        .btn-action.primary {
+            background: var(--accent);
+            color: var(--accent-ink);
+            border-color: var(--accent);
+        }
+        .btn-action.primary:hover {
+            background: var(--accent-ink);
+            color: #fff;
+            border-color: var(--accent-ink);
+        }
+        .btn-action.success {
+            background: var(--teal);
+            color: #fff;
+            border-color: var(--teal);
+        }
+        .btn-action.success:hover {
+            background: #156b5d;
+            border-color: #156b5d;
+        }
+        .btn-action.danger {
+            background: var(--rust-soft);
+            color: var(--rust);
+            border-color: var(--rust-soft);
+        }
+        .btn-action.danger:hover {
+            background: var(--rust);
+            color: #fff;
+        }
+
+        /* ===== FILTERS ===== */
+        .filters-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 16px;
+            align-items: center;
+        }
+        .filters-section .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 150px;
+        }
+        .filters-section .filter-group label {
+            font-size: 0.7rem;
+            color: var(--ink-mute);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .filters-section .filter-group input,
+        .filters-section .filter-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--line);
+            background: var(--surface-muted);
+            color: var(--ink);
+            font-size: 0.8rem;
+            font-family: inherit;
+            transition: 0.2s;
+            outline: none;
+        }
+        .filters-section .filter-group input:focus,
+        .filters-section .filter-group select:focus {
+            border-color: var(--accent);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(221,159,46,0.12);
+        }
+
+        .btn-filter {
+            padding: 8px 20px;
+            border-radius: 50px;
+            background: var(--accent);
+            border: none;
+            color: var(--accent-ink);
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-display);
+        }
+        .btn-filter:hover {
+            background: var(--accent-ink);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+        .btn-reset {
+            padding: 8px 16px;
+            border-radius: 50px;
+            background: var(--surface-muted);
+            border: 1px solid var(--line);
+            color: var(--ink-mute);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-display);
+        }
+        .btn-reset:hover {
+            background: var(--line);
+            color: var(--ink);
+        }
+
+        /* ===== SUMMARY ===== */
+        .summary-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 12px 20px;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 16px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .summary-bar .total {
+            font-size: 0.85rem;
+            color: var(--ink-mute);
+        }
+        .summary-bar .total span {
+            color: var(--accent-ink);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .summary-bar .count {
+            font-size: 0.8rem;
+            color: var(--ink-mute);
+        }
+        .summary-bar .count span {
+            color: var(--ink);
+            font-weight: 700;
+        }
+
+        /* ===== TABLE ===== */
+        .table-wrapper {
+            background: var(--surface);
+            border-radius: var(--radius);
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow-sm);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.7rem;
+            min-width: 1000px;
+        }
+        th {
+            background: var(--surface-muted);
+            color: var(--ink-mute);
+            padding: 10px 12px;
+            text-align: right;
+            font-weight: 700;
+            white-space: nowrap;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            border-bottom: 2px solid var(--line);
+        }
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--line);
+            color: var(--ink-soft);
+            font-size: 0.7rem;
+        }
+        tr:hover td { background: var(--surface-muted); }
+
+        .badge-status {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 50px;
+            font-size: 0.55rem;
+            font-weight: 600;
+        }
+        .badge-status.active { background: var(--teal-soft); color: var(--teal); }
+        .badge-status.inactive { background: var(--rust-soft); color: var(--rust); }
+        .badge-status.suspended { background: var(--accent-soft); color: var(--accent-ink); }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--ink-mute);
+        }
+        .empty-state i { font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 12px; }
+        .loading-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--accent);
+        }
+        .loading-state i { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: var(--surface);
+            border-radius: var(--radius);
+            max-width: 520px;
+            width: 100%;
+            padding: 28px;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+            animation: modalIn 0.25s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        @keyframes modalIn {
+            from { transform: translateY(12px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-box .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-box .modal-header h3 {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-box .modal-header h3 i { color: var(--accent); }
+        .modal-box .modal-header .close-modal {
+            background: none;
+            border: none;
+            color: var(--ink-mute);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: 0.2s;
+        }
+        .modal-box .modal-header .close-modal:hover {
+            background: var(--surface-muted);
+            color: var(--ink);
+        }
+
+        .modal-box .form-group { margin-bottom: 14px; }
+        .modal-box .form-group label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--ink-soft);
+            margin-bottom: 4px;
+        }
+        .modal-box .form-group label .required { color: var(--rust); }
+        .modal-box .form-group input,
+        .modal-box .form-group select,
+        .modal-box .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--line);
+            background: var(--surface-muted);
+            color: var(--ink);
+            font-size: 0.85rem;
+            font-family: var(--font-display);
+            outline: none;
+            transition: 0.2s;
+        }
+        .modal-box .form-group input:focus,
+        .modal-box .form-group select:focus,
+        .modal-box .form-group textarea:focus {
+            border-color: var(--accent);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(221,159,46,0.12);
+        }
+        .modal-box .form-group textarea { min-height: 60px; resize: vertical; }
+
+        .modal-box .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal-box .form-actions .btn-save {
+            padding: 10px 28px;
+            background: var(--teal);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: var(--font-display);
+            flex: 1;
+        }
+        .modal-box .form-actions .btn-save:hover {
+            background: #156b5d;
+            transform: translateY(-1px);
+        }
+        .modal-box .form-actions .btn-save:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .modal-box .form-actions .btn-cancel {
+            padding: 10px 24px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-mute);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: var(--font-display);
+        }
+        .modal-box .form-actions .btn-cancel:hover {
+            background: var(--surface-muted);
+        }
+
+        /* ============================================================
+           TOAST
+           ============================================================ */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 99999;
+            max-width: 380px;
+            width: 90%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            background: #ffffff;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(20px);
+            transition: all 0.4s ease;
+            opacity: 0;
+            pointer-events: auto;
+            box-shadow: var(--shadow);
+            border-right: 4px solid var(--ink);
+        }
+        .toast.show { transform: translateX(0); opacity: 1; }
+        .toast .toast-icon { font-size: 1rem; width: 30px; height: 30px; min-width: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .toast .toast-icon.success { color: var(--teal); background: var(--teal-soft); }
+        .toast .toast-icon.error { color: var(--rust); background: var(--rust-soft); }
+        .toast .toast-icon.warning { color: var(--accent-ink); background: var(--accent-soft); }
+        .toast .toast-title { font-size: 0.82rem; font-weight: 800; color: var(--ink); }
+        .toast .toast-message { font-size: 0.72rem; color: var(--ink-mute); margin-top: 1px; }
+        .toast .toast-close { background: none; border: none; color: var(--ink-mute); cursor: pointer; font-size: 0.85rem; padding: 4px; margin-right: auto; }
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
+        @media (max-width: 768px) {
+            .page-header { flex-direction: column; align-items: flex-start; }
+            .filters-section { flex-direction: column; align-items: stretch; }
+            .filters-section .filter-group { min-width: unset; }
+            .btn-filter, .btn-reset { width: 100%; justify-content: center; }
+            .summary-bar { flex-direction: column; align-items: center; text-align: center; }
+            .main-content { padding: 12px; }
+            table { font-size: 0.6rem; min-width: 800px; }
+            th, td { padding: 6px 8px; }
+            .modal-box { padding: 20px; margin: 10px; }
+            .modal-box .form-actions { flex-direction: column; }
+            .modal-box .form-actions .btn-save { width: 100%; justify-content: center; }
+            .modal-box .form-actions .btn-cancel { width: 100%; justify-content: center; }
+            .toast-container { top: 70px; right: 10px; max-width: 300px; }
+            nav { display: none !important; }
+            .hamburger { display: flex !important; }
+            .sidebar {
+                width: 280px;
+                right: calc(-1 * 280px);
+            }
+            .sidebar.open { right: 0; }
+            .sidebar-overlay { display: block; }
+        }
+
+        @media (max-width: 480px) {
+            .toast-container { top: 60px; right: 8px; max-width: 260px; }
+            .toast { padding: 10px 12px; }
+            .toast .toast-title { font-size: 0.75rem; }
+            .toast .toast-message { font-size: 0.65rem; }
+            .page-header h1 { font-size: 1.2rem; }
+            table { font-size: 0.55rem; min-width: 700px; }
+            th, td { padding: 4px 6px; }
+        }
+
+        @media (min-width: 769px) {
+            .hamburger { display: none !important; }
+            nav { display: flex !important; }
+            .sidebar-overlay { display: none !important; }
+        }
+
+        .modal-box.wide { max-width: 920px; }
+        .modal-box .mini-table-wrapper { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); margin-top: 6px; }
+        .modal-box .mini-table-wrapper table { min-width: 640px; font-size: 0.7rem; }
+        .badge-low { background: var(--rust-soft); color: var(--rust); }
+        .badge-ok { background: var(--teal-soft); color: var(--teal); }
+    </style>
+</head>
+<body>
+
+    <div class="swatch-stripe"><span></span><span></span><span></span><span></span></div>
+
+    <!-- ============================================================
+    SIDEBAR OVERLAY
+    ============================================================ -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ============================================================
+    SIDEBAR - القائمة الجانبية
+    ============================================================ -->
+    <nav class="sidebar" id="sidebar">
+        <div class="brand">
+            <div class="mark">🏭</div>
+            <div class="text">
+                نظام المصنع
+                <span>شركة رولكس للدهانات</span>
+            </div>
+            <button class="close-btn" id="closeSidebar"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="menu">
+            <div class="label">القائمة الرئيسية</div>
+            <a href="index.html" class="item"><i class="fas fa-house"></i> الرئيسية</a>
+            <a href="treasury.html" class="item"><i class="fas fa-coins"></i> الخزينة</a>
+            <a href="entry.html" class="item"><i class="fas fa-pen"></i> إدخال حركة</a>
+
+            <div class="label">المبيعات والمشتريات</div>
+            <a href="sales.html" class="item"><i class="fas fa-chart-line"></i> المبيعات</a>
+            <a href="purchases.html" class="item"><i class="fas fa-shopping-cart"></i> المشتريات</a>
+
+            <div class="label">العملاء والموردين</div>
+            <a href="clients.html" class="item"><i class="fas fa-users"></i> العملاء</a>
+            <a href="suppliers.html" class="item"><i class="fas fa-truck"></i> الموردين</a>
+
+            <div class="label">المخزون</div>
+            <a href="materials.html" class="item"><i class="fas fa-boxes"></i> الخامات</a>
+            <a href="products.html" class="item"><i class="fas fa-cubes"></i> المنتجات</a>
+            <a href="raw-material-stock.html" class="item active"><i class="fas fa-warehouse"></i> مخزن المواد الخام</a>
+            <a href="finished-goods-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المنتج التام</a>
+
+            <div class="label">الإنتاج</div>
+            <a href="formulations.html" class="item"><i class="fas fa-flask"></i> التركيبات</a>
+            <a href="production-orders.html" class="item"><i class="fas fa-industry"></i> أوامر الإنتاج</a>
+            <a href="costs.html" class="item"><i class="fas fa-calculator"></i> التكاليف</a>
+
+            <div class="label">التقارير</div>
+            <a href="reports.html" class="item"><i class="fas fa-file-lines"></i> التقارير</a>
+            <a href="invoices-summary.html" class="item"><i class="fas fa-file-invoice"></i> ملخص الفواتير</a>
+
+            <div class="label">الإعدادات</div>
+            <a href="tabs-settings.html" class="item"><i class="fas fa-tags"></i> التبويبات العامة</a>
+            <a href="settings.html" class="item"><i class="fas fa-gear"></i> الإعدادات</a>
+            <a href="help.html" class="item"><i class="fas fa-circle-question"></i> المساعدة</a>
+        </div>
+
+        <div class="footer">
+            <div class="user">
+                <div class="avatar">م</div>
+                <div class="info">
+                    <div class="name">محمد خلاف</div>
+                    <div class="role">مدير النظام</div>
+                </div>
+                <button class="logout-btn" onclick="logout()" title="تسجيل الخروج"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ============================================================
+    HEADER
+    ============================================================ -->
+    <header id="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-mark"><span></span><span></span><span></span><span></span></div>
+                <div class="logo-text">
+                    <h1>مخزن المواد الخام</h1>
+                    <span>QuickData ProSoft</span>
+                </div>
+            </div>
+            <nav>
+                <a href="materials.html">الخامات</a>
+                <a href="suppliers.html">الموردين</a>
+                <a href="#" class="active">مخزن المواد الخام</a>
+                <a href="finished-goods-stock.html">مخزن المنتج التام</a>
+                <a href="reports.html">التقارير</a>
+            </nav>
+            <div class="header-actions">
+                <button onclick="loadData()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
+                <button onclick="logout()" title="تسجيل الخروج"><i class="fas fa-sign-out-alt"></i></button>
+                <div class="hamburger" id="navToggle"><i class="fas fa-bars"></i></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================================================
+    TOAST
+    ============================================================ -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ============================================================
+    MAIN CONTENT
+    ============================================================ -->
+    <div class="main-content">
+
+        <!-- ===== PAGE HEADER ===== -->
+        <div class="page-header">
+            <h1><i class="fas fa-warehouse"></i> مخزن المواد الخام</h1>
+            <div class="actions">
+                <button class="btn-action primary" onclick="openMovementModal()">
+                    <i class="fas fa-right-left"></i> حركة جديدة
+                </button>
+                <button class="btn-action success" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel"></i> تصدير Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== FILTERS ===== -->
+        <div class="filters-section">
+            <div class="filter-group">
+                <label><i class="fas fa-tag"></i> اسم / كود الخامة</label>
+                <input type="text" id="filterMaterial" placeholder="ابحث بالاسم أو الكود..." />
+            </div>
+            <div class="filter-group" style="flex:0.6;min-width:150px;">
+                <label><i class="fas fa-circle"></i> حالة المخزون</label>
+                <select id="filterStockStatus">
+                    <option value="all">الكل</option>
+                    <option value="low">تحت الحد الأدنى</option>
+                    <option value="ok">طبيعي</option>
+                </select>
+            </div>
+            <button class="btn-filter" onclick="applyFilters()"><i class="fas fa-filter"></i> تطبيق</button>
+            <button class="btn-reset" onclick="resetFilters()"><i class="fas fa-undo"></i> إلغاء</button>
+        </div>
+
+        <!-- ===== SUMMARY ===== -->
+        <div class="summary-bar">
+            <div class="total">عدد الخامات: <span id="totalCount">0</span></div>
+            <div class="count">تحت الحد الأدنى: <span id="lowStockCount">0</span></div>
+            <div class="count">إجمالي قيمة المخزون: <span id="totalValue">0 ج.م</span></div>
+        </div>
+
+        <!-- ===== TABLE ===== -->
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>كود الخامة</th>
+                        <th>اسم الخامة</th>
+                        <th>الوحدة</th>
+                        <th style="text-align:center;">الرصيد الحالي</th>
+                        <th style="text-align:center;">الحد الأدنى</th>
+                        <th style="text-align:center;">قيمة الرصيد</th>
+                        <th>الحالة</th>
+                        <th style="text-align:center;">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="entriesBody">
+                    <tr>
+                        <td colspan="9">
+                            <div class="loading-state">
+                                <i class="fas fa-spinner"></i>
+                                <p>جاري تحميل البيانات...</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- ============================================================
+    MOVEMENT MODAL (إضافة حركة وارد/منصرف/تسوية)
+    ============================================================ -->
+    <div class="modal-overlay" id="movementModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fas fa-right-left"></i> حركة مخزون جديدة</h3>
+                <button class="close-modal" onclick="closeMovementModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="movementForm" onsubmit="saveMovement(event)">
+                <div class="form-group">
+                    <label>الخامة <span class="required">*</span></label>
+                    <select id="movementMaterial" required>
+                        <option value="">— اختر الخامة —</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>نوع الحركة <span class="required">*</span></label>
+                    <select id="movementType" onchange="onMovementTypeChange()">
+                        <option value="وارد">وارد (شراء / إضافة للمخزن)</option>
+                        <option value="منصرف">منصرف (سحب للإنتاج)</option>
+                        <option value="تسوية">تسوية جرد (زيادة أو نقص)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label id="movementQtyLabel">الكمية <span class="required">*</span></label>
+                    <input type="number" id="movementQty" placeholder="0.00" step="0.01" required />
+                    <div class="helper-text" id="movementQtyHelper">في حالة التسوية: ادخل رقم موجب للزيادة، أو سالب للنقص</div>
+                </div>
+                <div class="form-group">
+                    <label>سعر الوحدة (اختياري)</label>
+                    <input type="number" id="movementUnitCost" placeholder="0.00" min="0" step="0.01" value="0" />
+                </div>
+                <div class="form-group">
+                    <label>المرجع / المصدر</label>
+                    <input type="text" id="movementReference" placeholder="مثال: اسم المورد أو رقم أمر الإنتاج" />
+                </div>
+                <div class="form-group">
+                    <label>تاريخ الحركة</label>
+                    <input type="date" id="movementDate" />
+                </div>
+                <div class="form-group">
+                    <label>ملاحظات</label>
+                    <textarea id="movementNotes" placeholder="ملاحظات إضافية..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-save" id="movementSubmitBtn">
+                        <i class="fas fa-save"></i> حفظ الحركة
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="closeMovementModal()">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    HISTORY MODAL (سجل حركات الخامة)
+    ============================================================ -->
+    <div class="modal-overlay" id="historyModal">
+        <div class="modal-box wide">
+            <div class="modal-header">
+                <h3><i class="fas fa-clock-rotate-left"></i> <span id="historyTitle">سجل حركات الخامة</span></h3>
+                <button class="close-modal" onclick="closeHistoryModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="mini-table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>النوع</th>
+                            <th style="text-align:center;">الكمية</th>
+                            <th style="text-align:center;">سعر الوحدة</th>
+                            <th style="text-align:center;">الرصيد بعد الحركة</th>
+                            <th>المرجع</th>
+                            <th style="text-align:center;">حذف</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr><td colspan="7"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد حركات</p></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    JAVASCRIPT
+    ============================================================ -->
+    <script>
+        // ============================================================
+        // SIDEBAR TOGGLE
+        // ============================================================
+        var sidebar = document.getElementById('sidebar');
+        var sidebarOverlay = document.getElementById('sidebarOverlay');
+        var closeSidebarBtn = document.getElementById('closeSidebar');
+        var navToggle = document.getElementById('navToggle');
+
+        function openSidebar() {
+            sidebar.classList.add('open');
+            sidebarOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        navToggle.addEventListener('click', openSidebar);
+        closeSidebarBtn.addEventListener('click', closeSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeSidebar();
+                closeMovementModal();
+                closeHistoryModal();
+            }
+        });
+
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768 && sidebar.classList.contains('open')) {
+                closeSidebar();
+            }
+        });
+
+        // ============================================================
+        // DOM REFS
+        // ============================================================
+        var entriesBody = document.getElementById('entriesBody');
+        var totalCount = document.getElementById('totalCount');
+        var lowStockCount = document.getElementById('lowStockCount');
+        var totalValue = document.getElementById('totalValue');
+
+        var filterMaterial = document.getElementById('filterMaterial');
+        var filterStockStatus = document.getElementById('filterStockStatus');
+
+        var allMaterials = [];
+        var allMovements = [];
+        var currentHistoryMaterialId = null;
+
+        // ============================================================
+        // GET MATERIALS - باستخدام getTable من الملف المركزي
+        // ============================================================
+        async function getMaterials() {
+            try {
+                var data = await getTable('materials', 'code.asc');
+                return data || [];
+            } catch (error) {
+                console.error('❌ خطأ في جلب الخامات:', error);
+                return [];
+            }
+        }
+
+        // ============================================================
+        // GET MOVEMENTS - باستخدام getTable من الملف المركزي
+        // ============================================================
+        async function getMovements() {
+            try {
+                var data = await getTable('raw_material_movements');
+                return data || [];
+            } catch (error) {
+                console.error('❌ خطأ في جلب الحركات:', error);
+                return [];
+            }
+        }
+
+        // ============================================================
+        // SIGNED QUANTITY
+        // ============================================================
+        function signedQty(movement) {
+            var qty = parseFloat(movement.quantity) || 0;
+            if (movement.type === 'وارد') return Math.abs(qty);
+            if (movement.type === 'منصرف') return -Math.abs(qty);
+            return qty;
+        }
+
+        // ============================================================
+        // COMPUTE BALANCE
+        // ============================================================
+        function computeBalance(materialId) {
+            var balance = 0;
+            allMovements.forEach(function(mv) {
+                if (mv.material_id == materialId) balance += signedQty(mv);
+            });
+            return balance;
+        }
+
+        // ============================================================
+        // INSERT MOVEMENT - باستخدام insertRow من الملف المركزي
+        // ============================================================
+        async function insertMovement(data) {
+            var isValid = await checkSessionAndRedirect();
+            if (!isValid) throw new Error('جلسة منتهية');
+
+            var companyId = await getCompanyId();
+            if (!companyId) throw new Error('لم يتم العثور على الشركة');
+
+            var user = await getCurrentUserProfile();
+            if (!user) throw new Error('فشل جلب المستخدم');
+
+            var qty = parseFloat(data.quantity) || 0;
+            var unitCost = parseFloat(data.unit_cost) || 0;
+
+            var payload = {
+                company_id: companyId,
+                user_id: user.id,
+                material_id: data.material_id,
+                material_name: data.material_name || '',
+                type: data.type,
+                quantity: qty,
+                unit_cost: unitCost,
+                total_value: Math.abs(qty) * unitCost,
+                reference: data.reference || '',
+                notes: data.notes || '',
+                movement_date: data.movement_date || new Date().toISOString().split('T')[0]
+            };
+
+            return await insertRow('raw_material_movements', payload);
+        }
+
+        // ============================================================
+        // DELETE MOVEMENT - باستخدام deleteRows من الملف المركزي
+        // ============================================================
+        async function deleteMovement(id) {
+            await deleteRows('raw_material_movements', 'id', id);
+            return true;
+        }
+
+        // ============================================================
+        // POPULATE MATERIAL SELECT
+        // ============================================================
+        function populateMaterialSelect() {
+            var select = document.getElementById('movementMaterial');
+            select.innerHTML = '<option value="">— اختر الخامة —</option>';
+            allMaterials.forEach(function(m) {
+                var opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = (m.code ? m.code + ' — ' : '') + m.name;
+                select.appendChild(opt);
+            });
+        }
+
+        function onMovementTypeChange() {
+            var type = document.getElementById('movementType').value;
+            var qtyInput = document.getElementById('movementQty');
+            var helper = document.getElementById('movementQtyHelper');
+            if (type === 'تسوية') {
+                helper.style.display = 'block';
+                qtyInput.removeAttribute('min');
+            } else {
+                helper.style.display = 'none';
+                qtyInput.setAttribute('min', '0.01');
+            }
+        }
+
+        // ============================================================
+        // DISPLAY STOCK
+        // ============================================================
+        function displayStock() {
+            var filtered = filterStock(allMaterials);
+
+            var total = filtered.length;
+            var low = 0;
+            var value = 0;
+
+            filtered.forEach(function(m) {
+                var bal = computeBalance(m.id);
+                var minStock = parseFloat(m.min_stock) || 0;
+                if (minStock > 0 && bal < minStock) low++;
+                value += bal * (parseFloat(m.cost_price) || 0);
+            });
+
+            totalCount.textContent = total;
+            lowStockCount.textContent = low;
+            totalValue.textContent = formatNumber(value) + ' ج.م';
+
+            if (filtered.length === 0) {
+                entriesBody.innerHTML =
+                    '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد خامات</p></div></td></tr>';
+                return;
+            }
+
+            var html = '';
+            filtered.forEach(function(m, index) {
+                var bal = computeBalance(m.id);
+                var minStock = parseFloat(m.min_stock) || 0;
+                var isLow = minStock > 0 && bal < minStock;
+                var stockBadge = isLow ?
+                    '<span class="badge-status badge-low">تحت الحد الأدنى</span>' :
+                    '<span class="badge-status badge-ok">طبيعي</span>';
+                var rowValue = bal * (parseFloat(m.cost_price) || 0);
+
+                html += '<tr>' +
+                    '<td>' + (index + 1) + '</td>' +
+                    '<td style="color:var(--accent-ink);font-weight:700;">' + (m.code || '-') + '</td>' +
+                    '<td style="font-weight:700;">' + (m.name || '-') + '</td>' +
+                    '<td>' + (m.unit || '-') + '</td>' +
+                    '<td style="text-align:center;font-weight:700;' + (isLow ? 'color:var(--rust);' : '') + '">' + formatNumber(bal) + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(minStock) + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(rowValue) + '</td>' +
+                    '<td>' + stockBadge + '</td>' +
+                    '<td style="text-align:center;">' +
+                    '<button class="btn-action" onclick="openMovementModal(\'' + m.id + '\')" style="padding:4px 8px;font-size:0.6rem;background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent-soft);"><i class="fas fa-plus"></i></button> ' +
+                    '<button class="btn-action" onclick="openHistoryModal(\'' + m.id + '\')" style="padding:4px 8px;font-size:0.6rem;"><i class="fas fa-clock-rotate-left"></i></button>' +
+                    '</td>' +
+                    '</tr>';
+            });
+
+            entriesBody.innerHTML = html;
+        }
+
+        // ============================================================
+        // FILTER STOCK
+        // ============================================================
+        function filterStock(materials) {
+            var search = filterMaterial.value.trim().toLowerCase();
+            var stockStatus = filterStockStatus.value;
+
+            return materials.filter(function(m) {
+                if (search) {
+                    var name = (m.name || '').toLowerCase();
+                    var code = (m.code || '').toLowerCase();
+                    if (!name.includes(search) && !code.includes(search)) return false;
+                }
+
+                if (stockStatus !== 'all') {
+                    var bal = computeBalance(m.id);
+                    var minStock = parseFloat(m.min_stock) || 0;
+                    var isLow = minStock > 0 && bal < minStock;
+                    if (stockStatus === 'low' && !isLow) return false;
+                    if (stockStatus === 'ok' && isLow) return false;
+                }
+
+                return true;
+            });
+        }
+
+        // ============================================================
+        // APPLY / RESET FILTERS
+        // ============================================================
+        function applyFilters() {
+            displayStock();
+        }
+
+        function resetFilters() {
+            filterMaterial.value = '';
+            filterStockStatus.value = 'all';
+            displayStock();
+        }
+
+        // ============================================================
+        // MOVEMENT MODAL
+        // ============================================================
+        function openMovementModal(materialId) {
+            document.getElementById('movementForm').reset();
+            document.getElementById('movementUnitCost').value = '0';
+            document.getElementById('movementDate').value = new Date().toISOString().split('T')[0];
+            populateMaterialSelect();
+            if (materialId) {
+                document.getElementById('movementMaterial').value = materialId;
+            }
+            onMovementTypeChange();
+            document.getElementById('movementModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMovementModal() {
+            document.getElementById('movementModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        async function saveMovement(event) {
+            event.preventDefault();
+
+            var materialSelect = document.getElementById('movementMaterial');
+            var materialId = materialSelect.value;
+            var materialName = materialId ? materialSelect.options[materialSelect.selectedIndex].textContent : '';
+            var type = document.getElementById('movementType').value;
+            var qty = parseFloat(document.getElementById('movementQty').value);
+
+            if (!materialId) {
+                showToast('⚠️ تنبيه', 'يرجى اختيار الخامة', 'error');
+                return;
+            }
+            if (isNaN(qty) || qty === 0) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال كمية صحيحة', 'error');
+                return;
+            }
+            if (type !== 'تسوية' && qty < 0) {
+                showToast('⚠️ تنبيه', 'الكمية يجب أن تكون موجبة لحركات الوارد والمنصرف', 'error');
+                return;
+            }
+
+            var data = {
+                material_id: materialId,
+                material_name: materialName,
+                type: type,
+                quantity: qty,
+                unit_cost: parseFloat(document.getElementById('movementUnitCost').value) || 0,
+                reference: document.getElementById('movementReference').value.trim(),
+                notes: document.getElementById('movementNotes').value.trim(),
+                movement_date: document.getElementById('movementDate').value
+            };
+
+            var btn = document.getElementById('movementSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+
+            try {
+                await insertMovement(data);
+                showToast('✅ تم الحفظ', 'تم تسجيل الحركة بنجاح', 'success');
+                closeMovementModal();
+                loadData();
+            } catch (error) {
+                showToast('❌ خطأ', error.message || 'فشل حفظ الحركة', 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> حفظ الحركة';
+        }
+
+        // ============================================================
+        // HISTORY MODAL
+        // ============================================================
+        function openHistoryModal(materialId) {
+            currentHistoryMaterialId = materialId;
+            var material = allMaterials.find(function(m) { return m.id == materialId; });
+            document.getElementById('historyTitle').textContent =
+                'سجل حركات: ' + (material ? material.name : '');
+
+            renderHistory(materialId);
+
+            document.getElementById('historyModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.remove('active');
+            document.body.style.overflow = '';
+            currentHistoryMaterialId = null;
+        }
+
+        function renderHistory(materialId) {
+            var movements = allMovements.filter(function(mv) { return mv.material_id == materialId; });
+            var historyBody = document.getElementById('historyBody');
+
+            if (movements.length === 0) {
+                historyBody.innerHTML =
+                    '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد حركات</p></div></td></tr>';
+                return;
+            }
+
+            var sorted = movements.slice().sort(function(a, b) {
+                return new Date(a.movement_date) - new Date(b.movement_date);
+            });
+
+            var running = 0;
+            var html = '';
+            sorted.forEach(function(mv) {
+                running += signedQty(mv);
+                var typeColor = mv.type === 'وارد' ? 'var(--teal)' : (mv.type === 'منصرف' ? 'var(--rust)' : 'var(--blue)');
+                html += '<tr>' +
+                    '<td>' + formatDate(mv.movement_date) + '</td>' +
+                    '<td style="color:' + typeColor + ';font-weight:700;">' + mv.type + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(signedQty(mv)) + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(mv.unit_cost) + '</td>' +
+                    '<td style="text-align:center;font-weight:700;">' + formatNumber(running) + '</td>' +
+                    '<td>' + (mv.reference || '-') + '</td>' +
+                    '<td style="text-align:center;">' +
+                    '<button class="btn-action danger" onclick="deleteMovementConfirm(\'' + mv.id + '\')" style="padding:3px 7px;font-size:0.6rem;"><i class="fas fa-trash"></i></button>' +
+                    '</td>' +
+                    '</tr>';
+            });
+
+            historyBody.innerHTML = html;
+        }
+
+        function deleteMovementConfirm(id) {
+            if (!confirm('هل أنت متأكد من حذف هذه الحركة؟ سيتم إعادة حساب الرصيد تلقائيًا.')) return;
+
+            deleteMovement(id)
+                .then(async function() {
+                    showToast('✅ تم الحذف', 'تم حذف الحركة بنجاح', 'success');
+                    await loadData();
+                    if (currentHistoryMaterialId) renderHistory(currentHistoryMaterialId);
+                })
+                .catch(function(error) {
+                    showToast('❌ خطأ', error.message || 'فشل الحذف', 'error');
+                });
+        }
+
+        // ============================================================
+        // EXPORT TO EXCEL
+        // ============================================================
+        function exportToExcel() {
+            if (!allMaterials || allMaterials.length === 0) {
+                showToast('⚠️ تنبيه', 'لا توجد بيانات لتصديرها', 'warning');
+                return;
+            }
+
+            try {
+                var excelData = allMaterials.map(function(m) {
+                    var bal = computeBalance(m.id);
+                    return {
+                        'كود الخامة': m.code || '',
+                        'اسم الخامة': m.name || '',
+                        'الوحدة': m.unit || '',
+                        'الرصيد الحالي': bal,
+                        'الحد الأدنى': m.min_stock || 0,
+                        'قيمة الرصيد': bal * (parseFloat(m.cost_price) || 0),
+                        'الحالة': (m.min_stock > 0 && bal < m.min_stock) ? 'تحت الحد الأدنى' : 'طبيعي'
+                    };
+                });
+
+                var ws = XLSX.utils.json_to_sheet(excelData);
+                var wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'مخزن المواد الخام');
+
+                ws['!cols'] = [
+                    { wch: 15 }, { wch: 25 }, { wch: 10 }, { wch: 14 },
+                    { wch: 12 }, { wch: 16 }, { wch: 16 }
+                ];
+
+                var filename = 'مخزن_المواد_الخام_' + new Date().toISOString().split('T')[0] + '.xlsx';
+                XLSX.writeFile(wb, filename);
+
+                showToast('✅ تم التصدير', 'تم تصدير بيانات المخزن بنجاح', 'success');
+
+            } catch (error) {
+                console.error('❌ خطأ في التصدير:', error);
+                showToast('❌ خطأ', 'فشل تصدير البيانات', 'error');
+            }
+        }
+
+        // ============================================================
+        // LOAD DATA
+        // ============================================================
+        async function loadData() {
+            entriesBody.innerHTML =
+                '<tr><td colspan="9"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
+
+            var results = await Promise.all([getMaterials(), getMovements()]);
+            allMaterials = results[0];
+            allMovements = results[1];
+            displayStock();
+        }
+
+        // ============================================================
+        // CLOSE MODAL ON OVERLAY CLICK
+        // ============================================================
+        document.getElementById('movementModal').addEventListener('click', function(e) {
+            if (e.target === this) closeMovementModal();
+        });
+
+        document.getElementById('historyModal').addEventListener('click', function(e) {
+            if (e.target === this) closeHistoryModal();
+        });
+
+        // ============================================================
+        // EXPOSE FUNCTIONS TO GLOBAL
+        // ============================================================
+        window.applyFilters = applyFilters;
+        window.resetFilters = resetFilters;
+        window.loadData = loadData;
+        window.openMovementModal = openMovementModal;
+        window.closeMovementModal = closeMovementModal;
+        window.saveMovement = saveMovement;
+        window.onMovementTypeChange = onMovementTypeChange;
+        window.openHistoryModal = openHistoryModal;
+        window.closeHistoryModal = closeHistoryModal;
+        window.deleteMovementConfirm = deleteMovementConfirm;
+        window.exportToExcel = exportToExcel;
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        (async function init() {
+            console.log('🏭 صفحة مخزن المواد الخام - QuickData ProSoft');
+            console.log('🔗 Supabase URL:', SUPABASE_URL);
+
+            var token = getToken();
+            if (!token) {
+                entriesBody.innerHTML =
+                    '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول للوصول إلى هذه الصفحة</p></div></td></tr>';
+                setTimeout(function() {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+
+            await loadData();
+
+            setTimeout(function() {
+                startSessionMonitor();
+            }, 3000);
+        })();
+    </script>
+
+</body>
+</html>
