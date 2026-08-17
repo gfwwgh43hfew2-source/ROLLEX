@@ -8,84 +8,61 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- ===== إضافة الملف المركزي ===== -->
+    <script src="supabase-client.js"></script>
     <style>
-        /* ============================================================
-           QuickData ProSoft — نظام إدارة العملاء
-           هوية بصرية: "حبر وبراص" — ثيم فاتح فاخر مستوحى من عالم الدهانات
-           ============================================================ */
+        /* ===== نفس الـ CSS الأصلي ===== */
         :root {
-            /* --- Brass / brand accent (deeper, richer than generic gold) --- */
             --gold: #b3813a;
             --gold-light: #f1e0ba;
             --gold-dark: #8a611f;
             --gold-glow: rgba(179, 129, 58, 0.11);
             --gold-gradient: linear-gradient(135deg, #d3a25a 0%, #b3813a 48%, #8a611f 100%);
             --gold-line: linear-gradient(90deg, transparent, #b3813a, transparent);
-
-            /* --- Secondary accent: deep ink-navy (used for "info" instead of generic blue) --- */
             --navy: #212b42;
             --navy-light: #384464;
             --navy-glow: rgba(33, 43, 66, 0.07);
             --navy-gradient: linear-gradient(135deg, #384464 0%, #212b42 100%);
-
-            /* --- Warm paper surfaces (not cold gray) --- */
             --bg-primary: #f2efe6;
             --bg-card: #ffffff;
             --bg-card-hover: #faf8f2;
-
-            /* --- Ink text --- */
             --text-primary: #14141b;
             --text-secondary: #24252f;
             --text-muted: #6c6d79;
             --text-light: #9b9ca6;
-
             --border-color: #e7e2d3;
             --border-focus: var(--gold);
-
-            /* --- Semantic (muted, premium tones) --- */
             --success: #1e7856;
             --success-bg: rgba(30, 120, 86, 0.09);
             --danger: #ad3f30;
             --danger-bg: rgba(173, 63, 48, 0.09);
             --warning: #a5701f;
             --warning-bg: rgba(165, 112, 31, 0.09);
-
-            /* --- Warm-tinted elevation --- */
             --shadow-sm: 0 1px 2px rgba(24, 20, 8, 0.05), 0 1px 1px rgba(24, 20, 8, 0.04);
             --shadow-md: 0 6px 18px rgba(24, 20, 8, 0.07), 0 2px 6px rgba(24, 20, 8, 0.04);
             --shadow-lg: 0 16px 40px rgba(24, 20, 8, 0.10);
             --shadow-xl: 0 28px 64px rgba(24, 20, 8, 0.14);
             --shadow-gold: 0 8px 22px rgba(179, 129, 58, 0.28);
             --shadow-gold-lg: 0 14px 34px rgba(179, 129, 58, 0.34);
-
             --radius-sm: 6px;
             --radius-md: 9px;
             --radius-lg: 13px;
             --radius-xl: 16px;
             --radius-2xl: 20px;
-
             --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             --font: 'Cairo', sans-serif;
             --sidebar-width: 278px;
             --header-height: 68px;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
 
         body {
             font-family: var(--font);
-            background:
-                radial-gradient(ellipse 900px 500px at 15% -8%, rgba(179,129,58,0.05), transparent 60%),
-                radial-gradient(ellipse 700px 500px at 100% 0%, rgba(33,43,66,0.035), transparent 55%),
-                var(--bg-primary);
+            background: radial-gradient(ellipse 900px 500px at 15% -8%, rgba(179,129,58,0.05), transparent 60%),
+                        radial-gradient(ellipse 700px 500px at 100% 0%, rgba(33,43,66,0.035), transparent 55%),
+                        var(--bg-primary);
             color: var(--text-primary);
             direction: rtl;
             min-height: 100vh;
@@ -93,43 +70,16 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        .container {
-            max-width: 1440px;
-            margin: 0 auto;
-            padding: 0 18px;
-        }
+        .container { max-width: 1440px; margin: 0 auto; padding: 0 18px; }
+        ::selection { background: var(--gold-light); color: var(--gold-dark); }
+        :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
-        ::selection {
-            background: var(--gold-light);
-            color: var(--gold-dark);
-        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--gold-dark); }
 
-        :focus-visible {
-            outline: 2px solid var(--gold);
-            outline-offset: 2px;
-        }
-
-        /* ============================================================
-           SCROLLBAR
-           ============================================================ */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--gold);
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--gold-dark);
-        }
-
-        /* ============================================================
-           SIDEBAR OVERLAY
-           ============================================================ */
+        /* ===== SIDEBAR OVERLAY ===== */
         .sidebar-overlay {
             display: none;
             position: fixed;
@@ -141,14 +91,9 @@
             transition: opacity 0.3s ease;
             pointer-events: none;
         }
-        .sidebar-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
+        .sidebar-overlay.active { opacity: 1; pointer-events: auto; }
 
-        /* ============================================================
-           SIDEBAR
-           ============================================================ */
+        /* ===== SIDEBAR ===== */
         .sidebar {
             position: fixed;
             top: 0;
@@ -164,9 +109,7 @@
             box-shadow: var(--shadow-xl);
             overflow-y: auto;
         }
-        .sidebar.open {
-            right: 0;
-        }
+        .sidebar.open { right: 0; }
 
         .sidebar .brand {
             padding: 24px 20px 20px;
@@ -178,7 +121,6 @@
             position: relative;
             overflow: hidden;
         }
-        /* signature: a soft diagonal "brushstroke" of brass sweeping the brand panel */
         .sidebar .brand::before {
             content: '';
             position: absolute;
@@ -239,10 +181,7 @@
             position: relative;
             z-index: 1;
         }
-        .sidebar .close-btn:hover {
-            background: rgba(255,255,255,0.2);
-            color: #fff;
-        }
+        .sidebar .close-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
 
         .sidebar .menu {
             flex: 1;
@@ -268,9 +207,7 @@
             background: var(--gold);
             border-radius: 2px;
         }
-        .sidebar .menu .label:first-child {
-            padding-top: 2px;
-        }
+        .sidebar .menu .label:first-child { padding-top: 2px; }
         .sidebar .menu .item {
             display: flex;
             align-items: center;
@@ -304,12 +241,8 @@
             color: var(--text-light);
             transition: var(--transition);
         }
-        .sidebar .menu .item.active i {
-            color: var(--gold);
-        }
-        .sidebar .menu .item:hover i {
-            color: var(--gold);
-        }
+        .sidebar .menu .item.active i { color: var(--gold); }
+        .sidebar .menu .item:hover i { color: var(--gold); }
 
         .sidebar .footer {
             padding: 14px 18px;
@@ -360,9 +293,7 @@
             color: var(--danger);
         }
 
-        /* ============================================================
-           TOP RIBBON — signature brass letterhead line
-           ============================================================ */
+        /* ===== TOP RIBBON ===== */
         .top-ribbon {
             max-width: 1440px;
             margin: 0 auto 14px;
@@ -382,9 +313,7 @@
         }
         .top-ribbon i { color: var(--gold); font-size: 0.6rem; }
 
-        /* ============================================================
-           HEADER
-           ============================================================ */
+        /* ===== HEADER ===== */
         header {
             position: sticky;
             top: 0;
@@ -402,9 +331,7 @@
             margin-bottom: 22px;
             transition: var(--transition);
         }
-        header:hover {
-            box-shadow: var(--shadow-md);
-        }
+        header:hover { box-shadow: var(--shadow-md); }
 
         .header-left {
             display: flex;
@@ -465,9 +392,7 @@
             line-height: 1.15;
             letter-spacing: -0.3px;
         }
-        .logo-text h1 span {
-            color: var(--gold);
-        }
+        .logo-text h1 span { color: var(--gold); }
         .logo-text .sub {
             font-size: 0.46rem;
             color: var(--text-light);
@@ -504,9 +429,7 @@
             transform: translateY(-1px);
         }
 
-        /* ============================================================
-           PAGE HEADER
-           ============================================================ */
+        /* ===== PAGE HEADER ===== */
         .page-header {
             margin-bottom: 22px;
             display: flex;
@@ -547,9 +470,7 @@
             color: var(--text-secondary);
             letter-spacing: -0.5px;
         }
-        .page-header h1 .highlight {
-            color: var(--gold);
-        }
+        .page-header h1 .highlight { color: var(--gold); }
         .page-header .subtitle {
             font-size: 0.76rem;
             color: var(--text-light);
@@ -620,9 +541,7 @@
             color: #fff;
         }
 
-        /* ============================================================
-           FILTERS
-           ============================================================ */
+        /* ===== FILTERS ===== */
         .filters-section {
             display: flex;
             flex-wrap: wrap;
@@ -636,9 +555,7 @@
             align-items: center;
             transition: var(--transition);
         }
-        .filters-section:hover {
-            box-shadow: var(--shadow-md);
-        }
+        .filters-section:hover { box-shadow: var(--shadow-md); }
         .filters-section .filter-group {
             display: flex;
             align-items: center;
@@ -655,9 +572,7 @@
             align-items: center;
             gap: 4px;
         }
-        .filters-section .filter-group label i {
-            color: var(--gold);
-        }
+        .filters-section .filter-group label i { color: var(--gold); }
         .filters-section .filter-group input,
         .filters-section .filter-group select {
             width: 100%;
@@ -677,9 +592,7 @@
             background: var(--bg-card);
             box-shadow: 0 0 0 3px var(--gold-glow);
         }
-        .filters-section .filter-group input::placeholder {
-            color: var(--text-light);
-        }
+        .filters-section .filter-group input::placeholder { color: var(--text-light); }
 
         .btn-filter {
             padding: 9px 24px;
@@ -724,9 +637,7 @@
             border-color: var(--gold);
         }
 
-        /* ============================================================
-           SUMMARY / STAT CARDS
-           ============================================================ */
+        /* ===== SUMMARY ===== */
         .summary-bar {
             display: flex;
             flex-wrap: wrap;
@@ -735,7 +646,6 @@
             align-items: stretch;
             justify-content: space-between;
         }
-
         .summary-bar .stat-item {
             display: flex;
             align-items: center;
@@ -789,10 +699,7 @@
             letter-spacing: -0.3px;
             font-variant-numeric: tabular-nums;
         }
-        .summary-bar .stat-item .stat-info .stat-value .gold {
-            color: var(--gold);
-        }
-
+        .summary-bar .stat-item .stat-info .stat-value .gold { color: var(--gold); }
         .summary-bar .badge-stat {
             display: inline-flex;
             align-items: center;
@@ -810,9 +717,7 @@
         .summary-bar .badge-stat i { color: var(--gold); }
         .summary-bar .badge-stat span { color: var(--text-secondary); font-weight: 800; }
 
-        /* ============================================================
-           TABLE
-           ============================================================ */
+        /* ===== TABLE ===== */
         .table-wrapper {
             background: var(--bg-card);
             border-radius: var(--radius-xl);
@@ -821,9 +726,7 @@
             box-shadow: var(--shadow-sm);
             transition: var(--transition);
         }
-        .table-wrapper:hover {
-            box-shadow: var(--shadow-md);
-        }
+        .table-wrapper:hover { box-shadow: var(--shadow-md); }
 
         table {
             width: 100%;
@@ -835,7 +738,6 @@
         thead {
             background: var(--bg-primary);
         }
-
         th {
             color: var(--text-muted);
             padding: 14px 16px;
@@ -875,18 +777,10 @@
             font-size: 0.72rem;
             transition: var(--transition);
         }
-        tr {
-            transition: var(--transition);
-        }
-        tbody tr:hover td {
-            background: var(--bg-card-hover);
-        }
-        tbody tr:hover {
-            box-shadow: inset 3px 0 0 0 var(--gold);
-        }
-        tr:last-child td {
-            border-bottom: none;
-        }
+        tr { transition: var(--transition); }
+        tbody tr:hover td { background: var(--bg-card-hover); }
+        tbody tr:hover { box-shadow: inset 3px 0 0 0 var(--gold); }
+        tr:last-child td { border-bottom: none; }
 
         .badge-status {
             display: inline-flex;
@@ -910,25 +804,19 @@
             border: 1px solid rgba(30,120,86,0.16);
             color: var(--success);
         }
-        .badge-status.active::before {
-            background: var(--success);
-        }
+        .badge-status.active::before { background: var(--success); }
         .badge-status.inactive {
             background: var(--danger-bg);
             border: 1px solid rgba(173,63,48,0.16);
             color: var(--danger);
         }
-        .badge-status.inactive::before {
-            background: var(--danger);
-        }
+        .badge-status.inactive::before { background: var(--danger); }
         .badge-status.suspended {
             background: var(--warning-bg);
             border: 1px solid rgba(165,112,31,0.16);
             color: var(--warning);
         }
-        .badge-status.suspended::before {
-            background: var(--warning);
-        }
+        .badge-status.suspended::before { background: var(--warning); }
 
         .code-cell {
             color: var(--gold-dark);
@@ -950,19 +838,11 @@
             font-weight: 700;
             font-variant-numeric: tabular-nums;
         }
-        .amount-cell.gold {
-            color: var(--gold-dark);
-        }
-        .amount-cell.positive {
-            color: var(--success);
-        }
-        .amount-cell.negative {
-            color: var(--danger);
-        }
+        .amount-cell.gold { color: var(--gold-dark); }
+        .amount-cell.positive { color: var(--success); }
+        .amount-cell.negative { color: var(--danger); }
 
-        /* ============================================================
-           MODAL
-           ============================================================ */
+        /* ===== MODAL ===== */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -974,9 +854,7 @@
             align-items: center;
             padding: 20px;
         }
-        .modal-overlay.active {
-            display: flex;
-        }
+        .modal-overlay.active { display: flex; }
 
         .modal-box {
             background: var(--bg-card);
@@ -1020,9 +898,7 @@
             align-items: center;
             gap: 10px;
         }
-        .modal-box .modal-header h3 i {
-            color: var(--gold);
-        }
+        .modal-box .modal-header h3 i { color: var(--gold); }
         .modal-box .modal-header .close-modal {
             background: none;
             border: none;
@@ -1042,9 +918,7 @@
             background: var(--danger-bg);
         }
 
-        .modal-box .form-group {
-            margin-bottom: 18px;
-        }
+        .modal-box .form-group { margin-bottom: 18px; }
         .modal-box .form-group label {
             display: block;
             font-size: 0.72rem;
@@ -1130,9 +1004,7 @@
             color: var(--text-secondary);
         }
 
-        /* ============================================================
-           TOAST
-           ============================================================ */
+        /* ===== TOAST ===== */
         .toast-container {
             position: fixed;
             top: 80px;
@@ -1144,47 +1016,8 @@
             max-width: 400px;
             width: 100%;
         }
-        .toast {
-            background: var(--bg-card);
-            padding: 14px 20px;
-            border-radius: var(--radius-lg);
-            border-right: 4px solid var(--gold);
-            box-shadow: var(--shadow-lg);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            animation: slideInRight 0.35s ease;
-            border: 1px solid var(--border-color);
-            width: 100%;
-        }
-        .toast.success { border-right-color: var(--success); }
-        .toast.error { border-right-color: var(--danger); }
-        .toast.warning { border-right-color: var(--warning); }
 
-        .toast .icon { font-size: 1.1rem; flex-shrink: 0; }
-        .toast .icon.success { color: var(--success); }
-        .toast .icon.error { color: var(--danger); }
-        .toast .icon.warning { color: var(--warning); }
-
-        .toast .content { flex: 1; }
-        .toast .content .title {
-            font-size: 0.82rem;
-            font-weight: 700;
-            color: var(--text-secondary);
-        }
-        .toast .content .message {
-            font-size: 0.72rem;
-            color: var(--text-muted);
-        }
-
-        @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(-30px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        /* ============================================================
-           EMPTY & LOADING
-           ============================================================ */
+        /* ===== EMPTY & LOADING ===== */
         .empty-state {
             text-align: center;
             padding: 56px 20px;
@@ -1219,14 +1052,11 @@
             color: var(--text-muted);
             font-weight: 600;
         }
-
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
 
-        /* ============================================================
-           RESPONSIVE
-           ============================================================ */
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 1024px) {
             .page-header h1 { font-size: 1.4rem; }
         }
@@ -1345,14 +1175,10 @@
 </head>
 <body>
 
-    <!-- ============================================================
-    SIDEBAR OVERLAY
-    ============================================================ -->
+    <!-- ===== SIDEBAR OVERLAY ===== -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <!-- ============================================================
-    SIDEBAR
-    ============================================================ -->
+    <!-- ===== SIDEBAR ===== -->
     <nav class="sidebar" id="sidebar">
         <div class="brand">
             <div class="mark"><i class="fas fa-paint-roller"></i></div>
@@ -1408,9 +1234,7 @@
         </div>
     </nav>
 
-    <!-- ============================================================
-    TOP RIBBON
-    ============================================================ -->
+    <!-- ===== TOP RIBBON ===== -->
     <div class="top-ribbon">
         <i class="fas fa-swatchbook"></i>
         <span>QuickData ProSoft · نظام إدارة المبيعات</span>
@@ -1418,9 +1242,7 @@
         <span>شركة رولكس للدهانات</span>
     </div>
 
-    <!-- ============================================================
-    HEADER
-    ============================================================ -->
+    <!-- ===== HEADER ===== -->
     <header>
         <div class="header-left">
             <button class="hamburger" id="openSidebar"><i class="fas fa-bars"></i></button>
@@ -1438,9 +1260,7 @@
         </div>
     </header>
 
-    <!-- ============================================================
-    CONTENT
-    ============================================================ -->
+    <!-- ===== CONTENT ===== -->
     <div class="container">
 
         <!-- PAGE HEADER -->
@@ -1580,7 +1400,7 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- ============================================================
-    JAVASCRIPT - مع إصلاح مشكلة انتهاء الجلسة الفورية وإلغاء التحديث التلقائي
+    JAVASCRIPT - دوال خاصة بالصفحة فقط
     ============================================================ -->
     <script>
         // ============================================================
@@ -1609,29 +1429,6 @@
         });
 
         // ============================================================
-        // LOGOUT - مع إيقاف مراقبة الجلسة
-        // ============================================================
-        function logout() {
-            if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
-                if (monitorInterval) {
-                    clearInterval(monitorInterval);
-                    monitorInterval = null;
-                }
-                sessionMonitorStarted = false;
-                localStorage.removeItem('rollex_session');
-                sessionStorage.removeItem('rollex_session');
-                window.location.href = 'login.html';
-            }
-        }
-
-        // ============================================================
-        // SUPABASE
-        // ============================================================
-        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
-        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
-        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // ============================================================
         // DOM REFS
         // ============================================================
         var entriesBody = document.getElementById('entriesBody');
@@ -1644,284 +1441,11 @@
         var allClients = [];
 
         // ============================================================
-        // TOAST
-        // ============================================================
-        function showToast(title, message, type) {
-            var container = document.getElementById('toastContainer');
-            var toast = document.createElement('div');
-            toast.className = 'toast ' + (type || '');
-            var icons = {
-                'success': { icon: 'fa-circle-check', cls: 'success' },
-                'error': { icon: 'fa-circle-xmark', cls: 'error' },
-                'warning': { icon: 'fa-triangle-exclamation', cls: 'warning' }
-            };
-            var t = icons[type] || icons['warning'];
-            toast.innerHTML = '<span class="icon ' + t.cls + '"><i class="fas ' + t.icon + '"></i></span>' +
-                '<div class="content"><div class="title">' + title + '</div><div class="message">' + message + '</div></div>';
-            container.appendChild(toast);
-            setTimeout(function() {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateX(-30px)';
-                setTimeout(function() { toast.remove(); }, 400);
-            }, 4000);
-        }
-
-        // ============================================================
-        // SESSION - محسّن
-        // ============================================================
-        function getSession() {
-            var s = localStorage.getItem('rollex_session');
-            if (!s) return null;
-            try { return JSON.parse(s); } catch(e) { return null; }
-        }
-        
-        function getToken() {
-            var s = getSession();
-            return s ? s.access_token : null;
-        }
-
-        // ============================================================
-        // SESSION EXPIRY WARNING - تحذير قبل انتهاء الجلسة (معدل)
-        // ============================================================
-        var monitorInterval = null;
-        var warningShown = false;
-        var warningShown2 = false;
-        var warningShown3 = false;
-        var sessionMonitorStarted = false;
-
-        // دالة لحساب الوقت المتبقي للجلسة - معدلة
-        function getSessionExpiryTime() {
-            var session = getSession();
-            if (!session) return null;
-            
-            // 1. محاولة استخراج وقت الانتهاء من expires_at
-            if (session.expires_at) {
-                return session.expires_at;
-            }
-            
-            // 2. محاولة استخراج من access_token (JWT)
-            if (session.access_token) {
-                try {
-                    var parts = session.access_token.split('.');
-                    if (parts.length === 3) {
-                        var payload = JSON.parse(atob(parts[1]));
-                        if (payload.exp) {
-                            return payload.exp * 1000;
-                        }
-                    }
-                } catch(e) {
-                    console.warn('⚠️ تعذر فك تشفير التوكن:', e);
-                }
-            }
-            
-            // 3. إذا كان هناك created_at، نضيف ساعة واحدة
-            if (session.created_at) {
-                try {
-                    var created = new Date(session.created_at).getTime();
-                    if (!isNaN(created)) {
-                        return created + (60 * 60 * 1000);
-                    }
-                } catch(e) {
-                    console.warn('⚠️ تعذر قراءة created_at:', e);
-                }
-            }
-            
-            // 4. وقت افتراضي (ساعة من الآن) - يمنع إنهاء الجلسة فوراً
-            console.warn('⚠️ لم نتمكن من تحديد وقت انتهاء الجلسة، نستخدم وقت افتراضي');
-            return Date.now() + (60 * 60 * 1000);
-        }
-
-        // دالة للتحقق من الوقت المتبقي - معدلة
-        function checkSessionExpiry() {
-            var token = getToken();
-            if (!token) return true;
-            
-            var expiryTime = getSessionExpiryTime();
-            if (!expiryTime) {
-                console.log('⏳ لا يمكن تحديد وقت الانتهاء، نعتبر الجلسة صالحة');
-                return true;
-            }
-            
-            var now = Date.now();
-            var timeLeft = expiryTime - now;
-            var minutesLeft = Math.floor(timeLeft / (60 * 1000));
-            var secondsLeft = Math.floor((timeLeft % (60 * 1000)) / 1000);
-            
-            // إذا كان الوقت المتبقي أقل من دقيقة، نعتبر الجلسة على وشك الانتهاء
-            if (timeLeft < 60000 && timeLeft > 0) {
-                console.log(`⏳ الوقت المتبقي للجلسة: ${secondsLeft} ثانية`);
-                return true;
-            }
-            
-            // إذا كانت الجلسة منتهية (وقت سالب) - نترك validateToken يتعامل معها
-            if (timeLeft <= 0) {
-                console.warn('⚠️ الجلسة منتهية حسب الوقت المحسوب');
-                return true;
-            }
-            
-            // عرض تحذير عند 5 دقائق متبقية
-            if (timeLeft < 300000 && timeLeft > 240000 && !warningShown) {
-                warningShown = true;
-                showToast(
-                    '⏳ تنبيه هام',
-                    `جلسة العمل ستنتهي خلال ${minutesLeft} دقيقة، يرجى حفظ عملك`,
-                    'warning'
-                );
-                return true;
-            }
-            
-            // عرض تحذير عند 3 دقائق متبقية
-            if (timeLeft < 180000 && timeLeft > 120000 && !warningShown2) {
-                warningShown2 = true;
-                showToast(
-                    '⏳ تنبيه عاجل',
-                    `جلسة العمل ستنتهي خلال ${minutesLeft} دقائق!`,
-                    'warning'
-                );
-                return true;
-            }
-            
-            // عرض تحذير عند دقيقة واحدة متبقية
-            if (timeLeft < 60000 && timeLeft > 30000 && !warningShown3) {
-                warningShown3 = true;
-                showToast(
-                    '⏳ تنبيه أخير',
-                    `جلسة العمل ستنتهي خلال ${secondsLeft} ثانية!`,
-                    'error'
-                );
-                return true;
-            }
-            
-            return true;
-        }
-
-        // دالة لبدء مراقبة الجلسة - معدلة
-        function startSessionMonitor() {
-            if (sessionMonitorStarted) {
-                console.log('⏳ مراقبة الجلسة قيد التشغيل بالفعل');
-                return;
-            }
-            
-            warningShown = false;
-            warningShown2 = false;
-            warningShown3 = false;
-            sessionMonitorStarted = true;
-            
-            if (monitorInterval) {
-                clearInterval(monitorInterval);
-                monitorInterval = null;
-            }
-            
-            // تأخير التحقق الأولي لتجنب المشاكل
-            setTimeout(function() {
-                checkSessionExpiry();
-            }, 5000);
-            
-            monitorInterval = setInterval(function() {
-                checkSessionExpiry();
-            }, 30000);
-            
-            console.log('✅ بدأ مراقبة الجلسة');
-        }
-
-        // ============================================================
-        // إعادة توجيه لتسجيل الدخول - مع إيقاف المراقبة
-        // ============================================================
-        function redirectToLogin() {
-            if (monitorInterval) {
-                clearInterval(monitorInterval);
-                monitorInterval = null;
-            }
-            sessionMonitorStarted = false;
-            localStorage.removeItem('rollex_session');
-            sessionStorage.removeItem('rollex_session');
-            showToast('⚠️ جلسة منتهية', 'يرجى تسجيل الدخول مجدداً', 'warning');
-            setTimeout(function() {
-                window.location.href = 'login.html';
-            }, 1500);
-        }
-
-        // ============================================================
-        // التحقق من صحة التوكن - معدلة
-        // ============================================================
-        async function validateToken() {
-            var token = getToken();
-            if (!token) {
-                console.warn('⚠️ لا يوجد توكن');
-                return false;
-            }
-            try {
-                var res = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-                
-                if (res.status === 403) {
-                    console.warn('⚠️ التوكن غير صالح (403)');
-                    return false;
-                }
-                
-                if (res.ok) {
-                    return true;
-                }
-                
-                console.warn(`⚠️ استجابة غير متوقعة: ${res.status}`);
-                return false;
-            } catch(e) {
-                console.error('❌ خطأ في التحقق من التوكن:', e);
-                return false;
-            }
-        }
-
-        // ============================================================
-        // GET COMPANY ID
-        // ============================================================
-        async function getCompanyId() {
-            var token = getToken();
-            if (!token) {
-                console.warn('⚠️ لا يوجد توكن');
-                return null;
-            }
-            try {
-                var userRes = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                    headers: { 
-                        'apikey': SUPABASE_ANON_KEY, 
-                        'Authorization': 'Bearer ' + token 
-                    }
-                });
-                if (!userRes.ok) {
-                    if (userRes.status === 403) {
-                        redirectToLogin();
-                    }
-                    return null;
-                }
-                var user = await userRes.json();
-                var profRes = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=company_id&id=eq.' + user.id, {
-                    headers: { 
-                        'apikey': SUPABASE_ANON_KEY, 
-                        'Authorization': 'Bearer ' + token 
-                    }
-                });
-                if (!profRes.ok) return null;
-                var data = await profRes.json();
-                return data && data.length > 0 ? data[0].company_id : null;
-            } catch(e) { 
-                console.error('❌ خطأ في جلب company_id:', e);
-                return null; 
-            }
-        }
-
-        // ============================================================
-        // GET CLIENTS
+        // GET CLIENTS - استخدام الدالة المركزية getTable
         // ============================================================
         async function getClients() {
-            var isValid = await validateToken();
-            if (!isValid) {
-                redirectToLogin();
-                return [];
-            }
+            var isValid = await checkSessionAndRedirect();
+            if (!isValid) return [];
 
             var token = getToken();
             if (!token) {
@@ -1929,38 +1453,9 @@
                 return [];
             }
 
-            var companyId = await getCompanyId();
-            if (!companyId) {
-                console.warn('⚠️ لم يتم العثور على company_id');
-                return [];
-            }
-
             try {
-                var res = await fetch(SUPABASE_URL + '/rest/v1/clients?select=*&company_id=eq.' + companyId, {
-                    headers: { 
-                        'apikey': SUPABASE_ANON_KEY, 
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (!res.ok) {
-                    if (res.status === 403) {
-                        redirectToLogin();
-                        return [];
-                    }
-                    console.warn('⚠️ فشل جلب العملاء:', res.status);
-                    return [];
-                }
-                
-                var data = await res.json();
+                var data = await getTable('clients', 'code.asc');
                 console.log('✅ تم جلب العملاء:', data ? data.length : 0);
-                
-                data.sort(function(a, b) {
-                    var ca = parseInt(a.code) || 0;
-                    var cb = parseInt(b.code) || 0;
-                    return ca - cb;
-                });
                 return data || [];
             } catch(e) { 
                 console.error('❌ خطأ في جلب العملاء:', e);
@@ -1969,12 +1464,11 @@
         }
 
         // ============================================================
-        // INSERT CLIENT
+        // INSERT CLIENT - استخدام الدالة المركزية insertRow
         // ============================================================
         async function insertClient(clientData) {
-            var isValid = await validateToken();
+            var isValid = await checkSessionAndRedirect();
             if (!isValid) {
-                redirectToLogin();
                 throw new Error('جلسة منتهية، يرجى تسجيل الدخول مجدداً');
             }
 
@@ -1984,11 +1478,8 @@
             var companyId = await getCompanyId();
             if (!companyId) throw new Error('لم يتم العثور على الشركة');
 
-            var userRes = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
-            });
-            if (!userRes.ok) throw new Error('فشل جلب المستخدم');
-            var user = await userRes.json();
+            var user = await getCurrentUserProfile();
+            if (!user) throw new Error('فشل جلب المستخدم');
 
             var payload = {
                 company_id: companyId,
@@ -2009,47 +1500,7 @@
                 open_statement: clientData.open_statement || ''
             };
 
-            var res = await fetch(SUPABASE_URL + '/rest/v1/clients', {
-                method: 'POST',
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=representation'
-                },
-                body: JSON.stringify(payload)
-            });
-            
-            if (!res.ok) {
-                if (res.status === 403) {
-                    redirectToLogin();
-                    throw new Error('جلسة منتهية، يرجى تسجيل الدخول مجدداً');
-                }
-                var txt = await res.text();
-                throw new Error('HTTP ' + res.status + ': ' + txt.substring(0, 200));
-            }
-            return await res.json();
-        }
-
-        // ============================================================
-        // FORMAT NUMBER
-        // ============================================================
-        function formatNumber(n) {
-            if (n === undefined || n === null || isNaN(n)) return '0';
-            return Number(n).toLocaleString('ar-EG');
-        }
-
-        // ============================================================
-        // STATUS BADGE
-        // ============================================================
-        function getStatusBadge(status) {
-            var s = status || '-';
-            var cls = '';
-            if (s.includes('نشط') || s.includes('active')) { cls = 'active'; s = 'نشط'; }
-            else if (s.includes('غير نشط') || s.includes('inactive')) { cls = 'inactive'; s = 'غير نشط'; }
-            else if (s.includes('موقوف') || s.includes('suspended')) { cls = 'suspended'; s = 'موقوف'; }
-            else { return '<span class="badge-status">' + s + '</span>'; }
-            return '<span class="badge-status ' + cls + '">' + s + '</span>';
+            return await insertRow('clients', payload);
         }
 
         // ============================================================
@@ -2064,7 +1515,7 @@
                 totalBal += bal; 
             });
             totalCount.textContent = total;
-            totalBalance.textContent = formatNumber(totalBal) + ' ج.م';
+            totalBalance.textContent = formatNumberWithCommas(totalBal) + ' ج.م';
             var now = new Date();
             lastUpdate.textContent = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
 
@@ -2320,10 +1771,9 @@
         window.closeImportModal = closeImportModal;
         window.openAddClientModal = openAddClientModal;
         window.importFromExcel = importFromExcel;
-        window.logout = logout;
 
         // ============================================================
-        // INIT - معدل (بدون تحديث تلقائي)
+        // INIT
         // ============================================================
         (async function init() {
             console.log('👤 صفحة بيانات العملاء - QuickData ProSoft');
@@ -2335,27 +1785,21 @@
                 return;
             }
 
-            // التحقق من صحة التوكن
             try {
-                var isValid = await validateToken();
+                var isValid = await checkSessionAndRedirect();
                 if (!isValid) {
-                    console.warn('⚠️ التوكن غير صالح، سيتم إعادة التوجيه');
                     redirectToLogin();
                     return;
                 }
             } catch(e) {
                 console.error('❌ خطأ في التحقق من التوكن:', e);
-                console.warn('⚠️ استمرار المحاولة رغم خطأ التحقق');
             }
 
             await loadData();
             
-            // بدء مراقبة الجلسة بعد 5 ثواني
             setTimeout(function() {
                 startSessionMonitor();
             }, 5000);
-            
-            // ❌ تم إلغاء التحديث التلقائي - التحديث يدوي فقط عبر زر التحديث
         })();
     </script>
 
