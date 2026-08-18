@@ -1123,8 +1123,11 @@
         // GET TABLES
         // ============================================================
         async function getTableData(tableName, orderBy) {
+            console.log('🔍 محاولة جلب البيانات من الجدول:', tableName);
             try {
-                return await getTable(tableName, orderBy) || [];
+                var data = await getTable(tableName, orderBy) || [];
+                console.log('✅ تم جلب ' + data.length + ' سجل من الجدول:', tableName);
+                return data;
             } catch (error) {
                 console.error('❌ خطأ في جلب ' + tableName + ':', error);
                 return [];
@@ -1572,24 +1575,45 @@
         // LOAD DATA
         // ============================================================
         async function loadData() {
+            console.log('🚀 بدء تحميل بيانات المبيعات...');
             entriesBody.innerHTML =
                 '<tr><td colspan="7"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
 
-            var results = await Promise.all([
-                getTableData('clients', 'name.asc'),
-                getTableData('products', 'code.asc'),
-                getTableData('finished_goods_movement'),
-                getTableData('sales_invoices', 'created_at.desc'),
-                getTableData('sales_invoice_items')
-            ]);
+            try {
+                console.log('📌 محاولة جلب العملاء...');
+                var clientsData = await getTableData('clients', 'name.asc');
+                console.log('📌 العملاء:', clientsData.length);
 
-            allClients = results[0];
-            allProducts = results[1];
-            allFinishedMovements = results[2];
-            allInvoices = results[3];
-            allInvoiceItems = results[4];
+                console.log('📌 محاولة جلب المنتجات...');
+                var productsData = await getTableData('products', 'code.asc');
+                console.log('📌 المنتجات:', productsData.length);
 
-            displayInvoices();
+                console.log('📌 محاولة جلب حركات المخزون...');
+                var movementsData = await getTableData('finished_goods_movements');
+                console.log('📌 حركات المخزون:', movementsData.length);
+
+                console.log('📌 محاولة جلب فواتير المبيعات...');
+                var invoicesData = await getTableData('sales_invoices', 'created_at.desc');
+                console.log('📌 فواتير المبيعات:', invoicesData.length);
+
+                console.log('📌 محاولة جلب بنود الفواتير...');
+                var invoiceItemsData = await getTableData('sales_invoice_items');
+                console.log('📌 بنود الفواتير:', invoiceItemsData.length);
+
+                allClients = clientsData;
+                allProducts = productsData;
+                allFinishedMovements = movementsData;
+                allInvoices = invoicesData;
+                allInvoiceItems = invoiceItemsData;
+
+                displayInvoices();
+                console.log('✅ تم تحميل البيانات بنجاح!');
+
+            } catch (error) {
+                console.error('❌ خطأ في تحميل البيانات:', error);
+                entriesBody.innerHTML =
+                    '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p></div></td></tr>';
+            }
         }
 
         // ============================================================
