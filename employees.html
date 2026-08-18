@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- ===== إضافة الملف المركزي ===== -->
+    <script src="supabase-client.js"></script>
     <style>
         :root {
             --primary: #1a2332;
@@ -440,13 +442,6 @@
 
     <script>
         // ============================================================
-        // CONFIGURATION
-        // ============================================================
-        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
-        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
-        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // ============================================================
         // TOAST
         // ============================================================
         function showToast(title, message, type) {
@@ -602,7 +597,7 @@
         }
 
         // ============================================================
-        // ADD EMPLOYEE - مع التحقق من وجود البروفايل
+        // ADD EMPLOYEE
         // ============================================================
         document.getElementById('addEmployeeForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -617,12 +612,10 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
 
             try {
-                // 1. نجيب company_id من المدير الحالي
                 var profile = await getCurrentUserProfile();
                 var companyId = profile.company_id;
                 var companyName = profile.company_name || 'شركة رولكس للدهانات';
 
-                // 2. تسجيل المستخدم في Auth
                 var { data: authData, error: authError } = await supabase.auth.signUp({
                     email: email,
                     password: password,
@@ -655,7 +648,6 @@
 
                 var userId = authData.user.id;
 
-                // 3. نتحقق من وجود البروفايل قبل إضافته
                 var { data: existingProfile, error: checkError } = await supabase
                     .from('profiles')
                     .select('id')
@@ -672,7 +664,6 @@
                     return;
                 }
 
-                // 4. إضافة في profiles (لو مش موجود)
                 var { error: profileError } = await supabase.from('profiles').insert({
                     id: userId,
                     name: name,
@@ -709,14 +700,12 @@
             if (!confirm('هل أنت متأكد من حذف هذا الموظف؟')) return;
 
             try {
-                // 1. حذف من profiles
                 var { error: pError } = await supabase.from('profiles').delete().eq('id', userId);
                 if (pError) { 
                     showToast('❌ خطأ', 'فشل حذف الموظف من البيانات', 'error'); 
                     return; 
                 }
 
-                // 2. حذف من auth.users باستخدام admin API
                 try {
                     var { error: aError } = await supabase.auth.admin.deleteUser(userId);
                     if (aError) { 
