@@ -540,7 +540,7 @@
 
         /**
          * ============================================================
-         * LOGIN FORM SUBMIT - مع Logs تفصيلية
+         * LOGIN FORM SUBMIT - باستخدام Fetch مباشرة مع حفظ الجلسة في localStorage
          * ============================================================
          */
         loginForm.addEventListener('submit', async function(e) {
@@ -577,7 +577,6 @@
             try {
                 console.log('📡 إرسال طلب إلى Supabase Auth...');
                 console.log('📍 URL:', SUPABASE_URL + '/auth/v1/token?grant_type=password');
-                console.log('📤 البيانات المرسلة:', { email: email, grant_type: 'password' });
 
                 var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
                     method: 'POST',
@@ -594,10 +593,6 @@
                 });
 
                 console.log('📥 حالة الاستجابة:', response.status, response.statusText);
-                console.log('📋 Headers:', {
-                    'Content-Type': response.headers.get('content-type'),
-                    'apikey': SUPABASE_ANON_KEY ? 'موجود ✅' : 'غير موجود ❌'
-                });
 
                 var data = await response.json();
                 console.log('📦 البيانات المستلمة:', data);
@@ -607,8 +602,7 @@
                     console.error('❌ تفاصيل الخطأ:', data);
 
                     var errorMsg = data.error_description || data.message || data.msg || 'بيانات الدخول غير صحيحة';
-                    
-                    // تحليل دقيق لأنواع الأخطاء
+
                     if (response.status === 400) {
                         if (errorMsg.includes('Invalid login credentials')) {
                             errorMsg = '❌ البريد الإلكتروني أو كلمة المرور غير صحيحة';
@@ -643,19 +637,14 @@
                 console.log('✅ تم استلام access_token بنجاح!');
                 console.log('📅 مدة الصلاحية:', data.expires_in, 'ثانية');
 
-                // حفظ الجلسة
-                var storage = document.getElementById('remember').checked ?
-                    window.localStorage :
-                    window.sessionStorage;
-
-                var sessionData = {
+                // ✅ التعديل هنا: دايمًا نخزن في localStorage
+                window.localStorage.setItem('rollex_session', JSON.stringify({
                     access_token: data.access_token,
                     refresh_token: data.refresh_token,
                     expires_at: Date.now() + (data.expires_in * 1000)
-                };
+                }));
 
-                storage.setItem('rollex_session', JSON.stringify(sessionData));
-                console.log('💾 تم حفظ الجلسة في:', document.getElementById('remember').checked ? 'localStorage' : 'sessionStorage');
+                console.log('💾 تم حفظ الجلسة في localStorage');
 
                 showMessage('✅ تم تسجيل الدخول بنجاح! جاري التحويل...', 'success');
 
