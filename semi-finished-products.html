@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>المنتجات شبه التامة - QuickData ProSoft</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="supabase-client.js"></script>
+    <style>
+        :root {
+            --ink: #121821;
+            --ink-soft: #2c3644;
+            --ink-mute: #6d7883;
+            --paper: #eef1ef;
+            --surface: #ffffff;
+            --surface-muted: #f4f6f5;
+            --line: #dde3e0;
+            --line-strong: #c7d0cc;
+            --accent: #dd9f2e;
+            --accent-ink: #7a5312;
+            --accent-soft: #faead0;
+            --teal: #1d7b6c;
+            --teal-soft: #e2f2ee;
+            --rust: #bf4f30;
+            --rust-soft: #fbe8e1;
+            --blue: #2f5b8a;
+            --radius: 14px;
+            --radius-sm: 9px;
+            --shadow: 0 14px 34px -16px rgba(18,24,33,0.28);
+            --shadow-sm: 0 3px 10px -4px rgba(18,24,33,0.18);
+            --font-display: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+            --header-height: 60px;
+            --stripe-height: 4px;
+            --sidebar-width: 260px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-display);
+            background: var(--paper);
+            color: var(--ink);
+            direction: rtl;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        a { text-decoration: none; color: inherit; }
+
+        .swatch-stripe { height: var(--stripe-height); flex-shrink: 0; display: flex; }
+        .swatch-stripe span { flex: 1; }
+        .swatch-stripe span:nth-child(1) { background: var(--accent); }
+        .swatch-stripe span:nth-child(2) { background: var(--teal); }
+        .swatch-stripe span:nth-child(3) { background: var(--rust); }
+        .swatch-stripe span:nth-child(4) { background: var(--blue); }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .sidebar-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: calc(-1 * var(--sidebar-width));
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--surface);
+            border-left: 1px solid var(--line);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow);
+            overflow-y: auto;
+        }
+        .sidebar.open { right: 0; }
+
+        .sidebar .brand {
+            padding: 20px 18px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--line);
+            flex-shrink: 0;
+        }
+        .sidebar .brand .mark {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .sidebar .brand .text {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--ink);
+            line-height: 1.2;
+        }
+        .sidebar .brand .text span {
+            display: block;
+            font-size: 0.55rem;
+            font-weight: 600;
+            color: var(--ink-mute);
+        }
+        .sidebar .close-btn {
+            margin-right: auto;
+            background: none;
+            border: none;
+            color: var(--ink-mute);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: 0.2s;
+        }
+        .sidebar .close-btn:hover { background: var(--surface-muted); color: var(--ink); }
+
+        .sidebar .menu {
+            flex: 1;
+            padding: 12px 14px;
+            overflow-y: auto;
+        }
+        .sidebar .menu .label {
+            font-size: 0.55rem;
+            color: var(--ink-mute);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px 10px 6px;
+            font-weight: 700;
+        }
+        .sidebar .menu .label:first-child { padding-top: 4px; }
+        .sidebar .menu .item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            color: var(--ink-soft);
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            border-right: 3px solid transparent;
+        }
+        .sidebar .menu .item:hover { background: var(--surface-muted); color: var(--ink); }
+        .sidebar .menu .item.active {
+            background: var(--accent-soft);
+            color: var(--accent-ink);
+            border-right-color: var(--accent);
+        }
+        .sidebar .menu .item i {
+            width: 18px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--ink-mute);
+        }
+        .sidebar .menu .item.active i { color: var(--accent); }
+
+        .sidebar .footer {
+            padding: 12px 16px 16px;
+            border-top: 1px solid var(--line);
+            flex-shrink: 0;
+        }
+        .sidebar .footer .user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sidebar .footer .user .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--ink-mute);
+        }
+        .sidebar .footer .user .info .name {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+        .sidebar .footer .user .info .role {
+            font-size: 0.55rem;
+            color: var(--ink-mute);
+        }
+        .sidebar .footer .logout-btn {
+            margin-right: auto;
+            background: none;
+            border: none;
+            color: var(--ink-mute);
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: 0.2s;
+        }
+        .sidebar .footer .logout-btn:hover { background: var(--surface-muted); color: var(--rust); }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 0 20px;
+            background: rgba(255,255,255,0.97);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--line);
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        header .header-content { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .logo { display: flex; align-items: center; gap: 11px; }
+        .logo-mark {
+            width: 36px; height: 36px; border-radius: 10px; background: var(--ink);
+            display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+            gap: 3px; padding: 6px; flex-shrink: 0;
+        }
+        .logo-mark span { border-radius: 2px; }
+        .logo-mark span:nth-child(1) { background: var(--accent); }
+        .logo-mark span:nth-child(2) { background: var(--teal); }
+        .logo-mark span:nth-child(3) { background: var(--rust); }
+        .logo-mark span:nth-child(4) { background: var(--blue); }
+        .logo-text h1 { font-size: 0.95rem; font-weight: 800; color: var(--ink); line-height: 1.25; }
+        .logo-text span { font-size: 0.62rem; color: var(--ink-mute); display: block; font-weight: 600; }
+
+        nav { display: flex; align-items: center; gap: 22px; }
+        nav a {
+            color: var(--ink-mute); font-weight: 700; font-size: 0.76rem;
+            transition: 0.2s; position: relative; padding: 5px 0;
+        }
+        nav a::after {
+            content: ''; position: absolute; bottom: -2px; right: 0;
+            width: 0; height: 2px; background: var(--accent);
+            transition: 0.25s; border-radius: 10px;
+        }
+        nav a:hover { color: var(--ink); }
+        nav a:hover::after { width: 100%; }
+        nav a.active { color: var(--ink); }
+        nav a.active::after { width: 100%; }
+
+        .header-actions { display: flex; align-items: center; gap: 6px; }
+        .header-actions button {
+            width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line);
+            background: var(--surface); color: var(--ink-mute); cursor: pointer;
+            transition: 0.2s; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+        }
+        .header-actions button:hover { background: var(--ink); border-color: var(--ink); color: #fff; }
+        .hamburger {
+            display: none; font-size: 1.05rem; color: var(--ink); cursor: pointer;
+            padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-header h1 {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .page-header h1 i { color: var(--accent); }
+        .page-header .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn-action {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-mute);
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-display);
+        }
+        .btn-action:hover { background: var(--surface-muted); border-color: var(--line-strong); }
+        .btn-action.primary {
+            background: var(--accent);
+            color: var(--accent-ink);
+            border-color: var(--accent);
+        }
+        .btn-action.primary:hover { background: var(--accent-ink); color: #fff; }
+
+        .filters-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 16px;
+            align-items: center;
+        }
+        .filters-section .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 150px;
+        }
+        .filters-section .filter-group label {
+            font-size: 0.7rem;
+            color: var(--ink-mute);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .filters-section .filter-group input,
+        .filters-section .filter-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--line);
+            background: var(--surface-muted);
+            color: var(--ink);
+            font-size: 0.8rem;
+            font-family: inherit;
+            transition: 0.2s;
+            outline: none;
+        }
+        .filters-section .filter-group input:focus,
+        .filters-section .filter-group select:focus {
+            border-color: var(--accent);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(221,159,46,0.12);
+        }
+
+        .btn-filter {
+            padding: 8px 20px;
+            border-radius: 50px;
+            background: var(--accent);
+            border: none;
+            color: var(--accent-ink);
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-display);
+        }
+        .btn-filter:hover { background: var(--accent-ink); color: #fff; transform: translateY(-1px); }
+        .btn-reset {
+            padding: 8px 16px;
+            border-radius: 50px;
+            background: var(--surface-muted);
+            border: 1px solid var(--line);
+            color: var(--ink-mute);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-display);
+        }
+        .btn-reset:hover { background: var(--line); color: var(--ink); }
+
+        .summary-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 12px 20px;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 16px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .summary-bar .total {
+            font-size: 0.85rem;
+            color: var(--ink-mute);
+        }
+        .summary-bar .total span {
+            color: var(--accent-ink);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .table-wrapper {
+            background: var(--surface);
+            border-radius: var(--radius);
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow-sm);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.7rem;
+            min-width: 800px;
+        }
+        th {
+            background: var(--surface-muted);
+            color: var(--ink-mute);
+            padding: 10px 12px;
+            text-align: right;
+            font-weight: 700;
+            white-space: nowrap;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            border-bottom: 2px solid var(--line);
+        }
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--line);
+            color: var(--ink-soft);
+            font-size: 0.7rem;
+        }
+        tr:hover td { background: var(--surface-muted); }
+
+        .code-cell {
+            color: var(--accent-ink);
+            font-weight: 800;
+            font-size: 0.72rem;
+            background: var(--accent-soft);
+            padding: 3px 12px;
+            border-radius: var(--radius-sm);
+            display: inline-block;
+            border: 1px solid rgba(179,129,58,0.14);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--ink-mute);
+        }
+        .empty-state i { font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 12px; }
+        .loading-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--accent);
+        }
+        .loading-state i { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: var(--surface);
+            border-radius: var(--radius);
+            max-width: 520px;
+            width: 100%;
+            padding: 28px;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+            animation: modalIn 0.25s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        @keyframes modalIn {
+            from { transform: translateY(12px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-box .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-box .modal-header h3 {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-box .modal-header h3 i { color: var(--accent); }
+        .modal-box .modal-header .close-modal {
+            background: none;
+            border: none;
+            color: var(--ink-mute);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: 0.2s;
+        }
+        .modal-box .modal-header .close-modal:hover { background: var(--surface-muted); color: var(--ink); }
+
+        .modal-box .form-group { margin-bottom: 14px; }
+        .modal-box .form-group label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--ink-soft);
+            margin-bottom: 4px;
+        }
+        .modal-box .form-group label .required { color: var(--rust); }
+        .modal-box .form-group input,
+        .modal-box .form-group select,
+        .modal-box .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--line);
+            background: var(--surface-muted);
+            color: var(--ink);
+            font-size: 0.85rem;
+            font-family: var(--font-display);
+            outline: none;
+            transition: 0.2s;
+        }
+        .modal-box .form-group input:focus,
+        .modal-box .form-group select:focus,
+        .modal-box .form-group textarea:focus {
+            border-color: var(--accent);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(221,159,46,0.12);
+        }
+        .modal-box .form-group textarea { min-height: 60px; resize: vertical; }
+
+        .modal-box .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal-box .form-actions .btn-save {
+            padding: 10px 28px;
+            background: var(--teal);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: var(--font-display);
+            flex: 1;
+        }
+        .modal-box .form-actions .btn-save:hover { background: #156b5d; transform: translateY(-1px); }
+        .modal-box .form-actions .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+        .modal-box .form-actions .btn-cancel {
+            padding: 10px 24px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-mute);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: var(--font-display);
+        }
+        .modal-box .form-actions .btn-cancel:hover { background: var(--surface-muted); }
+
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 99999;
+            max-width: 380px;
+            width: 90%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            background: #ffffff;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(20px);
+            transition: all 0.4s ease;
+            opacity: 0;
+            pointer-events: auto;
+            box-shadow: var(--shadow);
+            border-right: 4px solid var(--ink);
+        }
+        .toast.show { transform: translateX(0); opacity: 1; }
+        .toast .toast-icon { font-size: 1rem; width: 30px; height: 30px; min-width: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .toast .toast-icon.success { color: var(--teal); background: var(--teal-soft); }
+        .toast .toast-icon.error { color: var(--rust); background: var(--rust-soft); }
+        .toast .toast-icon.warning { color: var(--accent-ink); background: var(--accent-soft); }
+        .toast .toast-title { font-size: 0.82rem; font-weight: 800; color: var(--ink); }
+        .toast .toast-message { font-size: 0.72rem; color: var(--ink-mute); margin-top: 1px; }
+        .toast .toast-close { background: none; border: none; color: var(--ink-mute); cursor: pointer; font-size: 0.85rem; padding: 4px; margin-right: auto; }
+
+        @media (max-width: 768px) {
+            .page-header { flex-direction: column; align-items: flex-start; }
+            .filters-section { flex-direction: column; align-items: stretch; }
+            .filters-section .filter-group { min-width: unset; }
+            .btn-filter, .btn-reset { width: 100%; justify-content: center; }
+            .summary-bar { flex-direction: column; align-items: center; text-align: center; }
+            .main-content { padding: 12px; }
+            table { font-size: 0.6rem; min-width: 700px; }
+            th, td { padding: 6px 8px; }
+            .modal-box { padding: 20px; margin: 10px; }
+            .modal-box .form-actions { flex-direction: column; }
+            .modal-box .form-actions .btn-save { width: 100%; justify-content: center; }
+            .modal-box .form-actions .btn-cancel { width: 100%; justify-content: center; }
+            .toast-container { top: 70px; right: 10px; max-width: 300px; }
+            nav { display: none !important; }
+            .hamburger { display: flex !important; }
+            .sidebar { width: 280px; right: calc(-1 * 280px); }
+            .sidebar.open { right: 0; }
+            .sidebar-overlay { display: block; }
+        }
+        @media (max-width: 480px) {
+            .toast-container { top: 60px; right: 8px; max-width: 260px; }
+            .page-header h1 { font-size: 1.2rem; }
+            table { font-size: 0.55rem; min-width: 600px; }
+            th, td { padding: 4px 6px; }
+        }
+        @media (min-width: 769px) {
+            .hamburger { display: none !important; }
+            nav { display: flex !important; }
+            .sidebar-overlay { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="swatch-stripe"><span></span><span></span><span></span><span></span></div>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <nav class="sidebar" id="sidebar">
+        <div class="brand">
+            <div class="mark">🏭</div>
+            <div class="text">
+                نظام المصنع
+                <span>شركة رولكس للدهانات</span>
+            </div>
+            <button class="close-btn" id="closeSidebar"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="menu">
+            <div class="label">القائمة الرئيسية</div>
+            <a href="index.html" class="item"><i class="fas fa-house"></i> الرئيسية</a>
+            <a href="treasury.html" class="item"><i class="fas fa-coins"></i> الخزينة</a>
+
+            <div class="label">المخازن</div>
+            <a href="warehouses.html" class="item"><i class="fas fa-warehouse"></i> إدارة المخازن</a>
+            <a href="raw-material-stock.html" class="item"><i class="fas fa-boxes"></i> مخزن المواد الخام</a>
+            <a href="finished-goods-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المنتج التام</a>
+
+            <div class="label">الإنتاج</div>
+            <a href="semi-finished-products.html" class="item active"><i class="fas fa-cube"></i> المنتجات شبه التامة</a>
+            <a href="production-orders.html" class="item"><i class="fas fa-industry"></i> أوامر الإنتاج</a>
+            <a href="filling-orders.html" class="item"><i class="fas fa-flask"></i> أوامر التعبئة</a>
+
+            <div class="label">المبيعات والمشتريات</div>
+            <a href="sales.html" class="item"><i class="fas fa-chart-line"></i> المبيعات</a>
+            <a href="purchases.html" class="item"><i class="fas fa-shopping-cart"></i> المشتريات</a>
+
+            <div class="label">التقارير</div>
+            <a href="reports.html" class="item"><i class="fas fa-file-lines"></i> التقارير</a>
+        </div>
+        <div class="footer">
+            <div class="user">
+                <div class="avatar">م</div>
+                <div class="info">
+                    <div class="name">محمد خلاف</div>
+                    <div class="role">مدير النظام</div>
+                </div>
+                <button class="logout-btn" onclick="logout()" title="تسجيل الخروج"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <header id="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-mark"><span></span><span></span><span></span><span></span></div>
+                <div class="logo-text">
+                    <h1>المنتجات شبه التامة</h1>
+                    <span>QuickData ProSoft</span>
+                </div>
+            </div>
+            <nav>
+                <a href="index.html">الرئيسية</a>
+                <a href="warehouses.html">المخازن</a>
+                <a href="#" class="active">شبه تامة</a>
+                <a href="production-orders.html">أوامر الإنتاج</a>
+                <a href="filling-orders.html">أوامر التعبئة</a>
+            </nav>
+            <div class="header-actions">
+                <button onclick="loadData()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
+                <button onclick="logout()" title="تسجيل الخروج"><i class="fas fa-sign-out-alt"></i></button>
+                <div class="hamburger" id="navToggle"><i class="fas fa-bars"></i></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="main-content">
+
+        <div class="page-header">
+            <h1><i class="fas fa-cube"></i> المنتجات شبه التامة (المحاليل)</h1>
+            <div class="actions">
+                <button class="btn-action primary" onclick="openAddModal()">
+                    <i class="fas fa-plus"></i> منتج شبه تام جديد
+                </button>
+            </div>
+        </div>
+
+        <div class="filters-section">
+            <div class="filter-group">
+                <label><i class="fas fa-tag"></i> الكود</label>
+                <input type="text" id="filterCode" placeholder="بحث بالكود..." />
+            </div>
+            <div class="filter-group">
+                <label><i class="fas fa-cube"></i> الاسم</label>
+                <input type="text" id="filterName" placeholder="بحث بالاسم..." />
+            </div>
+            <button class="btn-filter" onclick="applyFilters()"><i class="fas fa-filter"></i> تطبيق</button>
+            <button class="btn-reset" onclick="resetFilters()"><i class="fas fa-undo"></i> إلغاء</button>
+        </div>
+
+        <div class="summary-bar">
+            <div class="total">إجمالي المنتجات شبه التامة: <span id="totalCount">0</span></div>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>الكود</th>
+                        <th>الاسم</th>
+                        <th>وحدة القياس</th>
+                        <th>السعر الافتراضي</th>
+                        <th>ملاحظات</th>
+                        <th style="text-align:center;">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="entriesBody">
+                    <tr>
+                        <td colspan="7">
+                            <div class="loading-state">
+                                <i class="fas fa-spinner"></i>
+                                <p>جاري تحميل البيانات...</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- ===== MODAL ===== -->
+    <div class="modal-overlay" id="semiModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fas fa-cube"></i> <span id="modalTitle">إضافة منتج شبه تام</span></h3>
+                <button class="close-modal" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="semiForm" onsubmit="saveSemi(event)">
+                <input type="hidden" id="editId" value="" />
+                <div class="form-group">
+                    <label>الكود <span class="required">*</span></label>
+                    <input type="text" id="semiCode" placeholder="مثال: SF-001" required />
+                </div>
+                <div class="form-group">
+                    <label>الاسم <span class="required">*</span></label>
+                    <input type="text" id="semiName" placeholder="مثال: محلول أكريليك أساسي" required />
+                </div>
+                <div class="form-group">
+                    <label>وحدة القياس</label>
+                    <select id="semiUnit">
+                        <option value="لتر">لتر</option>
+                        <option value="كجم">كجم</option>
+                        <option value="طن">طن</option>
+                        <option value="جالون">جالون</option>
+                        <option value="برميل">برميل</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>السعر الافتراضي</label>
+                    <input type="number" id="semiPrice" placeholder="0.00" min="0" step="0.01" value="0" />
+                </div>
+                <div class="form-group">
+                    <label>ملاحظات</label>
+                    <textarea id="semiNotes" placeholder="ملاحظات إضافية..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-save" id="submitBtn">
+                        <i class="fas fa-save"></i> حفظ
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="closeModal()">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // SIDEBAR TOGGLE
+        // ============================================================
+        var sidebar = document.getElementById('sidebar');
+        var overlay = document.getElementById('sidebarOverlay');
+        var closeBtn = document.getElementById('closeSidebar');
+        var navToggle = document.getElementById('navToggle');
+
+        function openSidebar() {
+            sidebar.classList.add('open');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebarFn() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        navToggle.addEventListener('click', openSidebar);
+        closeBtn.addEventListener('click', closeSidebarFn);
+        overlay.addEventListener('click', closeSidebarFn);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { closeSidebarFn(); closeModal(); }
+        });
+
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768 && sidebar.classList.contains('open')) {
+                closeSidebarFn();
+            }
+        });
+
+        // ============================================================
+        // TOAST
+        // ============================================================
+        function showToast(title, message, type) {
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast';
+
+            var iconMap = {
+                'success': 'fa-check-circle',
+                'error': 'fa-times-circle',
+                'warning': 'fa-exclamation-triangle'
+            };
+            var iconClass = type || 'warning';
+            if (iconClass === 'success') iconClass = 'success';
+            else if (iconClass === 'error') iconClass = 'error';
+            else iconClass = 'warning';
+
+            toast.innerHTML = `
+                <div class="toast-icon ${iconClass}"><i class="fas ${iconMap[iconClass] || 'fa-info-circle'}"></i></div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close"><i class="fas fa-times"></i></button>
+            `;
+
+            container.appendChild(toast);
+
+            requestAnimationFrame(function() {
+                toast.classList.add('show');
+            });
+
+            setTimeout(function() {
+                toast.classList.remove('show');
+                setTimeout(function() {
+                    if (toast.parentElement) toast.remove();
+                }, 300);
+            }, 5000);
+
+            toast.querySelector('.toast-close').addEventListener('click', function() {
+                toast.classList.remove('show');
+                setTimeout(function() {
+                    if (toast.parentElement) toast.remove();
+                }, 300);
+            });
+        }
+
+        // ============================================================
+        // LOGOUT
+        // ============================================================
+        async function logout() {
+            try {
+                localStorage.removeItem('rollex_session');
+                sessionStorage.removeItem('rollex_session');
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('❌ خطأ في تسجيل الخروج:', error);
+            }
+        }
+        window.logout = logout;
+
+        // ============================================================
+        // DOM REFS
+        // ============================================================
+        var entriesBody = document.getElementById('entriesBody');
+        var totalCount = document.getElementById('totalCount');
+        var filterCode = document.getElementById('filterCode');
+        var filterName = document.getElementById('filterName');
+        var allSemi = [];
+
+        // ============================================================
+        // GET SEMI-FINISHED PRODUCTS
+        // ============================================================
+        async function getSemiFinished() {
+            try {
+                var data = await getTable('semi_finished_products', 'code.asc');
+                console.log('✅ تم جلب المنتجات شبه التامة:', data ? data.length : 0);
+                return data || [];
+            } catch (error) {
+                console.error('❌ خطأ في جلب المنتجات شبه التامة:', error);
+                return [];
+            }
+        }
+
+        // ============================================================
+        // INSERT SEMI-FINISHED PRODUCT
+        // ============================================================
+        async function insertSemi(data) {
+            var isValid = await checkSessionAndRedirect();
+            if (!isValid) throw new Error('جلسة منتهية');
+
+            var companyId = await getCompanyId();
+            if (!companyId) throw new Error('لم يتم العثور على الشركة');
+
+            var payload = {
+                company_id: companyId,
+                code: data.code,
+                name: data.name,
+                unit: data.unit || 'لتر',
+                default_price: parseFloat(data.default_price) || 0,
+                notes: data.notes || ''
+            };
+
+            return await insertRow('semi_finished_products', payload);
+        }
+
+        // ============================================================
+        // UPDATE SEMI-FINISHED PRODUCT
+        // ============================================================
+        async function updateSemi(id, data) {
+            var payload = {
+                code: data.code,
+                name: data.name,
+                unit: data.unit || 'لتر',
+                default_price: parseFloat(data.default_price) || 0,
+                notes: data.notes || ''
+            };
+            await patchRow('semi_finished_products', id, payload);
+            return true;
+        }
+
+        // ============================================================
+        // DELETE SEMI-FINISHED PRODUCT
+        // ============================================================
+        async function deleteSemi(id) {
+            await deleteRows('semi_finished_products', 'id', id);
+            return true;
+        }
+
+        // ============================================================
+        // DISPLAY
+        // ============================================================
+        function displaySemi(items) {
+            var filtered = filterSemi(items);
+            totalCount.textContent = filtered.length;
+
+            if (filtered.length === 0) {
+                entriesBody.innerHTML =
+                    '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-cube"></i><p>لا توجد منتجات شبه تامة</p></div></td></tr>';
+                return;
+            }
+
+            var html = '';
+            filtered.forEach(function(item, index) {
+                html += '<tr>' +
+                    '<td>' + (index + 1) + '</td>' +
+                    '<td><span class="code-cell">' + (item.code || '-') + '</span></td>' +
+                    '<td style="font-weight:700;">' + (item.name || '-') + '</td>' +
+                    '<td>' + (item.unit || '-') + '</td>' +
+                    '<td style="text-align:center;">' + (item.default_price || 0) + '</td>' +
+                    '<td style="font-size:0.65rem;color:var(--ink-mute);">' + (item.notes || '-') + '</td>' +
+                    '<td style="text-align:center;">' +
+                    '<button class="btn-action" onclick="editSemi(\'' + item.id + '\')" style="padding:4px 8px;font-size:0.6rem;background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent-soft);"><i class="fas fa-edit"></i></button> ' +
+                    '<button class="btn-action danger" onclick="deleteSemiConfirm(\'' + item.id + '\')" style="padding:4px 8px;font-size:0.6rem;"><i class="fas fa-trash"></i></button>' +
+                    '</td>' +
+                    '</tr>';
+            });
+
+            entriesBody.innerHTML = html;
+        }
+
+        // ============================================================
+        // FILTER
+        // ============================================================
+        function filterSemi(items) {
+            var code = filterCode.value.trim().toLowerCase();
+            var name = filterName.value.trim().toLowerCase();
+
+            return items.filter(function(item) {
+                if (code && !(item.code || '').toLowerCase().includes(code)) return false;
+                if (name && !(item.name || '').toLowerCase().includes(name)) return false;
+                return true;
+            });
+        }
+
+        function applyFilters() { displaySemi(allSemi); }
+        function resetFilters() {
+            filterCode.value = '';
+            filterName.value = '';
+            displaySemi(allSemi);
+        }
+
+        // ============================================================
+        // MODAL
+        // ============================================================
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = 'إضافة منتج شبه تام';
+            document.getElementById('editId').value = '';
+            document.getElementById('semiForm').reset();
+            document.getElementById('semiUnit').value = 'لتر';
+            document.getElementById('semiPrice').value = '0';
+            document.getElementById('semiModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function editSemi(id) {
+            var item = allSemi.find(function(s) { return s.id == id; });
+            if (!item) {
+                showToast('❌ خطأ', 'المنتج غير موجود', 'error');
+                return;
+            }
+
+            document.getElementById('modalTitle').textContent = 'تعديل المنتج شبه التام';
+            document.getElementById('editId').value = id;
+            document.getElementById('semiCode').value = item.code || '';
+            document.getElementById('semiName').value = item.name || '';
+            document.getElementById('semiUnit').value = item.unit || 'لتر';
+            document.getElementById('semiPrice').value = item.default_price || 0;
+            document.getElementById('semiNotes').value = item.notes || '';
+
+            document.getElementById('semiModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('semiModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // ============================================================
+        // SAVE
+        // ============================================================
+        async function saveSemi(event) {
+            event.preventDefault();
+
+            var id = document.getElementById('editId').value;
+            var data = {
+                code: document.getElementById('semiCode').value.trim(),
+                name: document.getElementById('semiName').value.trim(),
+                unit: document.getElementById('semiUnit').value,
+                default_price: parseFloat(document.getElementById('semiPrice').value) || 0,
+                notes: document.getElementById('semiNotes').value.trim()
+            };
+
+            if (!data.code) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال الكود', 'error');
+                document.getElementById('semiCode').focus();
+                return;
+            }
+            if (!data.name) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال الاسم', 'error');
+                document.getElementById('semiName').focus();
+                return;
+            }
+
+            var btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+
+            try {
+                if (id) {
+                    await updateSemi(id, data);
+                    showToast('✅ تم التعديل', 'تم تحديث المنتج بنجاح', 'success');
+                } else {
+                    await insertSemi(data);
+                    showToast('✅ تم الإضافة', 'تم إضافة المنتج بنجاح', 'success');
+                }
+                closeModal();
+                loadData();
+            } catch (error) {
+                showToast('❌ خطأ', error.message || 'فشل الحفظ', 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+        }
+
+        // ============================================================
+        // DELETE
+        // ============================================================
+        function deleteSemiConfirm(id) {
+            if (!confirm('هل أنت متأكد من حذف هذا المنتج شبه التام؟')) return;
+
+            deleteSemi(id)
+                .then(function() {
+                    showToast('✅ تم الحذف', 'تم حذف المنتج بنجاح', 'success');
+                    loadData();
+                })
+                .catch(function(error) {
+                    showToast('❌ خطأ', error.message || 'فشل الحذف', 'error');
+                });
+        }
+
+        // ============================================================
+        // LOAD DATA
+        // ============================================================
+        async function loadData() {
+            entriesBody.innerHTML =
+                '<tr><td colspan="7"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
+
+            try {
+                var data = await getSemiFinished();
+                allSemi = data;
+                displaySemi(data);
+            } catch (error) {
+                console.error('❌ خطأ في تحميل البيانات:', error);
+                entriesBody.innerHTML =
+                    '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p></div></td></tr>';
+            }
+        }
+
+        // ============================================================
+        // CLOSE MODAL ON OVERLAY CLICK
+        // ============================================================
+        document.getElementById('semiModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // ============================================================
+        // EXPOSE
+        // ============================================================
+        window.loadData = loadData;
+        window.openAddModal = openAddModal;
+        window.editSemi = editSemi;
+        window.closeModal = closeModal;
+        window.saveSemi = saveSemi;
+        window.deleteSemiConfirm = deleteSemiConfirm;
+        window.applyFilters = applyFilters;
+        window.resetFilters = resetFilters;
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        (async function init() {
+            console.log('🧪 صفحة المنتجات شبه التامة - QuickData ProSoft');
+
+            var token = getToken();
+            if (!token) {
+                entriesBody.innerHTML =
+                    '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول للوصول إلى هذه الصفحة</p></div></td></tr>';
+                setTimeout(function() {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+
+            await loadData();
+
+            setTimeout(function() {
+                startSessionMonitor();
+            }, 3000);
+        })();
+    </script>
+
+</body>
+</html>
