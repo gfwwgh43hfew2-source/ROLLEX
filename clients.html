@@ -1679,60 +1679,109 @@
         // ============================================================
         // IMPORT FROM EXCEL
         // ============================================================
-        async function importFromExcel(event) {
-            event.preventDefault();
-            var file = document.getElementById('importFile').files[0];
-            if (!file) {
-                showToast('⚠️ تنبيه', 'يرجى اختيار ملف Excel', 'error');
-                return;
-            }
-            var btn = document.getElementById('importSubmitBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاستيراد...';
+       async function importFromExcel(event) {
+    event.preventDefault();
+    var file = document.getElementById('importFile').files[0];
+    if (!file) {
+        showToast('⚠️ تنبيه', 'يرجى اختيار ملف Excel', 'error');
+        return;
+    }
 
+    var btn = document.getElementById('importSubmitBtn');
+    var progressDiv = document.getElementById('importProgress');
+    var progressBar = document.getElementById('progressBar');
+    var progressText = document.getElementById('progressText');
+    var progressPercent = document.getElementById('progressPercent');
+    var progressCount = document.getElementById('progressCount');
+    var progressTotal = document.getElementById('progressTotal');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاستيراد...';
+    progressDiv.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressPercent.textContent = '0%';
+    progressCount.textContent = '0';
+
+    try {
+        var data = await file.arrayBuffer();
+        var workbook = XLSX.read(data, { type: 'array' });
+        var sheet = workbook.Sheets[workbook.SheetNames[0]];
+        var json = XLSX.utils.sheet_to_json(sheet);
+        if (!json || json.length === 0) throw new Error('الملف فارغ أو غير صحيح');
+
+        progressTotal.textContent = json.length;
+        var success = 0, errors = 0, errMsgs = [];
+
+        for (var i = 0; i < json.length; i++) {
+            // تحديث التقدم
+            var percent = Math.round(((i + 1) / json.length) * 100);
+            progressBar.style.width = percent + '%';
+            progressPercent.textContent = percent + '%';
+            progressCount.textContent = i + 1;
+            progressText.textContent = 'جاري استيراد السجل ' + (i + 1) + ' من ' + json.length;
+
+            // معالجة السجل
+            var row = json[i];
+            var name = row['اسم العميل'] || row['name'] || '';
+            if (!name) {
+                errors++;
+                errMsgs.push('صف ' + (i + 1) + ': اسم العميل مطلوب');
+                continue;
+            }
             try {
-                var data = await file.arrayBuffer();
-                var workbook = XLSX.read(data, { type: 'array' });
-                var sheet = workbook.Sheets[workbook.SheetNames[0]];
-                var json = XLSX.utils.sheet_to_json(sheet);
-                if (!json || json.length === 0) throw new Error('الملف فارغ أو غير صحيح');
-
-                var success = 0, errors = 0, errMsgs = [];
-                for (var i = 0; i < json.length; i++) {
-                    var row = json[i];
-                    var name = row['اسم العميل'] || row['name'] || '';
-                    if (!name) { errors++; errMsgs.push('صف ' + (i+1) + ': اسم العميل مطلوب'); continue; }
-                    try {
-                        await insertClient({
-                            code: row['كود العميل'] || row['code'] || 'C' + String(Date.now() + i).slice(-6),
-                            name: name.trim(),
-                            phone: row['الهاتف'] || row['phone'] || '',
-                            address: row['العنوان'] || row['address'] || '',
-                            opening_balance: parseFloat(row['الرصيد الافتتاحي'] || row['opening_balance'] || 0),
-                            credit_limit: parseFloat(row['حد الائتمان'] || row['credit_limit'] || 0),
-                            salesman: row['المندوب'] || row['salesman'] || '',
-                            status: row['الحالة'] || row['status'] || 'نشط',
-                            credit_status: row['حالة الائتمان'] || row['credit_status'] || 'جيد',
-                            open_statement: row['كشف حساب مفتوح'] || row['open_statement'] || ''
-                        });
-                        success++;
-                    } catch(e) { errors++; errMsgs.push('صف ' + (i+1) + ': ' + e.message); }
-                }
-
-                if (success > 0) {
-                    showToast('✅ تم الاستيراد', 'تم استيراد ' + success + ' عميل' + (errors > 0 ? '، وفشل ' + errors + ' عميل' : ''), 'success');
-                    closeImportModal();
-                    loadData();
-                } else {
-                    showToast('❌ فشل الاستيراد', 'لم يتم استيراد أي عميل', 'error');
-                }
-                if (errMsgs.length > 0) console.log('أخطاء الاستيراد:', errMsgs);
+                await insertClient({
+                    code: row['كود العميل'] || row['code'] || 'C' + String(Date.now() + i).slice(-6),
+                    name: name.trim(),
+                    phone: row['الهاتف'] || row['phone'] || '',
+                    address: row['العنوان'] || row['address'] || '',
+                    opening_balance: parseFloat(row['الرصيد الافتتاحي'] || row['opening_balance'] || 0),
+                    credit_limit: parseFloat(row['حد الائتمان'] || row['credit_limit'] || 0),
+                    salesman: row['المندوب'] || row['salesman'] || '',
+                    status: row['الحالة'] || row['status'] || 'نشط',
+                    credit_status: row['حالة الائتمان'] || row['credit_status'] || 'جيد',
+                    open_statement: row['كشف حساب مفتوح'] || row['open_statement'] || ''
+                });
+                success++;
             } catch(e) {
-                showToast('❌ خطأ', e.message || 'فشل استيراد البيانات', 'error');
+                errors++;
+                errMsgs.push('صف ' + (i + 1) + ': ' + e.message);
             }
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-upload"></i> استيراد';
+
+            // تأخير بسيط عشان تظهر الحركة
+            await new Promise(r => setTimeout(r, 50));
         }
+
+        progressText.textContent = '✅ تم الانتهاء!';
+        progressBar.style.width = '100%';
+        progressPercent.textContent = '100%';
+
+        if (success > 0) {
+            showToast('✅ تم الاستيراد', 'تم استيراد ' + success + ' عميل' + (errors > 0 ? '، وفشل ' + errors + ' عميل' : ''), 'success');
+            setTimeout(function() {
+                closeImportModal();
+                loadData();
+                progressDiv.style.display = 'none';
+                progressBar.style.width = '0%';
+            }, 1000);
+        } else {
+            showToast('❌ فشل الاستيراد', 'لم يتم استيراد أي عميل', 'error');
+            setTimeout(function() {
+                progressDiv.style.display = 'none';
+                progressBar.style.width = '0%';
+            }, 2000);
+        }
+        if (errMsgs.length > 0) console.log('أخطاء الاستيراد:', errMsgs);
+
+    } catch(e) {
+        showToast('❌ خطأ', e.message || 'فشل استيراد البيانات', 'error');
+        setTimeout(function() {
+            progressDiv.style.display = 'none';
+            progressBar.style.width = '0%';
+        }, 2000);
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-upload"></i> استيراد';
+}
 
         // ============================================================
         // LOAD DATA
