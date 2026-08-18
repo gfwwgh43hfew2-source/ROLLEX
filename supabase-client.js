@@ -200,7 +200,7 @@ async function getCurrentUserProfile() {
 }
 
 // ============================================================
-// GET COMPANY ID
+// GET COMPANY ID (مُحسّنة)
 // ============================================================
 async function getCompanyId() {
     var token = getToken();
@@ -235,7 +235,7 @@ async function getCompanyId() {
 }
 
 // ============================================================
-// GENERIC GET (مُعدلة لمعالجة الأخطاء بشكل أفضل)
+// GENERIC GET (نسخة مُبسطة جداً)
 // ============================================================
 async function getTable(tableName, orderBy) {
     var token = getToken();
@@ -252,13 +252,10 @@ async function getTable(tableName, orderBy) {
     }
 
     try {
-        // تنظيف company_id من أي مسافات أو أحرف خاصة
-        var cleanCompanyId = String(companyId).trim();
-        
-        var url = SUPABASE_URL + '/rest/v1/' + tableName + '?select=*&company_id=eq.' + cleanCompanyId;
+        var url = SUPABASE_URL + '/rest/v1/' + tableName + '?select=*&company_id=eq.' + companyId;
         if (orderBy) url += '&order=' + orderBy;
 
-        console.log('📤 محاولة جلب من:', tableName, 'بـ company_id:', cleanCompanyId);
+        console.log('📤 محاولة جلب من:', tableName, 'بـ company_id:', companyId);
 
         var response = await fetch(url, {
             headers: {
