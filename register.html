@@ -460,6 +460,22 @@
 
         /**
          * ============================================================
+         * تعريف supabase بشكل صريح في الصفحة
+         * ============================================================
+         */
+        var supabaseUrl = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
+        var supabaseKey = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
+        var supabase = supabase.createClient(supabaseUrl, supabaseKey, {
+            auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: true,
+                storageKey: 'rollex_session'
+            }
+        });
+
+        /**
+         * ============================================================
          * تأثير التموّج عند النقر على الزر
          * ============================================================
          */
@@ -484,8 +500,8 @@
          */
         async function checkCompanyExists(companyName) {
             try {
-                var response = await fetch(SUPABASE_URL + '/rest/v1/companies?name=eq.' + encodeURIComponent(companyName) + '&select=id', {
-                    headers: { 'apikey': SUPABASE_ANON_KEY }
+                var response = await fetch(supabaseUrl + '/rest/v1/companies?name=eq.' + encodeURIComponent(companyName) + '&select=id', {
+                    headers: { 'apikey': supabaseKey }
                 });
                 if (!response.ok) return false;
                 var data = await response.json();
@@ -502,10 +518,10 @@
          * ============================================================
          */
         async function createCompany(companyName) {
-            var response = await fetch(SUPABASE_URL + '/rest/v1/companies', {
+            var response = await fetch(supabaseUrl + '/rest/v1/companies', {
                 method: 'POST',
                 headers: {
-                    'apikey': SUPABASE_ANON_KEY,
+                    'apikey': supabaseKey,
                     'Content-Type': 'application/json',
                     'Prefer': 'return=representation'
                 },
@@ -528,10 +544,10 @@
          * ============================================================
          */
         async function createProfile(userId, name, email, companyId, role) {
-            var response = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
+            var response = await fetch(supabaseUrl + '/rest/v1/profiles', {
                 method: 'POST',
                 headers: {
-                    'apikey': SUPABASE_ANON_KEY,
+                    'apikey': supabaseKey,
                     'Authorization': 'Bearer ' + (await supabase.auth.getSession()).data.session.access_token,
                     'Content-Type': 'application/json',
                     'Prefer': 'return=representation'
