@@ -708,27 +708,118 @@
         .summary-bar .badge-stat i { color: var(--gold); }
         .summary-bar .badge-stat span { color: var(--text-secondary); font-weight: 800; }
 
+        /* ============================================================ */
+        /* STICKY TABLE HEADER */
+        /* ============================================================ */
         .table-wrapper {
+            position: relative;
+            max-height: calc(100vh - 280px);
+            overflow-y: auto;
             background: var(--bg-card);
             border-radius: var(--radius-xl);
-            overflow: hidden;
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow-sm);
             transition: var(--transition);
         }
+
         .table-wrapper:hover { box-shadow: var(--shadow-md); }
 
-        table {
+        .table-wrapper table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.72rem;
+            table-layout: fixed;
             min-width: 1100px;
         }
 
-        thead {
-            background: var(--bg-primary);
+        .table-wrapper table thead {
+            position: sticky;
+            top: 0;
+            z-index: 50;
         }
-        th {
+
+        .table-wrapper table thead tr {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .table-wrapper table tbody {
+            display: block;
+            max-height: calc(100vh - 380px);
+            overflow-y: auto;
+        }
+
+        .table-wrapper table tbody tr {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        /* ===== عرض الأعمدة ===== */
+        .table-wrapper table th:nth-child(1),
+        .table-wrapper table td:nth-child(1) { 
+            width: 20px; 
+            display: none; 
+        }
+
+        .table-wrapper table th:nth-child(2),
+        .table-wrapper table td:nth-child(2) { 
+            width: 10%; 
+        }
+
+        .table-wrapper table th:nth-child(3),
+        .table-wrapper table td:nth-child(3) { 
+            width: 15%; 
+        }
+
+        .table-wrapper table th:nth-child(4),
+        .table-wrapper table td:nth-child(4) { 
+            width: 10%; 
+        }
+
+        .table-wrapper table th:nth-child(5),
+        .table-wrapper table td:nth-child(5) { 
+            width: 12%; 
+        }
+
+        .table-wrapper table th:nth-child(6),
+        .table-wrapper table td:nth-child(6) { 
+            width: 8%; 
+        }
+
+        .table-wrapper table th:nth-child(7),
+        .table-wrapper table td:nth-child(7) { 
+            width: 8%; 
+        }
+
+        .table-wrapper table th:nth-child(8),
+        .table-wrapper table td:nth-child(8) { 
+            width: 8%; 
+        }
+
+        .table-wrapper table th:nth-child(9),
+        .table-wrapper table td:nth-child(9) { 
+            width: 7%; 
+        }
+
+        .table-wrapper table th:nth-child(10),
+        .table-wrapper table td:nth-child(10) { 
+            width: 9%; 
+        }
+
+        .table-wrapper table th:nth-child(11),
+        .table-wrapper table td:nth-child(11) { 
+            width: 9%; 
+        }
+
+        .table-wrapper table th:nth-child(12),
+        .table-wrapper table td:nth-child(12) { 
+            width: 9%; 
+        }
+
+        .table-wrapper table thead th {
+            background: var(--bg-primary);
             color: var(--text-muted);
             padding: 14px 16px;
             text-align: right;
@@ -738,11 +829,8 @@
             text-transform: uppercase;
             letter-spacing: 0.6px;
             border-bottom: 2px solid var(--border-color);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            box-shadow: inset 0 -2px 0 0 transparent;
         }
+
         thead tr {
             position: relative;
         }
@@ -754,6 +842,7 @@
             background: var(--gold-gradient);
             opacity: 0.85;
         }
+
         th i {
             margin-left: 6px;
             color: var(--gold);
@@ -942,7 +1031,6 @@
             margin-top: 6px;
         }
 
-        /* ===== PROGRESS BAR ===== */
         .import-progress {
             display: none;
             margin-top: 12px;
@@ -1129,6 +1217,7 @@
             .summary-bar .stat-item { min-width: unset; }
             .summary-bar .badge-stat { justify-content: center; }
 
+            .table-wrapper { max-height: calc(100vh - 320px); }
             table { font-size: 0.62rem; min-width: 750px; }
             th, td { padding: 9px 10px; }
             .badge-status { font-size: 0.5rem; padding: 3px 10px; }
@@ -1174,6 +1263,7 @@
                 font-size: 0.65rem;
                 padding: 6px 10px;
             }
+            .table-wrapper { max-height: calc(100vh - 350px); }
             table { font-size: 0.55rem; min-width: 650px; }
             th, td { padding: 7px 8px; }
             .code-cell { font-size: 0.66rem; padding: 2px 8px; }
@@ -1703,7 +1793,6 @@
         function openImportModal() {
             document.getElementById('importModal').classList.add('active');
             document.getElementById('importFile').value = '';
-            // إخفاء مؤشر التقدم إذا كان ظاهراً
             document.getElementById('importProgress').style.display = 'none';
             document.getElementById('progressBar').style.width = '0%';
             document.body.style.overflow = 'hidden';
@@ -1754,7 +1843,7 @@
         }
 
         // ============================================================
-        // IMPORT FROM EXCEL (مع مؤشر التقدم)
+        // IMPORT FROM EXCEL
         // ============================================================
         async function importFromExcel(event) {
             event.preventDefault();
@@ -1799,14 +1888,12 @@
                 var errMsgs = [];
 
                 for (var i = 0; i < json.length; i++) {
-                    // تحديث التقدم
                     var percent = Math.round(((i + 1) / json.length) * 100);
                     progressBar.style.width = percent + '%';
                     progressPercent.textContent = percent + '%';
                     progressCount.textContent = i + 1;
                     progressText.textContent = 'جاري استيراد السجل ' + (i + 1) + ' من ' + json.length;
 
-                    // معالجة السجل
                     var row = json[i];
                     var name = row['اسم العميل'] || row['name'] || '';
                     if (!name) {
@@ -1834,7 +1921,6 @@
                         errMsgs.push('صف ' + (i + 1) + ': ' + e.message);
                     }
 
-                    // تأخير بسيط لإظهار التقدم
                     await new Promise(r => setTimeout(r, 30));
                 }
 
