@@ -523,96 +523,6 @@
 
         /**
          * ============================================================
-         * INITIALIZE SUPABASE CLIENT
-         * ============================================================
-         * استخدام SDK بدلاً من Fetch المباشر لتوفير تجربة أكثر استقراراً
-         */
-        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: {
-                autoRefreshToken: true,
-                persistSession: true,
-                detectSessionInUrl: true,
-                storageKey: 'rollex_session'
-            }
-        });
-
-        /**
-         * ============================================================
-         * DEBUG MODE - تفعيل وضع التصحيح
-         * ============================================================
-         */
-        var DEBUG_MODE = false;
-
-        function debugLog(message, type, data) {
-            if (!DEBUG_MODE) return;
-            
-            var prefix = '🔍 [DEBUG]';
-            var icon = '📌';
-            
-            switch(type) {
-                case 'success':
-                    prefix = '✅ [SUCCESS]';
-                    icon = '✅';
-                    break;
-                case 'error':
-                    prefix = '❌ [ERROR]';
-                    icon = '❌';
-                    break;
-                case 'warning':
-                    prefix = '⚠️ [WARNING]';
-                    icon = '⚠️';
-                    break;
-                case 'info':
-                    prefix = 'ℹ️ [INFO]';
-                    icon = 'ℹ️';
-                    break;
-                default:
-                    prefix = '🔍 [DEBUG]';
-                    icon = '🔍';
-            }
-            
-            if (data) {
-                console.log(icon + ' ' + prefix + ' - ' + message, data);
-            } else {
-                console.log(icon + ' ' + prefix + ' - ' + message);
-            }
-        }
-
-        /**
-         * ============================================================
-         * CHECK SESSION - باستخدام Supabase SDK
-         * ============================================================
-         */
-        async function checkSession() {
-            debugLog('بدء التحقق من الجلسة باستخدام Supabase SDK...', 'info');
-            
-            try {
-                // الحصول على الجلسة الحالية من Supabase
-                var { data: { session }, error } = await supabase.auth.getSession();
-                
-                if (error) {
-                    debugLog('خطأ في جلب الجلسة', 'error', error);
-                    return false;
-                }
-                
-                if (session) {
-                    debugLog('تم العثور على جلسة صالحة', 'success', {
-                        user: session.user.email,
-                        expires_at: new Date(session.expires_at * 1000).toLocaleString()
-                    });
-                    return true;
-                } else {
-                    debugLog('لا توجد جلسة نشطة', 'info');
-                    return false;
-                }
-            } catch (error) {
-                debugLog('خطأ في التحقق من الجلسة', 'error', error);
-                return false;
-            }
-        }
-
-        /**
-         * ============================================================
          * BUILD RING - الحلقة المزخرفة
          * ============================================================
          */
@@ -713,7 +623,7 @@
 
         /**
          * ============================================================
-         * LOGIN FORM SUBMIT - باستخدام Supabase SDK
+         * LOGIN FORM SUBMIT
          * ============================================================
          */
         loginForm.addEventListener('submit', async function(e) {
@@ -739,8 +649,6 @@
             hideMessage();
 
             try {
-                debugLog('📤 جاري إرسال طلب تسجيل الدخول...', 'info');
-
                 // استخدام Supabase SDK لتسجيل الدخول
                 var { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
@@ -748,19 +656,12 @@
                 });
 
                 if (error) {
-                    debugLog('❌ فشل تسجيل الدخول', 'error', error);
-                    
                     var errorMsg = error.message || 'بيانات الدخول غير صحيحة';
                     if (errorMsg.includes('Invalid login credentials')) {
                         errorMsg = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
                     }
                     throw new Error(errorMsg);
                 }
-
-                debugLog('✅ تم تسجيل الدخول بنجاح', 'success', {
-                    user: data.user.email,
-                    session: data.session ? 'نشطة' : 'غير موجودة'
-                });
 
                 // حفظ الجلسة في localStorage أو sessionStorage حسب اختيار المستخدم
                 var storage = document.getElementById('remember').checked 
@@ -777,7 +678,6 @@
                 }, 900);
 
             } catch (error) {
-                debugLog('❌ خطأ في تسجيل الدخول', 'error', error);
                 showMessage(error.message, 'error');
             }
 
@@ -827,23 +727,34 @@
          * ============================================================
          */
         (async function init() {
-            debugLog('🚀 بدء تحميل صفحة تسجيل الدخول', 'info');
-            debugLog('🔗 Supabase URL', 'info', SUPABASE_URL);
-            debugLog('🔄 وضع التصحيح مفعل', 'info');
-
-            // التحقق من وجود جلسة نشطة
-            var hasSession = await checkSession();
-            
-            if (hasSession) {
-                debugLog('✅ جلسة موجودة، جاري التوجيه إلى الصفحة الرئيسية...', 'success');
-                window.location.href = 'index.html';
-            } else {
-                debugLog('ℹ️ لا توجد جلسة، عرض صفحة تسجيل الدخول', 'info');
-            }
-
             console.log('🏢 QuickData ProSoft - نظام إدارة الشركات');
+            console.log('🔗 Supabase URL:', SUPABASE_URL);
             console.log('✅ النظام جاهز للعمل');
             console.log('📌 تم تحميل صفحة تسجيل الدخول بنجاح');
+
+            // التحقق من وجود جلسة نشطة
+            var session = localStorage.getItem('rollex_session');
+            if (session) {
+                try {
+                    var parsed = JSON.parse(session);
+                    if (parsed.access_token) {
+                        // محاولة التحقق من صلاحية التوكن
+                        var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': 'Bearer ' + parsed.access_token
+                            }
+                        });
+                        if (response.ok) {
+                            console.log('✅ جلسة موجودة وصالحة، جاري التوجيه إلى الصفحة الرئيسية...');
+                            window.location.href = 'index.html';
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('⚠️ فشل التحقق من الجلسة:', e);
+                }
+            }
         })();
     </script>
 
