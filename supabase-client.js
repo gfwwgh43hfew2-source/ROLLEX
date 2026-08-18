@@ -144,34 +144,13 @@ async function refreshSession() {
 }
 
 // ============================================================
-// REDIRECT TO LOGIN - معدل (بدون إنهاء فوري)
+// REDIRECT TO LOGIN
 // ============================================================
 function redirectToLogin() {
     console.log('🚪 جاري التوجيه لتسجيل الدخول...');
-    
-    // حفظ سبب التوجيه
-    sessionStorage.setItem('logout_reason', 'session_expired');
-    
-    // تنظيف البيانات
     localStorage.removeItem('rollex_session');
     sessionStorage.removeItem('rollex_session');
-    localStorage.removeItem('user');
-    localStorage.removeItem('rollex_treasury_entries');
-    
-    // إيقاف مراقبة الجلسة
-    if (monitorInterval) {
-        clearInterval(monitorInterval);
-        monitorInterval = null;
-    }
-    sessionMonitorStarted = false;
-    
-    // عرض رسالة
-    showToast('⚠️ انتهت الجلسة', 'يرجى تسجيل الدخول مجدداً', 'warning');
-    
-    // تأخير بسيط قبل التوجيه
-    setTimeout(function() {
-        window.location.href = 'login.html';
-    }, 1500);
+    window.location.href = 'login.html';
 }
 
 // ============================================================
@@ -260,10 +239,17 @@ async function getCompanyId() {
 // ============================================================
 async function getTable(tableName, orderBy) {
     var token = getToken();
-    if (!token) return [];
+    if (!token) {
+        console.warn('⚠️ لا يوجد توكن، جاري التوجيه لتسجيل الدخول...');
+        redirectToLogin();
+        return [];
+    }
 
     var companyId = await getCompanyId();
-    if (!companyId) return [];
+    if (!companyId) {
+        console.warn('⚠️ لم يتم العثور على company_id');
+        return [];
+    }
 
     try {
         var url = SUPABASE_URL + '/rest/v1/' + tableName + '?select=*&company_id=eq.' + companyId;
@@ -275,6 +261,28 @@ async function getTable(tableName, orderBy) {
                 'Authorization': 'Bearer ' + token
             }
         });
+
+        if (response.status === 403) {
+            console.warn('⚠️ خطأ 403 - محاولة تجديد الجلسة...');
+            var refreshed = await refreshSession();
+            if (refreshed) {
+                var newToken = getToken();
+                if (newToken) {
+                    var newResponse = await fetch(url, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + newToken
+                        }
+                    });
+                    if (newResponse.ok) {
+                        return (await newResponse.json()) || [];
+                    }
+                }
+            }
+            console.warn('⚠️ فشل تجديد الجلسة، جاري التوجيه لتسجيل الدخول...');
+            redirectToLogin();
+            return [];
+        }
 
         if (!response.ok) return [];
         return (await response.json()) || [];
@@ -384,117 +392,18 @@ function formatDate(dateStr) {
     }
 }
 
-function getArabicDay(dateStr) {
-    if (!dateStr) return '';
-    try {
-        var parts = dateStr.split('-');
-        if (parts.length !== 3) return '';
-        var year = parseInt(parts[0]);
-        var month = parseInt(parts[1]) - 1;
-        var day = parseInt(parts[2]);
-        var date = new Date(year, month, day);
-        if (isNaN(date.getTime())) return '';
-        var days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-        return days[date.getDay()];
-    } catch (e) {
-        return '';
-    }
-}
-
 // ============================================================
-// FETCH WITH RETRY
-// ============================================================
-async function fetchWithRetry(url, options, maxRetries = 3) {
-    var lastError = null;
-
-    for (var attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            console.log(`🔄 محاولة ${attempt}/${maxRetries}...`);
-
-            var token = getToken();
-            if (!token && attempt === 1) {
-                var refreshed = await refreshSession();
-                if (refreshed) {
-                    token = getToken();
-                    if (token && options.headers) {
-                        options.headers['Authorization'] = 'Bearer ' + token;
-                    }
-                } else {
-                    // لا نطرد المستخدم فوراً، نتركه يحاول مرة أخرى
-                    console.warn('⚠️ فشل تجديد الجلسة، محاولة مرة أخرى...');
-                    continue;
-                }
-            }
-
-            var response = await fetch(url, options);
-
-            if (response.status === 401) {
-                console.warn('⚠️ توكن غير صالح (401)، محاولة تجديد الجلسة...');
-                var refreshed = await refreshSession();
-                if (refreshed) {
-                    var newToken = getToken();
-                    if (options.headers) {
-                        options.headers['Authorization'] = 'Bearer ' + newToken;
-                    }
-                    console.log('✅ تم تجديد الجلسة، إعادة المحاولة...');
-                    continue;
-                } else {
-                    // لا نطرد المستخدم فوراً، نتركه يحاول مرة أخرى
-                    console.warn('⚠️ فشل تجديد الجلسة، محاولة مرة أخرى...');
-                    continue;
-                }
-            }
-
-            if (response.ok) return response;
-
-            if (response.status === 429 || response.status >= 500) {
-                console.warn(`⚠️ محاولة ${attempt}/${maxRetries} فشلت (${response.status})، إعادة المحاولة...`);
-                await new Promise(resolve => setTimeout(resolve, attempt * 1500));
-                continue;
-            }
-
-            return response;
-
-        } catch (error) {
-            lastError = error;
-            console.warn(`⚠️ محاولة ${attempt}/${maxRetries} فشلت:`, error.message);
-            if (attempt < maxRetries) {
-                await new Promise(resolve => setTimeout(resolve, attempt * 1500));
-            }
-        }
-    }
-
-    throw lastError || new Error('فشل بعد عدة محاولات');
-}
-
-// ============================================================
-// LOGOUT - معدل (مع إيقاف المراقبة)
+// LOGOUT
 // ============================================================
 async function logout() {
     console.log('🚪 جاري تسجيل الخروج...');
-
-    // إيقاف مراقبة الجلسة
-    if (monitorInterval) {
-        clearInterval(monitorInterval);
-        monitorInterval = null;
-    }
-    sessionMonitorStarted = false;
-
-    try {
-        localStorage.removeItem('rollex_session');
-        sessionStorage.removeItem('rollex_session');
-        localStorage.removeItem('user');
-        localStorage.removeItem('rollex_treasury_entries');
-        console.log('✅ تم تسجيل الخروج بنجاح');
-    } catch (error) {
-        console.error('❌ خطأ في تسجيل الخروج:', error);
-    }
-
+    localStorage.removeItem('rollex_session');
+    sessionStorage.removeItem('rollex_session');
     window.location.href = 'login.html';
 }
 
 // ============================================================
-// SESSION MONITOR - معدل (لا يطرد المستخدم فوراً)
+// SESSION MONITOR
 // ============================================================
 var monitorInterval = null;
 var sessionMonitorStarted = false;
@@ -515,14 +424,12 @@ function startSessionMonitor() {
             return;
         }
 
-        // التحقق من صلاحية التوكن عن طريق Supabase
         var token = session.access_token;
         if (!token) {
             console.log('ℹ️ لا يوجد توكن، ننتظر...');
             return;
         }
 
-        // محاولة التحقق من صلاحية التوكن
         fetch(SUPABASE_URL + '/auth/v1/user', {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
@@ -539,14 +446,8 @@ function startSessionMonitor() {
                 console.log('⚠️ التوكن منتهي، محاولة التجديد...');
                 refreshSession().then(function(refreshed) {
                     if (!refreshed) {
-                        console.log('⚠️ فشل تجديد الجلسة، سيتم طلب تسجيل الدخول بعد دقيقة...');
-                        // نعطي المستخدم مهلة دقيقة قبل طرده
-                        setTimeout(function() {
-                            var newSession = getSession();
-                            if (!newSession) {
-                                redirectToLogin();
-                            }
-                        }, 60000); // دقيقة كاملة
+                        console.log('⚠️ فشل تجديد الجلسة، سيتم طلب تسجيل الدخول...');
+                        redirectToLogin();
                     }
                 });
             }
@@ -555,13 +456,13 @@ function startSessionMonitor() {
             console.warn('⚠️ خطأ في التحقق من الجلسة:', error.message);
         });
 
-    }, 30000); // كل 30 ثانية
+    }, 30000);
 
     console.log('✅ بدأ مراقبة الجلسة');
 }
 
 // ============================================================
-// CHECK SESSION ON LOAD - معدل (لا يطرد المستخدم فوراً)
+// CHECK SESSION ON LOAD
 // ============================================================
 async function checkSessionAndRedirect() {
     var session = getSession();
@@ -589,7 +490,6 @@ async function checkSessionAndRedirect() {
             var refreshed = await refreshSession();
             if (!refreshed) {
                 console.log('⚠️ فشل تجديد الجلسة، سيتم طلب تسجيل الدخول...');
-                // لا نطرد المستخدم فوراً، نعطيه فرصة
                 return false;
             }
             return true;
@@ -626,63 +526,4 @@ function getStatusBadge(status) {
     return '<span class="badge-status ' + statusClass + '">' + statusText + '</span>';
 }
 
-// ============================================================
-// GET URL PARAMETER
-// ============================================================
-function getUrlParam(param) {
-    var params = new URLSearchParams(window.location.search);
-    return params.get(param);
-}
-
-// ============================================================
-// FETCH FROM GOOGLE SHEETS
-// ============================================================
-async function fetchSheetData(sheetId, sheetName) {
-    var url = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:csv&sheet=' + sheetName;
-    var response = await fetch(url);
-    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
-    var csvText = await response.text();
-    var lines = csvText.split('\n').filter(function(line) { return line.trim() !== ''; });
-    return lines.map(function(line) {
-        var row = [];
-        var current = '';
-        var insideQuotes = false;
-        for (var i = 0; i < line.length; i++) {
-            var char = line[i];
-            if (char === '"') {
-                insideQuotes = !insideQuotes;
-            } else if (char === ',' && !insideQuotes) {
-                row.push(current.trim());
-                current = '';
-            } else {
-                current += char;
-            }
-        }
-        row.push(current.trim());
-        return row;
-    });
-}
-
-// ============================================================
-// PARSE CSV LINE
-// ============================================================
-function parseCSVLine(line) {
-    var row = [];
-    var current = '';
-    var insideQuotes = false;
-    for (var i = 0; i < line.length; i++) {
-        var char = line[i];
-        if (char === '"') {
-            insideQuotes = !insideQuotes;
-        } else if (char === ',' && !insideQuotes) {
-            row.push(current.trim());
-            current = '';
-        } else {
-            current += char;
-        }
-    }
-    row.push(current.trim());
-    return row;
-}
-
-console.log('✅ تم تحميل supabase-client.js (النسخة المُصلَحة)');
+console.log('✅ تم تحميل supabase-client.js (النسخة المُحسّنة)');
