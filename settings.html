@@ -587,7 +587,7 @@
                 </span>
             </div>
 
-            <!-- ===== حقل رابط الشعار (جديد) ===== -->
+            <!-- حقل رابط الشعار -->
             <div class="form-group" style="margin-top: 12px;">
                 <label>رابط الشعار (من GitHub أو Cloudflare Pages)</label>
                 <input type="text" id="logoUrlInput" 
@@ -680,12 +680,12 @@
         var logoInput = document.getElementById('logoInput');
         var logoImage = document.getElementById('logoImage');
         var removeLogo = document.getElementById('removeLogo');
-        var logoUrlInput = document.getElementById('logoUrlInput'); // حقل الرابط الجديد
+        var logoUrlInput = document.getElementById('logoUrlInput');
         var btnSaveSettings = document.getElementById('btnSaveSettings');
         var btnResetSettings = document.getElementById('btnResetSettings');
 
         // ============================================================
-        // CONFIG - الرابط الجديد (الإصدار 48)
+        // CONFIG
         // ============================================================
         var SETTINGS_URL = 'https://script.google.com/macros/s/AKfycbwktOKxOfOBx9fKXB7E2pHKo0NUONQM6XTmjo2BhAdK-4a7_bJeoeHB3wlFGAB5KgDEoA/exec';
 
@@ -754,26 +754,22 @@
         // LOAD SETTINGS
         // ============================================================
         function loadSettings() {
-            // محاولة قراءة الإعدادات من localStorage أولاً (للحصول على سرعة أفضل)
             var savedSettings = localStorage.getItem('rollex_settings');
             if (savedSettings) {
                 try {
                     var parsedSettings = JSON.parse(savedSettings);
                     fillSettingsForm(parsedSettings);
                     console.log('✅ تم تحميل الإعدادات من localStorage');
-                    // نستمر في جلب البيانات من السيرفر للتحديث
                 } catch (e) {
                     console.warn('⚠️ خطأ في قراءة الإعدادات من localStorage');
                 }
             }
 
-            // جلب الإعدادات من السيرفر
             fetch(SETTINGS_URL + '?action=getSettings')
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
                     if (data.success && data.data) {
                         fillSettingsForm(data.data);
-                        // حفظ في localStorage للاستخدام السريع
                         localStorage.setItem('rollex_settings', JSON.stringify(data.data));
                         console.log('✅ تم تحميل الإعدادات من السيرفر');
                     } else {
@@ -782,7 +778,6 @@
                 })
                 .catch(function(error) {
                     console.error('❌ خطأ في جلب الإعدادات:', error);
-                    // إذا لم توجد بيانات في localStorage، نستخدم الافتراضية
                     if (!savedSettings) {
                         loadDefaultSettings();
                     }
@@ -798,7 +793,6 @@
             companyTaxNumber.value = settings.companyTaxNumber || DEFAULT_SETTINGS.companyTaxNumber;
             invoiceFooter.value = settings.invoiceFooter || DEFAULT_SETTINGS.invoiceFooter;
 
-            // تعبئة حقل رابط الشعار وعرضه
             if (settings.companyLogo && settings.companyLogo !== '') {
                 logoImage.src = settings.companyLogo;
                 logoImage.style.display = 'block';
@@ -843,10 +837,8 @@
             btnSaveSettings.disabled = true;
             btnSaveSettings.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
-            // حفظ في localStorage أولاً (للتحديث الفوري)
             localStorage.setItem('rollex_settings', JSON.stringify(settings));
 
-            // حفظ في السيرفر
             fetch(SETTINGS_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -891,7 +883,7 @@
         }
 
         // ============================================================
-        // LOGO UPLOAD - رفع الشعار وعرضه مع تعبئة الرابط تلقائياً
+        // LOGO UPLOAD
         // ============================================================
         logoInput.addEventListener('change', function(e) {
             var file = e.target.files[0];
@@ -903,20 +895,13 @@
                     logoImage.style.display = 'block';
                     removeLogo.style.display = 'inline-block';
                     
-                    // ===== محاولة استنتاج الرابط من اسم الملف =====
                     var fileName = file.name;
                     var suggestedUrl = '';
-                    
-                    // إذا كان الملف موجوداً على GitHub، نقترح رابطاً
                     if (fileName) {
-                        // تنظيف اسم الملف للاستخدام في الرابط
                         var cleanName = fileName.replace(/[^a-zA-Z0-9.]/g, '_');
                         suggestedUrl = 'https://raw.githubusercontent.com/gfwwgh43hfew2-source/ROLLEX/main/' + cleanName;
                     }
-                    
-                    // تعبئة حقل الرابط بالقيمة المقترحة
                     logoUrlInput.value = suggestedUrl;
-                    
                     showToast('✅ تم الرفع', 'تم رفع الشعار بنجاح. تأكد من رابط الصورة.', 'success');
                 };
                 reader.readAsDataURL(file);
@@ -956,7 +941,6 @@
         console.log('⚙️ صفحة الإعدادات - الإصدار النهائي');
         console.log('📌 رابط السيرفر:', SETTINGS_URL);
         console.log('📌 Ctrl+S للحفظ');
-        console.log('📌 يتم حفظ رابط الصورة بدلاً من Base64');
     </script>
 
 </body>
