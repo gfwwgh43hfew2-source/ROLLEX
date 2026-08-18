@@ -15,6 +15,17 @@
             box-sizing: border-box;
         }
 
+        /* منع ظهور الصفحة حتى يتم التحقق */
+        body.loading {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        body.ready {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
         :root {
             --gold: #f5a623;
             --gold-light: #ffc857;
@@ -351,7 +362,7 @@
         }
     </style>
 </head>
-<body>
+<body class="loading">
 
     <div class="ring-wrap" id="ringWrap">
         <div class="ring" id="ring" aria-hidden="true"></div>
@@ -489,7 +500,7 @@
 
         /**
          * ============================================================
-         * منع الوصول إذا كان المستخدم مسجل دخول بالفعل
+         * التحقق من الجلسة - مع منع ظهور الصفحة إذا كان مسجل دخول
          * ============================================================
          */
         (async function checkAuthAndRedirect() {
@@ -498,18 +509,30 @@
 
                 if (error) {
                     console.warn('⚠️ خطأ في التحقق من الجلسة:', error.message);
+                    // في حالة الخطأ، نظهر الصفحة عادي
+                    document.body.classList.remove('loading');
+                    document.body.classList.add('ready');
                     return;
                 }
 
                 if (session) {
                     console.log('✅ المستخدم مسجل دخول بالفعل:', session.user.email);
                     console.log('🔄 جاري التوجيه إلى الصفحة الرئيسية...');
+                    // توجيه فوري بدون عرض الصفحة
                     window.location.replace('index.html');
-                } else {
-                    console.log('👤 المستخدم غير مسجل دخول، مرحباً بك في صفحة التسجيل');
+                    return;
                 }
+
+                console.log('👤 المستخدم غير مسجل دخول، مرحباً بك في صفحة التسجيل');
+                // إظهار الصفحة
+                document.body.classList.remove('loading');
+                document.body.classList.add('ready');
+
             } catch (error) {
                 console.error('❌ خطأ في التحقق من الجلسة:', error);
+                // في حالة الخطأ، نظهر الصفحة عادي
+                document.body.classList.remove('loading');
+                document.body.classList.add('ready');
             }
         })();
 
@@ -906,7 +929,7 @@
         console.log('✅ النظام جاهز للعمل');
         console.log('📌 التسجيل متاح للشركات الجديدة فقط');
         console.log('📌 يتم إنشاء الشركة والمستخدم الأول كـ admin تلقائياً');
-        console.log('🔒 في حال وجود جلسة نشطة، سيتم توجيهك للرئيسية');
+        console.log('🔒 في حال وجود جلسة نشطة، سيتم توجيهك للرئيسية فوراً');
     </script>
 
 </body>
