@@ -5,7 +5,7 @@ const SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
 
 // ============================================================
-// TOAST SYSTEM - نسخة متقدمة مع أزرار
+// TOAST SYSTEM
 // ============================================================
 function showToast(title, message, type = 'success', buttons = null) {
     var container = document.getElementById('toastContainer');
@@ -235,7 +235,7 @@ async function getCompanyId() {
 }
 
 // ============================================================
-// GENERIC GET
+// GENERIC GET (مُعدلة لمنع تسجيل الخروج التلقائي عند 403)
 // ============================================================
 async function getTable(tableName, orderBy) {
     var token = getToken();
@@ -263,11 +263,12 @@ async function getTable(tableName, orderBy) {
         });
 
         if (response.status === 403) {
-            console.warn('⚠️ خطأ 403 - محاولة تجديد الجلسة...');
+            console.warn('⚠️ خطأ 403 في ' + tableName + ' - محاولة تجديد الجلسة...');
             var refreshed = await refreshSession();
             if (refreshed) {
                 var newToken = getToken();
                 if (newToken) {
+                    console.log('✅ تم تجديد الجلسة، إعادة محاولة جلب ' + tableName + '...');
                     var newResponse = await fetch(url, {
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
@@ -276,6 +277,9 @@ async function getTable(tableName, orderBy) {
                     });
                     if (newResponse.ok) {
                         return (await newResponse.json()) || [];
+                    } else {
+                        console.warn('⚠️ فشل جلب ' + tableName + ' بعد تجديد الجلسة');
+                        return [];
                     }
                 }
             }
@@ -284,7 +288,10 @@ async function getTable(tableName, orderBy) {
             return [];
         }
 
-        if (!response.ok) return [];
+        if (!response.ok) {
+            console.warn('⚠️ فشل جلب ' + tableName + ' بسبب خطأ ' + response.status);
+            return [];
+        }
         return (await response.json()) || [];
 
     } catch (error) {
