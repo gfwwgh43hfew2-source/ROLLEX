@@ -978,17 +978,25 @@
         }
 
         /* ============================================================
-           UPDATE STATS FROM SUPABASE
+           UPDATE STATS FROM SUPABASE - (نسخة مُصححة)
            ============================================================ */
         var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
         var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
 
         async function updateStats() {
+            var token = getToken(); // 1. الحصول على التوكن الحالي
+            if (!token) {
+                console.warn('⚠️ لا يوجد توكن، جاري التوجيه لتسجيل الدخول...');
+                redirectToLogin();
+                return;
+            }
+
             try {
+                // جلب بيانات الخزينة مع التوكن
                 var response = await fetch(SUPABASE_URL + '/rest/v1/treasury?select=*', {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                        'Authorization': 'Bearer ' + token
                     }
                 });
 
@@ -1010,11 +1018,12 @@
                 document.getElementById('totalRevenue').textContent = balance.toLocaleString() + ' ج.م';
                 document.getElementById('totalInvoices').textContent = totalTransactions.toLocaleString();
                 
+                // جلب عدد العملاء مع التوكن
                 try {
                     var clientsRes = await fetch(SUPABASE_URL + '/rest/v1/clients?select=id', {
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                            'Authorization': 'Bearer ' + token
                         }
                     });
                     if (clientsRes.ok) {
