@@ -543,9 +543,9 @@
          * دالة إنشاء البروفايل (المستخدم) في جدول profiles
          * ============================================================
          */
-        async function createProfile(userId, name, email, companyId, role) {
+        async function createProfile(userId, name, email, companyId, companyName, role) {
             // 1. التحقق مما إذا كان البروفايل موجود بالفعل
-            var checkResponse = await fetch(supabaseUrl + '/rest/v1/profiles?select=id,company_id&id=eq.' + userId, {
+            var checkResponse = await fetch(supabaseUrl + '/rest/v1/profiles?select=id,company_id,company_name&id=eq.' + userId, {
                 headers: {
                     'apikey': supabaseKey,
                     'Authorization': 'Bearer ' + (await supabase.auth.getSession()).data.session.access_token
@@ -553,11 +553,11 @@
             });
             var existingProfile = await checkResponse.json();
 
-            // إذا كان موجوداً، نقوم بتحديث company_id إذا لزم الأمر
+            // إذا كان موجوداً، نقوم بتحديث company_id و company_name إذا لزم الأمر
             if (existingProfile && existingProfile.length > 0) {
                 var profile = existingProfile[0];
-                // إذا كان company_id مختلفاً، نقوم بتحديثه
-                if (profile.company_id !== companyId) {
+                // إذا كان company_id أو company_name مختلفاً، نقوم بتحديثهما
+                if (profile.company_id !== companyId || profile.company_name !== companyName) {
                     var updateResponse = await fetch(supabaseUrl + '/rest/v1/profiles?id=eq.' + userId, {
                         method: 'PATCH',
                         headers: {
@@ -567,19 +567,20 @@
                             'Prefer': 'return=representation'
                         },
                         body: JSON.stringify({
-                            company_id: companyId
+                            company_id: companyId,
+                            company_name: companyName
                         })
                     });
                     if (!updateResponse.ok) {
-                        console.error('❌ فشل تحديث company_id للبروفايل:', await updateResponse.text());
+                        console.error('❌ فشل تحديث company_id/company_name للبروفايل:', await updateResponse.text());
                     } else {
-                        console.log('✅ تم تحديث company_id للبروفايل بنجاح');
+                        console.log('✅ تم تحديث company_id و company_name للبروفايل بنجاح');
                     }
                 }
                 return profile;
             }
 
-            // إذا لم يكن موجوداً، نقوم بإضافته
+            // إذا لم يكن موجوداً، نقوم بإضافته مع company_name
             var response = await fetch(supabaseUrl + '/rest/v1/profiles', {
                 method: 'POST',
                 headers: {
@@ -593,7 +594,8 @@
                     name: name,
                     email: email,
                     role: role || 'admin',
-                    company_id: companyId
+                    company_id: companyId,
+                    company_name: companyName
                 })
             });
 
@@ -715,7 +717,7 @@
                 }
 
                 // 4. إنشاء البروفايل في جدول profiles
-                await createProfile(data.user.id, name, email, newCompany.id, 'admin');
+                await createProfile(data.user.id, name, email, newCompany.id, companyName, 'admin');
 
                 // 5. حفظ الجلسة
                 localStorage.setItem('rollex_session', JSON.stringify(data.session));
