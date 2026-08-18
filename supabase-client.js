@@ -1,740 +1,516 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover" />
-    <title>تسجيل الدخول - QuickData ProSoft</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-client.js"></script>
-    <style>
-        /* ========================================================== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+// ============================================================
+// SUPABASE CONFIGURATION
+// ============================================================
+const SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
 
-        :root {
-            --gold: #f5a623;
-            --gold-light: #ffc857;
-            --gold-deep: #e08e0b;
-            --navy-bg: #1b2431;
-            --navy-bg-2: #141c27;
-            --card: #212c3b;
-            --field: #2a3646;
-            --field-border: #37455a;
-            --text-dim: rgba(255, 255, 255, 0.55);
-            --text-faint: rgba(255, 255, 255, 0.4);
-            --text-mid: rgba(255, 255, 255, 0.72);
-            --danger: #ff6b6b;
-            --success: #66d17d;
-        }
+// ============================================================
+// TOAST SYSTEM
+// ============================================================
+function showToast(title, message, type = 'success', buttons = null) {
+    var container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
 
-        html {
-            scroll-behavior: smooth;
-            background: var(--navy-bg-2);
-            height: 100%;
-            overflow-x: hidden;
-        }
+    var toast = document.createElement('div');
+    toast.className = 'toast ' + (type || '');
 
-        body {
-            font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
-            direction: rtl;
-            min-height: 100vh;
-            min-height: calc(var(--vh, 1vh) * 100);
-            min-height: 100dvh;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px 20px;
-            position: relative;
-            background: radial-gradient(ellipse at 50% 40%, #232f40 0%, var(--navy-bg) 55%, var(--navy-bg-2) 100%);
-            overflow-x: hidden;
-            overflow-y: auto;
-        }
+    var iconMap = {
+        'success': { icon: 'fa-check-circle', cls: 'success' },
+        'error': { icon: 'fa-times-circle', cls: 'error' },
+        'warning': { icon: 'fa-exclamation-triangle', cls: 'warning' }
+    };
+    var t = iconMap[type] || iconMap['warning'];
 
-        .ring-wrap {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 460px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+    var buttonsHtml = '';
+    if (buttons && buttons.length > 0) {
+        buttonsHtml = '<div class="toast-actions">';
+        buttons.forEach(function(btn) {
+            buttonsHtml += '<button class="' + btn.class + '" data-value="' + btn.value + '">' + btn.label + '</button>';
+        });
+        buttonsHtml += '</div>';
+    }
 
-        .ring {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            width: min(94vw, 94dvh, 520px);
-            height: min(94vw, 94dvh, 520px);
-            transform: translate(-50%, -50%);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 0;
-        }
-        .ring svg {
-            width: 100%;
-            height: 100%;
-            animation: ringSpin 90s linear infinite;
-        }
-        @keyframes ringSpin { to { transform: rotate(360deg); } }
-        .ring .tick {
-            stroke: rgba(255, 255, 255, 0.14);
-            stroke-width: 3;
-            stroke-linecap: round;
-        }
-        .ring .tick.lit {
-            stroke: var(--gold);
-            filter: drop-shadow(0 0 5px rgba(245, 166, 35, 0.85));
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .ring svg { animation: none; }
-        }
-
-        .login-container {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 360px;
-            background: var(--card);
-            border-radius: 22px;
-            padding: 38px 30px 30px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
-            animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-        }
-        @keyframes fadeInUp {
-            0% { opacity: 0; transform: translateY(30px) scale(0.97); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .login-container { animation: none; }
-        }
-
-        .title {
-            text-align: center;
-            font-size: 1.9rem;
-            font-weight: 900;
-            letter-spacing: 2px;
-            color: var(--gold);
-            text-shadow: 0 0 22px rgba(245, 166, 35, 0.35);
-            margin-bottom: 26px;
-        }
-
-        .form-group { margin-bottom: 16px; }
-        .form-group label {
-            display: block;
-            font-size: 0.78rem;
-            font-weight: 700;
-            color: var(--text-mid);
-            margin-bottom: 6px;
-        }
-
-        .input-wrap {
-            position: relative;
-            border-radius: 12px;
-            background: var(--field);
-            border: 1px solid var(--field-border);
-            transition: border-color 0.25s, box-shadow 0.25s;
-        }
-        .input-wrap:focus-within {
-            border-color: var(--gold);
-            box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
-        }
-        .input-wrap .input-icon {
-            position: absolute;
-            right: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-dim);
-            z-index: 2;
-            display: flex;
-            pointer-events: none;
-        }
-        .input-wrap:focus-within .input-icon { color: var(--gold); }
-
-        .input-wrap input {
-            width: 100%;
-            padding: 14px 44px 14px 16px;
-            border: none;
-            background: transparent;
-            color: #fff;
-            font-size: 0.9rem;
-            font-family: inherit;
-            outline: none;
-            text-align: right;
-        }
-        .input-wrap input::placeholder { color: var(--text-faint); font-weight: 400; }
-        .input-wrap.has-toggle input { padding: 14px 44px 14px 44px; }
-
-        .toggle-pass {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--text-dim);
-            cursor: pointer;
-            z-index: 3;
-            padding: 6px;
-            display: flex;
-            border-radius: 6px;
-        }
-        .toggle-pass:hover { color: var(--gold); }
-
-        .field-error {
-            display: none;
-            align-items: center;
-            gap: 6px;
-            color: var(--danger);
-            font-size: 0.74rem;
-            font-weight: 700;
-            margin-top: 6px;
-        }
-        .field-error.show { display: flex; }
-        .input-wrap.invalid { border-color: var(--danger); }
-        .input-wrap.invalid:focus-within { box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.15); }
-
-        .options-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 22px;
-            gap: 12px;
-        }
-        .remember { display: flex; align-items: center; gap: 8px; }
-        .remember input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--gold); cursor: pointer; }
-        .remember label { font-size: 0.78rem; color: var(--text-mid); cursor: pointer; }
-        .forgot a {
-            color: var(--text-mid);
-            font-size: 0.78rem;
-            font-weight: 600;
-            text-decoration: none;
-        }
-        .forgot a:hover { color: var(--gold); text-decoration: underline; }
-
-        .btn-primary {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-deep));
-            color: #1b1204;
-            border: none;
-            border-radius: 12px;
-            font-weight: 800;
-            font-size: 0.95rem;
-            letter-spacing: 1px;
-            cursor: pointer;
-            transition: transform 0.25s, box-shadow 0.25s, opacity 0.25s;
-            font-family: inherit;
-            box-shadow: 0 10px 26px rgba(245, 166, 35, 0.28);
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        .btn-primary::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), transparent 60%);
-            transform: translateX(-100%);
-            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .btn-primary:hover::before { transform: translateX(100%); }
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 16px 36px rgba(245, 166, 35, 0.36);
-        }
-        .btn-primary:active:not(:disabled) { transform: translateY(0) scale(0.98); }
-        .btn-primary:disabled { cursor: not-allowed; opacity: 0.75; box-shadow: none; }
-
-        .btn-primary .ripple {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.5);
-            transform: scale(0);
-            animation: rippleAnim 0.6s ease-out;
-            pointer-events: none;
-        }
-        @keyframes rippleAnim { to { transform: scale(3); opacity: 0; } }
-
-        .btn-spinner {
-            display: none;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(27, 18, 4, 0.3);
-            border-top-color: #1b1204;
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-        }
-        .btn-primary.loading .btn-spinner { display: inline-block; }
-        .btn-primary.loading .btn-label { opacity: 0.85; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @media (prefers-reduced-motion: reduce) { .btn-spinner { animation: none; } }
-
-        .message {
-            text-align: center;
-            padding: 12px 16px;
-            border-radius: 12px;
-            margin-top: 14px;
-            font-size: 0.82rem;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-weight: 700;
-        }
-        .message.success {
-            display: flex;
-            background: rgba(43, 138, 62, 0.14);
-            color: var(--success);
-            border: 1px solid rgba(43, 138, 62, 0.25);
-        }
-        .message.error {
-            display: flex;
-            background: rgba(201, 42, 42, 0.12);
-            color: var(--danger);
-            border: 1px solid rgba(201, 42, 42, 0.22);
-            animation: shake 0.5s ease;
-        }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20% { transform: translateX(-6px); }
-            40% { transform: translateX(6px); }
-            60% { transform: translateX(-4px); }
-            80% { transform: translateX(4px); }
-        }
-        @media (prefers-reduced-motion: reduce) { .message.error { animation: none; } }
-        .checkmark { width: 16px; height: 16px; flex-shrink: 0; }
-        .checkmark circle { stroke: var(--success); stroke-width: 2; fill: none; }
-        .checkmark path { stroke: var(--success); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
-
-        .links { text-align: center; color: var(--text-dim); font-size: 0.8rem; font-weight: 600; }
-        .links a { color: var(--gold); text-decoration: none; font-weight: 800; }
-        .links a:hover { text-decoration: underline; color: var(--gold-light); }
-
-        .copyright {
-            text-align: center;
-            margin-top: 20px;
-            padding-top: 14px;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.22);
-            font-size: 0.6rem;
-            font-weight: 600;
-            letter-spacing: 0.4px;
-        }
-        .copyright strong { color: rgba(245, 166, 35, 0.45); }
-
-        a:focus-visible, button:focus-visible {
-            outline: 2px solid var(--gold);
-            outline-offset: 2px;
-        }
-        .input-wrap input:focus,
-        .input-wrap input:focus-visible { outline: none; }
-
-        @media (max-width: 480px) {
-            .login-container { padding: 30px 22px 24px; border-radius: 20px; }
-            .title { font-size: 1.6rem; }
-        }
-        @media (max-width: 480px) and (max-height: 700px) {
-            body { align-items: flex-start; padding-top: 20px; }
-        }
-    </style>
-</head>
-<body>
-
-    <div class="ring-wrap" id="ringWrap">
-        <div class="ring" id="ring" aria-hidden="true"></div>
-
-        <div class="login-container" id="loginCard">
-
-            <h1 class="title">تسجيل الدخول</h1>
-
-            <form id="loginForm" novalidate>
-
-                <div class="form-group">
-                    <label for="email">البريد الإلكتروني</label>
-                    <div class="input-wrap" id="emailWrap">
-                        <span class="input-icon" aria-hidden="true">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
-                        </span>
-                        <input type="email" id="email" name="email" placeholder="admin@company.com" required autocomplete="email" aria-describedby="emailError" />
-                    </div>
-                    <div class="field-error" id="emailError" role="alert">
-                        <span aria-hidden="true">⚠</span><span>يرجى إدخال بريد إلكتروني صالح</span>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="password">كلمة المرور</label>
-                    <div class="input-wrap has-toggle" id="passwordWrap">
-                        <span class="input-icon" aria-hidden="true">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        </span>
-                        <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password" aria-describedby="passwordError" />
-                        <button type="button" class="toggle-pass" id="togglePass" aria-label="إظهار كلمة المرور" aria-pressed="false">
-                            <svg id="eyeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
-                        </button>
-                    </div>
-                    <div class="field-error" id="passwordError" role="alert">
-                        <span aria-hidden="true">⚠</span><span>يرجى إدخال كلمة المرور</span>
-                    </div>
-                </div>
-
-                <div class="options-row">
-                    <div class="remember">
-                        <input type="checkbox" id="remember" name="remember" />
-                        <label for="remember">تذكرني</label>
-                    </div>
-                    <div class="forgot">
-                        <a href="#">نسيت كلمة المرور؟</a>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-primary" id="loginBtn">
-                    <span class="btn-spinner" aria-hidden="true"></span>
-                    <span class="btn-label">دخول</span>
-                </button>
-
-                <div id="message" class="message" role="status" aria-live="polite"></div>
-            </form>
-
-            <div class="links">
-                ليس لديك حساب؟ <a href="register.html">إنشاء حساب</a>
-            </div>
-
-            <div class="copyright">
-                © 2026 جميع الحقوق محفوظة لـ <strong>QuickData ProSoft</strong>
-            </div>
-
+    toast.innerHTML = `
+        <span class="icon ${t.cls}"><i class="fas ${t.icon}"></i></span>
+        <div class="content">
+            <div class="title">${title}</div>
+            <div class="message">${message}</div>
+            ${buttonsHtml}
         </div>
-    </div>
+        <button class="close"><i class="fas fa-times"></i></button>
+    `;
 
-    <script>
-        /**
-         * ============================================================
-         * REAL VIEWPORT HEIGHT FIX
-         * ============================================================
-         */
-        function setRealViewportHeight() {
-            document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+    container.appendChild(toast);
+
+    requestAnimationFrame(function() {
+        toast.classList.add('show');
+    });
+
+    return new Promise(function(resolve) {
+        var timeout = setTimeout(function() {
+            toast.classList.remove('show');
+            setTimeout(function() { if (toast.parentElement) toast.remove(); }, 400);
+            resolve(null);
+        }, 5000);
+
+        toast.querySelector('.close').addEventListener('click', function() {
+            clearTimeout(timeout);
+            toast.classList.remove('show');
+            setTimeout(function() { if (toast.parentElement) toast.remove(); }, 400);
+            resolve(null);
+        });
+
+        if (buttons && buttons.length > 0) {
+            toast.querySelectorAll('.toast-actions button').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var val = this.dataset.value;
+                    clearTimeout(timeout);
+                    toast.classList.remove('show');
+                    setTimeout(function() { if (toast.parentElement) toast.remove(); }, 400);
+                    resolve(val);
+                });
+            });
         }
-        setRealViewportHeight();
-        window.addEventListener('resize', setRealViewportHeight);
-        window.addEventListener('orientationchange', setRealViewportHeight);
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', setRealViewportHeight);
+    });
+}
+
+// ============================================================
+// SESSION FUNCTIONS
+// ============================================================
+function getSession() {
+    var session = localStorage.getItem('rollex_session');
+    if (!session) {
+        console.warn('⚠️ لا توجد جلسة في localStorage');
+        return null;
+    }
+    try {
+        return JSON.parse(session);
+    } catch (e) {
+        console.error('❌ فشل تحليل الجلسة:', e);
+        localStorage.removeItem('rollex_session');
+        return null;
+    }
+}
+
+function getToken() {
+    var session = getSession();
+    return session ? session.access_token : null;
+}
+
+async function refreshSession() {
+    var session = getSession();
+    if (!session || !session.refresh_token) {
+        console.warn('⚠️ لا يوجد refresh_token لتجديد الجلسة');
+        return false;
+    }
+
+    try {
+        var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ refresh_token: session.refresh_token })
+        });
+
+        if (!response.ok) {
+            console.warn('⚠️ فشل تجديد الجلسة:', response.status);
+            return false;
         }
 
-        /**
-         * ============================================================
-         * BUILD RING
-         * ============================================================
-         */
-        (function buildRing() {
-            var ring = document.getElementById('ring');
-            var size = 600;
-            var cx = size / 2,
-                cy = size / 2,
-                r = size / 2 - 20;
-            var total = 48;
-            var litStart = 4,
-                litEnd = 15;
-            var svgNS = 'http://www.w3.org/2000/svg';
-            var svg = document.createElementNS(svgNS, 'svg');
-            svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
+        var data = await response.json();
+        if (data.access_token) {
+            var newSession = {
+                access_token: data.access_token,
+                refresh_token: data.refresh_token || session.refresh_token,
+                expires_at: Date.now() + ((data.expires_in || 3600) * 1000)
+            };
+            localStorage.setItem('rollex_session', JSON.stringify(newSession));
+            console.log('✅ تم تجديد الجلسة بنجاح');
+            return true;
+        }
+        return false;
 
-            for (var i = 0; i < total; i++) {
-                var angle = (i / total) * 2 * Math.PI;
-                var inner = r - 14;
-                var outer = r;
-                var x1 = cx + inner * Math.cos(angle);
-                var y1 = cy + inner * Math.sin(angle);
-                var x2 = cx + outer * Math.cos(angle);
-                var y2 = cy + outer * Math.sin(angle);
-                var line = document.createElementNS(svgNS, 'line');
-                line.setAttribute('x1', x1);
-                line.setAttribute('y1', y1);
-                line.setAttribute('x2', x2);
-                line.setAttribute('y2', y2);
-                var lit = (i >= litStart && i <= litEnd);
-                line.setAttribute('class', 'tick' + (lit ? ' lit' : ''));
-                svg.appendChild(line);
+    } catch (error) {
+        console.error('❌ خطأ في تجديد الجلسة:', error);
+        return false;
+    }
+}
+
+// ============================================================
+// REDIRECT TO LOGIN
+// ============================================================
+function redirectToLogin() {
+    console.log('🚪 جاري التوجيه لتسجيل الدخول...');
+    localStorage.removeItem('rollex_session');
+    sessionStorage.removeItem('rollex_session');
+    window.location.href = 'login.html';
+}
+
+// ============================================================
+// GET CURRENT USER PROFILE
+// ============================================================
+async function getCurrentUserProfile() {
+    var token = getToken();
+    if (!token) {
+        console.warn('⚠️ لا يوجد توكن');
+        return null;
+    }
+
+    try {
+        var userResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + token
             }
-            ring.appendChild(svg);
-        })();
-
-        /**
-         * ============================================================
-         * TOGGLE PASSWORD
-         * ============================================================
-         */
-        var togglePass = document.getElementById('togglePass');
-        var passwordInput = document.getElementById('password');
-        var eyeIcon = document.getElementById('eyeIcon');
-        var eyeOpenPath = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/>';
-        var eyeClosedPath = '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 4.22-5.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a20.3 20.3 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/>';
-
-        togglePass.addEventListener('click', function() {
-            var isPassword = passwordInput.type === 'password';
-            passwordInput.type = isPassword ? 'text' : 'password';
-            togglePass.setAttribute('aria-pressed', String(isPassword));
-            togglePass.setAttribute('aria-label', isPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
-            eyeIcon.innerHTML = isPassword ? eyeClosedPath : eyeOpenPath;
         });
 
-        /**
-         * ============================================================
-         * RIPPLE EFFECT
-         * ============================================================
-         */
-        var loginBtn = document.getElementById('loginBtn');
-        loginBtn.addEventListener('click', function(e) {
-            if (loginBtn.disabled) return;
-            var rect = this.getBoundingClientRect();
-            var ripple = document.createElement('span');
-            var size = Math.max(rect.width, rect.height);
-            ripple.className = 'ripple';
-            ripple.style.width = ripple.style.height = size + 'px';
-            ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
-            ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
-            this.appendChild(ripple);
-            setTimeout(function() { ripple.remove(); }, 650);
+        if (!userResponse.ok) {
+            console.warn('⚠️ فشل جلب المستخدم:', userResponse.status);
+            return null;
+        }
+
+        var user = await userResponse.json();
+
+        var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=*&id=eq.' + user.id, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + token
+            }
         });
 
-        /**
-         * ============================================================
-         * FORM ELEMENTS
-         * ============================================================
-         */
-        var loginForm = document.getElementById('loginForm');
-        var messageDiv = document.getElementById('message');
-        var emailInput = document.getElementById('email');
-        var emailWrap = document.getElementById('emailWrap');
-        var emailError = document.getElementById('emailError');
-        var passwordWrap = document.getElementById('passwordWrap');
-        var passwordError = document.getElementById('passwordError');
-        var btnLabel = loginBtn.querySelector('.btn-label');
-
-        /**
-         * ============================================================
-         * VALIDATION FUNCTIONS
-         * ============================================================
-         */
-        function validateEmail(value) {
-            var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return emailRegex.test(value);
+        if (!profileResponse.ok) {
+            console.warn('⚠️ فشل جلب البروفايل:', profileResponse.status);
+            return null;
         }
 
-        function setFieldState(wrap, errorEl, isValid) {
-            wrap.classList.toggle('invalid', !isValid);
-            errorEl.classList.toggle('show', !isValid);
+        var data = await profileResponse.json();
+        return data && data.length > 0 ? data[0] : null;
+
+    } catch (error) {
+        console.error('❌ خطأ في جلب البروفايل:', error);
+        return null;
+    }
+}
+
+// ============================================================
+// GET COMPANY ID
+// ============================================================
+async function getCompanyId() {
+    var token = getToken();
+    if (!token) return null;
+
+    try {
+        var userResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + token
+            }
+        });
+
+        if (!userResponse.ok) return null;
+        var user = await userResponse.json();
+
+        var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=company_id&id=eq.' + user.id, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + token
+            }
+        });
+
+        if (!profileResponse.ok) return null;
+        var data = await profileResponse.json();
+        return data && data.length > 0 ? data[0].company_id : null;
+
+    } catch (error) {
+        console.error('❌ خطأ في جلب company_id:', error);
+        return null;
+    }
+}
+
+// ============================================================
+// GENERIC GET
+// ============================================================
+async function getTable(tableName, orderBy) {
+    var token = getToken();
+    if (!token) {
+        console.warn('⚠️ لا يوجد توكن، جاري التوجيه لتسجيل الدخول...');
+        redirectToLogin();
+        return [];
+    }
+
+    var companyId = await getCompanyId();
+    if (!companyId) {
+        console.warn('⚠️ لم يتم العثور على company_id');
+        return [];
+    }
+
+    try {
+        var url = SUPABASE_URL + '/rest/v1/' + tableName + '?select=*&company_id=eq.' + companyId;
+        if (orderBy) url += '&order=' + orderBy;
+
+        console.log('📤 محاولة جلب من:', tableName, 'بـ company_id:', companyId);
+
+        var response = await fetch(url, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + token
+            }
+        });
+
+        if (!response.ok) {
+            console.warn('⚠️ فشل جلب ' + tableName + ' بسبب خطأ ' + response.status);
+            console.warn('🔍 عنوان الطلب:', url);
+            return [];
         }
 
-        /**
-         * ============================================================
-         * LOGIN FORM SUBMIT - باستخدام Fetch مباشرة مع حفظ الجلسة في localStorage
-         * ============================================================
-         */
-        loginForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
+        var data = await response.json();
+        console.log('✅ تم جلب ' + data.length + ' سجل من ' + tableName);
+        return data || [];
 
-            var email = emailInput.value.trim();
-            var password = passwordInput.value.trim();
+    } catch (error) {
+        console.error('❌ خطأ في جلب ' + tableName + ':', error);
+        return [];
+    }
+}
 
-            console.log('🔍 محاولة تسجيل الدخول...');
-            console.log('📧 البريد الإلكتروني:', email);
-            console.log('🔑 كلمة المرور:', password ? 'تم إدخالها ✅' : 'فارغة ❌');
+// ============================================================
+// GENERIC INSERT
+// ============================================================
+async function insertRow(tableName, payload) {
+    var token = getToken();
+    if (!token) throw new Error('يرجى تسجيل الدخول أولاً');
 
-            var emailValid = validateEmail(email);
-            var passwordValid = password.length > 0;
+    var response = await fetch(SUPABASE_URL + '/rest/v1/' + tableName, {
+        method: 'POST',
+        headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(payload)
+    });
 
-            console.log('✅ التحقق من البريد الإلكتروني:', emailValid ? 'صالح ✅' : 'غير صالح ❌');
-            console.log('✅ التحقق من كلمة المرور:', passwordValid ? 'صالحة ✅' : 'غير صالحة ❌');
+    if (!response.ok) {
+        var errorData = await response.text();
+        throw new Error(errorData);
+    }
 
-            setFieldState(emailWrap, emailError, emailValid);
-            setFieldState(passwordWrap, passwordError, passwordValid);
+    var result = await response.json();
+    return Array.isArray(result) ? result[0] : result;
+}
 
-            if (!emailValid || !passwordValid) {
-                console.warn('⚠️ فشل التحقق الأولي، يرجى تصحيح البيانات');
-                if (!emailValid) emailInput.focus();
-                else passwordInput.focus();
+// ============================================================
+// GENERIC PATCH
+// ============================================================
+async function patchRow(tableName, id, payload) {
+    var token = getToken();
+    if (!token) return;
+
+    await fetch(SUPABASE_URL + '/rest/v1/' + tableName + '?id=eq.' + id, {
+        method: 'PATCH',
+        headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(payload)
+    });
+}
+
+// ============================================================
+// GENERIC DELETE
+// ============================================================
+async function deleteRows(tableName, column, value) {
+    var token = getToken();
+    if (!token) return;
+
+    await fetch(SUPABASE_URL + '/rest/v1/' + tableName + '?' + column + '=eq.' + value, {
+        method: 'DELETE',
+        headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + token
+        }
+    });
+}
+
+// ============================================================
+// FORMAT NUMBER
+// ============================================================
+function formatNumber(num) {
+    if (num === undefined || num === null || isNaN(num)) return '0';
+    return Number(num).toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function formatNumberWithCommas(num) {
+    if (num === undefined || num === null || isNaN(num)) return '0';
+    return Number(num).toLocaleString('ar-EG');
+}
+
+function cleanNumber(value) {
+    if (!value) return 0;
+    if (typeof value === 'number') return value;
+    var cleaned = String(value).replace(/[^0-9.]/g, '');
+    return parseFloat(cleaned) || 0;
+}
+
+// ============================================================
+// FORMAT DATE
+// ============================================================
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    try {
+        var date = new Date(dateStr);
+        if (isNaN(date.getTime())) return '-';
+        var year = date.getFullYear();
+        var month = String(date.getMonth() + 1).padStart(2, '0');
+        var day = String(date.getDate()).padStart(2, '0');
+        return day + '/' + month + '/' + year;
+    } catch (e) {
+        return '-';
+    }
+}
+
+// ============================================================
+// LOGOUT
+// ============================================================
+async function logout() {
+    console.log('🚪 جاري تسجيل الخروج...');
+    localStorage.removeItem('rollex_session');
+    sessionStorage.removeItem('rollex_session');
+    window.location.href = 'login.html';
+}
+
+// ============================================================
+// SESSION MONITOR
+// ============================================================
+var monitorInterval = null;
+var sessionMonitorStarted = false;
+
+function startSessionMonitor() {
+    if (sessionMonitorStarted) return;
+    sessionMonitorStarted = true;
+
+    if (monitorInterval) {
+        clearInterval(monitorInterval);
+        monitorInterval = null;
+    }
+
+    monitorInterval = setInterval(function() {
+        var session = getSession();
+        if (!session) {
+            console.log('ℹ️ لا توجد جلسة، ننتظر...');
+            return;
+        }
+
+        var token = session.access_token;
+        if (!token) {
+            console.log('ℹ️ لا يوجد توكن، ننتظر...');
+            return;
+        }
+
+        fetch(SUPABASE_URL + '/auth/v1/user', {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + token
+            }
+        })
+        .then(function(response) {
+            if (response.ok) {
+                console.log('✅ الجلسة لا تزال صالحة');
                 return;
             }
 
-            loginBtn.disabled = true;
-            loginBtn.classList.add('loading');
-            btnLabel.textContent = 'جاري التحقق...';
-            hideMessage();
-
-            try {
-                console.log('📡 إرسال طلب إلى Supabase Auth...');
-                console.log('📍 URL:', SUPABASE_URL + '/auth/v1/token?grant_type=password');
-
-                var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password,
-                        grant_type: 'password'
-                    })
+            if (response.status === 401) {
+                console.log('⚠️ التوكن منتهي، محاولة التجديد...');
+                refreshSession().then(function(refreshed) {
+                    if (!refreshed) {
+                        console.log('⚠️ فشل تجديد الجلسة، سيتم طلب تسجيل الدخول...');
+                        redirectToLogin();
+                    }
                 });
-
-                console.log('📥 حالة الاستجابة:', response.status, response.statusText);
-
-                var data = await response.json();
-                console.log('📦 البيانات المستلمة:', data);
-
-                if (!response.ok) {
-                    console.error('❌ فشل تسجيل الدخول - الحالة:', response.status);
-                    console.error('❌ تفاصيل الخطأ:', data);
-
-                    var errorMsg = data.error_description || data.message || data.msg || 'بيانات الدخول غير صحيحة';
-
-                    if (response.status === 400) {
-                        if (errorMsg.includes('Invalid login credentials')) {
-                            errorMsg = '❌ البريد الإلكتروني أو كلمة المرور غير صحيحة';
-                            console.error('🔍 سبب الخطأ: بيانات الدخول غير صحيحة (400 - Invalid credentials)');
-                        } else if (errorMsg.includes('Email not confirmed')) {
-                            errorMsg = '❌ البريد الإلكتروني غير مؤكد، يرجى تأكيده أولاً';
-                            console.error('🔍 سبب الخطأ: البريد غير مؤكد (400 - Email not confirmed)');
-                        } else if (errorMsg.includes('User not found')) {
-                            errorMsg = '❌ المستخدم غير موجود';
-                            console.error('🔍 سبب الخطأ: المستخدم غير موجود (400 - User not found)');
-                        } else {
-                            console.error('🔍 سبب الخطأ: 400 -', errorMsg);
-                        }
-                    } else if (response.status === 401) {
-                        errorMsg = '❌ غير مصرح بالدخول، يرجى التحقق من بياناتك';
-                        console.error('🔍 سبب الخطأ: غير مصرح (401 - Unauthorized)');
-                    } else if (response.status === 429) {
-                        errorMsg = '❌ عدد محاولات كثيرة، يرجى الانتظار قليلاً';
-                        console.error('🔍 سبب الخطأ: طلبات كثيرة (429 - Too Many Requests)');
-                    } else {
-                        console.error('🔍 سبب الخطأ غير معروف، الحالة:', response.status);
-                    }
-
-                    throw new Error(errorMsg);
-                }
-
-                if (!data.access_token) {
-                    console.error('❌ لم يتم استلام access_token من السيرفر');
-                    throw new Error('فشل في الحصول على التوكن');
-                }
-
-                console.log('✅ تم استلام access_token بنجاح!');
-                console.log('📅 مدة الصلاحية:', data.expires_in, 'ثانية');
-
-                // ✅ التعديل هنا: دايمًا نخزن في localStorage
-                window.localStorage.setItem('rollex_session', JSON.stringify({
-                    access_token: data.access_token,
-                    refresh_token: data.refresh_token,
-                    expires_at: Date.now() + (data.expires_in * 1000)
-                }));
-
-                console.log('💾 تم حفظ الجلسة في localStorage');
-
-                showMessage('✅ تم تسجيل الدخول بنجاح! جاري التحويل...', 'success');
-
-                setTimeout(function() {
-                    console.log('🔄 جاري التوجيه إلى الصفحة الرئيسية...');
-                    window.location.href = 'index.html';
-                }, 900);
-
-            } catch (error) {
-                console.error('❌ خطأ:', error);
-                console.error('❌ رسالة الخطأ:', error.message);
-                showMessage(error.message, 'error');
             }
-
-            loginBtn.disabled = false;
-            loginBtn.classList.remove('loading');
-            btnLabel.textContent = 'دخول';
+        })
+        .catch(function(error) {
+            console.warn('⚠️ خطأ في التحقق من الجلسة:', error.message);
         });
 
-        /**
-         * ============================================================
-         * MESSAGE FUNCTIONS
-         * ============================================================
-         */
-        function showMessage(text, type) {
-            var icon = type === 'success' ?
-                '<svg class="checkmark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3 3 7-7"/></svg>' :
-                '<span aria-hidden="true">⚠</span>';
-            messageDiv.innerHTML = icon + '<span>' + text + '</span>';
-            messageDiv.className = 'message ' + type;
+    }, 30000);
+
+    console.log('✅ بدأ مراقبة الجلسة');
+}
+
+// ============================================================
+// CHECK SESSION ON LOAD
+// ============================================================
+async function checkSessionAndRedirect() {
+    var session = getSession();
+    if (!session) {
+        console.log('ℹ️ لا توجد جلسة، يرجى تسجيل الدخول');
+        return false;
+    }
+
+    var token = getToken();
+    if (!token) {
+        console.log('ℹ️ لا يوجد توكن، يرجى تسجيل الدخول');
+        return false;
+    }
+
+    try {
+        var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + token
+            }
+        });
+
+        if (!response.ok) {
+            console.log('⚠️ التوكن غير صالح، محاولة التجديد...');
+            var refreshed = await refreshSession();
+            if (!refreshed) {
+                console.log('⚠️ فشل تجديد الجلسة، سيتم طلب تسجيل الدخول...');
+                return false;
+            }
+            return true;
         }
 
-        function hideMessage() {
-            messageDiv.className = 'message';
-            messageDiv.innerHTML = '';
-        }
+        return true;
 
-        /**
-         * ============================================================
-         * REAL-TIME VALIDATION
-         * ============================================================
-         */
-        emailInput.addEventListener('input', function() {
-            if (emailWrap.classList.contains('invalid') && validateEmail(emailInput.value.trim())) {
-                setFieldState(emailWrap, emailError, true);
-            }
-        });
+    } catch (error) {
+        console.error('❌ خطأ في التحقق من الجلسة:', error);
+        return false;
+    }
+}
 
-        passwordInput.addEventListener('input', function() {
-            if (passwordWrap.classList.contains('invalid') && passwordInput.value.trim().length > 0) {
-                setFieldState(passwordWrap, passwordError, true);
-            }
-        });
+// ============================================================
+// GENERIC STATUS BADGE
+// ============================================================
+function getStatusBadge(status) {
+    var statusText = status || '-';
+    var statusClass = '';
 
-        /**
-         * ============================================================
-         * SESSION CHECK ON PAGE LOAD
-         * ============================================================
-         */
-        (async function init() {
-            console.log('🏢 QuickData ProSoft - نظام إدارة الشركات');
-            console.log('🔗 Supabase URL:', SUPABASE_URL);
+    if (statusText.includes('نشط') || statusText.includes('active')) {
+        statusClass = 'active';
+        statusText = 'نشط';
+    } else if (statusText.includes('غير نشط') || statusText.includes('inactive')) {
+        statusClass = 'inactive';
+        statusText = 'غير نشط';
+    } else if (statusText.includes('موقوف') || statusText.includes('suspended')) {
+        statusClass = 'suspended';
+        statusText = 'موقوف';
+    } else {
+        return '<span class="badge-status">' + statusText + '</span>';
+    }
 
-            // التحقق من وجود جلسة في localStorage
-            var session = localStorage.getItem('rollex_session');
-            if (session) {
-                try {
-                    var parsed = JSON.parse(session);
-                    if (parsed.access_token) {
-                        // التحقق من صلاحية التوكن
-                        var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + parsed.access_token
-                            }
-                        });
-                        if (response.ok) {
-                            console.log('✅ جلسة موجودة وصالحة، جاري التوجيه إلى الصفحة الرئيسية...');
-                            window.location.href = 'index.html';
-                            return;
-                        }
-                    }
-                } catch (e) {
-                    console.warn('⚠️ فشل التحقق من الجلسة:', e);
-                }
-            }
+    return '<span class="badge-status ' + statusClass + '">' + statusText + '</span>';
+}
 
-            console.log('👤 المستخدم غير مسجل دخول، مرحباً بك في صفحة تسجيل الدخول');
-        })();
-    </script>
-
-</body>
-</html>
+console.log('✅ تم تحميل supabase-client.js (النسخة النهائية المُبسطة)');
