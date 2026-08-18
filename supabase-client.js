@@ -235,7 +235,7 @@ async function getCompanyId() {
 }
 
 // ============================================================
-// GENERIC GET (نسخة مُبسطة جداً)
+// GENERIC GET (مُعدلة لمعالجة الأخطاء بشكل أفضل)
 // ============================================================
 async function getTable(tableName, orderBy) {
     var token = getToken();
@@ -252,8 +252,13 @@ async function getTable(tableName, orderBy) {
     }
 
     try {
-        var url = SUPABASE_URL + '/rest/v1/' + tableName + '?select=*&company_id=eq.' + companyId;
+        // تنظيف company_id من أي مسافات أو أحرف خاصة
+        var cleanCompanyId = String(companyId).trim();
+        
+        var url = SUPABASE_URL + '/rest/v1/' + tableName + '?select=*&company_id=eq.' + cleanCompanyId;
         if (orderBy) url += '&order=' + orderBy;
+
+        console.log('📤 محاولة جلب من:', tableName, 'بـ company_id:', cleanCompanyId);
 
         var response = await fetch(url, {
             headers: {
@@ -264,10 +269,13 @@ async function getTable(tableName, orderBy) {
 
         if (!response.ok) {
             console.warn('⚠️ فشل جلب ' + tableName + ' بسبب خطأ ' + response.status);
+            console.warn('🔍 عنوان الطلب:', url);
             return [];
         }
 
-        return (await response.json()) || [];
+        var data = await response.json();
+        console.log('✅ تم جلب ' + data.length + ' سجل من ' + tableName);
+        return data || [];
 
     } catch (error) {
         console.error('❌ خطأ في جلب ' + tableName + ':', error);
