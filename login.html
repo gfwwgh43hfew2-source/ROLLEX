@@ -5,12 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover" />
     <title>تسجيل الدخول - QuickData ProSoft</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
-    <!-- ===== إضافة مكتبة Supabase ===== -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
     <style>
-        /* ==========================================================
-           RESET & BASE
-           ========================================================== */
+        /* ========================================================== */
         * {
             margin: 0;
             padding: 0;
@@ -44,9 +42,6 @@
         body {
             font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
             direction: rtl;
-            /* --vh is set via JS to the real (address-bar-aware) viewport height,
-               so the layout no longer jumps/shifts when the mobile browser's
-               toolbar shows or hides. 100dvh is used as a native fallback. */
             min-height: 100vh;
             min-height: calc(var(--vh, 1vh) * 100);
             min-height: 100dvh;
@@ -75,9 +70,6 @@
             justify-content: center;
         }
 
-        /* Fixed to the viewport and sized in vw/vh, so it is mathematically
-           impossible for this decoration to exceed the screen width — this
-           is what was pushing the whole page sideways on phones. */
         .ring {
             position: fixed;
             top: 50%;
@@ -89,26 +81,21 @@
             pointer-events: none;
             z-index: 0;
         }
-
         .ring svg {
             width: 100%;
             height: 100%;
             animation: ringSpin 90s linear infinite;
         }
-
         @keyframes ringSpin { to { transform: rotate(360deg); } }
-
         .ring .tick {
             stroke: rgba(255, 255, 255, 0.14);
             stroke-width: 3;
             stroke-linecap: round;
         }
-
         .ring .tick.lit {
             stroke: var(--gold);
             filter: drop-shadow(0 0 5px rgba(245, 166, 35, 0.85));
         }
-
         @media (prefers-reduced-motion: reduce) {
             .ring svg { animation: none; }
         }
@@ -125,12 +112,10 @@
             box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
             animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
-
         @keyframes fadeInUp {
             0% { opacity: 0; transform: translateY(30px) scale(0.97); }
             100% { opacity: 1; transform: translateY(0) scale(1); }
         }
-
         @media (prefers-reduced-motion: reduce) {
             .login-container { animation: none; }
         }
@@ -146,7 +131,6 @@
         }
 
         .form-group { margin-bottom: 16px; }
-
         .form-group label {
             display: block;
             font-size: 0.78rem;
@@ -162,12 +146,10 @@
             border: 1px solid var(--field-border);
             transition: border-color 0.25s, box-shadow 0.25s;
         }
-
         .input-wrap:focus-within {
             border-color: var(--gold);
             box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
         }
-
         .input-wrap .input-icon {
             position: absolute;
             right: 14px;
@@ -178,7 +160,6 @@
             display: flex;
             pointer-events: none;
         }
-
         .input-wrap:focus-within .input-icon { color: var(--gold); }
 
         .input-wrap input {
@@ -192,7 +173,6 @@
             outline: none;
             text-align: right;
         }
-
         .input-wrap input::placeholder { color: var(--text-faint); font-weight: 400; }
         .input-wrap.has-toggle input { padding: 14px 44px 14px 44px; }
 
@@ -232,11 +212,9 @@
             margin-bottom: 22px;
             gap: 12px;
         }
-
         .remember { display: flex; align-items: center; gap: 8px; }
         .remember input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--gold); cursor: pointer; }
         .remember label { font-size: 0.78rem; color: var(--text-mid); cursor: pointer; }
-
         .forgot a {
             color: var(--text-mid);
             font-size: 0.78rem;
@@ -266,22 +244,20 @@
             justify-content: center;
             gap: 10px;
         }
-
         .btn-primary::before {
             content: '';
-            position: absolute; inset: 0;
+            position: absolute;
+            inset: 0;
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), transparent 60%);
             transform: translateX(-100%);
             transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .btn-primary:hover::before { transform: translateX(100%); }
-
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 16px 36px rgba(245, 166, 35, 0.36);
         }
         .btn-primary:active:not(:disabled) { transform: translateY(0) scale(0.98); }
-
         .btn-primary:disabled { cursor: not-allowed; opacity: 0.75; box-shadow: none; }
 
         .btn-primary .ripple {
@@ -352,9 +328,7 @@
             color: var(--text-dim);
             margin: 24px 0 14px;
         }
-
         .social-btns { display: flex; justify-content: center; gap: 14px; margin-bottom: 22px; }
-
         .social-btns button {
             width: 42px;
             height: 42px;
@@ -369,7 +343,6 @@
         }
         .social-btns button:hover { transform: translateY(-2px); }
         .social-btns svg { width: 20px; height: 20px; }
-
         .social-btns .fb { background: #3b5998; box-shadow: 0 6px 16px rgba(59, 89, 152, 0.35); }
         .social-btns .x  { background: #14171a; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); }
         .social-btns .wa { background: #25D366; box-shadow: 0 6px 16px rgba(37, 211, 102, 0.35); }
@@ -394,20 +367,13 @@
             outline: 2px solid var(--gold);
             outline-offset: 2px;
         }
-
         .input-wrap input:focus,
-        .input-wrap input:focus-visible {
-            outline: none;
-        }
+        .input-wrap input:focus-visible { outline: none; }
 
         @media (max-width: 480px) {
             .login-container { padding: 30px 22px 24px; border-radius: 20px; }
             .title { font-size: 1.6rem; }
         }
-
-        /* When the on-screen keyboard opens (or on very short screens),
-           centering vertically can push the top of the form off-screen.
-           Switch to top-aligned + scrollable so every field stays reachable. */
         @media (max-width: 480px) and (max-height: 700px) {
             body { align-items: flex-start; padding-top: 20px; }
         }
@@ -498,11 +464,8 @@
     <script>
         /**
          * ============================================================
-         * REAL VIEWPORT HEIGHT FIX (موبايل)
+         * REAL VIEWPORT HEIGHT FIX
          * ============================================================
-         * شريط العنوان في متصفحات الموبايل يظهر ويختفي أثناء التمرير،
-         * و100vh لا يأخذ ذلك بعين الاعتبار مما يسبب اهتزاز/إزاحة الفورم.
-         * هذا الحل يحسب الارتفاع الفعلي للشاشة ويحدّثه عند أي تغيير.
          */
         function setRealViewportHeight() {
             document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
@@ -516,38 +479,28 @@
 
         /**
          * ============================================================
-         * SUPABASE CONFIGURATION
+         * SUPABASE CONFIGURATION - من supabase-client.js
          * ============================================================
          */
+        // SUPABASE_URL و SUPABASE_ANON_KEY موجودين في supabase-client.js
+        // لكن نأخذهم من هناك، أو نعرفهم هنا مباشرة
         var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
         var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
 
         /**
          * ============================================================
-         * INITIALIZE SUPABASE CLIENT
-         * ============================================================
-         * استخدام SDK بدلاً من Fetch المباشر لتوفير تجربة أكثر استقراراً
-         */
-        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: {
-                autoRefreshToken: true,
-                persistSession: true,
-                detectSessionInUrl: true,
-                storageKey: 'rollex_session'
-            }
-        });
-
-        /**
-         * ============================================================
-         * BUILD RING - الحلقة المزخرفة
+         * BUILD RING
          * ============================================================
          */
         (function buildRing() {
             var ring = document.getElementById('ring');
             var size = 600;
-            var cx = size / 2, cy = size / 2, r = size / 2 - 20;
+            var cx = size / 2,
+                cy = size / 2,
+                r = size / 2 - 20;
             var total = 48;
-            var litStart = 4, litEnd = 15;
+            var litStart = 4,
+                litEnd = 15;
             var svgNS = 'http://www.w3.org/2000/svg';
             var svg = document.createElementNS(svgNS, 'svg');
             svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
@@ -561,8 +514,10 @@
                 var x2 = cx + outer * Math.cos(angle);
                 var y2 = cy + outer * Math.sin(angle);
                 var line = document.createElementNS(svgNS, 'line');
-                line.setAttribute('x1', x1); line.setAttribute('y1', y1);
-                line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
                 var lit = (i >= litStart && i <= litEnd);
                 line.setAttribute('class', 'tick' + (lit ? ' lit' : ''));
                 svg.appendChild(line);
@@ -572,7 +527,7 @@
 
         /**
          * ============================================================
-         * TOGGLE PASSWORD - إظهار/إخفاء كلمة المرور
+         * TOGGLE PASSWORD
          * ============================================================
          */
         var togglePass = document.getElementById('togglePass');
@@ -591,7 +546,7 @@
 
         /**
          * ============================================================
-         * RIPPLE EFFECT - تأثير التموج على الزر
+         * RIPPLE EFFECT
          * ============================================================
          */
         var loginBtn = document.getElementById('loginBtn');
@@ -639,7 +594,7 @@
 
         /**
          * ============================================================
-         * LOGIN FORM SUBMIT - باستخدام Supabase SDK
+         * LOGIN FORM SUBMIT - باستخدام Fetch مباشرة
          * ============================================================
          */
         loginForm.addEventListener('submit', async function(e) {
@@ -655,7 +610,8 @@
             setFieldState(passwordWrap, passwordError, passwordValid);
 
             if (!emailValid || !passwordValid) {
-                if (!emailValid) emailInput.focus(); else passwordInput.focus();
+                if (!emailValid) emailInput.focus();
+                else passwordInput.focus();
                 return;
             }
 
@@ -665,28 +621,44 @@
             hideMessage();
 
             try {
-                // استخدام Supabase SDK لتسجيل الدخول
-                var { data, error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
+                // استخدام Fetch مباشرة مع Supabase Auth API
+                var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
                 });
 
-                if (error) {
-                    var errorMsg = error.message || 'بيانات الدخول غير صحيحة';
+                var data = await response.json();
+
+                if (!response.ok) {
+                    var errorMsg = data.msg || data.message || 'بيانات الدخول غير صحيحة';
                     if (errorMsg.includes('Invalid login credentials')) {
                         errorMsg = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
                     }
                     throw new Error(errorMsg);
                 }
 
-                // حفظ الجلسة في localStorage أو sessionStorage حسب اختيار المستخدم
-                var storage = document.getElementById('remember').checked 
-                    ? window.localStorage 
-                    : window.sessionStorage;
-                
-                // Supabase SDK يحفظ الجلسة تلقائياً، لكننا نحفظها يدوياً للتأكد
-                storage.setItem('rollex_session', JSON.stringify(data.session));
-                
+                if (!data.access_token) {
+                    throw new Error('فشل في الحصول على التوكن');
+                }
+
+                // حفظ الجلسة
+                var storage = document.getElementById('remember').checked ?
+                    window.localStorage :
+                    window.sessionStorage;
+
+                storage.setItem('rollex_session', JSON.stringify({
+                    access_token: data.access_token,
+                    refresh_token: data.refresh_token,
+                    expires_at: Date.now() + (data.expires_in * 1000)
+                }));
+
                 showMessage('تم تسجيل الدخول بنجاح! جاري التحويل...', 'success');
 
                 setTimeout(function() {
@@ -694,6 +666,7 @@
                 }, 900);
 
             } catch (error) {
+                console.error('❌ خطأ:', error);
                 showMessage(error.message, 'error');
             }
 
@@ -708,9 +681,9 @@
          * ============================================================
          */
         function showMessage(text, type) {
-            var icon = type === 'success'
-                ? '<svg class="checkmark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3 3 7-7"/></svg>'
-                : '<span aria-hidden="true">⚠</span>';
+            var icon = type === 'success' ?
+                '<svg class="checkmark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3 3 7-7"/></svg>' :
+                '<span aria-hidden="true">⚠</span>';
             messageDiv.innerHTML = icon + '<span>' + text + '</span>';
             messageDiv.className = 'message ' + type;
         }
@@ -722,7 +695,7 @@
 
         /**
          * ============================================================
-         * REAL-TIME VALIDATION - التحقق الفوري أثناء الكتابة
+         * REAL-TIME VALIDATION
          * ============================================================
          */
         emailInput.addEventListener('input', function() {
@@ -739,38 +712,38 @@
 
         /**
          * ============================================================
-         * SESSION CHECK ON PAGE LOAD - التحقق من الجلسة عند تحميل الصفحة
+         * SESSION CHECK ON PAGE LOAD - باستخدام SUPABASE SDK
          * ============================================================
          */
         (async function init() {
             console.log('🏢 QuickData ProSoft - نظام إدارة الشركات');
             console.log('🔗 Supabase URL:', SUPABASE_URL);
-            console.log('✅ النظام جاهز للعمل');
-            console.log('📌 تم تحميل صفحة تسجيل الدخول بنجاح');
 
-            // التحقق من وجود جلسة نشطة
-            var session = localStorage.getItem('rollex_session');
-            if (session) {
-                try {
-                    var parsed = JSON.parse(session);
-                    if (parsed.access_token) {
-                        // محاولة التحقق من صلاحية التوكن
-                        var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + parsed.access_token
-                            }
-                        });
-                        if (response.ok) {
-                            console.log('✅ جلسة موجودة وصالحة، جاري التوجيه إلى الصفحة الرئيسية...');
-                            window.location.href = 'index.html';
-                            return;
-                        }
-                    }
-                } catch (e) {
-                    console.warn('⚠️ فشل التحقق من الجلسة:', e);
+            // استخدام Supabase SDK للتحقق من الجلسة
+            var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                auth: {
+                    autoRefreshToken: true,
+                    persistSession: true,
+                    detectSessionInUrl: true,
+                    storageKey: 'rollex_session'
                 }
+            });
+
+            var { data: { session }, error } = await supabaseClient.auth.getSession();
+
+            if (error) {
+                console.warn('⚠️ خطأ في التحقق من الجلسة:', error.message);
+                return;
             }
+
+            if (session) {
+                console.log('✅ جلسة موجودة وصالحة:', session.user.email);
+                console.log('🔄 جاري التوجيه إلى الصفحة الرئيسية...');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            console.log('👤 المستخدم غير مسجل دخول، مرحباً بك في صفحة تسجيل الدخول');
         })();
     </script>
 
