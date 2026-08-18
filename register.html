@@ -544,60 +544,65 @@
          * ============================================================
          */
         async function createProfile(userId, name, email, companyId, role) {
-            try {
-                // 1. التحقق مما إذا كان البروفايل موجود بالفعل
-                var checkResponse = await fetch(supabaseUrl + '/rest/v1/profiles?select=id&id=eq.' + userId, {
-                    headers: {
-                        'apikey': supabaseKey,
-                        'Authorization': 'Bearer ' + (await supabase.auth.getSession()).data.session.access_token
+            // 1. التحقق مما إذا كان البروفايل موجود بالفعل
+            var checkResponse = await fetch(supabaseUrl + '/rest/v1/profiles?select=id,company_id&id=eq.' + userId, {
+                headers: {
+                    'apikey': supabaseKey,
+                    'Authorization': 'Bearer ' + (await supabase.auth.getSession()).data.session.access_token
+                }
+            });
+            var existingProfile = await checkResponse.json();
+
+            // إذا كان موجوداً، نقوم بتحديث company_id إذا لزم الأمر
+            if (existingProfile && existingProfile.length > 0) {
+                var profile = existingProfile[0];
+                // إذا كان company_id مختلفاً، نقوم بتحديثه
+                if (profile.company_id !== companyId) {
+                    var updateResponse = await fetch(supabaseUrl + '/rest/v1/profiles?id=eq.' + userId, {
+                        method: 'PATCH',
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': 'Bearer ' + (await supabase.auth.getSession()).data.session.access_token,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=representation'
+                        },
+                        body: JSON.stringify({
+                            company_id: companyId
+                        })
+                    });
+                    if (!updateResponse.ok) {
+                        console.error('❌ فشل تحديث company_id للبروفايل:', await updateResponse.text());
+                    } else {
+                        console.log('✅ تم تحديث company_id للبروفايل بنجاح');
                     }
-                });
-                var existingProfile = await checkResponse.json();
-
-                // إذا كان موجوداً، نرجع البيانات دون محاولة إضافته
-                if (existingProfile && existingProfile.length > 0) {
-                    console.log('ℹ️ البروفايل موجود بالفعل، يتم تخطي الإضافة');
-                    return existingProfile[0];
                 }
-
-                // إذا لم يكن موجوداً، نقوم بإضافته
-                var response = await fetch(supabaseUrl + '/rest/v1/profiles', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': supabaseKey,
-                        'Authorization': 'Bearer ' + (await supabase.auth.getSession()).data.session.access_token,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify({
-                        id: userId,
-                        name: name,
-                        email: email,
-                        role: role || 'admin',
-                        company_id: companyId
-                    })
-                });
-
-                if (!response.ok) {
-                    var errorText = await response.text();
-                    // إذا كان الخطأ بسبب وجود البروفايل بالفعل، نتجاهله
-                    if (response.status === 409) {
-                        console.log('ℹ️ البروفايل موجود بالفعل (تم تجاهل الخطأ)');
-                        return null;
-                    }
-                    throw new Error('فشل إنشاء البروفايل: ' + errorText);
-                }
-
-                return await response.json();
-
-            } catch (error) {
-                // إذا كان الخطأ بسبب وجود البروفايل بالفعل، نتجاهله
-                if (error.message && error.message.includes('duplicate key')) {
-                    console.log('ℹ️ البروفايل موجود بالفعل (تم تجاهل الخطأ)');
-                    return null;
-                }
-                throw error;
+                return profile;
             }
+
+            // إذا لم يكن موجوداً، نقوم بإضافته
+            var response = await fetch(supabaseUrl + '/rest/v1/profiles', {
+                method: 'POST',
+                headers: {
+                    'apikey': supabaseKey,
+                    'Authorization': 'Bearer ' + (await supabase.auth.getSession()).data.session.access_token,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({
+                    id: userId,
+                    name: name,
+                    email: email,
+                    role: role || 'admin',
+                    company_id: companyId
+                })
+            });
+
+            if (!response.ok) {
+                var errorText = await response.text();
+                throw new Error('فشل إنشاء البروفايل: ' + errorText);
+            }
+
+            return await response.json();
         }
 
         /**
