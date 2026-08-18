@@ -540,7 +540,7 @@
 
         /**
          * ============================================================
-         * LOGIN FORM SUBMIT - الطريقة الصحيحة مع grant_type في body
+         * LOGIN FORM SUBMIT - مع Logs تفصيلية
          * ============================================================
          */
         loginForm.addEventListener('submit', async function(e) {
@@ -549,13 +549,21 @@
             var email = emailInput.value.trim();
             var password = passwordInput.value.trim();
 
+            console.log('🔍 محاولة تسجيل الدخول...');
+            console.log('📧 البريد الإلكتروني:', email);
+            console.log('🔑 كلمة المرور:', password ? 'تم إدخالها ✅' : 'فارغة ❌');
+
             var emailValid = validateEmail(email);
             var passwordValid = password.length > 0;
+
+            console.log('✅ التحقق من البريد الإلكتروني:', emailValid ? 'صالح ✅' : 'غير صالح ❌');
+            console.log('✅ التحقق من كلمة المرور:', passwordValid ? 'صالحة ✅' : 'غير صالحة ❌');
 
             setFieldState(emailWrap, emailError, emailValid);
             setFieldState(passwordWrap, passwordError, passwordValid);
 
             if (!emailValid || !passwordValid) {
+                console.warn('⚠️ فشل التحقق الأولي، يرجى تصحيح البيانات');
                 if (!emailValid) emailInput.focus();
                 else passwordInput.focus();
                 return;
@@ -567,6 +575,10 @@
             hideMessage();
 
             try {
+                console.log('📡 إرسال طلب إلى Supabase Auth...');
+                console.log('📍 URL:', SUPABASE_URL + '/auth/v1/token?grant_type=password');
+                console.log('📤 البيانات المرسلة:', { email: email, grant_type: 'password' });
+
                 var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
                     method: 'POST',
                     headers: {
@@ -581,39 +593,80 @@
                     })
                 });
 
+                console.log('📥 حالة الاستجابة:', response.status, response.statusText);
+                console.log('📋 Headers:', {
+                    'Content-Type': response.headers.get('content-type'),
+                    'apikey': SUPABASE_ANON_KEY ? 'موجود ✅' : 'غير موجود ❌'
+                });
+
                 var data = await response.json();
+                console.log('📦 البيانات المستلمة:', data);
 
                 if (!response.ok) {
+                    console.error('❌ فشل تسجيل الدخول - الحالة:', response.status);
+                    console.error('❌ تفاصيل الخطأ:', data);
+
                     var errorMsg = data.error_description || data.message || data.msg || 'بيانات الدخول غير صحيحة';
-                    if (errorMsg.includes('Invalid login credentials')) {
-                        errorMsg = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+                    
+                    // تحليل دقيق لأنواع الأخطاء
+                    if (response.status === 400) {
+                        if (errorMsg.includes('Invalid login credentials')) {
+                            errorMsg = '❌ البريد الإلكتروني أو كلمة المرور غير صحيحة';
+                            console.error('🔍 سبب الخطأ: بيانات الدخول غير صحيحة (400 - Invalid credentials)');
+                        } else if (errorMsg.includes('Email not confirmed')) {
+                            errorMsg = '❌ البريد الإلكتروني غير مؤكد، يرجى تأكيده أولاً';
+                            console.error('🔍 سبب الخطأ: البريد غير مؤكد (400 - Email not confirmed)');
+                        } else if (errorMsg.includes('User not found')) {
+                            errorMsg = '❌ المستخدم غير موجود';
+                            console.error('🔍 سبب الخطأ: المستخدم غير موجود (400 - User not found)');
+                        } else {
+                            console.error('🔍 سبب الخطأ: 400 -', errorMsg);
+                        }
+                    } else if (response.status === 401) {
+                        errorMsg = '❌ غير مصرح بالدخول، يرجى التحقق من بياناتك';
+                        console.error('🔍 سبب الخطأ: غير مصرح (401 - Unauthorized)');
+                    } else if (response.status === 429) {
+                        errorMsg = '❌ عدد محاولات كثيرة، يرجى الانتظار قليلاً';
+                        console.error('🔍 سبب الخطأ: طلبات كثيرة (429 - Too Many Requests)');
+                    } else {
+                        console.error('🔍 سبب الخطأ غير معروف، الحالة:', response.status);
                     }
+
                     throw new Error(errorMsg);
                 }
 
                 if (!data.access_token) {
+                    console.error('❌ لم يتم استلام access_token من السيرفر');
                     throw new Error('فشل في الحصول على التوكن');
                 }
+
+                console.log('✅ تم استلام access_token بنجاح!');
+                console.log('📅 مدة الصلاحية:', data.expires_in, 'ثانية');
 
                 // حفظ الجلسة
                 var storage = document.getElementById('remember').checked ?
                     window.localStorage :
                     window.sessionStorage;
 
-                storage.setItem('rollex_session', JSON.stringify({
+                var sessionData = {
                     access_token: data.access_token,
                     refresh_token: data.refresh_token,
                     expires_at: Date.now() + (data.expires_in * 1000)
-                }));
+                };
 
-                showMessage('تم تسجيل الدخول بنجاح! جاري التحويل...', 'success');
+                storage.setItem('rollex_session', JSON.stringify(sessionData));
+                console.log('💾 تم حفظ الجلسة في:', document.getElementById('remember').checked ? 'localStorage' : 'sessionStorage');
+
+                showMessage('✅ تم تسجيل الدخول بنجاح! جاري التحويل...', 'success');
 
                 setTimeout(function() {
+                    console.log('🔄 جاري التوجيه إلى الصفحة الرئيسية...');
                     window.location.href = 'index.html';
                 }, 900);
 
             } catch (error) {
                 console.error('❌ خطأ:', error);
+                console.error('❌ رسالة الخطأ:', error.message);
                 showMessage(error.message, 'error');
             }
 
