@@ -599,7 +599,7 @@
                 </div>
             </div>
 
-            <!-- ===== CHART ===== -->
+            <!-- ===== CHART (بيانات حقيقية من قاعدة البيانات) ===== -->
             <div class="panel fade-up" style="animation-delay:.12s">
                 <div class="p-head">
                     <div>
@@ -717,30 +717,113 @@
         }
         window.logout = logout;
 
-        Chart.defaults.font.family = "'Cairo', sans-serif";
-        Chart.defaults.color = '#a69c90';
-
-        const monthsAr = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-        const demoSales   = [42000, 58000, 39000, 71000, 52000, 66000, 48000, 61000, 57000, 73000, 69000, 82000];
-        const demoReturns = [4200, 3100, 5000, 2800, 3900, 3300, 4700, 2600, 3500, 2900, 3100, 2400];
-
+        // ================================================================
+        // الرسم البياني للمبيعات (بيانات حقيقية من قاعدة البيانات)
+        // ================================================================
         let salesChart;
-        function renderSalesChart(range) {
-            const n = range || 6;
-            const labels = monthsAr.slice(0, n);
-            const dataSales = demoSales.slice(0, n);
-            const dataReturns = demoReturns.slice(0, n);
-            const ctx = document.getElementById('salesChart').getContext('2d');
+        let chartDataCache = null;
+
+        async function fetchSalesData() {
+            var token = getToken();
+            if (!token) return null;
+
+            try {
+                // 1. جلب فواتير المبيعات
+                var response = await fetch(SUPABASE_URL + '/rest/v1/sales_invoices?select=invoice_date,total_amount', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
+                var invoices = await response.json();
+
+                if (!invoices || invoices.length === 0) return null;
+
+                // 2. تجميع المبيعات حسب الشهر
+                var monthlySales = {};
+                var monthlyReturns = {};
+
+                invoices.forEach(function(inv) {
+                    var date = new Date(inv.invoice_date);
+                    var month = date.getMonth(); // 0-11
+                    var year = date.getFullYear();
+                    var key = year + '-' + month;
+
+                    if (!monthlySales[key]) {
+                        monthlySales[key] = 0;
+                    }
+                    monthlySales[key] += parseFloat(inv.total_amount) || 0;
+                });
+
+                // 3. ترتيب الأشهر
+                var sortedMonths = Object.keys(monthlySales).sort();
+                if (sortedMonths.length === 0) return null;
+
+                // 4. تجهيز البيانات للرسم
+                var labels = [];
+                var salesData = [];
+                var returnsData = [];
+
+                // خذ آخر 12 شهر كحد أقصى
+                var lastMonths = sortedMonths.slice(-12);
+
+                // أسماء الأشهر العربية
+                var monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 
+                                 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+                lastMonths.forEach(function(key) {
+                    var parts = key.split('-');
+                    var year = parts[0];
+                    var month = parseInt(parts[1]);
+                    labels.push(monthNames[month] + ' ' + year);
+                    salesData.push(monthlySales[key] || 0);
+                    returnsData.push(0); // المرتجعات حالياً 0، ممكن نضيفها لاحقاً
+                });
+
+                return {
+                    labels: labels,
+                    sales: salesData,
+                    returns: returnsData
+                };
+
+            } catch (error) {
+                console.error('❌ خطأ في جلب بيانات المبيعات:', error);
+                return null;
+            }
+        }
+
+        async function renderSalesChart(range) {
+            // إذا كان هناك بيانات مخزنة، استخدمها
+            if (!chartDataCache) {
+                chartDataCache = await fetchSalesData();
+            }
+
+            var data = chartDataCache;
+            if (!data) {
+                // إذا لم توجد بيانات، اعرض رسم بياني فارغ
+                showEmptyChart();
+                return;
+            }
+
+            var n = range || Math.min(data.labels.length, 12);
+            var labels = data.labels.slice(-n);
+            var salesData = data.sales.slice(-n);
+            var returnsData = data.returns.slice(-n);
+
+            var ctx = document.getElementById('salesChart').getContext('2d');
 
             if (salesChart) salesChart.destroy();
+
             salesChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels,
+                    labels: labels,
                     datasets: [
                         {
                             label: 'المبيعات',
-                            data: dataSales,
+                            data: salesData,
                             backgroundColor: '#1f4e6b',
                             borderRadius: 4,
                             barPercentage: 0.5,
@@ -749,7 +832,7 @@
                         },
                         {
                             label: 'المرتجعات',
-                            data: dataReturns,
+                            data: returnsData,
                             type: 'line',
                             borderColor: '#a63a31',
                             backgroundColor: '#a63a31',
@@ -774,35 +857,90 @@
                             titleColor: '#ffffff',
                             bodyColor: 'rgba(255,255,255,0.78)',
                             borderColor: 'rgba(255,255,255,0.08)',
-                            borderWidth: 1, padding: 9, cornerRadius: 6,
+                            borderWidth: 1,
+                            padding: 9,
+                            cornerRadius: 6,
                             titleFont: { family: "'Cairo', sans-serif", weight: '700', size: 11 },
                             bodyFont: { family: "'Cairo', sans-serif", size: 11 },
                             rtl: true,
-                            callbacks: { label: (item) => `${item.dataset.label}: ${item.parsed.y.toLocaleString()} ج.م` }
+                            callbacks: {
+                                label: function(item) {
+                                    return item.dataset.label + ': ' + item.parsed.y.toLocaleString() + ' ج.م';
+                                }
+                            }
                         }
                     },
                     scales: {
-                        x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10.5 } } },
+                        x: {
+                            grid: { display: false },
+                            border: { display: false },
+                            ticks: { font: { size: 10.5 } }
+                        },
                         y: {
                             grid: { color: '#eeece5' },
                             border: { display: false },
-                            ticks: { font: { size: 10.5 }, callback: (v) => (v / 1000) + 'k' }
+                            ticks: {
+                                font: { size: 10.5 },
+                                callback: function(v) {
+                                    if (v >= 1000) return (v / 1000) + 'k';
+                                    return v;
+                                }
+                            }
                         }
                     }
                 }
             });
         }
-        renderSalesChart(6);
 
-        document.querySelectorAll('.tabs button').forEach(btn => {
-            btn.addEventListener('click', function () {
-                document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+        function showEmptyChart() {
+            var ctx = document.getElementById('salesChart').getContext('2d');
+            if (salesChart) salesChart.destroy();
+
+            salesChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['لا توجد بيانات'],
+                    datasets: [
+                        {
+                            label: 'المبيعات',
+                            data: [0],
+                            backgroundColor: '#d8d0c4',
+                            borderRadius: 4,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, border: { display: false } },
+                        y: { grid: { display: false }, border: { display: false }, ticks: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // ================================================================
+        // أزرار التبويب للرسم البياني
+        // ================================================================
+        document.querySelectorAll('.tabs button').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tabs button').forEach(function(b) {
+                    b.classList.remove('active');
+                });
                 this.classList.add('active');
-                renderSalesChart(parseInt(this.dataset.range, 10));
+                var range = parseInt(this.dataset.range);
+                renderSalesChart(range);
             });
         });
 
-        /* ============================================================ */
+        // ================================================================
+        // SPARKLINES
+        // ================================================================
         function renderSpark(id, data, color) {
             const canvas = document.getElementById(id);
             if (!canvas) return;
@@ -910,7 +1048,9 @@
             });
         }
 
-        /* ============================================================ */
+        // ================================================================
+        // UPDATE STATS (بيانات حقيقية)
+        // ================================================================
         async function updateStats() {
             var token = getToken();
             if (!token) {
@@ -920,6 +1060,7 @@
             }
 
             try {
+                // جلب بيانات الخزينة
                 var response = await fetch(SUPABASE_URL + '/rest/v1/treasury?select=*', {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
@@ -945,6 +1086,7 @@
                 document.getElementById('totalRevenue').textContent = balance > 0 ? balance.toLocaleString() + ' ج.م' : '--';
                 document.getElementById('totalInvoices').textContent = totalTransactions > 0 ? totalTransactions.toLocaleString() : '--';
                 
+                // جلب عدد العملاء
                 try {
                     var clientsRes = await fetch(SUPABASE_URL + '/rest/v1/clients?select=id', {
                         headers: {
@@ -968,6 +1110,12 @@
 
                 setGoal(75);
 
+                // تحديث الرسم البياني
+                chartDataCache = await fetchSalesData();
+                var activeRange = document.querySelector('.tabs button.active');
+                var range = activeRange ? parseInt(activeRange.dataset.range) : 6;
+                await renderSalesChart(range);
+
                 // جلب النشاطات الأخيرة
                 await loadRecentActivity(token);
 
@@ -990,7 +1138,6 @@
         // ================================================================
         async function loadRecentActivity(token) {
             try {
-                // نجيب آخر 4 حركات من الخزينة
                 var response = await fetch(SUPABASE_URL + '/rest/v1/treasury?select=*&order=created_at.desc&limit=4', {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
@@ -1044,7 +1191,6 @@
         // ================================================================
         async function loadTopClients(token) {
             try {
-                // نجيب العملاء مع إجمالي مبيعاتهم
                 var response = await fetch(SUPABASE_URL + '/rest/v1/clients?select=id,name,total_sales&order=total_sales.desc&limit=5', {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
@@ -1067,7 +1213,6 @@
                     return;
                 }
 
-                // حساب أعلى مبيعات لضبط نسبة الشريط
                 var maxSales = 0;
                 data.forEach(function(c) {
                     var sales = parseFloat(c.total_sales) || 0;
