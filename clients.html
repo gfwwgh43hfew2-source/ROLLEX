@@ -48,6 +48,7 @@
             --font: 'Cairo', sans-serif;
             --sidebar-width: 278px;
             --header-height: 60px;
+            --sticky-top-height: 0px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -309,14 +310,19 @@
         .top-ribbon i { color: var(--gold); font-size: 0.5rem; }
 
         /* ============================================================ */
-        /* STICKY ELEMENTS - التثبيت الصحيح */
+        /* القسم العلوي (ثابت) */
         /* ============================================================ */
-        
-        /* 1. الهيدر - ثابت في أعلى الصفحة */
-        header {
+        .sticky-top-section {
             position: sticky;
             top: 0;
             z-index: 100;
+            background: var(--bg-primary);
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* 1. الهيدر */
+        header {
             background: #ffffff;
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow-sm);
@@ -427,12 +433,8 @@
             transform: translateY(-1px);
         }
 
-        /* 2. عنوان الصفحة - تحت الهيدر مباشرة */
+        /* 2. عنوان الصفحة */
         .page-header {
-            position: sticky;
-            top: var(--header-height); /* 60px */
-            z-index: 90;
-            background: var(--bg-primary);
             padding: 8px 0 6px;
             margin-bottom: 6px;
             display: flex;
@@ -440,7 +442,6 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 8px;
-            border-bottom: 1px solid var(--border-color);
         }
 
         .page-header .title-group {
@@ -546,11 +547,8 @@
             color: #fff;
         }
 
-        /* 3. الفلاتر - تحت عنوان الصفحة */
+        /* 3. الفلاتر */
         .filters-section {
-            position: sticky;
-            top: calc(var(--header-height) + 55px); /* 60 + 55 */
-            z-index: 85;
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
@@ -644,15 +642,12 @@
             border-color: var(--gold);
         }
 
-        /* 4. الإحصائيات - تحت الفلاتر */
+        /* 4. الإحصائيات */
         .summary-bar {
-            position: sticky;
-            top: calc(var(--header-height) + 115px); /* 60 + 55 + 60 */
-            z-index: 80;
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             align-items: stretch;
             justify-content: space-between;
         }
@@ -727,7 +722,14 @@
         .summary-bar .badge-stat i { color: var(--gold); }
         .summary-bar .badge-stat span { color: var(--text-secondary); font-weight: 800; }
 
-        /* 5. رأس الجدول - تحت الإحصائيات */
+        /* ============================================================ */
+        /* القسم السفلي (بيتحرك مع التمرير) */
+        /* ============================================================ */
+        .scrollable-section {
+            position: relative;
+            z-index: 1;
+        }
+
         .table-wrapper {
             background: var(--bg-card);
             border-radius: var(--radius-xl);
@@ -747,10 +749,11 @@
             min-width: 900px;
         }
 
+        /* تثبيت رأس الجدول فقط */
         .table-wrapper table thead {
             position: sticky;
-            top: calc(var(--header-height) + 175px); /* 60 + 55 + 60 + 60 */
-            z-index: 75;
+            top: 0;
+            z-index: 10;
         }
 
         .table-wrapper table thead tr {
@@ -1245,10 +1248,14 @@
             .table-wrapper table th:nth-child(12),
             .table-wrapper table td:nth-child(12) { width: 15%; }
 
-            .page-header {
-                top: var(--header-height);
-                padding: 6px 0 4px;
+            .sticky-top-section {
+                position: sticky;
+                top: 0;
+                padding-bottom: 4px;
             }
+
+            header { height: 50px; padding: 0 12px; }
+            .page-header { padding: 6px 0 4px; }
             .page-header .title-group .icon-wrapper {
                 width: 30px;
                 height: 30px;
@@ -1266,7 +1273,6 @@
             .page-header .actions .btn-action span { display: none; }
 
             .filters-section {
-                top: calc(var(--header-height) + 50px);
                 flex-direction: column;
                 align-items: stretch;
                 padding: 8px 10px;
@@ -1286,7 +1292,6 @@
             }
 
             .summary-bar {
-                top: calc(var(--header-height) + 110px);
                 flex-direction: column;
                 align-items: stretch;
                 gap: 4px;
@@ -1294,21 +1299,11 @@
             .summary-bar .stat-item { min-width: unset; padding: 6px 12px; }
             .summary-bar .badge-stat { justify-content: center; }
 
-            .table-wrapper table thead {
-                top: calc(var(--header-height) + 170px);
-            }
-
             table { font-size: 0.55rem; min-width: 650px; }
             th, td { padding: 5px 6px; }
             .badge-status { font-size: 0.4rem; padding: 2px 6px; }
             .code-cell { font-size: 0.5rem; padding: 2px 6px; }
 
-            header {
-                padding: 0 12px;
-                height: 50px;
-                border-radius: var(--radius-lg);
-                margin-bottom: 6px;
-            }
             .header-right button { width: 28px; height: 28px; font-size: 0.65rem; }
             .sidebar { width: 280px; right: calc(-1 * 280px); }
             .logo-text h1 { font-size: 0.75rem; }
@@ -1355,6 +1350,12 @@
             th, td { padding: 3px 4px; }
             .code-cell { font-size: 0.4rem; padding: 1px 4px; }
             
+            .sticky-top-section {
+                position: sticky;
+                top: 0;
+                padding-bottom: 4px;
+            }
+
             header { height: 44px; padding: 0 8px; }
             .header-right button { width: 24px; height: 24px; font-size: 0.55rem; }
             .hamburger { width: 24px; height: 24px; font-size: 0.65rem; }
@@ -1432,28 +1433,30 @@
         <span>شركة رولكس للدهانات</span>
     </div>
 
-    <!-- ===== HEADER ===== -->
-    <header>
-        <div class="header-left">
-            <button class="hamburger" id="openSidebar"><i class="fas fa-bars"></i></button>
-            <div class="logo">
-                <div class="logo-icon"><i class="fas fa-paint-roller"></i></div>
-                <div class="logo-text">
-                    <h1>بيانات <span>العملاء</span></h1>
-                    <span class="sub">QuickData ProSoft</span>
+    <!-- ============================================================ -->
+    <!-- القسم العلوي (ثابت) -->
+    <!-- ============================================================ -->
+    <div class="sticky-top-section">
+
+        <!-- ===== HEADER ===== -->
+        <header>
+            <div class="header-left">
+                <button class="hamburger" id="openSidebar"><i class="fas fa-bars"></i></button>
+                <div class="logo">
+                    <div class="logo-icon"><i class="fas fa-paint-roller"></i></div>
+                    <div class="logo-text">
+                        <h1>بيانات <span>العملاء</span></h1>
+                        <span class="sub">QuickData ProSoft</span>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="header-right">
-            <button onclick="loadData()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
-            <button onclick="logout()" title="تسجيل الخروج"><i class="fas fa-sign-out-alt"></i></button>
-        </div>
-    </header>
+            <div class="header-right">
+                <button onclick="loadData()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
+                <button onclick="logout()" title="تسجيل الخروج"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </header>
 
-    <!-- ===== CONTENT ===== -->
-    <div class="container">
-
-        <!-- PAGE HEADER -->
+        <!-- ===== PAGE HEADER ===== -->
         <div class="page-header">
             <div class="title-group">
                 <div class="icon-wrapper"><i class="fas fa-users"></i></div>
@@ -1478,7 +1481,7 @@
             </div>
         </div>
 
-        <!-- FILTERS -->
+        <!-- ===== FILTERS ===== -->
         <div class="filters-section">
             <div class="filter-group">
                 <label><i class="fas fa-user"></i> اسم العميل</label>
@@ -1501,7 +1504,7 @@
             <button class="btn-reset" onclick="resetFilters()"><i class="fas fa-undo"></i> إلغاء</button>
         </div>
 
-        <!-- SUMMARY -->
+        <!-- ===== SUMMARY ===== -->
         <div class="summary-bar">
             <div class="stat-item">
                 <div class="stat-icon"><i class="fas fa-users"></i></div>
@@ -1522,7 +1525,14 @@
             </div>
         </div>
 
-        <!-- TABLE -->
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- القسم السفلي (بيتحرك مع التمرير) -->
+    <!-- ============================================================ -->
+    <div class="scrollable-section">
+
+        <!-- ===== TABLE ===== -->
         <div class="table-wrapper">
             <table>
                 <thead>
