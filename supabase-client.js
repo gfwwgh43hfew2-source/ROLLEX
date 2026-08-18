@@ -235,7 +235,7 @@ async function getCompanyId() {
 }
 
 // ============================================================
-// GENERIC GET (مُعدلة لمنع تسجيل الخروج التلقائي عند 403)
+// GENERIC GET (نسخة مُبسطة جداً)
 // ============================================================
 async function getTable(tableName, orderBy) {
     var token = getToken();
@@ -262,36 +262,11 @@ async function getTable(tableName, orderBy) {
             }
         });
 
-        if (response.status === 403) {
-            console.warn('⚠️ خطأ 403 في ' + tableName + ' - محاولة تجديد الجلسة...');
-            var refreshed = await refreshSession();
-            if (refreshed) {
-                var newToken = getToken();
-                if (newToken) {
-                    console.log('✅ تم تجديد الجلسة، إعادة محاولة جلب ' + tableName + '...');
-                    var newResponse = await fetch(url, {
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + newToken
-                        }
-                    });
-                    if (newResponse.ok) {
-                        return (await newResponse.json()) || [];
-                    } else {
-                        console.warn('⚠️ فشل جلب ' + tableName + ' بعد تجديد الجلسة');
-                        return [];
-                    }
-                }
-            }
-            console.warn('⚠️ فشل تجديد الجلسة، جاري التوجيه لتسجيل الدخول...');
-            redirectToLogin();
-            return [];
-        }
-
         if (!response.ok) {
             console.warn('⚠️ فشل جلب ' + tableName + ' بسبب خطأ ' + response.status);
             return [];
         }
+
         return (await response.json()) || [];
 
     } catch (error) {
@@ -533,4 +508,4 @@ function getStatusBadge(status) {
     return '<span class="badge-status ' + statusClass + '">' + statusText + '</span>';
 }
 
-console.log('✅ تم تحميل supabase-client.js (النسخة المُحسّنة)');
+console.log('✅ تم تحميل supabase-client.js (النسخة النهائية المُبسطة)');
