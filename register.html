@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover" />
     <title>إنشاء حساب - QuickData ProSoft</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
     <style>
         /* ==========================================================
            RESET & BASE
@@ -518,7 +520,7 @@
 
         /**
          * ============================================================
-         * التحقق من وجود شركة
+         * دالة التحقق من وجود الشركة
          * ============================================================
          */
         async function checkCompanyExists(companyName) {
@@ -530,9 +532,64 @@
                 var data = await response.json();
                 return data && data.length > 0;
             } catch (error) {
-                console.error('❌ خطأ في التحقق:', error);
+                console.error('❌ خطأ في التحقق من الشركة:', error);
                 return false;
             }
+        }
+
+        /**
+         * ============================================================
+         * دالة إنشاء شركة جديدة في جدول companies
+         * ============================================================
+         */
+        async function createCompany(companyName) {
+            var response = await fetch(SUPABASE_URL + '/rest/v1/companies', {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({
+                    name: companyName,
+                    subdomain: companyName.toLowerCase().replace(/[^a-z0-9]/g, '') + '-' + Date.now().toString().slice(-6)
+                })
+            });
+            if (!response.ok) {
+                var errorText = await response.text();
+                throw new Error('فشل إنشاء الشركة: ' + errorText);
+            }
+            var data = await response.json();
+            return data && data.length > 0 ? data[0] : null;
+        }
+
+        /**
+         * ============================================================
+         * دالة إنشاء البروفايل (المستخدم) في جدول profiles
+         * ============================================================
+         */
+        async function createProfile(userId, name, email, companyId, role) {
+            var response = await fetch(SUPABASE_URL + '/rest/v1/profiles', {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + (await supabase.auth.getSession()).data.session.access_token,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({
+                    id: userId,
+                    name: name,
+                    email: email,
+                    role: role || 'admin',
+                    company_id: companyId
+                })
+            });
+            if (!response.ok) {
+                var errorText = await response.text();
+                throw new Error('فشل إنشاء البروفايل: ' + errorText);
+            }
+            return await response.json();
         }
 
         /**
@@ -613,36 +670,42 @@
                     return;
                 }
 
-                // 2. إنشاء المستخدم في Supabase Auth
-                var response = await fetch(SUPABASE_URL + '/auth/v1/signup', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password,
+                // 2. إنشاء الشركة الجديدة
+                var newCompany = await createCompany(companyName);
+                if (!newCompany) {
+                    throw new Error('فشل إنشاء الشركة');
+                }
+
+                // 3. إنشاء المستخدم في Supabase Auth
+                var { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
                         data: {
                             name: name,
-                            company_name: companyName,
+                            company_id: newCompany.id,
                             role: 'admin'
                         }
-                    })
+                    }
                 });
 
-                var data = await response.json();
-
-                if (!response.ok) {
-                    var errorMessage = data.msg || data.message || 'حدث خطأ في إنشاء الحساب';
+                if (error) {
+                    var errorMessage = error.message || 'حدث خطأ في إنشاء الحساب';
                     if (errorMessage.includes('already registered')) {
                         errorMessage = 'هذا البريد الإلكتروني مسجل بالفعل. يرجى استخدام بريد آخر.';
                     }
                     throw new Error(errorMessage);
                 }
 
-                // 3. حفظ الجلسة
-                localStorage.setItem('rollex_session', JSON.stringify(data));
+                if (!data.user) {
+                    throw new Error('فشل إنشاء المستخدم');
+                }
+
+                // 4. إنشاء البروفايل في جدول profiles
+                await createProfile(data.user.id, name, email, newCompany.id, 'admin');
+
+                // 5. حفظ الجلسة
+                localStorage.setItem('rollex_session', JSON.stringify(data.session));
 
                 showMessage('✅ تم إنشاء الحساب بنجاح! جاري التحويل...', 'success');
 
@@ -702,6 +765,7 @@
         console.log('🔗 Supabase URL:', SUPABASE_URL);
         console.log('✅ النظام جاهز للعمل');
         console.log('📌 التسجيل متاح للشركات الجديدة فقط');
+        console.log('📌 يتم إنشاء الشركة والمستخدم الأول كـ admin تلقائياً');
     </script>
 
 </body>
