@@ -270,6 +270,12 @@
             border-radius: 50% 50% 50% 4px; background: var(--prussian); transform: translateY(-50%) rotate(45deg);
             right: 0; transition: right 1.3s var(--ease) .3s;
         }
+        .hero .goal .goal-details {
+            font-size: 0.6rem;
+            color: var(--ink-3);
+            margin-top: 4px;
+            text-align: center;
+        }
 
         .swatch-fan { display: flex; justify-content: flex-end; align-items: flex-end; padding-inline-end: 18px; flex-shrink: 0; }
         .swatch-fan .chip {
@@ -511,6 +517,7 @@
                         <div class="goal">
                             <div class="g-top">هدف الشهر <b id="goalPct">0%</b></div>
                             <div class="g-bar"><span class="fill" id="goalFill"></span><span class="drip" id="goalDrip"></span></div>
+                            <div class="goal-details" id="goalDetails">0 / 100,000 ج.م</div>
                         </div>
                     </div>
                 </div>
@@ -716,6 +723,55 @@
             window.location.href = 'login.html';
         }
         window.logout = logout;
+
+        // ================================================================
+        // حساب هدف الشهر من البيانات الحقيقية
+        // ================================================================
+        async function updateMonthlyGoal() {
+            var token = getToken();
+            if (!token) return;
+
+            try {
+                // 1. جلب فواتير الشهر الحالي
+                var now = new Date();
+                var firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                var lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+
+                var response = await fetch(
+                    SUPABASE_URL + '/rest/v1/sales_invoices?select=total_amount&invoice_date=gte.' + firstDay + '&invoice_date=lte.' + lastDay,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + token
+                        }
+                    }
+                );
+
+                if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
+                var invoices = await response.json();
+
+                // 2. حساب إجمالي مبيعات الشهر
+                var totalSales = 0;
+                invoices.forEach(function(inv) {
+                    totalSales += parseFloat(inv.total_amount) || 0;
+                });
+
+                // 3. الهدف الشهري (مثلاً 100,000 ج.م)
+                var monthlyTarget = 100000;
+
+                // 4. حساب النسبة
+                var percentage = Math.min((totalSales / monthlyTarget) * 100, 100);
+
+                // 5. تحديث الواجهة
+                setGoal(percentage);
+                document.getElementById('goalDetails').textContent = totalSales.toLocaleString() + ' / ' + monthlyTarget.toLocaleString() + ' ج.م';
+
+            } catch (error) {
+                console.error('❌ خطأ في حساب هدف الشهر:', error);
+                setGoal(0);
+                document.getElementById('goalDetails').textContent = '0 / 100,000 ج.م';
+            }
+        }
 
         // ================================================================
         // الرسم البياني للمبيعات (بيانات حقيقية من قاعدة البيانات)
@@ -1108,7 +1164,8 @@
                 document.getElementById('pendingOrders').textContent = pending > 0 ? pending.toLocaleString() : '--';
                 document.getElementById('totalCollections').textContent = totalIncoming > 0 ? totalIncoming.toLocaleString() + ' ج.م' : '--';
 
-                setGoal(75);
+                // تحديث هدف الشهر
+                await updateMonthlyGoal();
 
                 // تحديث الرسم البياني
                 chartDataCache = await fetchSalesData();
@@ -1130,6 +1187,7 @@
                 document.getElementById('pendingOrders').textContent = '--';
                 document.getElementById('totalCollections').textContent = '--';
                 setGoal(0);
+                document.getElementById('goalDetails').textContent = '0 / 100,000 ج.م';
             }
         }
 
