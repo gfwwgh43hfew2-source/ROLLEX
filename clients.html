@@ -8,10 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- ===== إضافة الملف المركزي ===== -->
     <script src="supabase-client.js"></script>
     <style>
-        /* ===== نفس الـ CSS الأصلي ===== */
         :root {
             --gold: #b3813a;
             --gold-light: #f1e0ba;
@@ -79,7 +77,6 @@
         ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--gold-dark); }
 
-        /* ===== SIDEBAR OVERLAY ===== */
         .sidebar-overlay {
             display: none;
             position: fixed;
@@ -93,7 +90,6 @@
         }
         .sidebar-overlay.active { opacity: 1; pointer-events: auto; }
 
-        /* ===== SIDEBAR ===== */
         .sidebar {
             position: fixed;
             top: 0;
@@ -293,7 +289,6 @@
             color: var(--danger);
         }
 
-        /* ===== TOP RIBBON ===== */
         .top-ribbon {
             max-width: 1440px;
             margin: 0 auto 14px;
@@ -313,7 +308,6 @@
         }
         .top-ribbon i { color: var(--gold); font-size: 0.6rem; }
 
-        /* ===== HEADER ===== */
         header {
             position: sticky;
             top: 0;
@@ -429,7 +423,6 @@
             transform: translateY(-1px);
         }
 
-        /* ===== PAGE HEADER ===== */
         .page-header {
             margin-bottom: 22px;
             display: flex;
@@ -541,7 +534,6 @@
             color: #fff;
         }
 
-        /* ===== FILTERS ===== */
         .filters-section {
             display: flex;
             flex-wrap: wrap;
@@ -637,7 +629,6 @@
             border-color: var(--gold);
         }
 
-        /* ===== SUMMARY ===== */
         .summary-bar {
             display: flex;
             flex-wrap: wrap;
@@ -717,7 +708,6 @@
         .summary-bar .badge-stat i { color: var(--gold); }
         .summary-bar .badge-stat span { color: var(--text-secondary); font-weight: 800; }
 
-        /* ===== TABLE ===== */
         .table-wrapper {
             background: var(--bg-card);
             border-radius: var(--radius-xl);
@@ -842,7 +832,6 @@
         .amount-cell.positive { color: var(--success); }
         .amount-cell.negative { color: var(--danger); }
 
-        /* ===== MODAL ===== */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -859,7 +848,7 @@
         .modal-box {
             background: var(--bg-card);
             border-radius: var(--radius-2xl);
-            max-width: 520px;
+            max-width: 540px;
             width: 100%;
             padding: 32px;
             border: 1px solid var(--border-color);
@@ -953,12 +942,42 @@
             margin-top: 6px;
         }
 
+        /* ===== PROGRESS BAR ===== */
+        .import-progress {
+            display: none;
+            margin-top: 12px;
+        }
+        .import-progress .progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        .import-progress .progress-track {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-primary);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .import-progress .progress-track .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--gold-gradient);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        .import-progress .progress-count {
+            font-size: 0.6rem;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
         .modal-box .form-actions {
             display: flex;
             gap: 10px;
-            margin-top: 24px;
-            padding-top: 18px;
-            border-top: 1px solid var(--border-color);
+            margin-top: 20px;
         }
         .modal-box .form-actions .btn-save {
             padding: 11px 32px;
@@ -1004,7 +1023,6 @@
             color: var(--text-secondary);
         }
 
-        /* ===== TOAST ===== */
         .toast-container {
             position: fixed;
             top: 80px;
@@ -1017,7 +1035,6 @@
             width: 100%;
         }
 
-        /* ===== EMPTY & LOADING ===== */
         .empty-state {
             text-align: center;
             padding: 56px 20px;
@@ -1056,7 +1073,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 1024px) {
             .page-header h1 { font-size: 1.4rem; }
         }
@@ -1366,7 +1382,7 @@
 
     </div>
 
-    <!-- IMPORT MODAL -->
+    <!-- ===== IMPORT MODAL ===== -->
     <div class="modal-overlay" id="importModal">
         <div class="modal-box">
             <div class="modal-header">
@@ -1386,6 +1402,21 @@
                     <input type="file" id="importFile" accept=".xlsx,.xls" required />
                     <div class="helper-text">الصيغ المدعومة: .xlsx, .xls</div>
                 </div>
+
+                <!-- ===== PROGRESS BAR ===== -->
+                <div class="import-progress" id="importProgress">
+                    <div class="progress-header">
+                        <span id="progressText">جاري الاستيراد...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                    <div class="progress-count">
+                        <span id="progressCount">0</span> / <span id="progressTotal">0</span> سجل
+                    </div>
+                </div>
+
                 <div class="form-actions">
                     <button type="submit" class="btn-save" id="importSubmitBtn">
                         <i class="fas fa-upload"></i> استيراد
@@ -1396,12 +1427,10 @@
         </div>
     </div>
 
-    <!-- TOAST -->
+    <!-- ===== TOAST ===== -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- ============================================================
-    JAVASCRIPT - دوال خاصة بالصفحة فقط
-    ============================================================ -->
+    <!-- ============================================================ -->
     <script>
         // ============================================================
         // SIDEBAR
@@ -1427,6 +1456,50 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') { closeSidebarFn(); closeImportModal(); }
         });
+
+        // ============================================================
+        // TOAST
+        // ============================================================
+        function showToast(title, message, type) {
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast';
+            var iconMap = { 'success': 'fa-check-circle', 'error': 'fa-times-circle', 'warning': 'fa-exclamation-triangle' };
+            var iconClass = type || 'warning';
+            if (iconClass === 'success') iconClass = 'success';
+            else if (iconClass === 'error') iconClass = 'error';
+            else iconClass = 'warning';
+            toast.innerHTML = `
+                <div class="toast-icon ${iconClass}"><i class="fas ${iconMap[iconClass] || 'fa-info-circle'}"></i></div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(toast);
+            requestAnimationFrame(function() { toast.classList.add('show'); });
+            setTimeout(function() {
+                toast.classList.remove('show');
+                setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
+            }, 5000);
+            toast.querySelector('.toast-close').addEventListener('click', function() {
+                toast.classList.remove('show');
+                setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
+            });
+        }
+
+        // ============================================================
+        // LOGOUT
+        // ============================================================
+        async function logout() {
+            try {
+                localStorage.removeItem('rollex_session');
+                sessionStorage.removeItem('rollex_session');
+                window.location.href = 'login.html';
+            } catch (error) { console.error('❌ خطأ في تسجيل الخروج:', error); }
+        }
+        window.logout = logout;
 
         // ============================================================
         // DOM REFS
@@ -1630,8 +1703,12 @@
         function openImportModal() {
             document.getElementById('importModal').classList.add('active');
             document.getElementById('importFile').value = '';
+            // إخفاء مؤشر التقدم إذا كان ظاهراً
+            document.getElementById('importProgress').style.display = 'none';
+            document.getElementById('progressBar').style.width = '0%';
             document.body.style.overflow = 'hidden';
         }
+
         function closeImportModal() {
             document.getElementById('importModal').classList.remove('active');
             document.body.style.overflow = '';
@@ -1677,111 +1754,132 @@
         }
 
         // ============================================================
-        // IMPORT FROM EXCEL
+        // IMPORT FROM EXCEL (مع مؤشر التقدم)
         // ============================================================
-       async function importFromExcel(event) {
-    event.preventDefault();
-    var file = document.getElementById('importFile').files[0];
-    if (!file) {
-        showToast('⚠️ تنبيه', 'يرجى اختيار ملف Excel', 'error');
-        return;
-    }
+        async function importFromExcel(event) {
+            event.preventDefault();
 
-    var btn = document.getElementById('importSubmitBtn');
-    var progressDiv = document.getElementById('importProgress');
-    var progressBar = document.getElementById('progressBar');
-    var progressText = document.getElementById('progressText');
-    var progressPercent = document.getElementById('progressPercent');
-    var progressCount = document.getElementById('progressCount');
-    var progressTotal = document.getElementById('progressTotal');
-
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاستيراد...';
-    progressDiv.style.display = 'block';
-    progressBar.style.width = '0%';
-    progressPercent.textContent = '0%';
-    progressCount.textContent = '0';
-
-    try {
-        var data = await file.arrayBuffer();
-        var workbook = XLSX.read(data, { type: 'array' });
-        var sheet = workbook.Sheets[workbook.SheetNames[0]];
-        var json = XLSX.utils.sheet_to_json(sheet);
-        if (!json || json.length === 0) throw new Error('الملف فارغ أو غير صحيح');
-
-        progressTotal.textContent = json.length;
-        var success = 0, errors = 0, errMsgs = [];
-
-        for (var i = 0; i < json.length; i++) {
-            // تحديث التقدم
-            var percent = Math.round(((i + 1) / json.length) * 100);
-            progressBar.style.width = percent + '%';
-            progressPercent.textContent = percent + '%';
-            progressCount.textContent = i + 1;
-            progressText.textContent = 'جاري استيراد السجل ' + (i + 1) + ' من ' + json.length;
-
-            // معالجة السجل
-            var row = json[i];
-            var name = row['اسم العميل'] || row['name'] || '';
-            if (!name) {
-                errors++;
-                errMsgs.push('صف ' + (i + 1) + ': اسم العميل مطلوب');
-                continue;
-            }
-            try {
-                await insertClient({
-                    code: row['كود العميل'] || row['code'] || 'C' + String(Date.now() + i).slice(-6),
-                    name: name.trim(),
-                    phone: row['الهاتف'] || row['phone'] || '',
-                    address: row['العنوان'] || row['address'] || '',
-                    opening_balance: parseFloat(row['الرصيد الافتتاحي'] || row['opening_balance'] || 0),
-                    credit_limit: parseFloat(row['حد الائتمان'] || row['credit_limit'] || 0),
-                    salesman: row['المندوب'] || row['salesman'] || '',
-                    status: row['الحالة'] || row['status'] || 'نشط',
-                    credit_status: row['حالة الائتمان'] || row['credit_status'] || 'جيد',
-                    open_statement: row['كشف حساب مفتوح'] || row['open_statement'] || ''
-                });
-                success++;
-            } catch(e) {
-                errors++;
-                errMsgs.push('صف ' + (i + 1) + ': ' + e.message);
+            var file = document.getElementById('importFile').files[0];
+            if (!file) {
+                showToast('⚠️ تنبيه', 'يرجى اختيار ملف Excel', 'error');
+                return;
             }
 
-            // تأخير بسيط عشان تظهر الحركة
-            await new Promise(r => setTimeout(r, 50));
-        }
+            var btn = document.getElementById('importSubmitBtn');
+            var progressDiv = document.getElementById('importProgress');
+            var progressBar = document.getElementById('progressBar');
+            var progressText = document.getElementById('progressText');
+            var progressPercent = document.getElementById('progressPercent');
+            var progressCount = document.getElementById('progressCount');
+            var progressTotal = document.getElementById('progressTotal');
 
-        progressText.textContent = '✅ تم الانتهاء!';
-        progressBar.style.width = '100%';
-        progressPercent.textContent = '100%';
-
-        if (success > 0) {
-            showToast('✅ تم الاستيراد', 'تم استيراد ' + success + ' عميل' + (errors > 0 ? '، وفشل ' + errors + ' عميل' : ''), 'success');
-            setTimeout(function() {
-                closeImportModal();
-                loadData();
-                progressDiv.style.display = 'none';
-                progressBar.style.width = '0%';
-            }, 1000);
-        } else {
-            showToast('❌ فشل الاستيراد', 'لم يتم استيراد أي عميل', 'error');
-            setTimeout(function() {
-                progressDiv.style.display = 'none';
-                progressBar.style.width = '0%';
-            }, 2000);
-        }
-        if (errMsgs.length > 0) console.log('أخطاء الاستيراد:', errMsgs);
-
-    } catch(e) {
-        showToast('❌ خطأ', e.message || 'فشل استيراد البيانات', 'error');
-        setTimeout(function() {
-            progressDiv.style.display = 'none';
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاستيراد...';
+            progressDiv.style.display = 'block';
             progressBar.style.width = '0%';
-        }, 2000);
-    }
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-upload"></i> استيراد';
-}
+            progressPercent.textContent = '0%';
+            progressCount.textContent = '0';
+            progressText.textContent = 'جاري تحليل الملف...';
+
+            try {
+                var data = await file.arrayBuffer();
+                var workbook = XLSX.read(data, { type: 'array' });
+                var sheet = workbook.Sheets[workbook.SheetNames[0]];
+                var json = XLSX.utils.sheet_to_json(sheet);
+
+                if (!json || json.length === 0) {
+                    throw new Error('الملف فارغ أو غير صحيح');
+                }
+
+                progressTotal.textContent = json.length;
+                progressText.textContent = 'جاري استيراد البيانات...';
+
+                var success = 0;
+                var errors = 0;
+                var errMsgs = [];
+
+                for (var i = 0; i < json.length; i++) {
+                    // تحديث التقدم
+                    var percent = Math.round(((i + 1) / json.length) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressPercent.textContent = percent + '%';
+                    progressCount.textContent = i + 1;
+                    progressText.textContent = 'جاري استيراد السجل ' + (i + 1) + ' من ' + json.length;
+
+                    // معالجة السجل
+                    var row = json[i];
+                    var name = row['اسم العميل'] || row['name'] || '';
+                    if (!name) {
+                        errors++;
+                        errMsgs.push('صف ' + (i + 1) + ': اسم العميل مطلوب');
+                        continue;
+                    }
+
+                    try {
+                        await insertClient({
+                            code: row['كود العميل'] || row['code'] || 'C' + String(Date.now() + i).slice(-6),
+                            name: name.trim(),
+                            phone: row['الهاتف'] || row['phone'] || '',
+                            address: row['العنوان'] || row['address'] || '',
+                            opening_balance: parseFloat(row['الرصيد الافتتاحي'] || row['opening_balance'] || 0),
+                            credit_limit: parseFloat(row['حد الائتمان'] || row['credit_limit'] || 0),
+                            salesman: row['المندوب'] || row['salesman'] || '',
+                            status: row['الحالة'] || row['status'] || 'نشط',
+                            credit_status: row['حالة الائتمان'] || row['credit_status'] || 'جيد',
+                            open_statement: row['كشف حساب مفتوح'] || row['open_statement'] || ''
+                        });
+                        success++;
+                    } catch(e) {
+                        errors++;
+                        errMsgs.push('صف ' + (i + 1) + ': ' + e.message);
+                    }
+
+                    // تأخير بسيط لإظهار التقدم
+                    await new Promise(r => setTimeout(r, 30));
+                }
+
+                progressText.textContent = '✅ تم الانتهاء!';
+                progressBar.style.width = '100%';
+                progressPercent.textContent = '100%';
+
+                if (success > 0) {
+                    showToast(
+                        '✅ تم الاستيراد',
+                        'تم استيراد ' + success + ' عميل' +
+                        (errors > 0 ? '، وفشل ' + errors + ' عميل' : ''),
+                        'success'
+                    );
+                    setTimeout(function() {
+                        closeImportModal();
+                        loadData();
+                        progressDiv.style.display = 'none';
+                        progressBar.style.width = '0%';
+                    }, 1200);
+                } else {
+                    showToast('❌ فشل الاستيراد', 'لم يتم استيراد أي عميل. تحقق من البيانات', 'error');
+                    setTimeout(function() {
+                        progressDiv.style.display = 'none';
+                        progressBar.style.width = '0%';
+                    }, 2000);
+                }
+
+                if (errMsgs.length > 0) {
+                    console.log('❌ أخطاء الاستيراد:');
+                    errMsgs.forEach(function(err) { console.log('  - ' + err); });
+                }
+
+            } catch(e) {
+                console.error('❌ خطأ في الاستيراد:', e);
+                showToast('❌ خطأ', e.message || 'فشل استيراد البيانات', 'error');
+                setTimeout(function() {
+                    progressDiv.style.display = 'none';
+                    progressBar.style.width = '0%';
+                }, 2000);
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-upload"></i> استيراد';
+        }
 
         // ============================================================
         // LOAD DATA
