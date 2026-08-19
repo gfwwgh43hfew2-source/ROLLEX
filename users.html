@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>إدارة المستخدمين · QuickData ProSoft</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <style>
+        /* ============================================================ */
+        :root {
+            --canvas: #f6f3ec;
+            --surface: #ffffff;
+            --surface-2: #fbf9f4;
+            --line: rgba(33, 29, 26, 0.11);
+            --line-soft: rgba(33, 29, 26, 0.06);
+            --ink: #211d1a;
+            --ink-2: #6e645a;
+            --ink-3: #a69c90;
+            --ink-4: #d8d0c4;
+            --gold: #b3813a;
+            --gold-light: #f1e0ba;
+            --gold-dark: #8a611f;
+            --gold-glow: rgba(179, 129, 58, 0.11);
+            --gold-gradient: linear-gradient(135deg, #d3a25a 0%, #b3813a 48%, #8a611f 100%);
+            --navy: #212b42;
+            --navy-gradient: linear-gradient(135deg, #384464 0%, #212b42 100%);
+            --teal: #1d7b6c;
+            --teal-soft: #e2f2ee;
+            --rust: #bf4f30;
+            --rust-soft: #fbe8e1;
+            --sidebar-w: 270px;
+            --header-h: 68px;
+            --r-lg: 18px;
+            --r-md: 12px;
+            --r-sm: 8px;
+            --ease: cubic-bezier(0.22, 1, 0.36, 1);
+            --display: 'Bricolage Grotesque', 'Cairo', sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Cairo', 'Segoe UI', system-ui, sans-serif;
+            background: var(--canvas);
+            color: var(--ink);
+            direction: rtl;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { text-decoration: none; color: inherit; }
+        button { font-family: inherit; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--ink-4); border-radius: 10px; }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(33, 29, 26, 0.4);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity .25s ease;
+            pointer-events: none;
+        }
+        .sidebar-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: var(--sidebar-w);
+            height: 100vh;
+            background: var(--surface-2);
+            border-left: 1px solid var(--line);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            transition: right .35s var(--ease);
+        }
+        .sidebar.collapsed { right: calc(-1 * var(--sidebar-w)); }
+
+        .sidebar .brand {
+            padding: 24px 22px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--line);
+            background: var(--navy-gradient);
+            position: relative;
+            overflow: hidden;
+        }
+        .sidebar .brand::before {
+            content: '';
+            position: absolute;
+            inset: -40% -10%;
+            background: linear-gradient(115deg, transparent 38%, rgba(211, 162, 90, 0.55) 48%, rgba(179, 129, 58, 0.25) 54%, transparent 62%);
+            pointer-events: none;
+        }
+        .sidebar .brand::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: var(--gold-gradient);
+        }
+        .sidebar .brand .mark {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(211, 162, 90, 0.4);
+            color: var(--gold-light);
+            position: relative;
+            z-index: 1;
+        }
+        .sidebar .brand .text {
+            font-weight: 800;
+            font-size: 0.88rem;
+            color: #fff;
+            line-height: 1.3;
+            position: relative;
+            z-index: 1;
+        }
+        .sidebar .brand .text span {
+            display: block;
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: var(--gold-light);
+            margin-top: 2px;
+            opacity: 0.9;
+        }
+
+        .sidebar .menu {
+            flex: 1;
+            padding: 14px 12px;
+        }
+        .sidebar .menu .label {
+            font-size: 0.6rem;
+            color: var(--ink-3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 16px 10px 6px;
+            font-weight: 700;
+        }
+        .sidebar .menu .label:first-child { padding-top: 4px; }
+
+        .sidebar .menu .item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: var(--r-sm);
+            color: var(--ink-2);
+            font-weight: 600;
+            font-size: 0.82rem;
+            transition: background .15s ease, color .15s ease;
+            cursor: pointer;
+            margin-bottom: 2px;
+            position: relative;
+            border-inline-end: 3px solid transparent;
+        }
+        .sidebar .menu .item:hover { background: rgba(33, 29, 26, 0.04); color: var(--ink); }
+        .sidebar .menu .item.active {
+            background: var(--surface);
+            color: var(--ink);
+            box-shadow: 0 2px 10px rgba(33, 29, 26, 0.08);
+            border-inline-end: 3px solid var(--swatch, var(--ink));
+        }
+        .sidebar .menu .item i {
+            width: 16px;
+            text-align: center;
+            font-size: 0.86rem;
+            opacity: 0.8;
+        }
+
+        .sidebar .footer {
+            padding: 14px 18px 20px;
+            border-top: 1px solid var(--line);
+        }
+        .sidebar .footer .user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sidebar .footer .user .avatar {
+            width: 33px;
+            height: 33px;
+            border-radius: var(--r-sm);
+            background: var(--gold-gradient);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+        .sidebar .footer .user .info .name {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+        .sidebar .footer .user .info .role {
+            font-size: 0.62rem;
+            color: var(--ink-3);
+            margin-top: 1px;
+        }
+        .sidebar .footer .logout {
+            margin-right: auto;
+            width: 28px;
+            height: 28px;
+            border-radius: var(--r-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--ink-3);
+            border: 1px solid var(--line);
+            transition: .15s;
+            cursor: pointer;
+            background: transparent;
+        }
+        .sidebar .footer .logout:hover { color: var(--rust); border-color: var(--rust); }
+
+        .main {
+            margin-right: var(--sidebar-w);
+            min-height: 100vh;
+            transition: margin-right .35s var(--ease);
+        }
+        .main.expanded { margin-right: 0; }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            height: var(--header-h);
+            padding: 0 30px;
+            background: rgba(246, 243, 236, 0.88);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header .left { display: flex; align-items: center; gap: 16px; }
+        .header .hamburger {
+            display: flex;
+            width: 34px;
+            height: 34px;
+            border-radius: var(--r-sm);
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-2);
+            cursor: pointer;
+            transition: .15s;
+        }
+        .header .hamburger:hover { border-color: var(--ink-3); color: var(--ink); }
+        .header .breadcrumb { font-size: 0.79rem; color: var(--ink-3); }
+        .header .breadcrumb b { color: var(--ink); font-weight: 700; }
+
+        .header .right {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+        .header .right .profile {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 3px 12px 3px 5px;
+            border-radius: 50px;
+            border: 1px solid var(--line);
+            cursor: pointer;
+            transition: .15s;
+            background: var(--surface);
+        }
+        .header .right .profile:hover { border-color: var(--ink-3); }
+        .header .right .profile .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--gold-gradient);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.7rem;
+        }
+        .header .right .profile .name {
+            font-size: 0.77rem;
+            font-weight: 700;
+        }
+        .header .right .profile .name small {
+            display: block;
+            font-size: 0.58rem;
+            font-weight: 500;
+            color: var(--ink-3);
+        }
+
+        .dash {
+            padding: 26px 30px 44px;
+            max-width: 1500px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-header h1 {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .page-header h1 i { color: var(--gold); }
+        .page-header .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            padding: 8px 16px;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-2);
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: .15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Cairo', sans-serif;
+        }
+        .btn-action:hover { background: var(--surface-2); border-color: var(--ink-3); }
+        .btn-action.primary {
+            background: var(--gold-gradient);
+            color: #fff;
+            border: none;
+        }
+        .btn-action.primary:hover { background: var(--navy-gradient); color: #fff; }
+        .btn-action.success {
+            background: var(--teal);
+            color: #fff;
+            border: none;
+        }
+        .btn-action.success:hover { background: #156b5d; color: #fff; }
+        .btn-action.danger {
+            background: var(--rust);
+            color: #fff;
+            border: none;
+        }
+        .btn-action.danger:hover { background: #a63a31; color: #fff; }
+
+        .table-wrapper {
+            background: var(--surface);
+            border-radius: var(--r-lg);
+            overflow-x: auto;
+            border: 1px solid var(--line);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.72rem;
+            min-width: 900px;
+        }
+        th {
+            background: var(--surface-2);
+            color: var(--ink-3);
+            padding: 12px 14px;
+            text-align: right;
+            font-weight: 700;
+            white-space: nowrap;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            border-bottom: 2px solid var(--line);
+        }
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--line);
+            color: var(--ink-2);
+            font-size: 0.72rem;
+        }
+        tr:hover td { background: var(--surface-2); }
+
+        .badge-status {
+            display: inline-block;
+            padding: 2px 12px;
+            border-radius: 50px;
+            font-size: 0.58rem;
+            font-weight: 700;
+        }
+        .badge-status.active {
+            background: var(--teal-soft);
+            color: var(--teal);
+        }
+        .badge-status.inactive {
+            background: var(--rust-soft);
+            color: var(--rust);
+        }
+        .badge-status.admin {
+            background: var(--gold-glow);
+            color: var(--gold-dark);
+        }
+        .badge-status.employee {
+            background: var(--surface-2);
+            color: var(--ink-3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--ink-3);
+        }
+        .empty-state i { font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 12px; }
+        .loading-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gold);
+        }
+        .loading-state i { animation: spin 1s linear infinite; font-size: 1.8rem; display: block; margin-bottom: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(33, 29, 26, 0.55);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: var(--surface);
+            border-radius: var(--r-lg);
+            max-width: 680px;
+            width: 100%;
+            padding: 28px;
+            border: 1px solid var(--line);
+            box-shadow: 0 16px 40px rgba(33, 29, 26, 0.12);
+            animation: modalIn 0.25s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        @keyframes modalIn {
+            from { transform: translateY(12px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-box .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-box .modal-header h3 {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-box .modal-header h3 i { color: var(--gold); }
+        .modal-box .modal-header .close-modal {
+            background: none;
+            border: none;
+            color: var(--ink-3);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--r-sm);
+            transition: .15s;
+        }
+        .modal-box .modal-header .close-modal:hover { background: var(--surface-2); color: var(--ink); }
+
+        .modal-box .form-group { margin-bottom: 14px; }
+        .modal-box .form-group label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--ink-2);
+            margin-bottom: 4px;
+        }
+        .modal-box .form-group label .required { color: var(--rust); }
+        .modal-box .form-group input,
+        .modal-box .form-group select,
+        .modal-box .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--line);
+            background: var(--surface-2);
+            color: var(--ink);
+            font-size: 0.85rem;
+            font-family: 'Cairo', sans-serif;
+            outline: none;
+            transition: .15s;
+        }
+        .modal-box .form-group input:focus,
+        .modal-box .form-group select:focus,
+        .modal-box .form-group textarea:focus {
+            border-color: var(--gold);
+            background: #fff;
+            box-shadow: 0 0 0 3px var(--gold-glow);
+        }
+
+        .permissions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 16px;
+            background: var(--surface-2);
+            border-radius: var(--r-sm);
+            padding: 12px;
+            border: 1px solid var(--line);
+            max-height: 260px;
+            overflow-y: auto;
+        }
+        .permissions-grid .perm-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--ink-2);
+            padding: 4px 6px;
+            border-radius: var(--r-sm);
+            transition: .15s;
+        }
+        .permissions-grid .perm-item:hover { background: var(--surface); }
+        .permissions-grid .perm-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--gold);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .permissions-grid .perm-item label {
+            cursor: pointer;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--ink-2);
+        }
+
+        .modal-box .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal-box .form-actions .btn-save {
+            padding: 10px 28px;
+            background: var(--teal);
+            color: #fff;
+            border: none;
+            border-radius: var(--r-sm);
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: .15s;
+            font-family: 'Cairo', sans-serif;
+            flex: 1;
+        }
+        .modal-box .form-actions .btn-save:hover { background: #156b5d; transform: translateY(-1px); }
+        .modal-box .form-actions .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+        .modal-box .form-actions .btn-cancel {
+            padding: 10px 24px;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-3);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: .15s;
+            font-family: 'Cairo', sans-serif;
+        }
+        .modal-box .form-actions .btn-cancel:hover { background: var(--surface-2); }
+
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 380px;
+            width: 100%;
+        }
+        .toast {
+            background: #ffffff;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(20px);
+            transition: all 0.4s ease;
+            opacity: 0;
+            pointer-events: auto;
+            box-shadow: 0 6px 18px rgba(24, 20, 8, 0.07);
+            border-right: 4px solid var(--gold);
+        }
+        .toast.show { transform: translateX(0); opacity: 1; }
+        .toast .toast-icon { font-size: 0.9rem; width: 28px; height: 28px; min-width: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .toast .toast-icon.success { color: var(--teal); background: var(--teal-soft); }
+        .toast .toast-icon.error { color: var(--rust); background: var(--rust-soft); }
+        .toast .toast-icon.warning { color: var(--gold-dark); background: #faead0; }
+        .toast .toast-title { font-size: 0.82rem; font-weight: 800; color: var(--ink); }
+        .toast .toast-message { font-size: 0.72rem; color: var(--ink-2); margin-top: 1px; }
+        .toast .toast-close { background: none; border: none; color: var(--ink-3); cursor: pointer; font-size: 0.85rem; padding: 4px; margin-right: auto; }
+
+        @media (max-width: 768px) {
+            .sidebar { right: calc(-1 * var(--sidebar-w)); }
+            .sidebar.open { right: 0; }
+            .sidebar-overlay { display: block; }
+            .main { margin-right: 0 !important; }
+            .dash { padding: 18px 16px 34px; }
+            .header { padding: 0 16px; }
+            .header .right .profile .name { display: none; }
+            .header .hamburger { width: 42px; height: 42px; font-size: 1rem; }
+            .page-header { flex-direction: column; align-items: flex-start; }
+            .page-header .actions .btn-action { flex: 1; justify-content: center; }
+            .permissions-grid { grid-template-columns: 1fr 1fr; }
+            table { font-size: 0.6rem; min-width: 700px; }
+            th, td { padding: 6px 8px; }
+            .modal-box { padding: 20px; margin: 10px; }
+            .modal-box .form-actions { flex-direction: column; }
+            .modal-box .form-actions .btn-save,
+            .modal-box .form-actions .btn-cancel { width: 100%; justify-content: center; }
+            .toast-container { top: 70px; left: 10px; max-width: 300px; }
+        }
+        @media (max-width: 480px) {
+            .page-header h1 { font-size: 1.2rem; }
+            .permissions-grid { grid-template-columns: 1fr; }
+            table { font-size: 0.55rem; min-width: 600px; }
+            th, td { padding: 4px 6px; }
+            .toast-container { top: 60px; left: 8px; max-width: 260px; }
+        }
+        @media (min-width: 769px) {
+            .hamburger { display: none !important; }
+            .sidebar-overlay { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <nav class="sidebar" id="sidebar">
+        <div class="brand">
+            <div class="mark"><i class="fas fa-users"></i></div>
+            <div class="text">
+                نظام الإدارة
+                <span>QuickData ProSoft</span>
+            </div>
+        </div>
+
+        <div class="menu">
+            <div class="label">القائمة الرئيسية</div>
+            <a href="index.html" class="item"><i class="fas fa-house"></i> الرئيسية</a>
+
+            <div class="label">الإدارة</div>
+            <a href="companies.html" class="item" style="--swatch:var(--gold)"><i class="fas fa-building"></i> الشركات</a>
+            <a href="users.html" class="item active" style="--swatch:var(--navy)"><i class="fas fa-users"></i> المستخدمين</a>
+
+            <div class="label">الإعدادات</div>
+            <a href="#" class="item"><i class="fas fa-gear"></i> الإعدادات</a>
+            <a href="#" class="item"><i class="fas fa-circle-question"></i> المساعدة</a>
+        </div>
+
+        <div class="footer">
+            <div class="user">
+                <div class="avatar">م</div>
+                <div class="info">
+                    <div class="name" id="userName">محمد خلاف</div>
+                    <div class="role" id="userRole">مدير النظام</div>
+                </div>
+                <button class="logout" onclick="logout()" title="تسجيل الخروج">
+                    <i class="fas fa-arrow-right-from-bracket"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main" id="main">
+
+        <header class="header">
+            <div class="left">
+                <button class="hamburger" id="hamburger"><i class="fas fa-bars"></i></button>
+                <div class="breadcrumb"><b>الإدارة</b> / المستخدمين</div>
+            </div>
+            <div class="right">
+                <div class="profile">
+                    <div class="avatar" id="headerAvatar">م</div>
+                    <div class="name" id="headerName">محمد خلاف<small id="headerRole">مدير النظام</small></div>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <button onclick="logout()" title="تسجيل الخروج" style="background:none;border:none;cursor:pointer;color:var(--ink-3);font-size:1rem;padding:4px 8px;">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="dash">
+
+            <div class="page-header">
+                <h1><i class="fas fa-users"></i> إدارة المستخدمين</h1>
+                <div class="actions">
+                    <button class="btn-action primary" onclick="openAddModal()">
+                        <i class="fas fa-user-plus"></i> مستخدم جديد
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الاسم</th>
+                            <th>البريد الإلكتروني</th>
+                            <th>الدور</th>
+                            <th>الحالة</th>
+                            <th style="text-align:center;">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entriesBody">
+                        <tr>
+                            <td colspan="6">
+                                <div class="loading-state">
+                                    <i class="fas fa-spinner"></i>
+                                    <p>جاري تحميل البيانات...</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ===== ADD/EDIT MODAL ===== -->
+    <div class="modal-overlay" id="userModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fas fa-user"></i> <span id="modalTitle">إضافة مستخدم جديد</span></h3>
+                <button class="close-modal" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="userForm" onsubmit="saveUser(event)">
+                <input type="hidden" id="editId" value="" />
+                <input type="hidden" id="editUserId" value="" />
+
+                <div class="form-group">
+                    <label>الاسم الكامل <span class="required">*</span></label>
+                    <input type="text" id="userName" placeholder="مثال: أحمد محمد" required />
+                </div>
+
+                <div class="form-group">
+                    <label>البريد الإلكتروني <span class="required">*</span></label>
+                    <input type="email" id="userEmail" placeholder="مثال: ahmed@company.com" required />
+                </div>
+
+                <div class="form-group" id="passwordGroup">
+                    <label>كلمة المرور <span class="required">*</span></label>
+                    <input type="password" id="userPassword" placeholder="•••••••• (6 أحرف على الأقل)" minlength="6" />
+                    <div style="font-size:0.6rem;color:var(--ink-3);margin-top:4px;">اتركها فارغة إذا كنت لا تريد تغييرها عند التعديل</div>
+                </div>
+
+                <div class="form-group">
+                    <label>الدور <span class="required">*</span></label>
+                    <select id="userRole" required>
+                        <option value="admin">مدير (Admin)</option>
+                        <option value="employee">موظف (Employee)</option>
+                        <option value="accountant">محاسب</option>
+                        <option value="sales">مندوب مبيعات</option>
+                        <option value="viewer">مشاهد فقط</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>الحالة</label>
+                    <select id="userStatus">
+                        <option value="true">نشط</option>
+                        <option value="false">غير نشط</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>الصلاحيات</label>
+                    <div style="font-size:0.6rem;color:var(--ink-3);margin-bottom:6px;">تحديد صلاحيات الوصول لكل وحدة</div>
+                    <div class="permissions-grid" id="permissionsGrid">
+                        <!-- سيتم تعبئتها بواسطة JavaScript -->
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-save" id="submitBtn"><i class="fas fa-save"></i> حفظ</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal()">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // SIDEBAR TOGGLE
+        // ============================================================
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        const hamburger = document.getElementById('hamburger');
+        const main = document.getElementById('main');
+        let mobileOpen = false;
+
+        function toggleSidebar() {
+            if (window.innerWidth <= 768) {
+                mobileOpen = !mobileOpen;
+                sidebar.classList.toggle('open', mobileOpen);
+                overlay.classList.toggle('active', mobileOpen);
+                document.body.style.overflow = mobileOpen ? 'hidden' : '';
+                hamburger.innerHTML = mobileOpen ? '<i class="fas fa-xmark"></i>' : '<i class="fas fa-bars"></i>';
+            } else {
+                const nowCollapsed = sidebar.classList.toggle('collapsed');
+                main.classList.toggle('expanded', nowCollapsed);
+            }
+        }
+        hamburger.addEventListener('click', toggleSidebar);
+        overlay.addEventListener('click', () => {
+            if (window.innerWidth <= 768 && mobileOpen) toggleSidebar();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && window.innerWidth <= 768 && mobileOpen) toggleSidebar();
+        });
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+                mobileOpen = false;
+                hamburger.innerHTML = '<i class="fas fa-bars"></i>';
+            }
+        });
+
+        // ============================================================
+        // TOAST
+        // ============================================================
+        function showToast(title, message, type) {
+            var container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+
+            var toast = document.createElement('div');
+            toast.className = 'toast';
+
+            var iconMap = {
+                'success': 'fa-check-circle',
+                'error': 'fa-times-circle',
+                'warning': 'fa-exclamation-triangle'
+            };
+            var iconClass = type || 'warning';
+            if (iconClass === 'success') iconClass = 'success';
+            else if (iconClass === 'error') iconClass = 'error';
+            else iconClass = 'warning';
+
+            toast.innerHTML = `
+                <div class="toast-icon ${iconClass}"><i class="fas ${iconMap[iconClass] || 'fa-info-circle'}"></i></div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close"><i class="fas fa-times"></i></button>
+            `;
+
+            container.appendChild(toast);
+
+            requestAnimationFrame(function() {
+                toast.classList.add('show');
+            });
+
+            setTimeout(function() {
+                toast.classList.remove('show');
+                setTimeout(function() {
+                    if (toast.parentElement) toast.remove();
+                }, 300);
+            }, 5000);
+
+            toast.querySelector('.toast-close').addEventListener('click', function() {
+                toast.classList.remove('show');
+                setTimeout(function() {
+                    if (toast.parentElement) toast.remove();
+                }, 300);
+            });
+        }
+
+        // ============================================================
+        // LOGOUT
+        // ============================================================
+        async function logout() {
+            try {
+                localStorage.removeItem('rollex_session');
+                sessionStorage.removeItem('rollex_session');
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('❌ خطأ في تسجيل الخروج:', error);
+            }
+        }
+        window.logout = logout;
+
+        // ============================================================
+        // DOM REFS
+        // ============================================================
+        var entriesBody = document.getElementById('entriesBody');
+        var allUsers = [];
+        var allPermissions = [];
+        var isSuperAdmin = false;
+        var currentCompanyId = null;
+
+        // ============================================================
+        // MODULES LIST
+        // ============================================================
+        var MODULES = [
+            { id: 'dashboard', label: 'لوحة التحكم' },
+            { id: 'sales', label: 'المبيعات' },
+            { id: 'purchases', label: 'المشتريات' },
+            { id: 'clients', label: 'العملاء' },
+            { id: 'suppliers', label: 'الموردين' },
+            { id: 'materials', label: 'الخامات' },
+            { id: 'products', label: 'المنتجات' },
+            { id: 'production', label: 'الإنتاج' },
+            { id: 'treasury', label: 'الخزينة' },
+            { id: 'reports', label: 'التقارير' },
+            { id: 'settings', label: 'الإعدادات' },
+            { id: 'users', label: 'المستخدمين' }
+        ];
+
+        // ============================================================
+        // GET USERS
+        // ============================================================
+        async function getUsers() {
+            var token = getToken();
+            if (!token) return [];
+
+            try {
+                var companyId = await getCompanyId();
+                if (!companyId) {
+                    var isSuper = await isSuperAdminCheck();
+                    if (isSuper) {
+                        var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=*,companies(name)&order=name.asc', {
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': 'Bearer ' + token
+                            }
+                        });
+                        if (!response.ok) return [];
+                        var data = await response.json();
+                        return data || [];
+                    }
+                    return [];
+                }
+
+                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=*&company_id=eq.' + companyId +
+                    '&order=name.asc', {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + token
+                        }
+                    });
+                if (!response.ok) return [];
+                return await response.json();
+            } catch (error) {
+                console.error('❌ خطأ في جلب المستخدمين:', error);
+                return [];
+            }
+        }
+
+        // ============================================================
+        // GET PERMISSIONS
+        // ============================================================
+        async function getPermissions(userId) {
+            var token = getToken();
+            if (!token) return [];
+
+            try {
+                var companyId = await getCompanyId();
+                if (!companyId) return [];
+
+                var response = await fetch(SUPABASE_URL + '/rest/v1/user_permissions?select=*&user_id=eq.' + userId +
+                    '&company_id=eq.' + companyId, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + token
+                        }
+                    });
+                if (!response.ok) return [];
+                return await response.json();
+            } catch (error) {
+                console.error('❌ خطأ في جلب الصلاحيات:', error);
+                return [];
+            }
+        }
+
+        // ============================================================
+        // IS SUPER ADMIN CHECK
+        // ============================================================
+        async function isSuperAdminCheck() {
+            var profile = await getCurrentUserProfile();
+            return profile && profile.is_super_admin;
+        }
+
+        // ============================================================
+        // BUILD PERMISSIONS GRID
+        // ============================================================
+        function buildPermissionsGrid(existingPermissions) {
+            var grid = document.getElementById('permissionsGrid');
+            var html = '';
+
+            var permMap = {};
+            if (existingPermissions) {
+                existingPermissions.forEach(function(p) {
+                    permMap[p.module] = p;
+                });
+            }
+
+            MODULES.forEach(function(module) {
+                var perm = permMap[module.id] || {};
+                html += `
+                    <div class="perm-item" style="grid-column:1/-1;background:var(--surface);padding:6px 10px;border-radius:var(--r-sm);margin-bottom:2px;font-weight:800;color:var(--ink);border-bottom:1px solid var(--line-soft);">
+                        <span>${module.label}</span>
+                    </div>
+                    <div class="perm-item">
+                        <input type="checkbox" id="perm_${module.id}_view" data-module="${module.id}" data-perm="view" ${perm.can_view ? 'checked' : ''} />
+                        <label for="perm_${module.id}_view">عرض</label>
+                    </div>
+                    <div class="perm-item">
+                        <input type="checkbox" id="perm_${module.id}_add" data-module="${module.id}" data-perm="add" ${perm.can_add ? 'checked' : ''} />
+                        <label for="perm_${module.id}_add">إضافة</label>
+                    </div>
+                    <div class="perm-item">
+                        <input type="checkbox" id="perm_${module.id}_edit" data-module="${module.id}" data-perm="edit" ${perm.can_edit ? 'checked' : ''} />
+                        <label for="perm_${module.id}_edit">تعديل</label>
+                    </div>
+                    <div class="perm-item">
+                        <input type="checkbox" id="perm_${module.id}_delete" data-module="${module.id}" data-perm="delete" ${perm.can_delete ? 'checked' : ''} />
+                        <label for="perm_${module.id}_delete">حذف</label>
+                    </div>
+                    <div class="perm-item">
+                        <input type="checkbox" id="perm_${module.id}_export" data-module="${module.id}" data-perm="export" ${perm.can_export ? 'checked' : ''} />
+                        <label for="perm_${module.id}_export">تصدير</label>
+                    </div>
+                `;
+            });
+
+            grid.innerHTML = html;
+        }
+
+        // ============================================================
+        // DISPLAY USERS
+        // ============================================================
+        function displayUsers(users) {
+            var tbody = document.getElementById('entriesBody');
+
+            if (!users || users.length === 0) {
+                tbody.innerHTML = `
+                    <tr><td colspan="6"><div class="empty-state"><i class="fas fa-users-slash"></i><p>لا يوجد مستخدمين</p></div></td></tr>
+                `;
+                return;
+            }
+
+            var roleMap = {
+                'admin': 'مدير',
+                'employee': 'موظف',
+                'accountant': 'محاسب',
+                'sales': 'مندوب مبيعات',
+                'viewer': 'مشاهد'
+            };
+
+            var html = '';
+            users.forEach(function(u, index) {
+                var roleDisplay = roleMap[u.role] || u.role || 'موظف';
+                var roleClass = u.role === 'admin' ? 'admin' : 'employee';
+                var statusClass = u.is_active ? 'active' : 'inactive';
+                var statusText = u.is_active ? 'نشط' : 'غير نشط';
+
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td style="font-weight:700;">${u.name || '-'}</td>
+                        <td style="color:var(--ink-3);font-size:0.68rem;">${u.email || '-'}</td>
+                        <td><span class="badge-status ${roleClass}">${roleDisplay}</span></td>
+                        <td><span class="badge-status ${statusClass}">${statusText}</span></td>
+                        <td style="text-align:center;display:flex;gap:4px;flex-wrap:wrap;justify-content:center;">
+                            <button class="btn-action" onclick="editUser('${u.id}')" style="padding:4px 8px;font-size:0.6rem;background:var(--gold-glow);color:var(--gold-dark);border-color:var(--gold-glow);"><i class="fas fa-edit"></i></button>
+                            <button class="btn-action" onclick="toggleUserStatus('${u.id}', ${u.is_active})" style="padding:4px 8px;font-size:0.6rem;background:${u.is_active ? 'var(--rust-soft)' : 'var(--teal-soft)'};color:${u.is_active ? 'var(--rust)' : 'var(--teal)'};border-color:${u.is_active ? 'var(--rust-soft)' : 'var(--teal-soft)'};"><i class="fas ${u.is_active ? 'fa-pause' : 'fa-play'}"></i></button>
+                            <button class="btn-action danger" onclick="deleteUser('${u.id}')" style="padding:4px 8px;font-size:0.6rem;"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        // ============================================================
+        // LOAD DATA
+        // ============================================================
+        async function loadData() {
+            var tbody = document.getElementById('entriesBody');
+            tbody.innerHTML = `
+                <tr><td colspan="6"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>
+            `;
+
+            try {
+                var users = await getUsers();
+                allUsers = users;
+                displayUsers(users);
+            } catch (error) {
+                console.error('❌ خطأ في تحميل البيانات:', error);
+                tbody.innerHTML = `
+                    <tr><td colspan="6"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p></div></td></tr>
+                `;
+            }
+        }
+
+        // ============================================================
+        // MODAL FUNCTIONS
+        // ============================================================
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = 'إضافة مستخدم جديد';
+            document.getElementById('editId').value = '';
+            document.getElementById('editUserId').value = '';
+            document.getElementById('userForm').reset();
+            document.getElementById('userRole').value = 'employee';
+            document.getElementById('userStatus').value = 'true';
+            document.getElementById('passwordGroup').style.display = 'block';
+            document.getElementById('userPassword').required = true;
+
+            buildPermissionsGrid([]);
+
+            document.getElementById('userModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        async function editUser(id) {
+            var user = allUsers.find(function(u) { return u.id == id; });
+            if (!user) {
+                showToast('❌ خطأ', 'المستخدم غير موجود', 'error');
+                return;
+            }
+
+            document.getElementById('modalTitle').textContent = 'تعديل المستخدم';
+            document.getElementById('editId').value = user.id;
+            document.getElementById('editUserId').value = user.id;
+            document.getElementById('userName').value = user.name || '';
+            document.getElementById('userEmail').value = user.email || '';
+            document.getElementById('userRole').value = user.role || 'employee';
+            document.getElementById('userStatus').value = user.is_active ? 'true' : 'false';
+            document.getElementById('passwordGroup').style.display = 'block';
+            document.getElementById('userPassword').required = false;
+            document.getElementById('userPassword').placeholder = '•••••••• (اتركها فارغة لتغيير لا)';
+
+            var perms = await getPermissions(user.id);
+            allPermissions = perms;
+            buildPermissionsGrid(perms);
+
+            document.getElementById('userModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('userModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // ============================================================
+        // SAVE USER
+        // ============================================================
+        async function saveUser(event) {
+            event.preventDefault();
+
+            var id = document.getElementById('editId').value;
+            var userId = document.getElementById('editUserId').value;
+            var name = document.getElementById('userName').value.trim();
+            var email = document.getElementById('userEmail').value.trim();
+            var password = document.getElementById('userPassword').value;
+            var role = document.getElementById('userRole').value;
+            var status = document.getElementById('userStatus').value === 'true';
+
+            if (!name) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال الاسم الكامل', 'error');
+                document.getElementById('userName').focus();
+                return;
+            }
+            if (!email) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال البريد الإلكتروني', 'error');
+                document.getElementById('userEmail').focus();
+                return;
+            }
+
+            var permissions = {};
+            document.querySelectorAll('#permissionsGrid .perm-item input[type="checkbox"]').forEach(function(cb) {
+                var module = cb.dataset.module;
+                var permType = cb.dataset.perm;
+                if (!permissions[module]) permissions[module] = {};
+                permissions[module][permType] = cb.checked;
+            });
+
+            var btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+
+            var token = getToken();
+            if (!token) {
+                showToast('❌ خطأ', 'جلسة منتهية', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+                return;
+            }
+
+            try {
+                var companyId = await getCompanyId();
+                if (!companyId) {
+                    var isSuper = await isSuperAdminCheck();
+                    if (!isSuper) {
+                        throw new Error('لم يتم العثور على الشركة');
+                    }
+                    companyId = currentCompanyId || await getCompanyId();
+                }
+
+                var profileData = {
+                    name: name,
+                    email: email,
+                    role: role,
+                    is_active: status,
+                    company_id: companyId
+                };
+
+                if (id) {
+                    await patchRow('profiles', id, profileData);
+
+                    for (var module in permissions) {
+                        var perm = permissions[module];
+                        var existing = allPermissions.find(function(p) { return p.user_id == userId && p.module ==
+                            module; });
+
+                        if (existing) {
+                            await patchRow('user_permissions', existing.id, {
+                                can_view: perm.view || false,
+                                can_add: perm.add || false,
+                                can_edit: perm.edit || false,
+                                can_delete: perm.delete || false,
+                                can_export: perm.export || false
+                            });
+                        } else {
+                            await insertRow('user_permissions', {
+                                company_id: companyId,
+                                user_id: userId,
+                                module: module,
+                                can_view: perm.view || false,
+                                can_add: perm.add || false,
+                                can_edit: perm.edit || false,
+                                can_delete: perm.delete || false,
+                                can_export: perm.export || false
+                            });
+                        }
+                    }
+
+                    showToast('✅ تم التعديل', 'تم تحديث المستخدم بنجاح', 'success');
+
+                } else {
+                    if (!password || password.length < 6) {
+                        showToast('⚠️ تنبيه', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+                        return;
+                    }
+
+                    var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                        auth: {
+                            autoRefreshToken: true,
+                            persistSession: true,
+                            detectSessionInUrl: true,
+                            storageKey: 'rollex_session'
+                        }
+                    });
+
+                    var { data, error } = await supabaseClient.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            data: {
+                                name: name,
+                                company_id: companyId,
+                                role: role
+                            }
+                        }
+                    });
+
+                    if (error) {
+                        var errMsg = error.message || 'فشل إنشاء المستخدم';
+                        if (errMsg.includes('already registered')) {
+                            errMsg = 'هذا البريد الإلكتروني مسجل بالفعل';
+                        }
+                        throw new Error(errMsg);
+                    }
+
+                    if (!data.user) {
+                        throw new Error('فشل إنشاء المستخدم');
+                    }
+
+                    await insertRow('profiles', {
+                        id: data.user.id,
+                        name: name,
+                        email: email,
+                        role: role,
+                        is_active: status,
+                        company_id: companyId
+                    });
+
+                    for (var mod in permissions) {
+                        var permData = permissions[mod];
+                        await insertRow('user_permissions', {
+                            company_id: companyId,
+                            user_id: data.user.id,
+                            module: mod,
+                            can_view: permData.view || false,
+                            can_add: permData.add || false,
+                            can_edit: permData.edit || false,
+                            can_delete: permData.delete || false,
+                            can_export: permData.export || false
+                        });
+                    }
+
+                    showToast('✅ تم الإضافة', 'تم إضافة المستخدم بنجاح', 'success');
+                }
+
+                closeModal();
+                loadData();
+
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                showToast('❌ خطأ', error.message || 'فشل الحفظ', 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+        }
+
+        // ============================================================
+        // DELETE USER
+        // ============================================================
+        async function deleteUser(userId) {
+            if (!confirm('هل أنت متأكد من حذف هذا المستخدم؟')) return;
+
+            var token = getToken();
+            if (!token) {
+                showToast('❌ خطأ', 'جلسة منتهية', 'error');
+                return;
+            }
+
+            try {
+                await fetch(SUPABASE_URL + '/rest/v1/user_permissions?user_id=eq.' + userId, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                await fetch(SUPABASE_URL + '/rest/v1/profiles?id=eq.' + userId, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                showToast('✅ تم الحذف', 'تم حذف المستخدم بنجاح', 'success');
+                loadData();
+            } catch (error) {
+                console.error('❌ خطأ في الحذف:', error);
+                showToast('❌ خطأ', error.message || 'فشل الحذف', 'error');
+            }
+        }
+
+        // ============================================================
+        // TOGGLE USER STATUS
+        // ============================================================
+        async function toggleUserStatus(id, currentStatus) {
+            var newStatus = !currentStatus;
+            var statusText = newStatus ? 'نشط' : 'غير نشط';
+            if (!confirm('هل تريد تغيير حالة المستخدم إلى ' + statusText + '؟')) return;
+
+            try {
+                await patchRow('profiles', id, { is_active: newStatus });
+                showToast('✅ تم التحديث', 'تم تغيير حالة المستخدم إلى ' + statusText, 'success');
+                loadData();
+            } catch (error) {
+                showToast('❌ خطأ', error.message || 'فشل التحديث', 'error');
+            }
+        }
+
+        // ============================================================
+        // CLOSE MODAL ON OVERLAY CLICK
+        // ============================================================
+        document.getElementById('userModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // ============================================================
+        // EXPOSE
+        // ============================================================
+        window.openAddModal = openAddModal;
+        window.editUser = editUser;
+        window.closeModal = closeModal;
+        window.deleteUser = deleteUser;
+        window.toggleUserStatus = toggleUserStatus;
+        window.loadData = loadData;
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        (async function init() {
+            console.log('👤 صفحة إدارة المستخدمين - QuickData ProSoft');
+
+            var token = getToken();
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            isSuperAdmin = await isSuperAdminCheck();
+            currentCompanyId = await getCompanyId();
+
+            try {
+                var profile = await getCurrentUserProfile();
+                if (profile) {
+                    document.getElementById('userName').textContent = profile.name || 'مستخدم';
+                    document.getElementById('userRole').textContent = profile.is_super_admin ? 'مدير النظام' : (profile
+                        .role || 'موظف');
+                    document.getElementById('headerAvatar').textContent = (profile.name || 'م')[0];
+                    var headerName = document.getElementById('headerName');
+                    var roleText = profile.is_super_admin ? 'مدير النظام' : (profile.role || 'موظف');
+                    headerName.innerHTML = (profile.name || 'مستخدم') + '<small>' + roleText + '</small>';
+                }
+            } catch (error) {
+                console.warn('⚠️ فشل تحديث معلومات المستخدم:', error.message);
+            }
+
+            await loadData();
+
+            setTimeout(function() {
+                startSessionMonitor();
+            }, 5000);
+        })();
+    </script>
+
+</body>
+</html>
