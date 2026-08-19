@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ========================================================== */
         * {
             margin: 0;
             padding: 0;
@@ -532,7 +531,7 @@
         }
 
         // ============================================================
-        // LOGIN FORM SUBMIT - مع التحقق من وجود المستخدم في profiles
+        // LOGIN FORM SUBMIT - النسخة النهائية مع التحقق الصحيح
         // ============================================================
         loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -609,12 +608,12 @@
 
                 // ====================================================
                 // الخطوة 2: التحقق من وجود المستخدم في جدول profiles
-                // باستخدام user_id (وليس id)
+                // باستخدام id (العمود الصحيح)
                 // ====================================================
                 console.log('📡 جاري التحقق من حالة المستخدم في جدول profiles...');
 
                 var profileResponse = await fetch(
-                    SUPABASE_URL + '/rest/v1/profiles?select=id,name,role,status,deleted_at,company_id&user_id=eq.' + authData.user.id,
+                    SUPABASE_URL + '/rest/v1/profiles?select=id,name,role,is_active,deleted_at,company_id,is_super_admin&id=eq.' + authData.user.id,
                     {
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
@@ -624,8 +623,8 @@
                 );
 
                 if (!profileResponse.ok) {
-                    console.warn('⚠️ فشل جلب البروفايل:', profileResponse.status);
-                    // لا نرمي خطأ هنا، بل نستمر مع عرض رسالة مناسبة
+                    console.error('❌ فشل جلب البروفايل:', profileResponse.status);
+                    throw new Error('❌ حدث خطأ في التحقق من الحساب. يرجى المحاولة مرة أخرى.');
                 }
 
                 var profiles = await profileResponse.json();
@@ -637,16 +636,25 @@
                     throw new Error('❌ هذا الحساب غير مصرح له بتسجيل الدخول. يرجى التواصل مع المدير.');
                 }
 
-                // ✅ التحقق من أن المستخدم ليس محذوفاً
-                if (profile.status === 'deleted' || profile.status === 'inactive' || profile.deleted_at) {
-                    console.error('❌ هذا الحساب محذوف أو غير نشط');
-                    throw new Error('❌ هذا الحساب محذوف أو غير نشط. يرجى التواصل مع المدير.');
+                console.log('✅ تم العثور على البروفايل!');
+                console.log('📝 الاسم:', profile.name);
+                console.log('🔑 الدور:', profile.role);
+                console.log('✅ نشط:', profile.is_active);
+                console.log('🗑️ محذوف:', profile.deleted_at);
+
+                // ✅ التحقق من أن المستخدم نشط
+                if (profile.is_active === false) {
+                    console.error('❌ الحساب غير نشط');
+                    throw new Error('❌ هذا الحساب غير نشط. يرجى التواصل مع المدير.');
+                }
+
+                // ✅ التحقق من أن المستخدم غير محذوف
+                if (profile.deleted_at !== null) {
+                    console.error('❌ الحساب محذوف');
+                    throw new Error('❌ هذا الحساب محذوف. يرجى التواصل مع المدير.');
                 }
 
                 console.log('✅ تم التحقق من البروفايل بنجاح!');
-                console.log('📝 الاسم:', profile.name);
-                console.log('🔑 الدور:', profile.role);
-                console.log('🏢 الشركة:', profile.company_id);
 
                 // ====================================================
                 // الخطوة 3: حفظ الجلسة في localStorage
@@ -660,7 +668,8 @@
                         email: authData.user.email,
                         full_name: profile ? profile.name : authData.user.email,
                         role: profile ? profile.role : 'موظف',
-                        company_id: profile ? profile.company_id : null
+                        company_id: profile ? profile.company_id : null,
+                        is_super_admin: profile ? profile.is_super_admin : false
                     }
                 };
 
