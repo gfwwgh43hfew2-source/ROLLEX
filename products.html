@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="supabase-client.js"></script>
     <style>
-        /* ===== نفس الـ CSS السابق ===== */
+        /* ===== نفس الـ CSS السابق مع إضافات الـ Progress Bar ===== */
         :root {
             --ink: #121821;
             --ink-soft: #2c3644;
@@ -613,6 +613,38 @@
         }
         .modal-box .form-actions .btn-cancel:hover { background: var(--surface-muted); }
 
+        /* ===== PROGRESS BAR للاستيراد ===== */
+        .import-progress {
+            display: none;
+            margin-top: 12px;
+        }
+        .import-progress .progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--ink-mute);
+            margin-bottom: 4px;
+        }
+        .import-progress .progress-track {
+            width: 100%;
+            height: 6px;
+            background: var(--surface-muted);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .import-progress .progress-track .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--accent-gradient, linear-gradient(135deg, var(--accent), var(--teal)));
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        .import-progress .progress-count {
+            font-size: 0.6rem;
+            color: var(--ink-mute);
+            margin-top: 4px;
+        }
+
         .toast-container {
             position: fixed;
             top: 80px;
@@ -917,6 +949,21 @@
                     <input type="file" id="importFile" accept=".xlsx,.xls" required />
                     <div class="helper-text">الصيغ المدعومة: .xlsx, .xls</div>
                 </div>
+
+                <!-- ===== PROGRESS BAR ===== -->
+                <div class="import-progress" id="importProgress">
+                    <div class="progress-header">
+                        <span id="progressText">جاري الاستيراد...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                    <div class="progress-count">
+                        <span id="progressCount">0</span> / <span id="progressTotal">0</span> سجل
+                    </div>
+                </div>
+
                 <div class="form-actions">
                     <button type="submit" class="btn-save" id="importSubmitBtn"><i class="fas fa-upload"></i> استيراد</button>
                     <button type="button" class="btn-cancel" onclick="closeImportModal()">إلغاء</button>
@@ -1375,6 +1422,9 @@
         function openImportModal() {
             document.getElementById('importModal').classList.add('active');
             document.getElementById('importFile').value = '';
+            // إخفاء مؤشر التقدم إذا كان ظاهراً
+            document.getElementById('importProgress').style.display = 'none';
+            document.getElementById('progressBar').style.width = '0%';
             document.body.style.overflow = 'hidden';
         }
 
@@ -1384,28 +1434,58 @@
         }
 
         // ============================================================
-        // IMPORT FROM EXCEL
+        // IMPORT FROM EXCEL (مع مؤشر التقدم)
         // ============================================================
         async function importFromExcel(event) {
             event.preventDefault();
+
             var file = document.getElementById('importFile').files[0];
             if (!file) {
                 showToast('⚠️ تنبيه', 'يرجى اختيار ملف Excel', 'error');
                 return;
             }
+
             var btn = document.getElementById('importSubmitBtn');
+            var progressDiv = document.getElementById('importProgress');
+            var progressBar = document.getElementById('progressBar');
+            var progressText = document.getElementById('progressText');
+            var progressPercent = document.getElementById('progressPercent');
+            var progressCount = document.getElementById('progressCount');
+            var progressTotal = document.getElementById('progressTotal');
+
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاستيراد...';
+            progressDiv.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressPercent.textContent = '0%';
+            progressCount.textContent = '0';
+            progressText.textContent = 'جاري تحليل الملف...';
+
             try {
                 var data = await file.arrayBuffer();
                 var workbook = XLSX.read(data, { type: 'array' });
                 var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 var jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                if (!jsonData || jsonData.length === 0) throw new Error('الملف فارغ أو غير صحيح');
+
+                if (!jsonData || jsonData.length === 0) {
+                    throw new Error('الملف فارغ أو غير صحيح');
+                }
+
+                progressTotal.textContent = jsonData.length;
+                progressText.textContent = 'جاري استيراد البيانات...';
+
                 var successCount = 0;
                 var errorCount = 0;
                 var errors = [];
+
                 for (var i = 0; i < jsonData.length; i++) {
+                    // تحديث التقدم
+                    var percent = Math.round(((i + 1) / jsonData.length) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressPercent.textContent = percent + '%';
+                    progressCount.textContent = i + 1;
+                    progressText.textContent = 'جاري استيراد السجل ' + (i + 1) + ' من ' + jsonData.length;
+
                     var row = jsonData[i];
                     var name = row['اسم المنتج'] || row['name'] || '';
                     if (!name) {
@@ -1413,6 +1493,7 @@
                         errors.push('صف ' + (i + 1) + ': اسم المنتج مطلوب');
                         continue;
                     }
+
                     try {
                         await insertProduct({
                             name: name.trim(),
@@ -1430,22 +1511,50 @@
                         errorCount++;
                         errors.push('صف ' + (i + 1) + ': ' + err.message);
                     }
+
+                    // تأخير بسيط لإظهار التقدم
+                    await new Promise(r => setTimeout(r, 20));
                 }
+
+                progressText.textContent = '✅ تم الانتهاء!';
+                progressBar.style.width = '100%';
+                progressPercent.textContent = '100%';
+
                 if (successCount > 0) {
-                    showToast('✅ تم الاستيراد', 'تم استيراد ' + successCount + ' منتج' + (errorCount > 0 ? '، وفشل ' + errorCount + ' منتج' : ''), 'success');
-                    closeImportModal();
-                    loadData();
+                    showToast(
+                        '✅ تم الاستيراد',
+                        'تم استيراد ' + successCount + ' منتج' +
+                        (errorCount > 0 ? '، وفشل ' + errorCount + ' منتج' : ''),
+                        'success'
+                    );
+                    setTimeout(function() {
+                        closeImportModal();
+                        loadData();
+                        progressDiv.style.display = 'none';
+                        progressBar.style.width = '0%';
+                    }, 1200);
                 } else {
                     showToast('❌ فشل الاستيراد', 'لم يتم استيراد أي منتج. تحقق من البيانات', 'error');
+                    setTimeout(function() {
+                        progressDiv.style.display = 'none';
+                        progressBar.style.width = '0%';
+                    }, 2000);
                 }
+
                 if (errors.length > 0) {
                     console.log('❌ أخطاء الاستيراد:');
                     errors.forEach(function(err) { console.log('  - ' + err); });
                 }
+
             } catch (error) {
                 console.error('❌ خطأ في الاستيراد:', error);
                 showToast('❌ خطأ', error.message || 'فشل استيراد البيانات', 'error');
+                setTimeout(function() {
+                    progressDiv.style.display = 'none';
+                    progressBar.style.width = '0%';
+                }, 2000);
             }
+
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-upload"></i> استيراد';
         }
