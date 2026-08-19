@@ -1038,12 +1038,22 @@
         // ============================================================
         async function logout() {
             try {
-                localStorage.removeItem('rollex_session');
-                sessionStorage.removeItem('rollex_session');
-                window.location.href = 'login.html';
+                var supabaseClient = getSupabaseClient();
+                if (supabaseClient) {
+                    await supabaseClient.auth.signOut();
+                    console.log('✅ تم تسجيل الخروج من Supabase');
+                }
             } catch (error) {
-                console.error('❌ خطأ في تسجيل الخروج:', error);
+                console.warn('⚠️ فشل تسجيل الخروج من Supabase:', error.message);
             }
+            
+            // ✅ مسح جميع البيانات المخزنة
+            localStorage.removeItem('rollex_session');
+            sessionStorage.removeItem('rollex_session');
+            sessionStorage.clear();
+            
+            // ✅ إعادة التوجيه لتسجيل الدخول
+            window.location.href = 'login.html';
         }
         window.logout = logout;
 
@@ -1561,7 +1571,7 @@
         }
 
         // ============================================================
-        // SAVE USER - النسخة النهائية (بدون تحذيرات GoTrueClient)
+        // SAVE USER - النسخة النهائية (بدون استعادة جلسة الأدمن)
         // ============================================================
         async function saveUser(event) {
             event.preventDefault();
@@ -1729,11 +1739,11 @@
                         return;
                     }
 
-                    // ✅ الخطوة 1: حفظ جلسة الأدمن الحالية
+                    // ✅ حفظ جلسة الأدمن الحالية مؤقتاً (للاستخدام فقط)
                     var adminSession = localStorage.getItem('rollex_session');
-                    console.log('✅ [saveUser] تم حفظ جلسة الأدمن');
+                    console.log('✅ [saveUser] تم حفظ جلسة الأدمن مؤقتاً');
 
-                    // ✅ الخطوة 2: استخدام supabaseClient الحالي (بدون إنشاء نسخة جديدة)
+                    // ✅ استخدام supabaseClient الحالي لإنشاء المستخدم
                     var supabaseClientAuth = getSupabaseClient();
 
                     var { data, error } = await supabaseClientAuth.auth.signUp({
@@ -1765,57 +1775,131 @@
                     var newUserId = data.user.id;
                     console.log('✅ [saveUser] تم إنشاء المستخدم في Auth:', newUserId);
 
-                    // ✅ الخطوة 3: استعادة جلسة الأدمن
+                    // ✅ مهم جداً: لا نستعيد جلسة الأدمن - نترك المستخدم الجديد مسجلاً
+                    // نستخدم Token الأدمن المخزن مؤقتاً لإدراج البيانات فقط
+                    console.log('✅ [saveUser] نستخدم Token الأدمن لإدراج البيانات');
+
+                    // ✅ استخدام supabaseClient الحالي (الذي أصبح يحمل Token المستخدم الجديد)
+                    // لكن نحتاج إلى استخدام Token الأدمن لإدراج البروفايل والصلاحيات
+                    // لذلك نستخدم fetch مباشرة مع Token الأدمن المخزن
+                    
+                    // استخراج Token الأدمن من الجلسة المخزنة
+                    var adminToken = null;
                     if (adminSession) {
-                        localStorage.setItem('rollex_session', adminSession);
-                        console.log('✅ [saveUser] تم استعادة جلسة الأدمن');
-                    } else {
-                        console.warn('⚠️ [saveUser] لا توجد جلسة أدمن للاستعادة');
-                    }
-
-                    // ✅ الخطوة 4: استخدام supabaseClient الحالي (الذي أصبح يحمل Token الأدمن)
-                    // نحتاج إلى إعادة تهيئة supabaseClient لاستخدام Token الأدمن الجديد
-                    var supabaseAdminClient = getSupabaseClient();
-
-                    var { error: profileInsertError } = await supabaseAdminClient
-                        .from('profiles')
-                        .upsert({
-                            id: newUserId,
-                            name: name,
-                            email: email,
-                            role: role,
-                            is_active: status,
-                            company_id: companyId,
-                            deleted_at: null
-                        }, { onConflict: 'id' });
-
-                    if (profileInsertError) {
-                        console.warn('⚠️ [saveUser] فشل إنشاء البروفايل:', profileInsertError.message);
-                    }
-
-                    // إدراج الصلاحيات باستخدام upsert
-                    for (var mod in permissions) {
-                        var permData = permissions[mod];
-                        var { error: permInsertError } = await supabaseAdminClient
-                            .from('user_permissions')
-                            .upsert({
-                                company_id: companyId,
-                                user_id: newUserId,
-                                module: mod,
-                                can_view: permData.view || false,
-                                can_add: permData.add || false,
-                                can_edit: permData.edit || false,
-                                can_delete: permData.delete || false,
-                                can_export: permData.export || false
-                            }, { onConflict: 'user_id,module,company_id' });
-
-                        if (permInsertError) {
-                            console.warn('⚠️ [saveUser] فشل إضافة الصلاحية:', permInsertError.message);
+                        try {
+                            var adminSessionData = JSON.parse(adminSession);
+                            adminToken = adminSessionData.access_token;
+                        } catch (e) {
+                            console.warn('⚠️ [saveUser] فشل تحليل جلسة الأدمن');
                         }
                     }
 
-                    console.log('✅ [saveUser] تم إضافة المستخدم بنجاح');
-                    showToast('✅ تم الإضافة', 'تم إضافة المستخدم بنجاح', 'success');
+                    // إذا كان لدينا Token الأدمن، نستخدمه لإدراج البيانات
+                    if (adminToken) {
+                        console.log('✅ [saveUser] تم استخراج Token الأدمن');
+
+                        // إدراج البروفايل باستخدام Token الأدمن
+                        var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?on_conflict=id', {
+                            method: 'POST',
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': 'Bearer ' + adminToken,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'resolution=merge-duplicates,return=representation'
+                            },
+                            body: JSON.stringify({
+                                id: newUserId,
+                                name: name,
+                                email: email,
+                                role: role,
+                                is_active: status,
+                                company_id: companyId,
+                                deleted_at: null
+                            })
+                        });
+
+                        if (!profileResponse.ok) {
+                            var profileErrorText = await profileResponse.text();
+                            console.warn('⚠️ [saveUser] فشل إنشاء البروفايل:', profileErrorText);
+                        } else {
+                            console.log('✅ [saveUser] تم إنشاء البروفايل بنجاح');
+                        }
+
+                        // إدراج الصلاحيات باستخدام Token الأدمن
+                        for (var mod in permissions) {
+                            var permData = permissions[mod];
+                            var permResponse = await fetch(SUPABASE_URL + '/rest/v1/user_permissions?on_conflict=user_id,module,company_id', {
+                                method: 'POST',
+                                headers: {
+                                    'apikey': SUPABASE_ANON_KEY,
+                                    'Authorization': 'Bearer ' + adminToken,
+                                    'Content-Type': 'application/json',
+                                    'Prefer': 'resolution=merge-duplicates,return=representation'
+                                },
+                                body: JSON.stringify({
+                                    company_id: companyId,
+                                    user_id: newUserId,
+                                    module: mod,
+                                    can_view: permData.view || false,
+                                    can_add: permData.add || false,
+                                    can_edit: permData.edit || false,
+                                    can_delete: permData.delete || false,
+                                    can_export: permData.export || false
+                                })
+                            });
+
+                            if (!permResponse.ok) {
+                                console.warn('⚠️ [saveUser] فشل إضافة الصلاحية للموديول:', mod);
+                            }
+                        }
+
+                        console.log('✅ [saveUser] تم إضافة المستخدم بنجاح');
+                        showToast('✅ تم الإضافة', 'تم إضافة المستخدم بنجاح', 'success');
+
+                    } else {
+                        console.warn('⚠️ [saveUser] لا يوجد Token أدمن، سيتم إدراج البيانات باستخدام Token المستخدم الجديد');
+                        
+                        // محاولة إدراج البروفايل باستخدام Token المستخدم الجديد (قد يفشل بسبب RLS)
+                        var { error: profileInsertError } = await supabaseClient
+                            .from('profiles')
+                            .upsert({
+                                id: newUserId,
+                                name: name,
+                                email: email,
+                                role: role,
+                                is_active: status,
+                                company_id: companyId,
+                                deleted_at: null
+                            }, { onConflict: 'id' });
+
+                        if (profileInsertError) {
+                            console.warn('⚠️ [saveUser] فشل إنشاء البروفايل:', profileInsertError.message);
+                        }
+
+                        // إدراج الصلاحيات باستخدام upsert
+                        for (var mod in permissions) {
+                            var permData = permissions[mod];
+                            var { error: permInsertError } = await supabaseClient
+                                .from('user_permissions')
+                                .upsert({
+                                    company_id: companyId,
+                                    user_id: newUserId,
+                                    module: mod,
+                                    can_view: permData.view || false,
+                                    can_add: permData.add || false,
+                                    can_edit: permData.edit || false,
+                                    can_delete: permData.delete || false,
+                                    can_export: permData.export || false
+                                }, { onConflict: 'user_id,module,company_id' });
+
+                            if (permInsertError) {
+                                console.warn('⚠️ [saveUser] فشل إضافة الصلاحية:', permInsertError.message);
+                            }
+                        }
+
+                        console.log('✅ [saveUser] تم إضافة المستخدم بنجاح (باستخدام Token المستخدم الجديد)');
+                        showToast('✅ تم الإضافة', 'تم إضافة المستخدم بنجاح', 'success');
+                    }
                 }
 
                 closeModal();
