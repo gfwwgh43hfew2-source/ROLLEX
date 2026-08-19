@@ -609,12 +609,12 @@
 
                 // ====================================================
                 // الخطوة 2: التحقق من وجود المستخدم في جدول profiles
-                // وحالته (غير محذوف)
+                // باستخدام user_id (وليس id)
                 // ====================================================
                 console.log('📡 جاري التحقق من حالة المستخدم في جدول profiles...');
 
                 var profileResponse = await fetch(
-                    SUPABASE_URL + '/rest/v1/profiles?select=id,name,role,status,deleted_at,company_id&id=eq.' + authData.user.id,
+                    SUPABASE_URL + '/rest/v1/profiles?select=id,name,role,status,deleted_at,company_id&user_id=eq.' + authData.user.id,
                     {
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
@@ -624,7 +624,8 @@
                 );
 
                 if (!profileResponse.ok) {
-                    console.warn('⚠️ فشل جلب البروفايل، ولكن تم تسجيل الدخول بنجاح');
+                    console.warn('⚠️ فشل جلب البروفايل:', profileResponse.status);
+                    // لا نرمي خطأ هنا، بل نستمر مع عرض رسالة مناسبة
                 }
 
                 var profiles = await profileResponse.json();
