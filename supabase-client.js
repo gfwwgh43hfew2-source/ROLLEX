@@ -660,6 +660,62 @@ window.redirectToLogin = redirectToLogin;
 window.refreshSession = refreshSession;
 
 // ============================================================
+// PERMISSION FUNCTIONS - دوال الصلاحيات البسيطة (المضافة حديثاً)
+// ============================================================
+
+// الحصول على صلاحيات المستخدم من الجلسة (بدون await)
+function getUserPermissionsFromSession() {
+    var session = getSession();
+    if (!session || !session.user) {
+        return null;
+    }
+    return {
+        id: session.user.id,
+        email: session.user.email,
+        role: session.user.role || 'employee',
+        company_id: session.user.company_id || null,
+        is_super_admin: session.user.is_super_admin || false
+    };
+}
+
+// التحقق من أن المستخدم مدير عام
+function isSuperAdmin() {
+    var user = getUserPermissionsFromSession();
+    return user && user.is_super_admin === true;
+}
+
+// التحقق من أن المستخدم مدير (Admin)
+function isAdmin() {
+    var user = getUserPermissionsFromSession();
+    return user && (user.role === 'admin' || user.is_super_admin === true);
+}
+
+// التحقق من صلاحية معينة (view, add, edit, delete) - نسخة بسيطة من الجلسة
+function hasPermissionSimple(module, action) {
+    var user = getUserPermissionsFromSession();
+    if (!user) return false;
+    
+    // المدير العام لديه كل الصلاحيات
+    if (user.is_super_admin === true) return true;
+    
+    // إذا كان الدور admin، لديه كل الصلاحيات
+    if (user.role === 'admin') return true;
+    
+    // إذا كانت الصلاحيات مخزنة في الجلسة
+    if (user.permissions && user.permissions[module]) {
+        return user.permissions[module][action] === true;
+    }
+    
+    return false;
+}
+
+// تصدير الدوال الجديدة
+window.getUserPermissionsFromSession = getUserPermissionsFromSession;
+window.isSuperAdmin = isSuperAdmin;
+window.isAdmin = isAdmin;
+window.hasPermissionSimple = hasPermissionSimple;
+
+// ============================================================
 // FINAL LOG
 // ============================================================
-console.log('✅ تم تحميل supabase-client.js (النسخة النهائية مع clearSession)');
+console.log('✅ تم تحميل supabase-client.js (النسخة النهائية مع clearSession ودوال الصلاحيات)');
