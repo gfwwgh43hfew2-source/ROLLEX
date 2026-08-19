@@ -11,7 +11,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     
-    <!-- ✅ التعديل: إضافة مكتبة Supabase قبل supabase-client.js -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
 
@@ -472,10 +471,10 @@
 
         <div class="footer">
             <div class="user">
-                <div class="avatar">م</div>
+                <div class="avatar" id="sidebarAvatar">م</div>
                 <div class="info">
-                    <div class="name">محمد خلاف</div>
-                    <div class="role">مدير النظام</div>
+                    <div class="name" id="sidebarUserName">جاري التحميل...</div>
+                    <div class="role" id="sidebarUserRole">...</div>
                 </div>
                 <button class="logout" onclick="logout()" title="تسجيل الخروج">
                     <i class="fas fa-arrow-right-from-bracket"></i>
@@ -499,8 +498,8 @@
             <div class="right">
                 <button class="notif" id="notifBtn"><i class="fas fa-bell"></i><span class="dot"></span></button>
                 <div class="profile">
-                    <div class="avatar">م</div>
-                    <div class="name">محمد خلاف<small>مدير النظام</small></div>
+                    <div class="avatar" id="headerAvatar">م</div>
+                    <div class="name" id="headerName">جاري التحميل...<small id="headerRole">...</small></div>
                     <i class="fas fa-chevron-down"></i>
                 </div>
                 <button onclick="logout()" title="تسجيل الخروج" style="background:none;border:none;cursor:pointer;color:var(--ink-3);font-size:1rem;padding:4px 8px;"><i class="fas fa-sign-out-alt"></i></button>
@@ -686,6 +685,111 @@
             window.location.href = 'login.html';
         }
         window.logout = logout;
+
+        // ================================================================
+        // دالة تحديث بيانات المستخدم في الواجهة
+        // ================================================================
+        function updateUserUI(userData) {
+            if (!userData) return;
+            
+            var displayName = userData.full_name || userData.email || 'مستخدم';
+            var role = userData.role || 'موظف';
+            var firstChar = displayName.charAt(0) || 'م';
+            
+            // تحديث السايدبار
+            document.getElementById('sidebarAvatar').textContent = firstChar;
+            document.getElementById('sidebarUserName').textContent = displayName;
+            document.getElementById('sidebarUserRole').textContent = role;
+            
+            // تحديث الهيدر
+            document.getElementById('headerAvatar').textContent = firstChar;
+            document.getElementById('headerName').innerHTML = displayName + '<small id="headerRole">' + role + '</small>';
+            
+            console.log('✅ تم تحديث واجهة المستخدم:', displayName, role);
+        }
+
+        // ================================================================
+        // جلب بيانات المستخدم الحالي من الجلسة أو من Supabase
+        // ================================================================
+        async function loadCurrentUser() {
+            var session = localStorage.getItem('rollex_session');
+            if (!session) {
+                console.warn('⚠️ لا توجد جلسة');
+                window.location.href = 'login.html';
+                return null;
+            }
+
+            try {
+                var parsed = JSON.parse(session);
+                var token = parsed.access_token;
+                
+                if (!token) {
+                    console.warn('⚠️ لا يوجد توكن في الجلسة');
+                    window.location.href = 'login.html';
+                    return null;
+                }
+
+                // التحقق من صلاحية التوكن
+                var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!response.ok) {
+                    console.warn('⚠️ التوكن غير صالح');
+                    localStorage.removeItem('rollex_session');
+                    window.location.href = 'login.html';
+                    return null;
+                }
+
+                var userData = await response.json();
+                console.log('👤 المستخدم الحالي من Auth:', userData);
+
+                // جلب بيانات البروفايل من جدول profiles
+                var profileResponse = await fetch(
+                    SUPABASE_URL + '/rest/v1/profiles?select=*&id=eq.' + userData.id,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + token
+                        }
+                    }
+                );
+
+                var profile = null;
+                if (profileResponse.ok) {
+                    var profiles = await profileResponse.json();
+                    if (profiles && profiles.length > 0) {
+                        profile = profiles[0];
+                        console.log('✅ تم جلب البروفايل:', profile);
+                    }
+                }
+
+                // تجهيز بيانات المستخدم النهائية
+                var finalUserData = {
+                    id: userData.id,
+                    email: userData.email,
+                    full_name: profile ? profile.full_name : userData.email,
+                    role: profile ? profile.role : 'موظف',
+                    company_id: profile ? profile.company_id : null
+                };
+
+                // تحديث الجلسة في localStorage مع بيانات المستخدم
+                parsed.user = finalUserData;
+                localStorage.setItem('rollex_session', JSON.stringify(parsed));
+
+                // تحديث الواجهة
+                updateUserUI(finalUserData);
+
+                return finalUserData;
+
+            } catch (error) {
+                console.error('❌ خطأ في جلب بيانات المستخدم:', error);
+                return null;
+            }
+        }
 
         // ================================================================
         // حساب هدف الشهر
@@ -1220,6 +1324,13 @@
             if (!token) {
                 console.warn('⚠️ لا يوجد توكن، جاري التوجيه لتسجيل الدخول...');
                 window.location.href = 'login.html';
+                return;
+            }
+
+            // تحميل بيانات المستخدم وتحديث الواجهة
+            var user = await loadCurrentUser();
+            if (!user) {
+                console.warn('⚠️ فشل في تحميل بيانات المستخدم');
                 return;
             }
 
