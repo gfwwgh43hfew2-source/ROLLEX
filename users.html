@@ -1781,11 +1781,22 @@
                         console.warn('⚠️ [saveUser] لا توجد جلسة أدمن للاستعادة');
                     }
 
-                    // ✅ الخطوة 4: استخدام supabaseClient (مع Token الأدمن) لإدراج البروفايل والصلاحيات
-                    // نعيد إنشاء supabaseClient مع Token الأدمن
-                    supabaseClient = getSupabaseClient();
+                    // ✅ الخطوة 4: إعادة تهيئة supabaseClient بالكامل مع Token الأدمن
+                    var adminToken = getToken();
+                    console.log('✅ [saveUser] Token الأدمن المستعاد:', adminToken ? 'موجود' : 'غير موجود');
 
-                    var { error: profileInsertError } = await supabaseClient
+                    // إنشاء Supabase Client جديد مع Token الأدمن
+                    var supabaseAdminClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                        auth: {
+                            autoRefreshToken: true,
+                            persistSession: true,
+                            detectSessionInUrl: true,
+                            storageKey: 'rollex_session'
+                        }
+                    });
+
+                    // ✅ الخطوة 5: استخدام supabaseAdminClient (مع Token الأدمن) لإدراج البروفايل والصلاحيات
+                    var { error: profileInsertError } = await supabaseAdminClient
                         .from('profiles')
                         .upsert({
                             id: newUserId,
@@ -1804,7 +1815,7 @@
                     // إدراج الصلاحيات باستخدام upsert
                     for (var mod in permissions) {
                         var permData = permissions[mod];
-                        var { error: permInsertError } = await supabaseClient
+                        var { error: permInsertError } = await supabaseAdminClient
                             .from('user_permissions')
                             .upsert({
                                 company_id: companyId,
