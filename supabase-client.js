@@ -598,6 +598,122 @@ function getStatusBadge(status) {
 }
 
 // ============================================================
+// PERMISSION FUNCTIONS
+// ============================================================
+
+/**
+ * التحقق من صلاحية مستخدم معين للوحدة المحددة
+ * @param {string} module - اسم الوحدة (sales, clients, ...)
+ * @param {string} permission - نوع الصلاحية (view, add, edit, delete, export)
+ * @param {string} userId - (اختياري) معرف المستخدم
+ * @returns {Promise<boolean>}
+ */
+async function hasPermission(module, permission, userId) {
+    var token = getToken();
+    if (!token) return false;
+
+    var targetUserId = userId || (await getCurrentUserProfile())?.id;
+    if (!targetUserId) return false;
+
+    // السوبر أدمن عنده كل الصلاحيات
+    var profile = await getCurrentUserProfile();
+    if (profile && profile.is_super_admin) return true;
+
+    try {
+        var companyId = await getCompanyId();
+        if (!companyId) return false;
+
+        var response = await fetch(SUPABASE_URL + '/rest/v1/user_permissions?select=' + permission +
+            '&user_id=eq.' + targetUserId +
+            '&company_id=eq.' + companyId +
+            '&module=eq.' + module, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+
+        if (!response.ok) return false;
+        var data = await response.json();
+        return data && data.length > 0 && data[0][permission] === true;
+
+    } catch (error) {
+        console.error('❌ خطأ في التحقق من الصلاحية:', error);
+        return false;
+    }
+}
+
+/**
+ * جلب جميع صلاحيات المستخدم لوحدة معينة
+ * @param {string} module - اسم الوحدة
+ * @param {string} userId - (اختياري) معرف المستخدم
+ * @returns {Promise<Object>}
+ */
+async function getUserPermissions(module, userId) {
+    var token = getToken();
+    if (!token) return {};
+
+    var targetUserId = userId || (await getCurrentUserProfile())?.id;
+    if (!targetUserId) return {};
+
+    // السوبر أدمن عنده كل الصلاحيات
+    var profile = await getCurrentUserProfile();
+    if (profile && profile.is_super_admin) {
+        return { view: true, add: true, edit: true, delete: true, export: true };
+    }
+
+    try {
+        var companyId = await getCompanyId();
+        if (!companyId) return {};
+
+        var response = await fetch(SUPABASE_URL + '/rest/v1/user_permissions?select=*' +
+            '&user_id=eq.' + targetUserId +
+            '&company_id=eq.' + companyId +
+            '&module=eq.' + module, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+
+        if (!response.ok) return {};
+        var data = await response.json();
+        if (!data || data.length === 0) return {};
+
+        return {
+            view: data[0].can_view || false,
+            add: data[0].can_add || false,
+            edit: data[0].can_edit || false,
+            delete: data[0].can_delete || false,
+            export: data[0].can_export || false
+        };
+
+    } catch (error) {
+        console.error('❌ خطأ في جلب الصلاحيات:', error);
+        return {};
+    }
+}
+
+/**
+ * التحقق من أن المستخدم لديه صلاحية الوصول للصفحة
+ * @param {string} module - اسم الوحدة
+ * @param {string} permission - نوع الصلاحية (view, add, edit, delete, export)
+ * @returns {Promise<boolean>}
+ */
+async function checkPageAccess(module, permission) {
+    permission = permission || 'view';
+    var hasPerm = await hasPermission(module, permission);
+    if (!hasPerm) {
+        showToast('⚠️ غير مسموح', 'ليس لديك صلاحية للوصول إلى هذه الصفحة', 'error');
+        setTimeout(function() {
+            window.location.href = 'index.html';
+        }, 2000);
+        return false;
+    }
+    return true;
+}
+
+// ============================================================
 // FINAL LOG
 // ============================================================
 console.log('✅ تم تحميل supabase-client.js (النسخة النهائية المُبسطة)');
