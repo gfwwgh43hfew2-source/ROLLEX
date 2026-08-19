@@ -532,7 +532,7 @@
         }
 
         // ============================================================
-        // LOGIN FORM SUBMIT - الطريقة الصحيحة مع البحث في جدول profiles
+        // LOGIN FORM SUBMIT - مع التحقق من وجود المستخدم في profiles
         // ============================================================
         loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -608,12 +608,13 @@
                 console.log('📧 البريد الإلكتروني:', authData.user.email);
 
                 // ====================================================
-                // الخطوة 2: جلب بيانات المستخدم من جدول profiles
+                // الخطوة 2: التحقق من وجود المستخدم في جدول profiles
+                // وحالته (غير محذوف)
                 // ====================================================
-                console.log('📡 جلب بيانات المستخدم من جدول profiles...');
+                console.log('📡 جاري التحقق من حالة المستخدم في جدول profiles...');
 
                 var profileResponse = await fetch(
-                    SUPABASE_URL + '/rest/v1/profiles?select=*&id=eq.' + authData.user.id,
+                    SUPABASE_URL + '/rest/v1/profiles?select=id,name,role,status,deleted_at,company_id&id=eq.' + authData.user.id,
                     {
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
@@ -629,14 +630,22 @@
                 var profiles = await profileResponse.json();
                 var profile = (profiles && profiles.length > 0) ? profiles[0] : null;
 
-                if (profile) {
-                    console.log('✅ تم جلب البروفايل بنجاح!');
-                    console.log('📝 الاسم:', profile.full_name);
-                    console.log('🔑 الدور:', profile.role);
-                    console.log('🏢 الشركة:', profile.company_id);
-                } else {
-                    console.warn('⚠️ لا يوجد بروفايل لهذا المستخدم في جدول profiles');
+                // ✅ التحقق من وجود المستخدم في جدول profiles
+                if (!profile) {
+                    console.error('❌ المستخدم غير موجود في جدول profiles');
+                    throw new Error('❌ هذا الحساب غير مصرح له بتسجيل الدخول. يرجى التواصل مع المدير.');
                 }
+
+                // ✅ التحقق من أن المستخدم ليس محذوفاً
+                if (profile.status === 'deleted' || profile.status === 'inactive' || profile.deleted_at) {
+                    console.error('❌ هذا الحساب محذوف أو غير نشط');
+                    throw new Error('❌ هذا الحساب محذوف أو غير نشط. يرجى التواصل مع المدير.');
+                }
+
+                console.log('✅ تم التحقق من البروفايل بنجاح!');
+                console.log('📝 الاسم:', profile.name);
+                console.log('🔑 الدور:', profile.role);
+                console.log('🏢 الشركة:', profile.company_id);
 
                 // ====================================================
                 // الخطوة 3: حفظ الجلسة في localStorage
@@ -648,7 +657,7 @@
                     user: {
                         id: authData.user.id,
                         email: authData.user.email,
-                        full_name: profile ? profile.full_name : authData.user.email,
+                        full_name: profile ? profile.name : authData.user.email,
                         role: profile ? profile.role : 'موظف',
                         company_id: profile ? profile.company_id : null
                     }
@@ -657,7 +666,7 @@
                 localStorage.setItem('rollex_session', JSON.stringify(sessionData));
                 console.log('💾 تم حفظ الجلسة في localStorage مع بيانات المستخدم');
 
-                showMessage('✅ تم تسجيل الدخول بنجاح! مرحباً ' + (profile ? profile.full_name : authData.user.email), 'success');
+                showMessage('✅ تم تسجيل الدخول بنجاح! مرحباً ' + (profile ? profile.name : authData.user.email), 'success');
 
                 setTimeout(function() {
                     console.log('🔄 جاري التوجيه إلى الصفحة الرئيسية...');
