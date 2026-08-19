@@ -5,6 +5,26 @@ const SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
 
 // ============================================================
+// SUPABASE CLIENT
+// ============================================================
+var supabaseClientInstance = null;
+
+function getSupabaseClient() {
+    if (!supabaseClientInstance) {
+        supabaseClientInstance = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: true,
+                storageKey: 'rollex_session'
+            }
+        });
+        console.log('✅ تم إنشاء Supabase Client');
+    }
+    return supabaseClientInstance;
+}
+
+// ============================================================
 // TOAST SYSTEM
 // ============================================================
 function showToast(title, message, type = 'success', buttons = null) {
@@ -154,7 +174,7 @@ function redirectToLogin() {
 }
 
 // ============================================================
-// GET CURRENT USER PROFILE
+// GET CURRENT USER PROFILE - ✅ معدلة باستخدام Supabase SDK
 // ============================================================
 async function getCurrentUserProfile() {
     var token = getToken();
@@ -164,62 +184,29 @@ async function getCurrentUserProfile() {
     }
 
     try {
-        var userResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + token
-            }
-        });
-
-        if (!userResponse.ok) {
-            if (userResponse.status === 401 || userResponse.status === 403) {
-                console.log('⚠️ التوكن غير صالح، محاولة التجديد...');
-                var refreshed = await refreshSession();
-                if (refreshed) {
-                    var newToken = getToken();
-                    if (newToken) {
-                        var retryResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + newToken
-                            }
-                        });
-                        if (retryResponse.ok) {
-                            var retryUser = await retryResponse.json();
-                            var retryProfileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=*&id=eq.' + retryUser.id, {
-                                headers: {
-                                    'apikey': SUPABASE_ANON_KEY,
-                                    'Authorization': 'Bearer ' + newToken
-                                }
-                            });
-                            if (retryProfileResponse.ok) {
-                                var retryData = await retryProfileResponse.json();
-                                return retryData && retryData.length > 0 ? retryData[0] : null;
-                            }
-                        }
-                    }
-                }
-            }
-            console.warn('⚠️ فشل جلب المستخدم:', userResponse.status);
+        var supabaseClient = getSupabaseClient();
+        
+        // جلب المستخدم الحالي
+        var { data: userData, error: userError } = await supabaseClient.auth.getUser();
+        if (userError || !userData?.user) {
+            console.warn('⚠️ فشل جلب المستخدم:', userError?.message);
             return null;
         }
 
-        var user = await userResponse.json();
+        // جلب البروفايل
+        var { data: profileData, error: profileError } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('id', userData.user.id)
+            .single();
 
-        var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=*&id=eq.' + user.id, {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + token
-            }
-        });
-
-        if (!profileResponse.ok) {
-            console.warn('⚠️ فشل جلب البروفايل:', profileResponse.status);
+        if (profileError) {
+            console.warn('⚠️ فشل جلب البروفايل:', profileError.message);
             return null;
         }
 
-        var data = await profileResponse.json();
-        return data && data.length > 0 ? data[0] : null;
+        console.log('✅ تم جلب البروفايل بنجاح');
+        return profileData;
 
     } catch (error) {
         console.error('❌ خطأ في جلب البروفايل:', error);
@@ -228,64 +215,34 @@ async function getCurrentUserProfile() {
 }
 
 // ============================================================
-// GET COMPANY ID
+// GET COMPANY ID - ✅ معدلة باستخدام Supabase SDK
 // ============================================================
 async function getCompanyId() {
     var token = getToken();
     if (!token) return null;
 
     try {
-        var userResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + token
-            }
-        });
+        var supabaseClient = getSupabaseClient();
 
-        if (!userResponse.ok) {
-            if (userResponse.status === 401 || userResponse.status === 403) {
-                console.log('⚠️ التوكن غير صالح، محاولة التجديد...');
-                var refreshed = await refreshSession();
-                if (refreshed) {
-                    var newToken = getToken();
-                    if (newToken) {
-                        var retryResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + newToken
-                            }
-                        });
-                        if (retryResponse.ok) {
-                            var retryUser = await retryResponse.json();
-                            var retryProfileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=company_id&id=eq.' + retryUser.id, {
-                                headers: {
-                                    'apikey': SUPABASE_ANON_KEY,
-                                    'Authorization': 'Bearer ' + newToken
-                                }
-                            });
-                            if (retryProfileResponse.ok) {
-                                var retryData = await retryProfileResponse.json();
-                                return retryData && retryData.length > 0 ? retryData[0].company_id : null;
-                            }
-                        }
-                    }
-                }
-            }
+        var { data: userData, error: userError } = await supabaseClient.auth.getUser();
+        if (userError || !userData?.user) {
+            console.warn('⚠️ فشل جلب المستخدم:', userError?.message);
             return null;
         }
 
-        var user = await userResponse.json();
+        var { data: profileData, error: profileError } = await supabaseClient
+            .from('profiles')
+            .select('company_id')
+            .eq('id', userData.user.id)
+            .single();
 
-        var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=company_id&id=eq.' + user.id, {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + token
-            }
-        });
+        if (profileError) {
+            console.warn('⚠️ فشل جلب company_id:', profileError.message);
+            return null;
+        }
 
-        if (!profileResponse.ok) return null;
-        var data = await profileResponse.json();
-        return data && data.length > 0 ? data[0].company_id : null;
+        console.log('✅ company_id:', profileData?.company_id);
+        return profileData?.company_id || null;
 
     } catch (error) {
         console.error('❌ خطأ في جلب company_id:', error);
@@ -294,7 +251,7 @@ async function getCompanyId() {
 }
 
 // ============================================================
-// GENERIC GET - مع دعم جلب جميع السجلات (100,000 سجل)
+// GENERIC GET - ✅ معدلة باستخدام Supabase SDK
 // ============================================================
 async function getTable(tableName, orderBy) {
     var token = getToken();
@@ -311,48 +268,31 @@ async function getTable(tableName, orderBy) {
     }
 
     try {
-        var url = SUPABASE_URL + '/rest/v1/' + tableName + '?select=*&company_id=eq.' + companyId;
-        if (orderBy) url += '&order=' + orderBy;
+        var supabaseClient = getSupabaseClient();
         
-        // ✅ إضافة حد كبير جداً لجلب جميع السجلات (100,000 سجل كحد أقصى)
-        url += '&limit=100000';
+        var query = supabaseClient
+            .from(tableName)
+            .select('*')
+            .eq('company_id', companyId);
 
-        console.log('📤 محاولة جلب من:', tableName, 'بـ company_id:', companyId);
+        if (orderBy) {
+            var parts = orderBy.split('.');
+            var orderField = parts[0] || 'created_at';
+            var orderDirection = parts[1] === 'desc' ? 'desc' : 'asc';
+            query = query.order(orderField, { ascending: orderDirection === 'asc' });
+        }
 
-        var response = await fetch(url, {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + token
-            }
-        });
+        // ✅ حد كبير لجلب جميع السجلات
+        query = query.limit(100000);
 
-        if (!response.ok) {
-            if (response.status === 401 || response.status === 403) {
-                console.log('⚠️ فشل جلب ' + tableName + ' بسبب خطأ ' + response.status + '، محاولة تجديد الجلسة...');
-                var refreshed = await refreshSession();
-                if (refreshed) {
-                    var newToken = getToken();
-                    if (newToken) {
-                        var retryResponse = await fetch(url, {
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + newToken
-                            }
-                        });
-                        if (retryResponse.ok) {
-                            var retryData = await retryResponse.json();
-                            console.log('✅ تم جلب ' + retryData.length + ' سجل من ' + tableName + ' (بعد التجديد)');
-                            return retryData || [];
-                        }
-                    }
-                }
-            }
-            console.warn('⚠️ فشل جلب ' + tableName + ' بسبب خطأ ' + response.status);
+        var { data, error } = await query;
+
+        if (error) {
+            console.error('❌ فشل جلب ' + tableName + ':', error.message);
             return [];
         }
 
-        var data = await response.json();
-        console.log('✅ تم جلب ' + data.length + ' سجل من ' + tableName);
+        console.log('✅ تم جلب ' + (data?.length || 0) + ' سجل من ' + tableName);
         return data || [];
 
     } catch (error) {
@@ -362,92 +302,97 @@ async function getTable(tableName, orderBy) {
 }
 
 // ============================================================
-// GENERIC INSERT
+// GENERIC INSERT - ✅ معدلة باستخدام Supabase SDK
 // ============================================================
 async function insertRow(tableName, payload) {
     var token = getToken();
     if (!token) throw new Error('يرجى تسجيل الدخول أولاً');
 
-    var response = await fetch(SUPABASE_URL + '/rest/v1/' + tableName, {
-        method: 'POST',
-        headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(payload)
-    });
+    try {
+        var supabaseClient = getSupabaseClient();
+        var { data, error } = await supabaseClient
+            .from(tableName)
+            .insert(payload)
+            .select()
+            .single();
 
-    if (!response.ok) {
-        var errorData = await response.text();
-        throw new Error(errorData);
+        if (error) throw new Error(error.message);
+        return data;
+
+    } catch (error) {
+        console.error('❌ فشل الإدراج:', error);
+        throw error;
     }
-
-    var result = await response.json();
-    return Array.isArray(result) ? result[0] : result;
 }
 
 // ============================================================
-// GENERIC UPSERT (INSERT OR UPDATE - يحل مشكلة التكرار)
+// GENERIC UPSERT - ✅ معدلة باستخدام Supabase SDK
 // ============================================================
 async function upsertRow(tableName, payload) {
     var token = getToken();
     if (!token) throw new Error('يرجى تسجيل الدخول أولاً');
 
-    var response = await fetch(SUPABASE_URL + '/rest/v1/' + tableName, {
-        method: 'POST',
-        headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates,return=representation'
-        },
-        body: JSON.stringify(payload)
-    });
+    try {
+        var supabaseClient = getSupabaseClient();
+        var { data, error } = await supabaseClient
+            .from(tableName)
+            .upsert(payload, { onConflict: 'id' })
+            .select()
+            .single();
 
-    if (!response.ok) {
-        var errorData = await response.text();
-        throw new Error(errorData);
+        if (error) throw new Error(error.message);
+        return data;
+
+    } catch (error) {
+        console.error('❌ فشل التحديث:', error);
+        throw error;
     }
-
-    var result = await response.json();
-    return Array.isArray(result) ? result[0] : result;
 }
 
 // ============================================================
-// GENERIC PATCH
+// GENERIC PATCH - ✅ معدلة باستخدام Supabase SDK
 // ============================================================
 async function patchRow(tableName, id, payload) {
     var token = getToken();
     if (!token) return;
 
-    await fetch(SUPABASE_URL + '/rest/v1/' + tableName + '?id=eq.' + id, {
-        method: 'PATCH',
-        headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(payload)
-    });
+    try {
+        var supabaseClient = getSupabaseClient();
+        var { error } = await supabaseClient
+            .from(tableName)
+            .update(payload)
+            .eq('id', id);
+
+        if (error) throw new Error(error.message);
+        return true;
+
+    } catch (error) {
+        console.error('❌ فشل التحديث:', error);
+        throw error;
+    }
 }
 
 // ============================================================
-// GENERIC DELETE
+// GENERIC DELETE - ✅ معدلة باستخدام Supabase SDK
 // ============================================================
 async function deleteRows(tableName, column, value) {
     var token = getToken();
     if (!token) return;
 
-    await fetch(SUPABASE_URL + '/rest/v1/' + tableName + '?' + column + '=eq.' + value, {
-        method: 'DELETE',
-        headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': 'Bearer ' + token
-        }
-    });
+    try {
+        var supabaseClient = getSupabaseClient();
+        var { error } = await supabaseClient
+            .from(tableName)
+            .delete()
+            .eq(column, value);
+
+        if (error) throw new Error(error.message);
+        return true;
+
+    } catch (error) {
+        console.error('❌ فشل الحذف:', error);
+        throw error;
+    }
 }
 
 // ============================================================
@@ -647,21 +592,22 @@ async function hasPermission(module, permission, userId) {
     if (profile && profile.is_super_admin) return true;
 
     try {
+        var supabaseClient = getSupabaseClient();
         var companyId = await getCompanyId();
         if (!companyId) return false;
 
-        var response = await fetch(SUPABASE_URL + '/rest/v1/user_permissions?select=' + permission +
-            '&user_id=eq.' + targetUserId +
-            '&company_id=eq.' + companyId +
-            '&module=eq.' + module, {
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token
-                }
-            });
+        var { data, error } = await supabaseClient
+            .from('user_permissions')
+            .select(permission)
+            .eq('user_id', targetUserId)
+            .eq('company_id', companyId)
+            .eq('module', module);
 
-        if (!response.ok) return false;
-        var data = await response.json();
+        if (error) {
+            console.error('❌ فشل التحقق من الصلاحية:', error.message);
+            return false;
+        }
+
         return data && data.length > 0 && data[0][permission] === true;
 
     } catch (error) {
@@ -690,21 +636,22 @@ async function getUserPermissions(module, userId) {
     }
 
     try {
+        var supabaseClient = getSupabaseClient();
         var companyId = await getCompanyId();
         if (!companyId) return {};
 
-        var response = await fetch(SUPABASE_URL + '/rest/v1/user_permissions?select=*' +
-            '&user_id=eq.' + targetUserId +
-            '&company_id=eq.' + companyId +
-            '&module=eq.' + module, {
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token
-                }
-            });
+        var { data, error } = await supabaseClient
+            .from('user_permissions')
+            .select('*')
+            .eq('user_id', targetUserId)
+            .eq('company_id', companyId)
+            .eq('module', module);
 
-        if (!response.ok) return {};
-        var data = await response.json();
+        if (error) {
+            console.error('❌ فشل جلب الصلاحيات:', error.message);
+            return {};
+        }
+
         if (!data || data.length === 0) return {};
 
         return {
