@@ -389,6 +389,33 @@ async function insertRow(tableName, payload) {
 }
 
 // ============================================================
+// GENERIC UPSERT (INSERT OR UPDATE - يحل مشكلة التكرار)
+// ============================================================
+async function upsertRow(tableName, payload) {
+    var token = getToken();
+    if (!token) throw new Error('يرجى تسجيل الدخول أولاً');
+
+    var response = await fetch(SUPABASE_URL + '/rest/v1/' + tableName, {
+        method: 'POST',
+        headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates,return=representation'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        var errorData = await response.text();
+        throw new Error(errorData);
+    }
+
+    var result = await response.json();
+    return Array.isArray(result) ? result[0] : result;
+}
+
+// ============================================================
 // GENERIC PATCH
 // ============================================================
 async function patchRow(tableName, id, payload) {
