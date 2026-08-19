@@ -10,6 +10,12 @@ const SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
 var supabaseClientInstance = null;
 
 function getSupabaseClient() {
+    // ✅ التحقق من وجود supabase في النطاق العام
+    if (typeof supabase === 'undefined') {
+        console.error('❌ supabase library not loaded!');
+        return null;
+    }
+    
     if (!supabaseClientInstance) {
         supabaseClientInstance = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
@@ -122,6 +128,14 @@ function getToken() {
     return session ? session.access_token : null;
 }
 
+function setSession(sessionData) {
+    if (sessionData) {
+        localStorage.setItem('rollex_session', JSON.stringify(sessionData));
+    } else {
+        localStorage.removeItem('rollex_session');
+    }
+}
+
 async function refreshSession() {
     var session = getSession();
     if (!session || !session.refresh_token) {
@@ -151,7 +165,7 @@ async function refreshSession() {
                 refresh_token: data.refresh_token || session.refresh_token,
                 expires_at: Date.now() + ((data.expires_in || 3600) * 1000)
             };
-            localStorage.setItem('rollex_session', JSON.stringify(newSession));
+            setSession(newSession);
             console.log('✅ تم تجديد الجلسة بنجاح');
             return true;
         }
@@ -185,6 +199,10 @@ async function getCurrentUserProfile() {
 
     try {
         var supabaseClient = getSupabaseClient();
+        if (!supabaseClient) {
+            console.error('❌ Supabase Client not available');
+            return null;
+        }
         
         var { data: userData, error: userError } = await supabaseClient.auth.getUser();
         if (userError || !userData?.user) {
@@ -221,6 +239,10 @@ async function getCompanyId() {
 
     try {
         var supabaseClient = getSupabaseClient();
+        if (!supabaseClient) {
+            console.error('❌ Supabase Client not available');
+            return null;
+        }
 
         var { data: userData, error: userError } = await supabaseClient.auth.getUser();
         if (userError || !userData?.user) {
@@ -267,6 +289,10 @@ async function getTable(tableName, orderBy) {
 
     try {
         var supabaseClient = getSupabaseClient();
+        if (!supabaseClient) {
+            console.error('❌ Supabase Client not available');
+            return [];
+        }
         
         var query = supabaseClient
             .from(tableName)
@@ -307,6 +333,8 @@ async function insertRow(tableName, payload) {
 
     try {
         var supabaseClient = getSupabaseClient();
+        if (!supabaseClient) throw new Error('Supabase Client not available');
+        
         var { data, error } = await supabaseClient
             .from(tableName)
             .insert(payload)
@@ -331,6 +359,8 @@ async function upsertRow(tableName, payload) {
 
     try {
         var supabaseClient = getSupabaseClient();
+        if (!supabaseClient) throw new Error('Supabase Client not available');
+        
         var { data, error } = await supabaseClient
             .from(tableName)
             .upsert(payload, { onConflict: 'id' })
@@ -355,6 +385,8 @@ async function patchRow(tableName, id, payload) {
 
     try {
         var supabaseClient = getSupabaseClient();
+        if (!supabaseClient) throw new Error('Supabase Client not available');
+        
         var { error } = await supabaseClient
             .from(tableName)
             .update(payload)
@@ -378,6 +410,8 @@ async function deleteRows(tableName, column, value) {
 
     try {
         var supabaseClient = getSupabaseClient();
+        if (!supabaseClient) throw new Error('Supabase Client not available');
+        
         var { error } = await supabaseClient
             .from(tableName)
             .delete()
@@ -430,12 +464,27 @@ function formatDate(dateStr) {
 }
 
 // ============================================================
-// LOGOUT
+// LOGOUT - النسخة المحسنة
 // ============================================================
 async function logout() {
     console.log('🚪 جاري تسجيل الخروج...');
+    
+    try {
+        var supabaseClient = getSupabaseClient();
+        if (supabaseClient) {
+            await supabaseClient.auth.signOut();
+            console.log('✅ تم تسجيل الخروج من Supabase');
+        }
+    } catch (error) {
+        console.warn('⚠️ فشل تسجيل الخروج من Supabase:', error.message);
+    }
+    
+    // ✅ مسح جميع البيانات المخزنة
     localStorage.removeItem('rollex_session');
     sessionStorage.removeItem('rollex_session');
+    sessionStorage.clear();
+    
+    // ✅ إعادة التوجيه لتسجيل الدخول
     window.location.href = 'login.html';
 }
 
@@ -581,6 +630,8 @@ async function hasPermission(module, permission, userId) {
 
     try {
         var supabaseClient = getSupabaseClient();
+        if (!supabaseClient) return false;
+        
         var companyId = await getCompanyId();
         if (!companyId) return false;
 
@@ -618,6 +669,8 @@ async function getUserPermissions(module, userId) {
 
     try {
         var supabaseClient = getSupabaseClient();
+        if (!supabaseClient) return {};
+        
         var companyId = await getCompanyId();
         if (!companyId) return {};
 
@@ -665,4 +718,4 @@ async function checkPageAccess(module, permission) {
 // ============================================================
 // FINAL LOG
 // ============================================================
-console.log('✅ تم تحميل supabase-client.js (النسخة النهائية المُبسطة)');
+console.log('✅ تم تحميل supabase-client.js');
