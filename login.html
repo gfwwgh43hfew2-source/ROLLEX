@@ -540,7 +540,35 @@
 
         /**
          * ============================================================
-         * LOGIN FORM SUBMIT - باستخدام Fetch مباشرة مع حفظ الجلسة في localStorage
+         * WAIT FOR SUPABASE TO LOAD
+         * ============================================================
+         */
+        function waitForSupabase(maxAttempts, delay) {
+            maxAttempts = maxAttempts || 30;
+            delay = delay || 200;
+            return new Promise(function(resolve, reject) {
+                var attempts = 0;
+                function check() {
+                    attempts++;
+                    if (typeof supabase !== 'undefined' && supabase) {
+                        console.log('✅ Supabase library loaded after', attempts, 'attempts');
+                        resolve();
+                        return;
+                    }
+                    if (attempts >= maxAttempts) {
+                        console.error('❌ Supabase library failed to load after', maxAttempts, 'attempts');
+                        reject(new Error('Supabase library failed to load'));
+                        return;
+                    }
+                    setTimeout(check, delay);
+                }
+                check();
+            });
+        }
+
+        /**
+         * ============================================================
+         * LOGIN FORM SUBMIT - النسخة النهائية مع مسح الجلسة أولاً
          * ============================================================
          */
         loginForm.addEventListener('submit', async function(e) {
@@ -551,13 +579,9 @@
 
             console.log('🔍 محاولة تسجيل الدخول...');
             console.log('📧 البريد الإلكتروني:', email);
-            console.log('🔑 كلمة المرور:', password ? 'تم إدخالها ✅' : 'فارغة ❌');
 
             var emailValid = validateEmail(email);
             var passwordValid = password.length > 0;
-
-            console.log('✅ التحقق من البريد الإلكتروني:', emailValid ? 'صالح ✅' : 'غير صالح ❌');
-            console.log('✅ التحقق من كلمة المرور:', passwordValid ? 'صالحة ✅' : 'غير صالحة ❌');
 
             setFieldState(emailWrap, emailError, emailValid);
             setFieldState(passwordWrap, passwordError, passwordValid);
@@ -569,81 +593,63 @@
                 return;
             }
 
+            // ✅ التعديل الأهم: مسح أي جلسة سابقة قبل تسجيل الدخول
+            console.log('🗑️ جاري مسح الجلسات القديمة...');
+            localStorage.removeItem('rollex_session');
+            sessionStorage.removeItem('rollex_session');
+            sessionStorage.clear();
+            console.log('✅ تم مسح جميع الجلسات القديمة');
+
             loginBtn.disabled = true;
             loginBtn.classList.add('loading');
             btnLabel.textContent = 'جاري التحقق...';
             hideMessage();
 
             try {
-                console.log('📡 إرسال طلب إلى Supabase Auth...');
-                console.log('📍 URL:', SUPABASE_URL + '/auth/v1/token?grant_type=password');
+                // ✅ انتظار تحميل Supabase library
+                console.log('⏳ الانتظار لتحميل Supabase...');
+                await waitForSupabase();
+                console.log('✅ Supabase library جاهزة');
 
-                var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password,
-                        grant_type: 'password'
-                    })
+                // ✅ استخدام getSupabaseClient لتسجيل الدخول
+                console.log('📡 إرسال طلب إلى Supabase Auth...');
+                var supabaseClient = getSupabaseClient();
+                if (!supabaseClient) {
+                    throw new Error('فشل في تهيئة Supabase Client');
+                }
+
+                var { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
                 });
 
-                console.log('📥 حالة الاستجابة:', response.status, response.statusText);
-
-                var data = await response.json();
-                console.log('📦 البيانات المستلمة:', data);
-
-                if (!response.ok) {
-                    console.error('❌ فشل تسجيل الدخول - الحالة:', response.status);
-                    console.error('❌ تفاصيل الخطأ:', data);
-
-                    var errorMsg = data.error_description || data.message || data.msg || 'بيانات الدخول غير صحيحة';
-
-                    if (response.status === 400) {
-                        if (errorMsg.includes('Invalid login credentials')) {
-                            errorMsg = '❌ البريد الإلكتروني أو كلمة المرور غير صحيحة';
-                            console.error('🔍 سبب الخطأ: بيانات الدخول غير صحيحة (400 - Invalid credentials)');
-                        } else if (errorMsg.includes('Email not confirmed')) {
-                            errorMsg = '❌ البريد الإلكتروني غير مؤكد، يرجى تأكيده أولاً';
-                            console.error('🔍 سبب الخطأ: البريد غير مؤكد (400 - Email not confirmed)');
-                        } else if (errorMsg.includes('User not found')) {
-                            errorMsg = '❌ المستخدم غير موجود';
-                            console.error('🔍 سبب الخطأ: المستخدم غير موجود (400 - User not found)');
-                        } else {
-                            console.error('🔍 سبب الخطأ: 400 -', errorMsg);
-                        }
-                    } else if (response.status === 401) {
-                        errorMsg = '❌ غير مصرح بالدخول، يرجى التحقق من بياناتك';
-                        console.error('🔍 سبب الخطأ: غير مصرح (401 - Unauthorized)');
-                    } else if (response.status === 429) {
-                        errorMsg = '❌ عدد محاولات كثيرة، يرجى الانتظار قليلاً';
-                        console.error('🔍 سبب الخطأ: طلبات كثيرة (429 - Too Many Requests)');
-                    } else {
-                        console.error('🔍 سبب الخطأ غير معروف، الحالة:', response.status);
+                if (error) {
+                    console.error('❌ فشل تسجيل الدخول:', error);
+                    var errorMsg = error.message || 'بيانات الدخول غير صحيحة';
+                    if (errorMsg.includes('Invalid login credentials')) {
+                        errorMsg = '❌ البريد الإلكتروني أو كلمة المرور غير صحيحة';
+                    } else if (errorMsg.includes('Email not confirmed')) {
+                        errorMsg = '❌ البريد الإلكتروني غير مؤكد، يرجى تأكيده أولاً';
+                    } else if (errorMsg.includes('User not found')) {
+                        errorMsg = '❌ المستخدم غير موجود';
                     }
-
                     throw new Error(errorMsg);
                 }
 
-                if (!data.access_token) {
+                if (!data.session || !data.session.access_token) {
                     console.error('❌ لم يتم استلام access_token من السيرفر');
                     throw new Error('فشل في الحصول على التوكن');
                 }
 
-                console.log('✅ تم استلام access_token بنجاح!');
-                console.log('📅 مدة الصلاحية:', data.expires_in, 'ثانية');
+                console.log('✅ تم تسجيل الدخول بنجاح!');
 
-                // ✅ التعديل هنا: دايمًا نخزن في localStorage
-                window.localStorage.setItem('rollex_session', JSON.stringify({
-                    access_token: data.access_token,
-                    refresh_token: data.refresh_token,
-                    expires_at: Date.now() + (data.expires_in * 1000)
-                }));
-
+                // ✅ تخزين الجلسة في localStorage
+                var session = {
+                    access_token: data.session.access_token,
+                    refresh_token: data.session.refresh_token,
+                    expires_at: Date.now() + (data.session.expires_in * 1000)
+                };
+                localStorage.setItem('rollex_session', JSON.stringify(session));
                 console.log('💾 تم حفظ الجلسة في localStorage');
 
                 showMessage('✅ تم تسجيل الدخول بنجاح! جاري التحويل...', 'success');
@@ -701,38 +707,51 @@
 
         /**
          * ============================================================
-         * SESSION CHECK ON PAGE LOAD
+         * SESSION CHECK ON PAGE LOAD - مع انتظار تحميل Supabase
          * ============================================================
          */
         (async function init() {
             console.log('🏢 QuickData ProSoft - نظام إدارة الشركات');
             console.log('🔗 Supabase URL:', SUPABASE_URL);
 
-            // التحقق من وجود جلسة في localStorage
-            var session = localStorage.getItem('rollex_session');
-            if (session) {
-                try {
-                    var parsed = JSON.parse(session);
-                    if (parsed.access_token) {
-                        // التحقق من صلاحية التوكن
-                        var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + parsed.access_token
-                            }
-                        });
-                        if (response.ok) {
-                            console.log('✅ جلسة موجودة وصالحة، جاري التوجيه إلى الصفحة الرئيسية...');
-                            window.location.href = 'index.html';
-                            return;
-                        }
-                    }
-                } catch (e) {
-                    console.warn('⚠️ فشل التحقق من الجلسة:', e);
-                }
-            }
+            try {
+                // ✅ انتظار تحميل Supabase library
+                console.log('⏳ الانتظار لتحميل Supabase...');
+                await waitForSupabase();
+                console.log('✅ Supabase library جاهزة');
 
-            console.log('👤 المستخدم غير مسجل دخول، مرحباً بك في صفحة تسجيل الدخول');
+                // التحقق من وجود جلسة في localStorage
+                var session = localStorage.getItem('rollex_session');
+                if (session) {
+                    try {
+                        var parsed = JSON.parse(session);
+                        if (parsed.access_token) {
+                            console.log('🔍 التحقق من صلاحية الجلسة...');
+                            var supabaseClient = getSupabaseClient();
+                            if (supabaseClient) {
+                                var { data, error } = await supabaseClient.auth.getUser();
+                                if (!error && data && data.user) {
+                                    console.log('✅ جلسة موجودة وصالحة للمستخدم:', data.user.email);
+                                    console.log('🔄 جاري التوجيه إلى الصفحة الرئيسية...');
+                                    window.location.href = 'index.html';
+                                    return;
+                                } else {
+                                    console.warn('⚠️ الجلسة غير صالحة، سيتم حذفها');
+                                    localStorage.removeItem('rollex_session');
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ فشل التحقق من الجلسة:', e);
+                        localStorage.removeItem('rollex_session');
+                    }
+                }
+
+                console.log('👤 المستخدم غير مسجل دخول، مرحباً بك في صفحة تسجيل الدخول');
+            } catch (error) {
+                console.error('❌ خطأ في تهيئة الصفحة:', error);
+                console.log('⚠️ سيتم محاولة التحميل بدون Supabase Client');
+            }
         })();
     </script>
 
