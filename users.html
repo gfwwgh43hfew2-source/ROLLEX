@@ -1206,47 +1206,68 @@
         }
 
         // ============================================================
-        // SAVE USER
+        // SAVE USER (النسخة المعدلة مع التحقق من العناصر)
         // ============================================================
         async function saveUser(event) {
             event.preventDefault();
 
-            var id = document.getElementById('editId').value;
-            var userId = document.getElementById('editUserId').value;
-            var name = document.getElementById('userName').value.trim();
-            var email = document.getElementById('userEmail').value.trim();
-            var password = document.getElementById('userPassword').value;
-            var role = document.getElementById('userRole').value;
-            var status = document.getElementById('userStatus').value === 'true';
+            // ✅ التحقق من وجود العناصر قبل استخدامها
+            var userNameEl = document.getElementById('userName');
+            var userEmailEl = document.getElementById('userEmail');
+            var userPasswordEl = document.getElementById('userPassword');
+            var userRoleEl = document.getElementById('userRole');
+            var userStatusEl = document.getElementById('userStatus');
+            var editIdEl = document.getElementById('editId');
+            var editUserIdEl = document.getElementById('editUserId');
+            var submitBtn = document.getElementById('submitBtn');
+
+            if (!userNameEl || !userEmailEl || !userRoleEl || !userStatusEl) {
+                showToast('❌ خطأ', 'حدث خطأ في تحميل النموذج، يرجى إعادة المحاولة', 'error');
+                return;
+            }
+
+            if (!submitBtn) {
+                showToast('❌ خطأ', 'حدث خطأ في النموذج، يرجى إعادة المحاولة', 'error');
+                return;
+            }
+
+            var id = editIdEl ? editIdEl.value : '';
+            var userId = editUserIdEl ? editUserIdEl.value : '';
+            var name = userNameEl.value ? userNameEl.value.trim() : '';
+            var email = userEmailEl.value ? userEmailEl.value.trim() : '';
+            var password = userPasswordEl ? userPasswordEl.value : '';
+            var role = userRoleEl.value;
+            var status = userStatusEl.value === 'true';
 
             if (!name) {
                 showToast('⚠️ تنبيه', 'يرجى إدخال الاسم الكامل', 'error');
-                document.getElementById('userName').focus();
+                userNameEl.focus();
                 return;
             }
             if (!email) {
                 showToast('⚠️ تنبيه', 'يرجى إدخال البريد الإلكتروني', 'error');
-                document.getElementById('userEmail').focus();
+                userEmailEl.focus();
                 return;
             }
 
+            // جمع الصلاحيات من الـ Grid
             var permissions = {};
-            document.querySelectorAll('#permissionsGrid .perm-item input[type="checkbox"]').forEach(function(cb) {
+            var permCheckboxes = document.querySelectorAll('#permissionsGrid .perm-item input[type="checkbox"]');
+            permCheckboxes.forEach(function(cb) {
                 var module = cb.dataset.module;
                 var permType = cb.dataset.perm;
                 if (!permissions[module]) permissions[module] = {};
                 permissions[module][permType] = cb.checked;
             });
 
-            var btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
 
             var token = getToken();
             if (!token) {
                 showToast('❌ خطأ', 'جلسة منتهية', 'error');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ';
                 return;
             }
 
@@ -1269,12 +1290,13 @@
                 };
 
                 if (id) {
+                    // تحديث مستخدم موجود
                     await patchRow('profiles', id, profileData);
 
+                    // تحديث الصلاحيات
                     for (var module in permissions) {
                         var perm = permissions[module];
-                        var existing = allPermissions.find(function(p) { return p.user_id == userId && p.module ==
-                            module; });
+                        var existing = allPermissions.find(function(p) { return p.user_id == userId && p.module == module; });
 
                         if (existing) {
                             await patchRow('user_permissions', existing.id, {
@@ -1301,10 +1323,12 @@
                     showToast('✅ تم التعديل', 'تم تحديث المستخدم بنجاح', 'success');
 
                 } else {
+                    // إضافة مستخدم جديد
                     if (!password || password.length < 6) {
                         showToast('⚠️ تنبيه', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+                        if (userPasswordEl) userPasswordEl.focus();
                         return;
                     }
 
@@ -1375,8 +1399,8 @@
                 showToast('❌ خطأ', error.message || 'فشل الحفظ', 'error');
             }
 
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ';
         }
 
         // ============================================================
