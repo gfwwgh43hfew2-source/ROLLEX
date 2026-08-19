@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="supabase-client.js"></script>
     <style>
-        /* ===== نفس الـ CSS السابق ===== */
+        /* ============================================================ */
         :root {
             --ink: #121821;
             --ink-soft: #2c3644;
@@ -39,6 +39,7 @@
             --stripe-height: 4px;
             --sidebar-width: 260px;
         }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: var(--font-display);
@@ -434,13 +435,83 @@
             font-weight: 700;
         }
 
+        /* ============================================================ */
+        /* TABLE WRAPPER مع مؤشر التحميل */
+        /* ============================================================ */
         .table-wrapper {
             background: var(--surface);
             border-radius: var(--radius);
             overflow-x: auto;
             border: 1px solid var(--line);
             box-shadow: var(--shadow-sm);
+            min-height: 300px;
+            position: relative;
         }
+
+        /* ===== SPINNER ===== */
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--surface-muted);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== LOADING CONTAINER ===== */
+        #loadingContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            min-height: 300px;
+            transition: opacity 0.3s ease;
+        }
+        #loadingContainer.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #loadingContainer .loading-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--ink);
+            margin-top: 16px;
+        }
+        #loadingContainer .loading-sub {
+            font-size: 0.85rem;
+            color: var(--ink-mute);
+            margin-top: 4px;
+        }
+        #loadingContainer .loading-progress {
+            font-size: 0.75rem;
+            color: var(--accent-ink);
+            margin-top: 8px;
+            font-weight: 700;
+            background: var(--accent-soft);
+            padding: 4px 16px;
+            border-radius: 50px;
+            border: 1px solid rgba(179,129,58,0.14);
+        }
+        #loadingContainer .loading-progress i {
+            margin-left: 6px;
+        }
+
+        /* ===== TABLE CONTAINER ===== */
+        #tableContainer {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        #tableContainer.show {
+            opacity: 1;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -490,7 +561,6 @@
             color: var(--accent);
         }
         .loading-state i { animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
 
         .modal-overlay {
             display: none;
@@ -635,7 +705,7 @@
         .import-progress .progress-track .progress-bar {
             width: 0%;
             height: 100%;
-            background: var(--accent-gradient, linear-gradient(135deg, var(--accent), var(--teal)));
+            background: linear-gradient(135deg, var(--accent), var(--teal));
             border-radius: 10px;
             transition: width 0.3s ease;
         }
@@ -843,26 +913,44 @@
             <div class="count">عدد التصنيفات: <span id="categoryCount">0</span></div>
         </div>
 
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>كود المنتج</th>
-                        <th>اسم المنتج</th>
-                        <th>نوع المنتج</th>
-                        <th>وحدة القياس</th>
-                        <th style="text-align:center;">سعر التكلفة</th>
-                        <th style="text-align:center;">سعر البيع</th>
-                        <th style="text-align:center;">الحد الأدنى</th>
-                        <th>الحالة</th>
-                        <th style="text-align:center;">إجراءات</th>
-                    </tr>
-                </thead>
-                <tbody id="entriesBody">
-                    <tr><td colspan="10"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>
-                </tbody>
-            </table>
+        <!-- ============================================================ -->
+        <!-- TABLE WRAPPER -->
+        <!-- ============================================================ -->
+        <div class="table-wrapper" id="tableWrapper">
+
+            <!-- ===== مؤشر التحميل ===== -->
+            <div id="loadingContainer">
+                <div class="spinner"></div>
+                <div class="loading-title">جاري تحميل المنتجات</div>
+                <div class="loading-sub" id="loadingSub">يرجى الانتظار...</div>
+                <div class="loading-progress" id="loadingProgress">
+                    <i class="fas fa-spinner fa-spin"></i> جاري التحميل...
+                </div>
+            </div>
+
+            <!-- ===== الجدول (مخفي في البداية) ===== -->
+            <div id="tableContainer">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>كود المنتج</th>
+                            <th>اسم المنتج</th>
+                            <th>نوع المنتج</th>
+                            <th>وحدة القياس</th>
+                            <th style="text-align:center;">سعر التكلفة</th>
+                            <th style="text-align:center;">سعر البيع</th>
+                            <th style="text-align:center;">الحد الأدنى</th>
+                            <th>الحالة</th>
+                            <th style="text-align:center;">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entriesBody">
+                        <tr><td colspan="10"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
         </div>
 
     </div>
@@ -950,7 +1038,6 @@
                     <div class="helper-text">الصيغ المدعومة: .xlsx, .xls</div>
                 </div>
 
-                <!-- ===== PROGRESS BAR ===== -->
                 <div class="import-progress" id="importProgress">
                     <div class="progress-header">
                         <span id="progressText">جاري الاستيراد...</span>
@@ -1066,77 +1153,115 @@
         var filterStatus = document.getElementById('filterStatus');
         var allProducts = [];
 
+        var loadingContainer = document.getElementById('loadingContainer');
+        var tableContainer = document.getElementById('tableContainer');
+        var loadingProgress = document.getElementById('loadingProgress');
+        var loadingSub = document.getElementById('loadingSub');
+
         // ============================================================
-        // GET PRODUCTS (جلب جميع المنتجات بدون حد 1000)
+        // GET PRODUCTS WITH PROGRESS (مع عرض التقدم)
         // ============================================================
-        // ============================================================
-// GET PRODUCTS (مع دعم التصفح لجلب جميع السجلات)
-// ============================================================
-async function getProducts() {
-    try {
-        var token = getToken();
-        if (!token) {
-            console.warn('⚠️ لا يوجد توكن');
-            return [];
-        }
-
-        var companyId = await getCompanyId();
-        if (!companyId) {
-            console.warn('⚠️ لم يتم العثور على company_id');
-            return [];
-        }
-
-        var allProducts = [];
-        var page = 0;
-        var pageSize = 1000;
-        var hasMore = true;
-
-        while (hasMore) {
-            var offset = page * pageSize;
-            var url = SUPABASE_URL + '/rest/v1/products?select=*&company_id=eq.' + companyId + 
-                '&order=code.asc&limit=' + pageSize + '&offset=' + offset;
-            
-            console.log('📤 جلب صفحة ' + (page + 1) + ' من: ' + url);
-
-            var response = await fetch(url, {
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token
+        async function getProductsWithProgress(onProgress) {
+            try {
+                var token = getToken();
+                if (!token) {
+                    console.warn('⚠️ لا يوجد توكن');
+                    return [];
                 }
-            });
 
-            if (!response.ok) {
-                console.warn('⚠️ فشل جلب المنتجات في الصفحة ' + (page + 1) + ':', response.status);
-                break;
+                var companyId = await getCompanyId();
+                if (!companyId) {
+                    console.warn('⚠️ لم يتم العثور على company_id');
+                    return [];
+                }
+
+                var allProducts = [];
+                var page = 0;
+                var pageSize = 1000;
+                var hasMore = true;
+                var totalLoaded = 0;
+
+                // 1. جلب العدد الإجمالي أولاً
+                var countUrl = SUPABASE_URL + '/rest/v1/products?select=id&company_id=eq.' + companyId;
+                var countResponse = await fetch(countUrl, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                var countData = await countResponse.json();
+                var totalCount = countData ? countData.length : 0;
+                console.log('📊 إجمالي المنتجات في قاعدة البيانات:', totalCount);
+
+                if (totalCount === 0) {
+                    return [];
+                }
+
+                // 2. تحديث النص الأولي
+                if (onProgress) {
+                    onProgress(0, totalCount);
+                }
+
+                // 3. جلب البيانات بالتصفح
+                while (hasMore) {
+                    var offset = page * pageSize;
+                    var url = SUPABASE_URL + '/rest/v1/products?select=*&company_id=eq.' + companyId + 
+                        '&order=code.asc&limit=' + pageSize + '&offset=' + offset;
+
+                    var response = await fetch(url, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + token
+                        }
+                    });
+
+                    if (!response.ok) {
+                        console.warn('⚠️ فشل جلب المنتجات في الصفحة ' + (page + 1) + ':', response.status);
+                        break;
+                    }
+
+                    var data = await response.json();
+                    
+                    if (!data || data.length === 0) {
+                        hasMore = false;
+                        break;
+                    }
+
+                    allProducts = allProducts.concat(data);
+                    totalLoaded += data.length;
+
+                    // تحديث التقدم
+                    if (onProgress) {
+                        onProgress(totalLoaded, totalCount);
+                    }
+
+                    console.log('✅ تم جلب ' + data.length + ' منتج من الصفحة ' + (page + 1) + ' (إجمالي: ' + totalLoaded + ')');
+
+                    if (data.length < pageSize) {
+                        hasMore = false;
+                    } else {
+                        page++;
+                    }
+
+                    // تأخير بسيط بين الطلبات
+                    await new Promise(r => setTimeout(r, 50));
+                }
+
+                console.log('✅ تم جلب إجمالي ' + allProducts.length + ' منتج');
+                return allProducts;
+
+            } catch (error) {
+                console.error('❌ خطأ في جلب المنتجات:', error);
+                return [];
             }
-
-            var data = await response.json();
-            
-            if (!data || data.length === 0) {
-                hasMore = false;
-                break;
-            }
-
-            allProducts = allProducts.concat(data);
-            console.log('✅ تم جلب ' + data.length + ' منتج من الصفحة ' + (page + 1));
-
-            if (data.length < pageSize) {
-                hasMore = false;
-            } else {
-                page++;
-            }
-
-            await new Promise(r => setTimeout(r, 100));
         }
 
-        console.log('✅ تم جلب إجمالي ' + allProducts.length + ' منتج');
-        return allProducts;
-
-    } catch (error) {
-        console.error('❌ خطأ في جلب المنتجات:', error);
-        return [];
-    }
-}
+        // ============================================================
+        // GET PRODUCTS
+        // ============================================================
+        async function getProducts() {
+            return await getProductsWithProgress();
+        }
 
         // ============================================================
         // INSERT PRODUCT
@@ -1614,12 +1739,71 @@ async function getProducts() {
         }
 
         // ============================================================
-        // LOAD DATA
+        // LOAD DATA (مع مؤشر تحميل)
         // ============================================================
         async function loadData() {
-            entriesBody.innerHTML = '<tr><td colspan="10"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
-            allProducts = await getProducts();
-            displayProducts(allProducts);
+            // إظهار مؤشر التحميل وإخفاء الجدول
+            loadingContainer.style.display = 'flex';
+            loadingContainer.classList.remove('hidden');
+            tableContainer.style.display = 'none';
+            tableContainer.classList.remove('show');
+
+            // تحديث النص
+            loadingSub.textContent = 'جاري تحميل المنتجات...';
+            loadingProgress.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
+
+            try {
+                var startTime = Date.now();
+
+                // جلب المنتجات مع عرض التقدم
+                var products = await getProductsWithProgress(function(current, total) {
+                    var percent = Math.round((current / total) * 100);
+                    loadingProgress.textContent = current.toLocaleString() + ' من ' + total.toLocaleString() + ' منتج (' + percent + '%)';
+                    loadingSub.textContent = 'تم تحميل ' + current.toLocaleString() + ' من ' + total.toLocaleString() + ' منتج';
+                });
+
+                allProducts = products;
+
+                // تأخير بسيط لإظهار اكتمال التحميل
+                var elapsed = Date.now() - startTime;
+                var minDisplayTime = 500;
+                if (elapsed < minDisplayTime) {
+                    await new Promise(r => setTimeout(r, minDisplayTime - elapsed));
+                }
+
+                // تحديث النص النهائي
+                loadingSub.textContent = '✅ تم تحميل ' + allProducts.length.toLocaleString() + ' منتج بنجاح!';
+                loadingProgress.textContent = '✅ جاهز!';
+
+                // إخفاء مؤشر التحميل
+                loadingContainer.classList.add('hidden');
+                setTimeout(function() {
+                    loadingContainer.style.display = 'none';
+                    tableContainer.style.display = 'block';
+                    setTimeout(function() {
+                        tableContainer.classList.add('show');
+                    }, 50);
+                }, 300);
+
+                // عرض البيانات
+                displayProducts(allProducts);
+
+            } catch (error) {
+                console.error('❌ خطأ في تحميل البيانات:', error);
+                loadingSub.textContent = '❌ حدث خطأ في تحميل البيانات';
+                loadingProgress.textContent = '❌ فشل التحميل';
+                loadingProgress.style.color = 'var(--rust)';
+
+                setTimeout(function() {
+                    loadingContainer.classList.add('hidden');
+                    setTimeout(function() {
+                        loadingContainer.style.display = 'none';
+                        tableContainer.style.display = 'block';
+                        tableContainer.classList.add('show');
+                        entriesBody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p></div></td></tr>';
+                    }, 300);
+                }, 1500);
+            }
         }
 
         // ============================================================
@@ -1658,6 +1842,8 @@ async function getProducts() {
 
             var token = getToken();
             if (!token) {
+                loadingSub.textContent = '⚠️ يرجى تسجيل الدخول';
+                loadingProgress.textContent = '⚠️ غير مصرح';
                 entriesBody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول للوصول إلى هذه الصفحة</p></div></td></tr>';
                 setTimeout(function() { window.location.href = 'login.html'; }, 2000);
                 return;
