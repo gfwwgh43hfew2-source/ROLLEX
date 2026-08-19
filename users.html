@@ -1561,7 +1561,7 @@
         }
 
         // ============================================================
-        // SAVE USER - النسخة النهائية مع حل مشكلة الـ Token
+        // SAVE USER - النسخة النهائية مع حل مشكلة Token
         // ============================================================
         async function saveUser(event) {
             event.preventDefault();
@@ -1729,48 +1729,62 @@
                         return;
                     }
 
+                    // ✅ الخطوة 1: حفظ جلسة الأدمن الحالية
+                    var adminSession = localStorage.getItem('rollex_session');
+                    console.log('✅ [saveUser] تم حفظ جلسة الأدمن');
+
+                    // ✅ الخطوة 2: إنشاء مستخدم جديد باستخدام supabaseClientAuth
                     console.log('🔐 [saveUser] إنشاء مستخدم في Supabase Auth...');
-                    
-                    // ✅ الحل: استخدام supabaseClient الحالي (مع Token الأدمن) لإنشاء المستخدم
-                    // نقوم بحفظ Token الأدمن الحالي قبل إنشاء المستخدم الجديد
-                    var adminToken = token;
-                    
-                    // إنشاء المستخدم باستخدام Admin API مع Token الأدمن
-                    var signUpResponse = await fetch(SUPABASE_URL + '/auth/v1/admin/users', {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + adminToken,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            email: email,
-                            password: password,
-                            user_metadata: {
+                    var supabaseClientAuth = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                        auth: {
+                            autoRefreshToken: true,
+                            persistSession: true,
+                            detectSessionInUrl: true,
+                            storageKey: 'rollex_session'
+                        }
+                    });
+
+                    var { data, error } = await supabaseClientAuth.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            data: {
                                 name: name,
                                 company_id: companyId,
                                 role: role
-                            },
-                            email_confirm: true
-                        })
+                            }
+                        }
                     });
 
-                    if (!signUpResponse.ok) {
-                        var errorData = await signUpResponse.json();
-                        var errMsg = errorData.message || errorData.msg || 'فشل إنشاء المستخدم';
-                        if (errMsg.includes('already registered') || errMsg.includes('duplicate')) {
+                    if (error) {
+                        var errMsg = error.message || 'فشل إنشاء المستخدم';
+                        if (errMsg.includes('already registered')) {
                             errMsg = 'هذا البريد الإلكتروني مسجل بالفعل';
                         }
                         console.error('❌ [saveUser] خطأ في إنشاء المستخدم:', errMsg);
                         throw new Error(errMsg);
                     }
 
-                    var userData = await signUpResponse.json();
-                    var newUserId = userData.id;
+                    if (!data.user) {
+                        console.error('❌ [saveUser] فشل إنشاء المستخدم - لا يوجد user');
+                        throw new Error('فشل إنشاء المستخدم');
+                    }
 
+                    var newUserId = data.user.id;
                     console.log('✅ [saveUser] تم إنشاء المستخدم في Auth:', newUserId);
 
-                    // ✅ استخدام supabaseClient (مع Token الأدمن) لإدراج البروفايل والصلاحيات
+                    // ✅ الخطوة 3: استعادة جلسة الأدمن
+                    if (adminSession) {
+                        localStorage.setItem('rollex_session', adminSession);
+                        console.log('✅ [saveUser] تم استعادة جلسة الأدمن');
+                    } else {
+                        console.warn('⚠️ [saveUser] لا توجد جلسة أدمن للاستعادة');
+                    }
+
+                    // ✅ الخطوة 4: استخدام supabaseClient (مع Token الأدمن) لإدراج البروفايل والصلاحيات
+                    // نعيد إنشاء supabaseClient مع Token الأدمن
+                    supabaseClient = getSupabaseClient();
+
                     var { error: profileInsertError } = await supabaseClient
                         .from('profiles')
                         .upsert({
