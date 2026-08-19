@@ -418,7 +418,7 @@
 
     <script>
         // ============================================================
-        // SUPABASE CONFIGURATION (مضبوط يدوياً)
+        // SUPABASE CONFIGURATION
         // ============================================================
         const SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
@@ -532,7 +532,7 @@
         }
 
         // ============================================================
-        // LOGIN FORM SUBMIT - باستخدام Fetch المباشر
+        // LOGIN FORM SUBMIT - الطريقة الصحيحة مع البحث في جدول profiles
         // ============================================================
         loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -556,7 +556,7 @@
                 return;
             }
 
-            // ✅ مسح أي جلسة سابقة
+            // مسح أي جلسة سابقة
             console.log('🗑️ جاري مسح الجلسات القديمة...');
             localStorage.removeItem('rollex_session');
             sessionStorage.removeItem('rollex_session');
@@ -569,6 +569,9 @@
             hideMessage();
 
             try {
+                // ====================================================
+                // الخطوة 1: تسجيل الدخول عبر Supabase Auth
+                // ====================================================
                 console.log('📡 إرسال طلب إلى Supabase Auth...');
 
                 var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
@@ -584,11 +587,10 @@
                     })
                 });
 
-                var data = await response.json();
-                console.log('📦 البيانات المستلمة:', data);
+                var authData = await response.json();
 
                 if (!response.ok) {
-                    var errorMsg = data.error_description || data.message || 'بيانات الدخول غير صحيحة';
+                    var errorMsg = authData.error_description || authData.message || 'بيانات الدخول غير صحيحة';
                     if (errorMsg.includes('Invalid login credentials')) {
                         errorMsg = '❌ البريد الإلكتروني أو كلمة المرور غير صحيحة';
                     } else if (errorMsg.includes('Email not confirmed')) {
@@ -597,25 +599,68 @@
                     throw new Error(errorMsg);
                 }
 
-                if (!data.access_token) {
+                if (!authData.access_token) {
                     throw new Error('فشل في الحصول على التوكن');
                 }
 
                 console.log('✅ تم استلام access_token بنجاح!');
-                console.log('👤 معرف المستخدم:', data.user.id);
-                console.log('📧 البريد الإلكتروني:', data.user.email);
+                console.log('👤 معرف المستخدم:', authData.user.id);
+                console.log('📧 البريد الإلكتروني:', authData.user.email);
 
-                // ✅ تخزين الجلسة في localStorage
-                localStorage.setItem('rollex_session', JSON.stringify({
-                    access_token: data.access_token,
-                    refresh_token: data.refresh_token,
-                    expires_at: Date.now() + (data.expires_in * 1000)
-                }));
-                console.log('💾 تم حفظ الجلسة في localStorage');
+                // ====================================================
+                // الخطوة 2: جلب بيانات المستخدم من جدول profiles
+                // ====================================================
+                console.log('📡 جلب بيانات المستخدم من جدول profiles...');
 
-                showMessage('✅ تم تسجيل الدخول بنجاح! جاري التحويل...', 'success');
+                var profileResponse = await fetch(
+                    SUPABASE_URL + '/rest/v1/profiles?select=*&id=eq.' + authData.user.id,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + authData.access_token
+                        }
+                    }
+                );
+
+                if (!profileResponse.ok) {
+                    console.warn('⚠️ فشل جلب البروفايل، ولكن تم تسجيل الدخول بنجاح');
+                }
+
+                var profiles = await profileResponse.json();
+                var profile = (profiles && profiles.length > 0) ? profiles[0] : null;
+
+                if (profile) {
+                    console.log('✅ تم جلب البروفايل بنجاح!');
+                    console.log('📝 الاسم:', profile.full_name);
+                    console.log('🔑 الدور:', profile.role);
+                    console.log('🏢 الشركة:', profile.company_id);
+                } else {
+                    console.warn('⚠️ لا يوجد بروفايل لهذا المستخدم في جدول profiles');
+                }
+
+                // ====================================================
+                // الخطوة 3: حفظ الجلسة في localStorage
+                // ====================================================
+                var sessionData = {
+                    access_token: authData.access_token,
+                    refresh_token: authData.refresh_token,
+                    expires_at: Date.now() + (authData.expires_in * 1000),
+                    user: {
+                        id: authData.user.id,
+                        email: authData.user.email,
+                        full_name: profile ? profile.full_name : authData.user.email,
+                        role: profile ? profile.role : 'موظف',
+                        company_id: profile ? profile.company_id : null
+                    }
+                };
+
+                localStorage.setItem('rollex_session', JSON.stringify(sessionData));
+                console.log('💾 تم حفظ الجلسة في localStorage مع بيانات المستخدم');
+
+                showMessage('✅ تم تسجيل الدخول بنجاح! مرحباً ' + (profile ? profile.full_name : authData.user.email), 'success');
 
                 setTimeout(function() {
+                    console.log('🔄 جاري التوجيه إلى الصفحة الرئيسية...');
                     window.location.href = 'index.html';
                 }, 900);
 
