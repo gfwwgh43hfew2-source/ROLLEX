@@ -174,7 +174,7 @@ function redirectToLogin() {
 }
 
 // ============================================================
-// GET CURRENT USER PROFILE - ✅ معدلة باستخدام Supabase SDK
+// GET CURRENT USER PROFILE
 // ============================================================
 async function getCurrentUserProfile() {
     var token = getToken();
@@ -186,14 +186,12 @@ async function getCurrentUserProfile() {
     try {
         var supabaseClient = getSupabaseClient();
         
-        // جلب المستخدم الحالي
         var { data: userData, error: userError } = await supabaseClient.auth.getUser();
         if (userError || !userData?.user) {
             console.warn('⚠️ فشل جلب المستخدم:', userError?.message);
             return null;
         }
 
-        // جلب البروفايل
         var { data: profileData, error: profileError } = await supabaseClient
             .from('profiles')
             .select('*')
@@ -215,7 +213,7 @@ async function getCurrentUserProfile() {
 }
 
 // ============================================================
-// GET COMPANY ID - ✅ معدلة باستخدام Supabase SDK
+// GET COMPANY ID
 // ============================================================
 async function getCompanyId() {
     var token = getToken();
@@ -251,7 +249,7 @@ async function getCompanyId() {
 }
 
 // ============================================================
-// GENERIC GET - ✅ معدلة باستخدام Supabase SDK
+// GENERIC GET
 // ============================================================
 async function getTable(tableName, orderBy) {
     var token = getToken();
@@ -282,7 +280,6 @@ async function getTable(tableName, orderBy) {
             query = query.order(orderField, { ascending: orderDirection === 'asc' });
         }
 
-        // ✅ حد كبير لجلب جميع السجلات
         query = query.limit(100000);
 
         var { data, error } = await query;
@@ -302,7 +299,7 @@ async function getTable(tableName, orderBy) {
 }
 
 // ============================================================
-// GENERIC INSERT - ✅ معدلة باستخدام Supabase SDK
+// GENERIC INSERT
 // ============================================================
 async function insertRow(tableName, payload) {
     var token = getToken();
@@ -326,7 +323,7 @@ async function insertRow(tableName, payload) {
 }
 
 // ============================================================
-// GENERIC UPSERT - ✅ معدلة باستخدام Supabase SDK
+// GENERIC UPSERT
 // ============================================================
 async function upsertRow(tableName, payload) {
     var token = getToken();
@@ -350,7 +347,7 @@ async function upsertRow(tableName, payload) {
 }
 
 // ============================================================
-// GENERIC PATCH - ✅ معدلة باستخدام Supabase SDK
+// GENERIC PATCH
 // ============================================================
 async function patchRow(tableName, id, payload) {
     var token = getToken();
@@ -373,7 +370,7 @@ async function patchRow(tableName, id, payload) {
 }
 
 // ============================================================
-// GENERIC DELETE - ✅ معدلة باستخدام Supabase SDK
+// GENERIC DELETE
 // ============================================================
 async function deleteRows(tableName, column, value) {
     var token = getToken();
@@ -572,14 +569,6 @@ function getStatusBadge(status) {
 // ============================================================
 // PERMISSION FUNCTIONS
 // ============================================================
-
-/**
- * التحقق من صلاحية مستخدم معين للوحدة المحددة
- * @param {string} module - اسم الوحدة (sales, clients, ...)
- * @param {string} permission - نوع الصلاحية (view, add, edit, delete, export)
- * @param {string} userId - (اختياري) معرف المستخدم
- * @returns {Promise<boolean>}
- */
 async function hasPermission(module, permission, userId) {
     var token = getToken();
     if (!token) return false;
@@ -587,7 +576,6 @@ async function hasPermission(module, permission, userId) {
     var targetUserId = userId || (await getCurrentUserProfile())?.id;
     if (!targetUserId) return false;
 
-    // السوبر أدمن عنده كل الصلاحيات
     var profile = await getCurrentUserProfile();
     if (profile && profile.is_super_admin) return true;
 
@@ -616,12 +604,6 @@ async function hasPermission(module, permission, userId) {
     }
 }
 
-/**
- * جلب جميع صلاحيات المستخدم لوحدة معينة
- * @param {string} module - اسم الوحدة
- * @param {string} userId - (اختياري) معرف المستخدم
- * @returns {Promise<Object>}
- */
 async function getUserPermissions(module, userId) {
     var token = getToken();
     if (!token) return {};
@@ -629,7 +611,6 @@ async function getUserPermissions(module, userId) {
     var targetUserId = userId || (await getCurrentUserProfile())?.id;
     if (!targetUserId) return {};
 
-    // السوبر أدمن عنده كل الصلاحيات
     var profile = await getCurrentUserProfile();
     if (profile && profile.is_super_admin) {
         return { view: true, add: true, edit: true, delete: true, export: true };
@@ -668,12 +649,6 @@ async function getUserPermissions(module, userId) {
     }
 }
 
-/**
- * التحقق من أن المستخدم لديه صلاحية الوصول للصفحة
- * @param {string} module - اسم الوحدة
- * @param {string} permission - نوع الصلاحية (view, add, edit, delete, export)
- * @returns {Promise<boolean>}
- */
 async function checkPageAccess(module, permission) {
     permission = permission || 'view';
     var hasPerm = await hasPermission(module, permission);
