@@ -436,7 +436,7 @@
         }
 
         /* ============================================================ */
-        /* TABLE WRAPPER مع مؤشر التحميل */
+        /* TABLE WRAPPER مع مؤشر التحميل المتقدم */
         /* ============================================================ */
         .table-wrapper {
             background: var(--surface);
@@ -470,10 +470,11 @@
             justify-content: center;
             padding: 60px 20px;
             min-height: 300px;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.4s ease, transform 0.4s ease;
         }
         #loadingContainer.hidden {
             opacity: 0;
+            transform: scale(0.98);
             pointer-events: none;
         }
 
@@ -487,6 +488,7 @@
             font-size: 0.85rem;
             color: var(--ink-mute);
             margin-top: 4px;
+            transition: color 0.3s ease;
         }
         #loadingContainer .loading-progress {
             font-size: 0.75rem;
@@ -494,9 +496,10 @@
             margin-top: 8px;
             font-weight: 700;
             background: var(--accent-soft);
-            padding: 4px 16px;
+            padding: 6px 20px;
             border-radius: 50px;
             border: 1px solid rgba(179,129,58,0.14);
+            transition: color 0.3s ease;
         }
         #loadingContainer .loading-progress i {
             margin-left: 6px;
@@ -506,7 +509,7 @@
         #tableContainer {
             display: none;
             opacity: 0;
-            transition: opacity 0.4s ease;
+            transition: opacity 0.5s ease;
         }
         #tableContainer.show {
             opacity: 1;
@@ -1230,7 +1233,6 @@
                     allProducts = allProducts.concat(data);
                     totalLoaded += data.length;
 
-                    // تحديث التقدم
                     if (onProgress) {
                         onProgress(totalLoaded, totalCount);
                     }
@@ -1243,7 +1245,6 @@
                         page++;
                     }
 
-                    // تأخير بسيط بين الطلبات
                     await new Promise(r => setTimeout(r, 50));
                 }
 
@@ -1322,7 +1323,7 @@
         }
 
         // ============================================================
-        // DISPLAY PRODUCTS
+        // DISPLAY PRODUCTS (عرض المنتجات في الجدول)
         // ============================================================
         function displayProducts(products) {
             var filtered = filterProducts(products);
@@ -1739,7 +1740,7 @@
         }
 
         // ============================================================
-        // LOAD DATA (مع مؤشر تحميل)
+        // LOAD DATA (مع مؤشر تحميل متقدم - بدون فجوة)
         // ============================================================
         async function loadData() {
             // إظهار مؤشر التحميل وإخفاء الجدول
@@ -1748,9 +1749,9 @@
             tableContainer.style.display = 'none';
             tableContainer.classList.remove('show');
 
-            // تحديث النص
             loadingSub.textContent = 'جاري تحميل المنتجات...';
             loadingProgress.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
+            loadingProgress.style.color = 'var(--accent-ink)';
 
             try {
                 var startTime = Date.now();
@@ -1764,29 +1765,41 @@
 
                 allProducts = products;
 
-                // تأخير بسيط لإظهار اكتمال التحميل
+                // تأخير بسيط لإظهار اكتمال التحميل (500ms على الأقل)
                 var elapsed = Date.now() - startTime;
                 var minDisplayTime = 500;
                 if (elapsed < minDisplayTime) {
                     await new Promise(r => setTimeout(r, minDisplayTime - elapsed));
                 }
 
-                // تحديث النص النهائي
+                // ✅ الخطوة 1: عرض البيانات في الجدول (الجدول لا يزال مخفياً)
+                displayProducts(allProducts);
+
+                // ✅ الخطوة 2: الانتظار حتى ينتهي المتصفح من رسم الجدول
+                await new Promise(resolve => requestAnimationFrame(resolve));
+                await new Promise(resolve => requestAnimationFrame(resolve));
+                await new Promise(r => setTimeout(r, 50));
+
+                // ✅ الخطوة 3: تحديث النص النهائي
                 loadingSub.textContent = '✅ تم تحميل ' + allProducts.length.toLocaleString() + ' منتج بنجاح!';
                 loadingProgress.textContent = '✅ جاهز!';
+                loadingProgress.style.color = 'var(--teal)';
 
-                // إخفاء مؤشر التحميل
+                // ✅ الخطوة 4: إخفاء مؤشر التحميل مع تأثير انسيابي
                 loadingContainer.classList.add('hidden');
+
+                // ✅ الخطوة 5: إظهار الجدول بعد التأكد من اكتمال الرسم
                 setTimeout(function() {
                     loadingContainer.style.display = 'none';
                     tableContainer.style.display = 'block';
-                    setTimeout(function() {
-                        tableContainer.classList.add('show');
-                    }, 50);
-                }, 300);
-
-                // عرض البيانات
-                displayProducts(allProducts);
+                    
+                    // ✅ استخدام requestAnimationFrame مرتين لضمان ظهور الجدول بعد الرسم
+                    requestAnimationFrame(function() {
+                        requestAnimationFrame(function() {
+                            tableContainer.classList.add('show');
+                        });
+                    });
+                }, 350);
 
             } catch (error) {
                 console.error('❌ خطأ في تحميل البيانات:', error);
@@ -1799,8 +1812,12 @@
                     setTimeout(function() {
                         loadingContainer.style.display = 'none';
                         tableContainer.style.display = 'block';
-                        tableContainer.classList.add('show');
-                        entriesBody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p></div></td></tr>';
+                        requestAnimationFrame(function() {
+                            requestAnimationFrame(function() {
+                                tableContainer.classList.add('show');
+                                entriesBody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p></div></td></tr>';
+                            });
+                        });
                     }, 300);
                 }, 1500);
             }
