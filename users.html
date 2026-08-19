@@ -1095,7 +1095,6 @@
                     var isSuper = await isSuperAdminCheck();
                     console.log('🔍 [getUsers] isSuperAdmin:', isSuper);
                     if (isSuper) {
-                        // سوبر أدمن يشوف كل المستخدمين من كل الشركات
                         var { data, error } = await supabaseClient
                             .from('profiles')
                             .select('*')
@@ -1112,13 +1111,11 @@
                     return [];
                 }
 
-                // بناء الاستعلام
                 var query = supabaseClient
                     .from('profiles')
                     .select('*')
                     .eq('company_id', companyId);
 
-                // ✅ فلتر deleted_at
                 if (!showDeleted) {
                     query = query.is('deleted_at', null);
                 }
@@ -1533,7 +1530,6 @@
             try {
                 var supabaseClient = getSupabaseClient();
 
-                // حذف الصلاحيات أولاً
                 console.log('💀 [hardDeleteUser] حذف الصلاحيات...');
                 var { error: permError } = await supabaseClient
                     .from('user_permissions')
@@ -1544,7 +1540,6 @@
                     console.warn('⚠️ [hardDeleteUser] فشل حذف الصلاحيات:', permError.message);
                 }
 
-                // حذف البروفايل نهائياً
                 console.log('💀 [hardDeleteUser] حذف البروفايل...');
                 var { error: profileError } = await supabaseClient
                     .from('profiles')
@@ -1566,7 +1561,7 @@
         }
 
         // ============================================================
-        // SAVE USER
+        // SAVE USER - النسخة النهائية مع حل مشكلة الـ Token
         // ============================================================
         async function saveUser(event) {
             event.preventDefault();
@@ -1703,7 +1698,7 @@
                             console.log('➕ [saveUser] إضافة صلاحية جديدة للمستخدم:', module);
                             var { error: permInsertError } = await supabaseClient
                                 .from('user_permissions')
-                                .insert({
+                                .upsert({
                                     company_id: companyId,
                                     user_id: userId,
                                     module: module,
@@ -1712,7 +1707,7 @@
                                     can_edit: perm.edit || false,
                                     can_delete: perm.delete || false,
                                     can_export: perm.export || false
-                                });
+                                }, { onConflict: 'user_id,module,company_id' });
 
                             if (permInsertError) {
                                 console.warn('⚠️ [saveUser] فشل إضافة الصلاحية:', permInsertError.message);
@@ -1735,48 +1730,51 @@
                     }
 
                     console.log('🔐 [saveUser] إنشاء مستخدم في Supabase Auth...');
-                    var supabaseClientAuth = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-                        auth: {
-                            autoRefreshToken: true,
-                            persistSession: true,
-                            detectSessionInUrl: true,
-                            storageKey: 'rollex_session'
-                        }
-                    });
-
-                    var { data, error } = await supabaseClientAuth.auth.signUp({
-                        email: email,
-                        password: password,
-                        options: {
-                            data: {
+                    
+                    // ✅ الحل: استخدام supabaseClient الحالي (مع Token الأدمن) لإنشاء المستخدم
+                    // نقوم بحفظ Token الأدمن الحالي قبل إنشاء المستخدم الجديد
+                    var adminToken = token;
+                    
+                    // إنشاء المستخدم باستخدام Admin API مع Token الأدمن
+                    var signUpResponse = await fetch(SUPABASE_URL + '/auth/v1/admin/users', {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + adminToken,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            password: password,
+                            user_metadata: {
                                 name: name,
                                 company_id: companyId,
                                 role: role
-                            }
-                        }
+                            },
+                            email_confirm: true
+                        })
                     });
 
-                    if (error) {
-                        var errMsg = error.message || 'فشل إنشاء المستخدم';
-                        if (errMsg.includes('already registered')) {
+                    if (!signUpResponse.ok) {
+                        var errorData = await signUpResponse.json();
+                        var errMsg = errorData.message || errorData.msg || 'فشل إنشاء المستخدم';
+                        if (errMsg.includes('already registered') || errMsg.includes('duplicate')) {
                             errMsg = 'هذا البريد الإلكتروني مسجل بالفعل';
                         }
                         console.error('❌ [saveUser] خطأ في إنشاء المستخدم:', errMsg);
                         throw new Error(errMsg);
                     }
 
-                    if (!data.user) {
-                        console.error('❌ [saveUser] فشل إنشاء المستخدم - لا يوجد user');
-                        throw new Error('فشل إنشاء المستخدم');
-                    }
+                    var userData = await signUpResponse.json();
+                    var newUserId = userData.id;
 
-                    console.log('✅ [saveUser] تم إنشاء المستخدم في Auth:', data.user.id);
+                    console.log('✅ [saveUser] تم إنشاء المستخدم في Auth:', newUserId);
 
-                    // الـ Trigger سينشئ البروفايل تلقائياً، لكن نضعه احتياطاً
+                    // ✅ استخدام supabaseClient (مع Token الأدمن) لإدراج البروفايل والصلاحيات
                     var { error: profileInsertError } = await supabaseClient
                         .from('profiles')
                         .upsert({
-                            id: data.user.id,
+                            id: newUserId,
                             name: name,
                             email: email,
                             role: role,
@@ -1789,20 +1787,21 @@
                         console.warn('⚠️ [saveUser] فشل إنشاء البروفايل:', profileInsertError.message);
                     }
 
+                    // إدراج الصلاحيات باستخدام upsert
                     for (var mod in permissions) {
                         var permData = permissions[mod];
                         var { error: permInsertError } = await supabaseClient
                             .from('user_permissions')
-                            .insert({
+                            .upsert({
                                 company_id: companyId,
-                                user_id: data.user.id,
+                                user_id: newUserId,
                                 module: mod,
                                 can_view: permData.view || false,
                                 can_add: permData.add || false,
                                 can_edit: permData.edit || false,
                                 can_delete: permData.delete || false,
                                 can_export: permData.export || false
-                            });
+                            }, { onConflict: 'user_id,module,company_id' });
 
                         if (permInsertError) {
                             console.warn('⚠️ [saveUser] فشل إضافة الصلاحية:', permInsertError.message);
