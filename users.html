@@ -674,7 +674,6 @@
         .toast .toast-message { font-size: 0.72rem; color: var(--ink-2); margin-top: 1px; }
         .toast .toast-close { background: none; border: none; color: var(--ink-3); cursor: pointer; font-size: 0.85rem; padding: 4px; margin-right: auto; }
 
-        /* ستايلات عرض المحذوفين */
         .show-deleted-toggle {
             display: flex;
             align-items: center;
@@ -1077,7 +1076,7 @@
         ];
 
         // ============================================================
-        // GET USERS - ✅ معدلة لتدعم deleted_at
+        // GET USERS
         // ============================================================
         async function getUsers() {
             console.log('🔍 [getUsers] بدء جلب المستخدمين...');
@@ -1088,6 +1087,7 @@
             }
 
             try {
+                var supabaseClient = getSupabaseClient();
                 var companyId = await getCompanyId();
                 console.log('🔍 [getUsers] companyId:', companyId);
 
@@ -1096,50 +1096,45 @@
                     console.log('🔍 [getUsers] isSuperAdmin:', isSuper);
                     if (isSuper) {
                         // سوبر أدمن يشوف كل المستخدمين من كل الشركات
-                        var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=*,companies(name)&order=name.asc', {
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + token
-                            }
-                        });
-                        if (!response.ok) {
-                            console.warn('⚠️ [getUsers] فشل جلب المستخدمين (سوبر أدمن):', response.status);
+                        var { data, error } = await supabaseClient
+                            .from('profiles')
+                            .select('*')
+                            .order('name', { ascending: true });
+
+                        if (error) {
+                            console.error('❌ [getUsers] فشل جلب المستخدمين (سوبر أدمن):', error.message);
                             return [];
                         }
-                        var data = await response.json();
-                        console.log('✅ [getUsers] تم جلب ' + data.length + ' مستخدم (سوبر أدمن)');
+                        console.log('✅ [getUsers] تم جلب ' + (data?.length || 0) + ' مستخدم (سوبر أدمن)');
                         return data || [];
                     }
                     console.warn('⚠️ [getUsers] لا يوجد company_id وليس سوبر أدمن');
                     return [];
                 }
 
-                // ✅ إضافة فلتر deleted_at IS NULL لعدم عرض المحذوفين
-                // ✅ إذا كان showDeleted = true، نظهر الجميع
-                var url = SUPABASE_URL + '/rest/v1/profiles?select=*&company_id=eq.' + companyId;
-                
+                // بناء الاستعلام
+                var query = supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('company_id', companyId);
+
+                // ✅ فلتر deleted_at
                 if (!showDeleted) {
-                    // ✅ فلتر deleted_at IS NULL - نظهر النشطين فقط
-                    url += '&deleted_at=is.null';
+                    query = query.is('deleted_at', null);
                 }
-                // ✅ نظهر حسب الاسم
-                url += '&order=name.asc';
 
-                console.log('🔍 [getUsers] URL:', url);
+                query = query.order('name', { ascending: true });
 
-                var response = await fetch(url, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-                if (!response.ok) {
-                    console.warn('⚠️ [getUsers] فشل جلب المستخدمين:', response.status);
+                var { data, error } = await query;
+
+                if (error) {
+                    console.error('❌ [getUsers] فشل جلب المستخدمين:', error.message);
                     return [];
                 }
-                var data = await response.json();
-                console.log('✅ [getUsers] تم جلب ' + data.length + ' مستخدم (showDeleted=' + showDeleted + ')');
+
+                console.log('✅ [getUsers] تم جلب ' + (data?.length || 0) + ' مستخدم (showDeleted=' + showDeleted + ')');
                 return data || [];
+
             } catch (error) {
                 console.error('❌ [getUsers] خطأ في جلب المستخدمين:', error);
                 return [];
@@ -1158,26 +1153,26 @@
             }
 
             try {
+                var supabaseClient = getSupabaseClient();
                 var companyId = await getCompanyId();
                 if (!companyId) {
                     console.warn('⚠️ [getPermissions] لا يوجد company_id');
                     return [];
                 }
 
-                var response = await fetch(SUPABASE_URL + '/rest/v1/user_permissions?select=*&user_id=eq.' + userId +
-                    '&company_id=eq.' + companyId, {
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token
-                        }
-                    });
-                if (!response.ok) {
-                    console.warn('⚠️ [getPermissions] فشل جلب الصلاحيات:', response.status);
+                var { data, error } = await supabaseClient
+                    .from('user_permissions')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .eq('company_id', companyId);
+
+                if (error) {
+                    console.warn('⚠️ [getPermissions] فشل جلب الصلاحيات:', error.message);
                     return [];
                 }
-                var data = await response.json();
-                console.log('✅ [getPermissions] تم جلب ' + data.length + ' صلاحية للمستخدم');
+                console.log('✅ [getPermissions] تم جلب ' + (data?.length || 0) + ' صلاحية للمستخدم');
                 return data || [];
+
             } catch (error) {
                 console.error('❌ [getPermissions] خطأ في جلب الصلاحيات:', error);
                 return [];
@@ -1243,7 +1238,7 @@
         }
 
         // ============================================================
-        // DISPLAY USERS - ✅ معدلة لإظهار المحذوفين بشكل مميز
+        // DISPLAY USERS
         // ============================================================
         function displayUsers(users) {
             console.log('🔍 [displayUsers] عرض ' + (users ? users.length : 0) + ' مستخدم');
@@ -1441,7 +1436,7 @@
         }
 
         // ============================================================
-        // SOFT DELETE USER - ✅ معدلة لتستخدم deleted_at
+        // SOFT DELETE USER
         // ============================================================
         async function softDeleteUser(userId) {
             console.log('🗑️ [softDeleteUser] بدء الحذف الناعم للمستخدم:', userId);
@@ -1454,29 +1449,20 @@
             }
 
             try {
-                // ✅ تحديث deleted_at و is_active
+                var supabaseClient = getSupabaseClient();
                 var now = new Date().toISOString();
-                var payload = {
-                    deleted_at: now,
-                    is_active: false
-                };
+                
+                var { error } = await supabaseClient
+                    .from('profiles')
+                    .update({
+                        deleted_at: now,
+                        is_active: false
+                    })
+                    .eq('id', userId);
 
-                console.log('📝 [softDeleteUser] البيانات المرسلة:', payload);
-
-                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?id=eq.' + userId, {
-                    method: 'PATCH',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    var errorText = await response.text();
-                    console.error('❌ [softDeleteUser] فشل الحذف الناعم:', response.status, errorText);
-                    throw new Error('فشل حذف المستخدم: ' + response.status);
+                if (error) {
+                    console.error('❌ [softDeleteUser] فشل الحذف الناعم:', error.message);
+                    throw new Error(error.message);
                 }
 
                 console.log('✅ [softDeleteUser] تم حذف المستخدم بنجاح');
@@ -1489,7 +1475,7 @@
         }
 
         // ============================================================
-        // RESTORE USER - ✅ لاستعادة المستخدمين المحذوفين
+        // RESTORE USER
         // ============================================================
         async function restoreUser(userId) {
             console.log('↩️ [restoreUser] بدء استعادة المستخدم:', userId);
@@ -1502,28 +1488,19 @@
             }
 
             try {
-                // ✅ مسح deleted_at وتفعيل الحساب
-                var payload = {
-                    deleted_at: null,
-                    is_active: true
-                };
+                var supabaseClient = getSupabaseClient();
+                
+                var { error } = await supabaseClient
+                    .from('profiles')
+                    .update({
+                        deleted_at: null,
+                        is_active: true
+                    })
+                    .eq('id', userId);
 
-                console.log('📝 [restoreUser] البيانات المرسلة:', payload);
-
-                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?id=eq.' + userId, {
-                    method: 'PATCH',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    var errorText = await response.text();
-                    console.error('❌ [restoreUser] فشل استعادة المستخدم:', response.status, errorText);
-                    throw new Error('فشل استعادة المستخدم: ' + response.status);
+                if (error) {
+                    console.error('❌ [restoreUser] فشل استعادة المستخدم:', error.message);
+                    throw new Error(error.message);
                 }
 
                 console.log('✅ [restoreUser] تم استعادة المستخدم بنجاح');
@@ -1536,7 +1513,7 @@
         }
 
         // ============================================================
-        // HARD DELETE USER - ✅ حذف نهائي (للمدير فقط)
+        // HARD DELETE USER
         // ============================================================
         async function hardDeleteUser(userId) {
             console.log('💀 [hardDeleteUser] بدء الحذف النهائي للمستخدم:', userId);
@@ -1554,30 +1531,29 @@
             }
 
             try {
-                // ✅ حذف الصلاحيات أولاً
+                var supabaseClient = getSupabaseClient();
+
+                // حذف الصلاحيات أولاً
                 console.log('💀 [hardDeleteUser] حذف الصلاحيات...');
-                await fetch(SUPABASE_URL + '/rest/v1/user_permissions?user_id=eq.' + userId, {
-                    method: 'DELETE',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
+                var { error: permError } = await supabaseClient
+                    .from('user_permissions')
+                    .delete()
+                    .eq('user_id', userId);
 
-                // ✅ حذف البروفايل نهائياً
+                if (permError) {
+                    console.warn('⚠️ [hardDeleteUser] فشل حذف الصلاحيات:', permError.message);
+                }
+
+                // حذف البروفايل نهائياً
                 console.log('💀 [hardDeleteUser] حذف البروفايل...');
-                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?id=eq.' + userId, {
-                    method: 'DELETE',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
+                var { error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .delete()
+                    .eq('id', userId);
 
-                if (!response.ok) {
-                    var errorText = await response.text();
-                    console.error('❌ [hardDeleteUser] فشل الحذف النهائي:', response.status, errorText);
-                    throw new Error('فشل الحذف النهائي: ' + response.status);
+                if (profileError) {
+                    console.error('❌ [hardDeleteUser] فشل الحذف النهائي:', profileError.message);
+                    throw new Error(profileError.message);
                 }
 
                 console.log('✅ [hardDeleteUser] تم الحذف النهائي للمستخدم بنجاح');
@@ -1667,6 +1643,7 @@
             console.log('✅ [saveUser] التوكن موجود');
 
             try {
+                var supabaseClient = getSupabaseClient();
                 var companyId = await getCompanyId();
                 console.log('🔍 [saveUser] companyId:', companyId);
 
@@ -1691,7 +1668,15 @@
 
                 if (id) {
                     console.log('🔄 [saveUser] تحديث مستخدم موجود:', id);
-                    await patchRow('profiles', id, profileData);
+                    
+                    var { error: updateError } = await supabaseClient
+                        .from('profiles')
+                        .update(profileData)
+                        .eq('id', id);
+
+                    if (updateError) {
+                        throw new Error(updateError.message);
+                    }
 
                     // تحديث الصلاحيات
                     for (var module in permissions) {
@@ -1700,25 +1685,38 @@
 
                         if (existing) {
                             console.log('🔄 [saveUser] تحديث صلاحية للمستخدم:', module);
-                            await patchRow('user_permissions', existing.id, {
-                                can_view: perm.view || false,
-                                can_add: perm.add || false,
-                                can_edit: perm.edit || false,
-                                can_delete: perm.delete || false,
-                                can_export: perm.export || false
-                            });
+                            var { error: permUpdateError } = await supabaseClient
+                                .from('user_permissions')
+                                .update({
+                                    can_view: perm.view || false,
+                                    can_add: perm.add || false,
+                                    can_edit: perm.edit || false,
+                                    can_delete: perm.delete || false,
+                                    can_export: perm.export || false
+                                })
+                                .eq('id', existing.id);
+
+                            if (permUpdateError) {
+                                console.warn('⚠️ [saveUser] فشل تحديث الصلاحية:', permUpdateError.message);
+                            }
                         } else {
                             console.log('➕ [saveUser] إضافة صلاحية جديدة للمستخدم:', module);
-                            await insertRow('user_permissions', {
-                                company_id: companyId,
-                                user_id: userId,
-                                module: module,
-                                can_view: perm.view || false,
-                                can_add: perm.add || false,
-                                can_edit: perm.edit || false,
-                                can_delete: perm.delete || false,
-                                can_export: perm.export || false
-                            });
+                            var { error: permInsertError } = await supabaseClient
+                                .from('user_permissions')
+                                .insert({
+                                    company_id: companyId,
+                                    user_id: userId,
+                                    module: module,
+                                    can_view: perm.view || false,
+                                    can_add: perm.add || false,
+                                    can_edit: perm.edit || false,
+                                    can_delete: perm.delete || false,
+                                    can_export: perm.export || false
+                                });
+
+                            if (permInsertError) {
+                                console.warn('⚠️ [saveUser] فشل إضافة الصلاحية:', permInsertError.message);
+                            }
                         }
                     }
 
@@ -1737,7 +1735,7 @@
                     }
 
                     console.log('🔐 [saveUser] إنشاء مستخدم في Supabase Auth...');
-                    var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                    var supabaseClientAuth = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
                         auth: {
                             autoRefreshToken: true,
                             persistSession: true,
@@ -1746,7 +1744,7 @@
                         }
                     });
 
-                    var { data, error } = await supabaseClient.auth.signUp({
+                    var { data, error } = await supabaseClientAuth.auth.signUp({
                         email: email,
                         password: password,
                         options: {
@@ -1774,28 +1772,41 @@
 
                     console.log('✅ [saveUser] تم إنشاء المستخدم في Auth:', data.user.id);
 
-                    await upsertRow('profiles', {
-                        id: data.user.id,
-                        name: name,
-                        email: email,
-                        role: role,
-                        is_active: status,
-                        company_id: companyId,
-                        deleted_at: null  // ✅ تأكد أن المستخدم الجديد ليس محذوفاً
-                    });
+                    // الـ Trigger سينشئ البروفايل تلقائياً، لكن نضعه احتياطاً
+                    var { error: profileInsertError } = await supabaseClient
+                        .from('profiles')
+                        .upsert({
+                            id: data.user.id,
+                            name: name,
+                            email: email,
+                            role: role,
+                            is_active: status,
+                            company_id: companyId,
+                            deleted_at: null
+                        }, { onConflict: 'id' });
+
+                    if (profileInsertError) {
+                        console.warn('⚠️ [saveUser] فشل إنشاء البروفايل:', profileInsertError.message);
+                    }
 
                     for (var mod in permissions) {
                         var permData = permissions[mod];
-                        await insertRow('user_permissions', {
-                            company_id: companyId,
-                            user_id: data.user.id,
-                            module: mod,
-                            can_view: permData.view || false,
-                            can_add: permData.add || false,
-                            can_edit: permData.edit || false,
-                            can_delete: permData.delete || false,
-                            can_export: permData.export || false
-                        });
+                        var { error: permInsertError } = await supabaseClient
+                            .from('user_permissions')
+                            .insert({
+                                company_id: companyId,
+                                user_id: data.user.id,
+                                module: mod,
+                                can_view: permData.view || false,
+                                can_add: permData.add || false,
+                                can_edit: permData.edit || false,
+                                can_delete: permData.delete || false,
+                                can_export: permData.export || false
+                            });
+
+                        if (permInsertError) {
+                            console.warn('⚠️ [saveUser] فشل إضافة الصلاحية:', permInsertError.message);
+                        }
                     }
 
                     console.log('✅ [saveUser] تم إضافة المستخدم بنجاح');
@@ -1825,7 +1836,16 @@
             if (!confirm('هل تريد تغيير حالة المستخدم إلى ' + statusText + '؟')) return;
 
             try {
-                await patchRow('profiles', id, { is_active: newStatus });
+                var supabaseClient = getSupabaseClient();
+                var { error } = await supabaseClient
+                    .from('profiles')
+                    .update({ is_active: newStatus })
+                    .eq('id', id);
+
+                if (error) {
+                    throw new Error(error.message);
+                }
+
                 console.log('✅ [toggleUserStatus] تم تغيير الحالة بنجاح');
                 showToast('✅ تم التحديث', 'تم تغيير حالة المستخدم إلى ' + statusText, 'success');
                 loadData();
@@ -1898,6 +1918,8 @@
                     var roleText = profile.is_super_admin ? 'مدير النظام' : (profile.role || 'موظف');
                     headerName.innerHTML = (profile.name || 'مستخدم') + '<small>' + roleText + '</small>';
                     console.log('✅ [init] تم تحديث معلومات المستخدم');
+                } else {
+                    console.warn('⚠️ [init] لم يتم العثور على بروفايل للمستخدم الحالي');
                 }
             } catch (error) {
                 console.warn('⚠️ [init] فشل تحديث معلومات المستخدم:', error.message);
