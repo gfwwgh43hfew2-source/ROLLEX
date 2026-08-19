@@ -792,7 +792,7 @@
                 </div>
 
                 <div class="form-group" id="passwordGroup">
-                    <label>كلمة المرور <span class="required">*</span></label>
+                    <label>كلمة المرور</label>
                     <input type="password" id="userPassword" placeholder="•••••••• (6 أحرف على الأقل)" minlength="6" />
                     <div style="font-size:0.6rem;color:var(--ink-3);margin-top:4px;">اتركها فارغة إذا كنت لا تريد تغييرها عند التعديل</div>
                 </div>
@@ -971,13 +971,20 @@
         // GET USERS
         // ============================================================
         async function getUsers() {
+            console.log('🔍 [getUsers] بدء جلب المستخدمين...');
             var token = getToken();
-            if (!token) return [];
+            if (!token) {
+                console.warn('⚠️ [getUsers] لا يوجد توكن');
+                return [];
+            }
 
             try {
                 var companyId = await getCompanyId();
+                console.log('🔍 [getUsers] companyId:', companyId);
+
                 if (!companyId) {
                     var isSuper = await isSuperAdminCheck();
+                    console.log('🔍 [getUsers] isSuperAdmin:', isSuper);
                     if (isSuper) {
                         var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=*,companies(name)&order=name.asc', {
                             headers: {
@@ -985,10 +992,15 @@
                                 'Authorization': 'Bearer ' + token
                             }
                         });
-                        if (!response.ok) return [];
+                        if (!response.ok) {
+                            console.warn('⚠️ [getUsers] فشل جلب المستخدمين (سوبر أدمن):', response.status);
+                            return [];
+                        }
                         var data = await response.json();
+                        console.log('✅ [getUsers] تم جلب ' + data.length + ' مستخدم (سوبر أدمن)');
                         return data || [];
                     }
+                    console.warn('⚠️ [getUsers] لا يوجد company_id وليس سوبر أدمن');
                     return [];
                 }
 
@@ -999,10 +1011,15 @@
                             'Authorization': 'Bearer ' + token
                         }
                     });
-                if (!response.ok) return [];
-                return await response.json();
+                if (!response.ok) {
+                    console.warn('⚠️ [getUsers] فشل جلب المستخدمين:', response.status);
+                    return [];
+                }
+                var data = await response.json();
+                console.log('✅ [getUsers] تم جلب ' + data.length + ' مستخدم');
+                return data || [];
             } catch (error) {
-                console.error('❌ خطأ في جلب المستخدمين:', error);
+                console.error('❌ [getUsers] خطأ في جلب المستخدمين:', error);
                 return [];
             }
         }
@@ -1011,12 +1028,19 @@
         // GET PERMISSIONS
         // ============================================================
         async function getPermissions(userId) {
+            console.log('🔍 [getPermissions] بدء جلب صلاحيات المستخدم:', userId);
             var token = getToken();
-            if (!token) return [];
+            if (!token) {
+                console.warn('⚠️ [getPermissions] لا يوجد توكن');
+                return [];
+            }
 
             try {
                 var companyId = await getCompanyId();
-                if (!companyId) return [];
+                if (!companyId) {
+                    console.warn('⚠️ [getPermissions] لا يوجد company_id');
+                    return [];
+                }
 
                 var response = await fetch(SUPABASE_URL + '/rest/v1/user_permissions?select=*&user_id=eq.' + userId +
                     '&company_id=eq.' + companyId, {
@@ -1025,10 +1049,15 @@
                             'Authorization': 'Bearer ' + token
                         }
                     });
-                if (!response.ok) return [];
-                return await response.json();
+                if (!response.ok) {
+                    console.warn('⚠️ [getPermissions] فشل جلب الصلاحيات:', response.status);
+                    return [];
+                }
+                var data = await response.json();
+                console.log('✅ [getPermissions] تم جلب ' + data.length + ' صلاحية للمستخدم');
+                return data || [];
             } catch (error) {
-                console.error('❌ خطأ في جلب الصلاحيات:', error);
+                console.error('❌ [getPermissions] خطأ في جلب الصلاحيات:', error);
                 return [];
             }
         }
@@ -1038,13 +1067,16 @@
         // ============================================================
         async function isSuperAdminCheck() {
             var profile = await getCurrentUserProfile();
-            return profile && profile.is_super_admin;
+            var result = profile && profile.is_super_admin;
+            console.log('🔍 [isSuperAdminCheck]:', result);
+            return result;
         }
 
         // ============================================================
         // BUILD PERMISSIONS GRID
         // ============================================================
         function buildPermissionsGrid(existingPermissions) {
+            console.log('🔍 [buildPermissionsGrid] بناء شبكة الصلاحيات...');
             var grid = document.getElementById('permissionsGrid');
             var html = '';
 
@@ -1085,12 +1117,14 @@
             });
 
             grid.innerHTML = html;
+            console.log('✅ [buildPermissionsGrid] تم بناء شبكة الصلاحيات');
         }
 
         // ============================================================
         // DISPLAY USERS
         // ============================================================
         function displayUsers(users) {
+            console.log('🔍 [displayUsers] عرض ' + (users ? users.length : 0) + ' مستخدم');
             var tbody = document.getElementById('entriesBody');
 
             if (!users || users.length === 0) {
@@ -1132,12 +1166,14 @@
             });
 
             tbody.innerHTML = html;
+            console.log('✅ [displayUsers] تم عرض المستخدمين');
         }
 
         // ============================================================
         // LOAD DATA
         // ============================================================
         async function loadData() {
+            console.log('🔄 [loadData] بدء تحميل البيانات...');
             var tbody = document.getElementById('entriesBody');
             tbody.innerHTML = `
                 <tr><td colspan="6"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>
@@ -1147,8 +1183,9 @@
                 var users = await getUsers();
                 allUsers = users;
                 displayUsers(users);
+                console.log('✅ [loadData] تم تحميل البيانات بنجاح');
             } catch (error) {
-                console.error('❌ خطأ في تحميل البيانات:', error);
+                console.error('❌ [loadData] خطأ في تحميل البيانات:', error);
                 tbody.innerHTML = `
                     <tr><td colspan="6"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p></div></td></tr>
                 `;
@@ -1159,6 +1196,7 @@
         // MODAL FUNCTIONS
         // ============================================================
         function openAddModal() {
+            console.log('📝 [openAddModal] فتح مودال إضافة مستخدم');
             document.getElementById('modalTitle').textContent = 'إضافة مستخدم جديد';
             document.getElementById('editId').value = '';
             document.getElementById('editUserId').value = '';
@@ -1167,19 +1205,25 @@
             document.getElementById('userStatus').value = 'true';
             document.getElementById('passwordGroup').style.display = 'block';
             document.getElementById('userPassword').required = true;
+            document.getElementById('userPassword').placeholder = '•••••••• (6 أحرف على الأقل)';
 
             buildPermissionsGrid([]);
 
             document.getElementById('userModal').classList.add('active');
             document.body.style.overflow = 'hidden';
+            console.log('✅ [openAddModal] تم فتح المودال');
         }
 
         async function editUser(id) {
+            console.log('📝 [editUser] بدء تعديل المستخدم:', id);
             var user = allUsers.find(function(u) { return u.id == id; });
             if (!user) {
+                console.warn('⚠️ [editUser] المستخدم غير موجود:', id);
                 showToast('❌ خطأ', 'المستخدم غير موجود', 'error');
                 return;
             }
+
+            console.log('📝 [editUser] بيانات المستخدم:', user);
 
             document.getElementById('modalTitle').textContent = 'تعديل المستخدم';
             document.getElementById('editId').value = user.id;
@@ -1198,20 +1242,24 @@
 
             document.getElementById('userModal').classList.add('active');
             document.body.style.overflow = 'hidden';
+            console.log('✅ [editUser] تم فتح مودال التعديل');
         }
 
         function closeModal() {
+            console.log('🔒 [closeModal] إغلاق المودال');
             document.getElementById('userModal').classList.remove('active');
             document.body.style.overflow = '';
         }
 
         // ============================================================
-        // SAVE USER (النسخة المعدلة مع التحقق من العناصر)
+        // SAVE USER (النسخة المعدلة مع console.log)
         // ============================================================
         async function saveUser(event) {
             event.preventDefault();
+            console.log('💾 [saveUser] بدء حفظ المستخدم...');
 
             // ✅ التحقق من وجود العناصر قبل استخدامها
+            console.log('🔍 [saveUser] التحقق من وجود العناصر في النموذج...');
             var userNameEl = document.getElementById('userName');
             var userEmailEl = document.getElementById('userEmail');
             var userPasswordEl = document.getElementById('userPassword');
@@ -1221,64 +1269,85 @@
             var editUserIdEl = document.getElementById('editUserId');
             var submitBtn = document.getElementById('submitBtn');
 
+            console.log('🔍 [saveUser] userNameEl:', !!userNameEl);
+            console.log('🔍 [saveUser] userEmailEl:', !!userEmailEl);
+            console.log('🔍 [saveUser] userRoleEl:', !!userRoleEl);
+            console.log('🔍 [saveUser] userStatusEl:', !!userStatusEl);
+            console.log('🔍 [saveUser] submitBtn:', !!submitBtn);
+
             if (!userNameEl || !userEmailEl || !userRoleEl || !userStatusEl) {
+                console.error('❌ [saveUser] بعض العناصر غير موجودة في النموذج!');
                 showToast('❌ خطأ', 'حدث خطأ في تحميل النموذج، يرجى إعادة المحاولة', 'error');
                 return;
             }
 
             if (!submitBtn) {
+                console.error('❌ [saveUser] زر الحفظ غير موجود!');
                 showToast('❌ خطأ', 'حدث خطأ في النموذج، يرجى إعادة المحاولة', 'error');
                 return;
             }
 
             var id = editIdEl ? editIdEl.value : '';
             var userId = editUserIdEl ? editUserIdEl.value : '';
-            var name = document.getElementById('userName').value.trim();
+            var name = userNameEl.value ? userNameEl.value.trim() : '';
             var email = userEmailEl.value ? userEmailEl.value.trim() : '';
             var password = userPasswordEl ? userPasswordEl.value : '';
             var role = userRoleEl.value;
             var status = userStatusEl.value === 'true';
 
+            console.log('📝 [saveUser] البيانات المجمعة:', { id, userId, name, email, role, status, passwordLength: password ? password.length : 0 });
+
             if (!name) {
+                console.warn('⚠️ [saveUser] الاسم فارغ');
                 showToast('⚠️ تنبيه', 'يرجى إدخال الاسم الكامل', 'error');
                 userNameEl.focus();
                 return;
             }
             if (!email) {
+                console.warn('⚠️ [saveUser] البريد الإلكتروني فارغ');
                 showToast('⚠️ تنبيه', 'يرجى إدخال البريد الإلكتروني', 'error');
                 userEmailEl.focus();
                 return;
             }
 
             // جمع الصلاحيات من الـ Grid
+            console.log('🔍 [saveUser] جمع الصلاحيات من الشبكة...');
             var permissions = {};
             var permCheckboxes = document.querySelectorAll('#permissionsGrid .perm-item input[type="checkbox"]');
+            console.log('🔍 [saveUser] عدد خانات الصلاحيات:', permCheckboxes.length);
             permCheckboxes.forEach(function(cb) {
                 var module = cb.dataset.module;
                 var permType = cb.dataset.perm;
                 if (!permissions[module]) permissions[module] = {};
                 permissions[module][permType] = cb.checked;
             });
+            console.log('📝 [saveUser] الصلاحيات المجمعة:', permissions);
 
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
 
             var token = getToken();
             if (!token) {
+                console.error('❌ [saveUser] لا يوجد توكن');
                 showToast('❌ خطأ', 'جلسة منتهية', 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ';
                 return;
             }
+            console.log('✅ [saveUser] التوكن موجود');
 
             try {
                 var companyId = await getCompanyId();
+                console.log('🔍 [saveUser] companyId:', companyId);
+
                 if (!companyId) {
                     var isSuper = await isSuperAdminCheck();
+                    console.log('🔍 [saveUser] isSuperAdmin:', isSuper);
                     if (!isSuper) {
                         throw new Error('لم يتم العثور على الشركة');
                     }
                     companyId = currentCompanyId || await getCompanyId();
+                    console.log('🔍 [saveUser] companyId (بعد المحاولة):', companyId);
                 }
 
                 var profileData = {
@@ -1288,9 +1357,10 @@
                     is_active: status,
                     company_id: companyId
                 };
+                console.log('📝 [saveUser] بيانات البروفايل:', profileData);
 
                 if (id) {
-                    // تحديث مستخدم موجود
+                    console.log('🔄 [saveUser] تحديث مستخدم موجود:', id);
                     await patchRow('profiles', id, profileData);
 
                     // تحديث الصلاحيات
@@ -1299,6 +1369,7 @@
                         var existing = allPermissions.find(function(p) { return p.user_id == userId && p.module == module; });
 
                         if (existing) {
+                            console.log('🔄 [saveUser] تحديث صلاحية للمستخدم:', module);
                             await patchRow('user_permissions', existing.id, {
                                 can_view: perm.view || false,
                                 can_add: perm.add || false,
@@ -1307,6 +1378,7 @@
                                 can_export: perm.export || false
                             });
                         } else {
+                            console.log('➕ [saveUser] إضافة صلاحية جديدة للمستخدم:', module);
                             await insertRow('user_permissions', {
                                 company_id: companyId,
                                 user_id: userId,
@@ -1320,11 +1392,13 @@
                         }
                     }
 
+                    console.log('✅ [saveUser] تم تحديث المستخدم بنجاح');
                     showToast('✅ تم التعديل', 'تم تحديث المستخدم بنجاح', 'success');
 
                 } else {
-                    // إضافة مستخدم جديد
+                    console.log('➕ [saveUser] إضافة مستخدم جديد');
                     if (!password || password.length < 6) {
+                        console.warn('⚠️ [saveUser] كلمة المرور قصيرة جداً');
                         showToast('⚠️ تنبيه', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ';
@@ -1332,6 +1406,7 @@
                         return;
                     }
 
+                    console.log('🔐 [saveUser] إنشاء مستخدم في Supabase Auth...');
                     var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
                         auth: {
                             autoRefreshToken: true,
@@ -1358,12 +1433,16 @@
                         if (errMsg.includes('already registered')) {
                             errMsg = 'هذا البريد الإلكتروني مسجل بالفعل';
                         }
+                        console.error('❌ [saveUser] خطأ في إنشاء المستخدم:', errMsg);
                         throw new Error(errMsg);
                     }
 
                     if (!data.user) {
+                        console.error('❌ [saveUser] فشل إنشاء المستخدم - لا يوجد user');
                         throw new Error('فشل إنشاء المستخدم');
                     }
+
+                    console.log('✅ [saveUser] تم إنشاء المستخدم في Auth:', data.user.id);
 
                     await insertRow('profiles', {
                         id: data.user.id,
@@ -1388,6 +1467,7 @@
                         });
                     }
 
+                    console.log('✅ [saveUser] تم إضافة المستخدم بنجاح');
                     showToast('✅ تم الإضافة', 'تم إضافة المستخدم بنجاح', 'success');
                 }
 
@@ -1395,27 +1475,31 @@
                 loadData();
 
             } catch (error) {
-                console.error('❌ خطأ:', error);
+                console.error('❌ [saveUser] خطأ:', error);
                 showToast('❌ خطأ', error.message || 'فشل الحفظ', 'error');
             }
 
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+            console.log('✅ [saveUser] انتهت عملية الحفظ');
         }
 
         // ============================================================
         // DELETE USER
         // ============================================================
         async function deleteUser(userId) {
+            console.log('🗑️ [deleteUser] بدء حذف المستخدم:', userId);
             if (!confirm('هل أنت متأكد من حذف هذا المستخدم؟')) return;
 
             var token = getToken();
             if (!token) {
+                console.error('❌ [deleteUser] لا يوجد توكن');
                 showToast('❌ خطأ', 'جلسة منتهية', 'error');
                 return;
             }
 
             try {
+                console.log('🗑️ [deleteUser] حذف الصلاحيات...');
                 await fetch(SUPABASE_URL + '/rest/v1/user_permissions?user_id=eq.' + userId, {
                     method: 'DELETE',
                     headers: {
@@ -1424,6 +1508,7 @@
                     }
                 });
 
+                console.log('🗑️ [deleteUser] حذف البروفايل...');
                 await fetch(SUPABASE_URL + '/rest/v1/profiles?id=eq.' + userId, {
                     method: 'DELETE',
                     headers: {
@@ -1432,10 +1517,11 @@
                     }
                 });
 
+                console.log('✅ [deleteUser] تم حذف المستخدم بنجاح');
                 showToast('✅ تم الحذف', 'تم حذف المستخدم بنجاح', 'success');
                 loadData();
             } catch (error) {
-                console.error('❌ خطأ في الحذف:', error);
+                console.error('❌ [deleteUser] خطأ في الحذف:', error);
                 showToast('❌ خطأ', error.message || 'فشل الحذف', 'error');
             }
         }
@@ -1446,13 +1532,16 @@
         async function toggleUserStatus(id, currentStatus) {
             var newStatus = !currentStatus;
             var statusText = newStatus ? 'نشط' : 'غير نشط';
+            console.log('🔄 [toggleUserStatus] تغيير حالة المستخدم إلى:', statusText);
             if (!confirm('هل تريد تغيير حالة المستخدم إلى ' + statusText + '؟')) return;
 
             try {
                 await patchRow('profiles', id, { is_active: newStatus });
+                console.log('✅ [toggleUserStatus] تم تغيير الحالة بنجاح');
                 showToast('✅ تم التحديث', 'تم تغيير حالة المستخدم إلى ' + statusText, 'success');
                 loadData();
             } catch (error) {
+                console.error('❌ [toggleUserStatus] خطأ:', error);
                 showToast('❌ خطأ', error.message || 'فشل التحديث', 'error');
             }
         }
@@ -1479,15 +1568,20 @@
         // ============================================================
         (async function init() {
             console.log('👤 صفحة إدارة المستخدمين - QuickData ProSoft');
+            console.log('🔄 [init] بدء تهيئة الصفحة...');
 
             var token = getToken();
             if (!token) {
+                console.warn('⚠️ [init] لا يوجد توكن، التوجيه لتسجيل الدخول');
                 window.location.href = 'login.html';
                 return;
             }
+            console.log('✅ [init] التوكن موجود');
 
             isSuperAdmin = await isSuperAdminCheck();
             currentCompanyId = await getCompanyId();
+            console.log('🔍 [init] isSuperAdmin:', isSuperAdmin);
+            console.log('🔍 [init] currentCompanyId:', currentCompanyId);
 
             try {
                 var profile = await getCurrentUserProfile();
@@ -1499,16 +1593,20 @@
                     var headerName = document.getElementById('headerName');
                     var roleText = profile.is_super_admin ? 'مدير النظام' : (profile.role || 'موظف');
                     headerName.innerHTML = (profile.name || 'مستخدم') + '<small>' + roleText + '</small>';
+                    console.log('✅ [init] تم تحديث معلومات المستخدم');
                 }
             } catch (error) {
-                console.warn('⚠️ فشل تحديث معلومات المستخدم:', error.message);
+                console.warn('⚠️ [init] فشل تحديث معلومات المستخدم:', error.message);
             }
 
             await loadData();
 
             setTimeout(function() {
                 startSessionMonitor();
+                console.log('✅ [init] بدأ مراقبة الجلسة');
             }, 5000);
+
+            console.log('✅ [init] اكتملت تهيئة الصفحة');
         })();
     </script>
 
