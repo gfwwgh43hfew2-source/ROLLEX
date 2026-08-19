@@ -1069,45 +1069,74 @@
         // ============================================================
         // GET PRODUCTS (جلب جميع المنتجات بدون حد 1000)
         // ============================================================
-        async function getProducts() {
-            try {
-                var token = getToken();
-                if (!token) {
-                    console.warn('⚠️ لا يوجد توكن');
-                    return [];
-                }
-
-                var companyId = await getCompanyId();
-                if (!companyId) {
-                    console.warn('⚠️ لم يتم العثور على company_id');
-                    return [];
-                }
-
-                // ✅ استخدام fetch مباشرة مع limit=100000 لتجاوز حد 1000
-                var url = SUPABASE_URL + '/rest/v1/products?select=*&company_id=eq.' + companyId + '&order=code.asc&limit=100000';
-                console.log('📤 جلب المنتجات من:', url);
-
-                var response = await fetch(url, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!response.ok) {
-                    console.warn('⚠️ فشل جلب المنتجات:', response.status);
-                    return [];
-                }
-
-                var data = await response.json();
-                console.log('✅ تم جلب المنتجات:', data ? data.length : 0);
-                return data || [];
-
-            } catch (error) {
-                console.error('❌ خطأ في جلب المنتجات:', error);
-                return [];
-            }
+        // ============================================================
+// GET PRODUCTS (مع دعم التصفح لجلب جميع السجلات)
+// ============================================================
+async function getProducts() {
+    try {
+        var token = getToken();
+        if (!token) {
+            console.warn('⚠️ لا يوجد توكن');
+            return [];
         }
+
+        var companyId = await getCompanyId();
+        if (!companyId) {
+            console.warn('⚠️ لم يتم العثور على company_id');
+            return [];
+        }
+
+        var allProducts = [];
+        var page = 0;
+        var pageSize = 1000;
+        var hasMore = true;
+
+        while (hasMore) {
+            var offset = page * pageSize;
+            var url = SUPABASE_URL + '/rest/v1/products?select=*&company_id=eq.' + companyId + 
+                '&order=code.asc&limit=' + pageSize + '&offset=' + offset;
+            
+            console.log('📤 جلب صفحة ' + (page + 1) + ' من: ' + url);
+
+            var response = await fetch(url, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+
+            if (!response.ok) {
+                console.warn('⚠️ فشل جلب المنتجات في الصفحة ' + (page + 1) + ':', response.status);
+                break;
+            }
+
+            var data = await response.json();
+            
+            if (!data || data.length === 0) {
+                hasMore = false;
+                break;
+            }
+
+            allProducts = allProducts.concat(data);
+            console.log('✅ تم جلب ' + data.length + ' منتج من الصفحة ' + (page + 1));
+
+            if (data.length < pageSize) {
+                hasMore = false;
+            } else {
+                page++;
+            }
+
+            await new Promise(r => setTimeout(r, 100));
+        }
+
+        console.log('✅ تم جلب إجمالي ' + allProducts.length + ' منتج');
+        return allProducts;
+
+    } catch (error) {
+        console.error('❌ خطأ في جلب المنتجات:', error);
+        return [];
+    }
+}
 
         // ============================================================
         // INSERT PRODUCT
