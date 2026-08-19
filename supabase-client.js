@@ -154,7 +154,7 @@ function redirectToLogin() {
 }
 
 // ============================================================
-// GET CURRENT USER PROFILE (مع محاولة تجديد الجلسة)
+// GET CURRENT USER PROFILE
 // ============================================================
 async function getCurrentUserProfile() {
     var token = getToken();
@@ -172,12 +172,10 @@ async function getCurrentUserProfile() {
         });
 
         if (!userResponse.ok) {
-            // محاولة تجديد الجلسة إذا كان التوكن غير صالح
             if (userResponse.status === 401 || userResponse.status === 403) {
                 console.log('⚠️ التوكن غير صالح، محاولة التجديد...');
                 var refreshed = await refreshSession();
                 if (refreshed) {
-                    // المحاولة مرة أخرى بعد التجديد
                     var newToken = getToken();
                     if (newToken) {
                         var retryResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
@@ -230,7 +228,7 @@ async function getCurrentUserProfile() {
 }
 
 // ============================================================
-// GET COMPANY ID (مع محاولة تجديد الجلسة)
+// GET COMPANY ID
 // ============================================================
 async function getCompanyId() {
     var token = getToken();
@@ -245,9 +243,8 @@ async function getCompanyId() {
         });
 
         if (!userResponse.ok) {
-            // محاولة تجديد الجلسة إذا كان التوكن غير صالح
             if (userResponse.status === 401 || userResponse.status === 403) {
-                console.log('⚠️ التوكن غير صالح في getCompanyId، محاولة التجديد...');
+                console.log('⚠️ التوكن غير صالح، محاولة التجديد...');
                 var refreshed = await refreshSession();
                 if (refreshed) {
                     var newToken = getToken();
@@ -297,89 +294,7 @@ async function getCompanyId() {
 }
 
 // ============================================================
-// GET COMPANY SUBSCRIPTION STATUS
-// ============================================================
-async function getCompanySubscriptionStatus() {
-    var companyId = await getCompanyId();
-    if (!companyId) {
-        return { status: 'error', message: 'لا توجد شركة', isActive: false };
-    }
-
-    var token = getToken();
-    if (!token) return { status: 'error', message: 'جلسة منتهية', isActive: false };
-
-    try {
-        var response = await fetch(SUPABASE_URL +
-            '/rest/v1/companies?select=subscription_status,trial_end_date,subscription_end_date&id=eq.' + companyId, {
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token
-                }
-            });
-
-        if (!response.ok) {
-            console.warn('⚠️ فشل جلب حالة الاشتراك');
-            return { status: 'error', message: 'فشل جلب البيانات', isActive: false };
-        }
-
-        var data = await response.json();
-        if (!data || data.length === 0) {
-            return { status: 'error', message: 'الشركة غير موجودة', isActive: false };
-        }
-
-        var company = data[0];
-        var today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        var status = company.subscription_status || 'trial';
-        var daysRemaining = 0;
-
-        if (status === 'trial' || status === 'active') {
-            var endDate = status === 'trial' ?
-                new Date(company.trial_end_date) :
-                new Date(company.subscription_end_date);
-
-            if (endDate && !isNaN(endDate.getTime())) {
-                endDate.setHours(0, 0, 0, 0);
-                var diffTime = endDate.getTime() - today.getTime();
-                daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-            }
-        }
-
-        var isActive = (status === 'trial' || status === 'active') && daysRemaining > 0;
-
-        return {
-            status: status,
-            daysRemaining: daysRemaining,
-            isActive: isActive,
-            trialEndDate: company.trial_end_date,
-            subscriptionEndDate: company.subscription_end_date,
-            message: isActive ? 'الاشتراك نشط' : 'الاشتراك منتهي'
-        };
-
-    } catch (error) {
-        console.error('❌ خطأ في جلب حالة الاشتراك:', error);
-        return { status: 'error', message: error.message, isActive: false };
-    }
-}
-
-// ============================================================
-// CHECK COMPANY ACCESS
-// ============================================================
-async function checkCompanyAccess() {
-    var subscription = await getCompanySubscriptionStatus();
-    if (!subscription.isActive) {
-        showToast('⚠️ انتهت الفترة التجريبية', 'الاشتراك منتهي، يرجى التواصل مع الإدارة لتجديد الاشتراك', 'error');
-        setTimeout(function() {
-            window.location.href = 'subscription-expired.html';
-        }, 2000);
-        return false;
-    }
-    return true;
-}
-
-// ============================================================
-// GENERIC GET (مع دعم جلب جميع السجلات وإعادة المحاولة)
+// GENERIC GET - مع دعم جلب جميع السجلات (100,000 سجل)
 // ============================================================
 async function getTable(tableName, orderBy) {
     var token = getToken();
@@ -391,16 +306,8 @@ async function getTable(tableName, orderBy) {
 
     var companyId = await getCompanyId();
     if (!companyId) {
-        console.warn('⚠️ لم يتم العثور على company_id، محاولة تجديد الجلسة...');
-        var refreshed = await refreshSession();
-        if (refreshed) {
-            companyId = await getCompanyId();
-        }
-        if (!companyId) {
-            console.warn('⚠️ لا يزال company_id غير موجود، سيتم التوجيه لتسجيل الدخول...');
-            redirectToLogin();
-            return [];
-        }
+        console.warn('⚠️ لم يتم العثور على company_id');
+        return [];
     }
 
     try {
@@ -420,7 +327,6 @@ async function getTable(tableName, orderBy) {
         });
 
         if (!response.ok) {
-            // إذا كان الخطأ 401 أو 403، حاول تجديد الجلسة
             if (response.status === 401 || response.status === 403) {
                 console.log('⚠️ فشل جلب ' + tableName + ' بسبب خطأ ' + response.status + '، محاولة تجديد الجلسة...');
                 var refreshed = await refreshSession();
@@ -442,7 +348,6 @@ async function getTable(tableName, orderBy) {
                 }
             }
             console.warn('⚠️ فشل جلب ' + tableName + ' بسبب خطأ ' + response.status);
-            console.warn('🔍 عنوان الطلب:', url);
             return [];
         }
 
@@ -453,77 +358,6 @@ async function getTable(tableName, orderBy) {
     } catch (error) {
         console.error('❌ خطأ في جلب ' + tableName + ':', error);
         return [];
-    }
-}
-
-// ============================================================
-// GENERIC GET WITH PAGINATION (للمشاريع الكبيرة)
-// ============================================================
-async function getTablePaginated(tableName, page, pageSize, orderBy) {
-    page = page || 1;
-    pageSize = pageSize || 50;
-    var offset = (page - 1) * pageSize;
-
-    var token = getToken();
-    if (!token) {
-        console.warn('⚠️ لا يوجد توكن');
-        return { data: [], total: 0, page: page, pageSize: pageSize };
-    }
-
-    var companyId = await getCompanyId();
-    if (!companyId) {
-        console.warn('⚠️ لم يتم العثور على company_id');
-        return { data: [], total: 0, page: page, pageSize: pageSize };
-    }
-
-    try {
-        // جلب العدد الإجمالي
-        var countResponse = await fetch(SUPABASE_URL + '/rest/v1/' + tableName + 
-            '?select=id&company_id=eq.' + companyId, {
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token
-                }
-            });
-        var total = 0;
-        if (countResponse.ok) {
-            var countData = await countResponse.json();
-            total = countData.length || 0;
-        }
-
-        // جلب الصفحة المطلوبة
-        var url = SUPABASE_URL + '/rest/v1/' + tableName + '?select=*&company_id=eq.' + companyId;
-        if (orderBy) url += '&order=' + orderBy;
-        url += '&limit=' + pageSize + '&offset=' + offset;
-
-        console.log('📤 جلب صفحة ' + page + ' من ' + tableName + '، حجم: ' + pageSize);
-
-        var response = await fetch(url, {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + token
-            }
-        });
-
-        if (!response.ok) {
-            console.warn('⚠️ فشل جلب ' + tableName);
-            return { data: [], total: 0, page: page, pageSize: pageSize };
-        }
-
-        var data = await response.json();
-        console.log('✅ تم جلب ' + data.length + ' سجل من ' + tableName);
-
-        return {
-            data: data || [],
-            total: total,
-            page: page,
-            pageSize: pageSize,
-            totalPages: Math.ceil(total / pageSize)
-        };
-
-    } catch (error) {
-        console.error('❌ خطأ في جلب ' + tableName + ':', error);
-        return { data: [], total: 0, page: page, pageSize: pageSize };
     }
 }
 
@@ -637,7 +471,7 @@ async function logout() {
 }
 
 // ============================================================
-// SESSION MONITOR (مع إعادة المحاولة عند الفشل)
+// SESSION MONITOR
 // ============================================================
 var monitorInterval = null;
 var sessionMonitorStarted = false;
@@ -677,13 +511,11 @@ function startSessionMonitor() {
             }
 
             if (response.status === 401 || response.status === 403) {
-                console.log('⚠️ التوكن منتهي أو غير صالح، محاولة التجديد...');
+                console.log('⚠️ التوكن منتهي، محاولة التجديد...');
                 refreshSession().then(function(refreshed) {
                     if (!refreshed) {
                         console.log('⚠️ فشل تجديد الجلسة، سيتم طلب تسجيل الدخول...');
                         redirectToLogin();
-                    } else {
-                        console.log('✅ تم تجديد الجلسة بنجاح');
                     }
                 });
             }
@@ -731,7 +563,6 @@ async function checkSessionAndRedirect() {
                 }
                 return true;
             }
-            console.log('⚠️ فشل التحقق من الجلسة:', response.status);
             return false;
         }
 
@@ -764,123 +595,6 @@ function getStatusBadge(status) {
     }
 
     return '<span class="badge-status ' + statusClass + '">' + statusText + '</span>';
-}
-
-// ============================================================
-// PERMISSION FUNCTIONS
-// ============================================================
-
-/**
- * التحقق من صلاحية مستخدم معين للوحدة المحددة
- * @param {string} module - اسم الوحدة (sales, clients, ...)
- * @param {string} permission - نوع الصلاحية (view, add, edit, delete, export)
- * @param {string} userId - (اختياري) معرف المستخدم
- * @returns {Promise<boolean>}
- */
-async function hasPermission(module, permission, userId) {
-    var token = getToken();
-    if (!token) return false;
-
-    var targetUserId = userId || (await getCurrentUserProfile())?.id;
-    if (!targetUserId) return false;
-
-    // السوبر أدمن عنده كل الصلاحيات
-    var profile = await getCurrentUserProfile();
-    if (profile && profile.is_super_admin) return true;
-
-    try {
-        var companyId = await getCompanyId();
-        if (!companyId) return false;
-
-        var response = await fetch(SUPABASE_URL + '/rest/v1/user_permissions?select=' + permission +
-            '&user_id=eq.' + targetUserId +
-            '&company_id=eq.' + companyId +
-            '&module=eq.' + module, {
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token
-                }
-            });
-
-        if (!response.ok) return false;
-        var data = await response.json();
-        return data && data.length > 0 && data[0][permission] === true;
-
-    } catch (error) {
-        console.error('❌ خطأ في التحقق من الصلاحية:', error);
-        return false;
-    }
-}
-
-/**
- * جلب جميع صلاحيات المستخدم لوحدة معينة
- * @param {string} module - اسم الوحدة
- * @param {string} userId - (اختياري) معرف المستخدم
- * @returns {Promise<Object>}
- */
-async function getUserPermissions(module, userId) {
-    var token = getToken();
-    if (!token) return {};
-
-    var targetUserId = userId || (await getCurrentUserProfile())?.id;
-    if (!targetUserId) return {};
-
-    // السوبر أدمن عنده كل الصلاحيات
-    var profile = await getCurrentUserProfile();
-    if (profile && profile.is_super_admin) {
-        return { view: true, add: true, edit: true, delete: true, export: true };
-    }
-
-    try {
-        var companyId = await getCompanyId();
-        if (!companyId) return {};
-
-        var response = await fetch(SUPABASE_URL + '/rest/v1/user_permissions?select=*' +
-            '&user_id=eq.' + targetUserId +
-            '&company_id=eq.' + companyId +
-            '&module=eq.' + module, {
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + token
-                }
-            });
-
-        if (!response.ok) return {};
-        var data = await response.json();
-        if (!data || data.length === 0) return {};
-
-        return {
-            view: data[0].can_view || false,
-            add: data[0].can_add || false,
-            edit: data[0].can_edit || false,
-            delete: data[0].can_delete || false,
-            export: data[0].can_export || false
-        };
-
-    } catch (error) {
-        console.error('❌ خطأ في جلب الصلاحيات:', error);
-        return {};
-    }
-}
-
-/**
- * التحقق من أن المستخدم لديه صلاحية الوصول للصفحة
- * إذا لم يكن لديه صلاحية، يتم عرض رسالة وتحويله للرئيسية
- * @param {string} module - اسم الوحدة
- * @param {string} permission - نوع الصلاحية (view, add, edit, delete, export)
- * @returns {Promise<boolean>}
- */
-async function checkPageAccess(module, permission) {
-    permission = permission || 'view';
-    var hasPerm = await hasPermission(module, permission);
-    if (!hasPerm) {
-        showToast('⚠️ غير مسموح', 'ليس لديك صلاحية للوصول إلى هذه الصفحة', 'error');
-        setTimeout(function() {
-            window.location.href = 'index.html';
-        }, 2000);
-        return false;
-    }
-    return true;
 }
 
 // ============================================================
