@@ -1047,12 +1047,10 @@
                 console.warn('⚠️ فشل تسجيل الخروج من Supabase:', error.message);
             }
             
-            // ✅ مسح جميع البيانات المخزنة
             localStorage.removeItem('rollex_session');
             sessionStorage.removeItem('rollex_session');
             sessionStorage.clear();
             
-            // ✅ إعادة التوجيه لتسجيل الدخول
             window.location.href = 'login.html';
         }
         window.logout = logout;
@@ -1621,7 +1619,6 @@
                 return;
             }
 
-            // جمع الصلاحيات من الـ Grid
             console.log('🔍 [saveUser] جمع الصلاحيات من الشبكة...');
             var permissions = {};
             var permCheckboxes = document.querySelectorAll('#permissionsGrid .perm-item input[type="checkbox"]');
@@ -1683,7 +1680,6 @@
                         throw new Error(updateError.message);
                     }
 
-                    // تحديث الصلاحيات
                     for (var module in permissions) {
                         var perm = permissions[module];
                         var existing = allPermissions.find(function(p) { return p.user_id == userId && p.module == module; });
@@ -1739,11 +1735,9 @@
                         return;
                     }
 
-                    // ✅ حفظ جلسة الأدمن الحالية مؤقتاً (للاستخدام فقط)
                     var adminSession = localStorage.getItem('rollex_session');
                     console.log('✅ [saveUser] تم حفظ جلسة الأدمن مؤقتاً');
 
-                    // ✅ استخدام supabaseClient الحالي لإنشاء المستخدم
                     var supabaseClientAuth = getSupabaseClient();
 
                     var { data, error } = await supabaseClientAuth.auth.signUp({
@@ -1775,15 +1769,8 @@
                     var newUserId = data.user.id;
                     console.log('✅ [saveUser] تم إنشاء المستخدم في Auth:', newUserId);
 
-                    // ✅ مهم جداً: لا نستعيد جلسة الأدمن - نترك المستخدم الجديد مسجلاً
-                    // نستخدم Token الأدمن المخزن مؤقتاً لإدراج البيانات فقط
                     console.log('✅ [saveUser] نستخدم Token الأدمن لإدراج البيانات');
 
-                    // ✅ استخدام supabaseClient الحالي (الذي أصبح يحمل Token المستخدم الجديد)
-                    // لكن نحتاج إلى استخدام Token الأدمن لإدراج البروفايل والصلاحيات
-                    // لذلك نستخدم fetch مباشرة مع Token الأدمن المخزن
-                    
-                    // استخراج Token الأدمن من الجلسة المخزنة
                     var adminToken = null;
                     if (adminSession) {
                         try {
@@ -1794,11 +1781,9 @@
                         }
                     }
 
-                    // إذا كان لدينا Token الأدمن، نستخدمه لإدراج البيانات
                     if (adminToken) {
                         console.log('✅ [saveUser] تم استخراج Token الأدمن');
 
-                        // إدراج البروفايل باستخدام Token الأدمن
                         var profileResponse = await fetch(SUPABASE_URL + '/rest/v1/profiles?on_conflict=id', {
                             method: 'POST',
                             headers: {
@@ -1825,7 +1810,6 @@
                             console.log('✅ [saveUser] تم إنشاء البروفايل بنجاح');
                         }
 
-                        // إدراج الصلاحيات باستخدام Token الأدمن
                         for (var mod in permissions) {
                             var permData = permissions[mod];
                             var permResponse = await fetch(SUPABASE_URL + '/rest/v1/user_permissions?on_conflict=user_id,module,company_id', {
@@ -1859,7 +1843,6 @@
                     } else {
                         console.warn('⚠️ [saveUser] لا يوجد Token أدمن، سيتم إدراج البيانات باستخدام Token المستخدم الجديد');
                         
-                        // محاولة إدراج البروفايل باستخدام Token المستخدم الجديد (قد يفشل بسبب RLS)
                         var { error: profileInsertError } = await supabaseClient
                             .from('profiles')
                             .upsert({
@@ -1876,7 +1859,6 @@
                             console.warn('⚠️ [saveUser] فشل إنشاء البروفايل:', profileInsertError.message);
                         }
 
-                        // إدراج الصلاحيات باستخدام upsert
                         for (var mod in permissions) {
                             var permData = permissions[mod];
                             var { error: permInsertError } = await supabaseClient
@@ -1977,7 +1959,7 @@
         window.toggleShowDeleted = toggleShowDeleted;
 
         // ============================================================
-        // INIT
+        // INIT - مع التحقق من الصلاحيات
         // ============================================================
         (async function init() {
             console.log('👤 صفحة إدارة المستخدمين - QuickData ProSoft');
@@ -1990,6 +1972,22 @@
                 return;
             }
             console.log('✅ [init] التوكن موجود');
+
+            // ✅ التحقق من الصلاحية: فقط المدير أو المدير العام يمكنه الوصول إلى صفحة المستخدمين
+            var isAdminUser = isAdmin();
+            var isSuperAdminUser = isSuperAdmin();
+            
+            console.log('🔍 [init] isAdmin:', isAdminUser);
+            console.log('🔍 [init] isSuperAdmin:', isSuperAdminUser);
+
+            if (!isAdminUser && !isSuperAdminUser) {
+                console.warn('⚠️ [init] المستخدم ليس لديه صلاحية للوصول إلى صفحة المستخدمين');
+                showToast('⚠️ غير مسموح', 'ليس لديك صلاحية للوصول إلى إدارة المستخدمين', 'error');
+                setTimeout(function() {
+                    window.location.href = 'index.html';
+                }, 2000);
+                return;
+            }
 
             isSuperAdmin = await isSuperAdminCheck();
             currentCompanyId = await getCompanyId();
