@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="supabase-client.js"></script>
     <style>
-        /* ===== نفس الـ CSS السابق مع إضافات الـ Progress Bar ===== */
+        /* ===== نفس الـ CSS السابق ===== */
         :root {
             --ink: #121821;
             --ink-soft: #2c3644;
@@ -1067,13 +1067,42 @@
         var allProducts = [];
 
         // ============================================================
-        // GET PRODUCTS
+        // GET PRODUCTS (جلب جميع المنتجات بدون حد 1000)
         // ============================================================
         async function getProducts() {
             try {
-                var data = await getTable('products', 'code.asc');
+                var token = getToken();
+                if (!token) {
+                    console.warn('⚠️ لا يوجد توكن');
+                    return [];
+                }
+
+                var companyId = await getCompanyId();
+                if (!companyId) {
+                    console.warn('⚠️ لم يتم العثور على company_id');
+                    return [];
+                }
+
+                // ✅ استخدام fetch مباشرة مع limit=100000 لتجاوز حد 1000
+                var url = SUPABASE_URL + '/rest/v1/products?select=*&company_id=eq.' + companyId + '&order=code.asc&limit=100000';
+                console.log('📤 جلب المنتجات من:', url);
+
+                var response = await fetch(url, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!response.ok) {
+                    console.warn('⚠️ فشل جلب المنتجات:', response.status);
+                    return [];
+                }
+
+                var data = await response.json();
                 console.log('✅ تم جلب المنتجات:', data ? data.length : 0);
                 return data || [];
+
             } catch (error) {
                 console.error('❌ خطأ في جلب المنتجات:', error);
                 return [];
@@ -1250,12 +1279,11 @@
         }
 
         // ============================================================
-        // SAVE PRODUCT (النسخة المعدلة مع التحقق من company_id)
+        // SAVE PRODUCT
         // ============================================================
         async function saveProduct(event) {
             event.preventDefault();
 
-            // ✅ التحقق من company_id أولاً
             var companyId = await getCompanyId();
             if (!companyId) {
                 console.warn('⚠️ لا يوجد company_id، محاولة تجديد الجلسة...');
@@ -1422,7 +1450,6 @@
         function openImportModal() {
             document.getElementById('importModal').classList.add('active');
             document.getElementById('importFile').value = '';
-            // إخفاء مؤشر التقدم إذا كان ظاهراً
             document.getElementById('importProgress').style.display = 'none';
             document.getElementById('progressBar').style.width = '0%';
             document.body.style.overflow = 'hidden';
@@ -1479,7 +1506,6 @@
                 var errors = [];
 
                 for (var i = 0; i < jsonData.length; i++) {
-                    // تحديث التقدم
                     var percent = Math.round(((i + 1) / jsonData.length) * 100);
                     progressBar.style.width = percent + '%';
                     progressPercent.textContent = percent + '%';
@@ -1512,7 +1538,6 @@
                         errors.push('صف ' + (i + 1) + ': ' + err.message);
                     }
 
-                    // تأخير بسيط لإظهار التقدم
                     await new Promise(r => setTimeout(r, 20));
                 }
 
