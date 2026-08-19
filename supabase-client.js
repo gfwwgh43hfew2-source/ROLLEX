@@ -10,7 +10,6 @@ const SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
 var supabaseClientInstance = null;
 
 function getSupabaseClient() {
-    // ✅ التحقق من وجود supabase في النطاق العام
     if (typeof supabase === 'undefined') {
         console.error('❌ supabase library not loaded!');
         return null;
@@ -28,81 +27,6 @@ function getSupabaseClient() {
         console.log('✅ تم إنشاء Supabase Client');
     }
     return supabaseClientInstance;
-}
-
-// ============================================================
-// TOAST SYSTEM
-// ============================================================
-function showToast(title, message, type = 'success', buttons = null) {
-    var container = document.getElementById('toastContainer');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toastContainer';
-        container.className = 'toast-container';
-        document.body.appendChild(container);
-    }
-
-    var toast = document.createElement('div');
-    toast.className = 'toast ' + (type || '');
-
-    var iconMap = {
-        'success': { icon: 'fa-check-circle', cls: 'success' },
-        'error': { icon: 'fa-times-circle', cls: 'error' },
-        'warning': { icon: 'fa-exclamation-triangle', cls: 'warning' }
-    };
-    var t = iconMap[type] || iconMap['warning'];
-
-    var buttonsHtml = '';
-    if (buttons && buttons.length > 0) {
-        buttonsHtml = '<div class="toast-actions">';
-        buttons.forEach(function(btn) {
-            buttonsHtml += '<button class="' + btn.class + '" data-value="' + btn.value + '">' + btn.label + '</button>';
-        });
-        buttonsHtml += '</div>';
-    }
-
-    toast.innerHTML = `
-        <span class="icon ${t.cls}"><i class="fas ${t.icon}"></i></span>
-        <div class="content">
-            <div class="title">${title}</div>
-            <div class="message">${message}</div>
-            ${buttonsHtml}
-        </div>
-        <button class="close"><i class="fas fa-times"></i></button>
-    `;
-
-    container.appendChild(toast);
-
-    requestAnimationFrame(function() {
-        toast.classList.add('show');
-    });
-
-    return new Promise(function(resolve) {
-        var timeout = setTimeout(function() {
-            toast.classList.remove('show');
-            setTimeout(function() { if (toast.parentElement) toast.remove(); }, 400);
-            resolve(null);
-        }, 5000);
-
-        toast.querySelector('.close').addEventListener('click', function() {
-            clearTimeout(timeout);
-            toast.classList.remove('show');
-            setTimeout(function() { if (toast.parentElement) toast.remove(); }, 400);
-            resolve(null);
-        });
-
-        if (buttons && buttons.length > 0) {
-            toast.querySelectorAll('.toast-actions button').forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    var val = this.dataset.value;
-                    clearTimeout(timeout);
-                    toast.classList.remove('show');
-                    setTimeout(function() { if (toast.parentElement) toast.remove(); }, 400);
-                    resolve(val);
-                });
-            });
-        }
-    });
 }
 
 // ============================================================
@@ -134,6 +58,15 @@ function setSession(sessionData) {
     } else {
         localStorage.removeItem('rollex_session');
     }
+}
+
+// ✅ دالة مسح الجلسة بالكامل
+function clearSession() {
+    console.log('🗑️ [clearSession] جاري مسح الجلسة بالكامل...');
+    localStorage.removeItem('rollex_session');
+    sessionStorage.removeItem('rollex_session');
+    sessionStorage.clear();
+    console.log('✅ [clearSession] تم مسح الجلسة بالكامل');
 }
 
 async function refreshSession() {
@@ -182,8 +115,7 @@ async function refreshSession() {
 // ============================================================
 function redirectToLogin() {
     console.log('🚪 جاري التوجيه لتسجيل الدخول...');
-    localStorage.removeItem('rollex_session');
-    sessionStorage.removeItem('rollex_session');
+    clearSession();
     window.location.href = 'login.html';
 }
 
@@ -464,25 +396,23 @@ function formatDate(dateStr) {
 }
 
 // ============================================================
-// LOGOUT - النسخة المحسنة
+// LOGOUT - النسخة النهائية مع مسح الجلسة
 // ============================================================
 async function logout() {
-    console.log('🚪 جاري تسجيل الخروج...');
+    console.log('🚪 [logout] جاري تسجيل الخروج...');
     
     try {
         var supabaseClient = getSupabaseClient();
         if (supabaseClient) {
             await supabaseClient.auth.signOut();
-            console.log('✅ تم تسجيل الخروج من Supabase');
+            console.log('✅ [logout] تم تسجيل الخروج من Supabase');
         }
     } catch (error) {
-        console.warn('⚠️ فشل تسجيل الخروج من Supabase:', error.message);
+        console.warn('⚠️ [logout] فشل تسجيل الخروج من Supabase:', error.message);
     }
     
     // ✅ مسح جميع البيانات المخزنة
-    localStorage.removeItem('rollex_session');
-    sessionStorage.removeItem('rollex_session');
-    sessionStorage.clear();
+    clearSession();
     
     // ✅ إعادة التوجيه لتسجيل الدخول
     window.location.href = 'login.html';
@@ -716,6 +646,20 @@ async function checkPageAccess(module, permission) {
 }
 
 // ============================================================
+// EXPOSE FUNCTIONS TO GLOBAL SCOPE
+// ============================================================
+window.clearSession = clearSession;
+window.logout = logout;
+window.getToken = getToken;
+window.getSession = getSession;
+window.getSupabaseClient = getSupabaseClient;
+window.getCompanyId = getCompanyId;
+window.getCurrentUserProfile = getCurrentUserProfile;
+window.startSessionMonitor = startSessionMonitor;
+window.redirectToLogin = redirectToLogin;
+window.refreshSession = refreshSession;
+
+// ============================================================
 // FINAL LOG
 // ============================================================
-console.log('✅ تم تحميل supabase-client.js');
+console.log('✅ تم تحميل supabase-client.js (النسخة النهائية مع clearSession)');
