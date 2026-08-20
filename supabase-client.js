@@ -680,34 +680,42 @@ function getUserPermissionsFromSession() {
 
 // التحقق من أن المستخدم مدير عام
 function isSuperAdmin() {
-    // التحقق من الجلسة أولاً
-    var user = getUserPermissionsFromSession();
-    if (user && user.is_super_admin === true) {
-        return true;
+    // التحقق من الجلسة في localStorage مباشرة
+    try {
+        var session = localStorage.getItem('rollex_session');
+        if (session) {
+            var parsed = JSON.parse(session);
+            if (parsed && parsed.user && parsed.user.is_super_admin === true) {
+                console.log('✅ [isSuperAdmin] true من localStorage');
+                return true;
+            }
+        }
+    } catch (e) {
+        console.warn('⚠️ [isSuperAdmin] فشل قراءة الجلسة:', e);
     }
     
-    // إذا لم نجد في الجلسة، نتحقق من البروفايل مباشرة
-    var profile = getCurrentUserProfile();
-    if (profile && profile.is_super_admin === true) {
-        return true;
-    }
-    
+    console.log('❌ [isSuperAdmin] false');
     return false;
 }
 
 function isAdmin() {
-    // التحقق من الجلسة أولاً
-    var user = getUserPermissionsFromSession();
-    if (user && (user.role === 'admin' || user.is_super_admin === true)) {
-        return true;
+    // التحقق من الجلسة في localStorage مباشرة
+    try {
+        var session = localStorage.getItem('rollex_session');
+        if (session) {
+            var parsed = JSON.parse(session);
+            if (parsed && parsed.user) {
+                if (parsed.user.role === 'admin' || parsed.user.is_super_admin === true) {
+                    console.log('✅ [isAdmin] true من localStorage');
+                    return true;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('⚠️ [isAdmin] فشل قراءة الجلسة:', e);
     }
     
-    // إذا لم نجد في الجلسة، نتحقق من البروفايل مباشرة
-    var profile = getCurrentUserProfile();
-    if (profile && (profile.role === 'admin' || profile.is_super_admin === true)) {
-        return true;
-    }
-    
+    console.log('❌ [isAdmin] false');
     return false;
 }
 
