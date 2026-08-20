@@ -531,7 +531,7 @@
         }
 
         // ============================================================
-        // LOGIN FORM SUBMIT - النسخة النهائية مع التحقق الصحيح
+        // LOGIN FORM SUBMIT - النسخة النهائية (بدون is_super_admin)
         // ============================================================
         loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -608,12 +608,12 @@
 
                 // ====================================================
                 // الخطوة 2: التحقق من وجود المستخدم في جدول profiles
-                // باستخدام id (العمود الصحيح)
+                // ✅ تم إزالة is_super_admin من الاستعلام
                 // ====================================================
                 console.log('📡 جاري التحقق من حالة المستخدم في جدول profiles...');
 
                 var profileResponse = await fetch(
-                    SUPABASE_URL + '/rest/v1/profiles?select=id,name,role,is_active,deleted_at,company_id,is_super_admin&id=eq.' + authData.user.id,
+                    SUPABASE_URL + '/rest/v1/profiles?select=id,name,role,is_active,deleted_at,company_id&id=eq.' + authData.user.id,
                     {
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
@@ -668,8 +668,7 @@
                         email: authData.user.email,
                         full_name: profile ? profile.name : authData.user.email,
                         role: profile ? profile.role : 'موظف',
-                        company_id: profile ? profile.company_id : null,
-                        is_super_admin: profile ? profile.is_super_admin : false
+                        company_id: profile ? profile.company_id : null
                     }
                 };
 
