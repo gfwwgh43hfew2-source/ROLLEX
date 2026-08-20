@@ -680,14 +680,35 @@ function getUserPermissionsFromSession() {
 
 // التحقق من أن المستخدم مدير عام
 function isSuperAdmin() {
+    // التحقق من الجلسة أولاً
     var user = getUserPermissionsFromSession();
-    return user && user.is_super_admin === true;
+    if (user && user.is_super_admin === true) {
+        return true;
+    }
+    
+    // إذا لم نجد في الجلسة، نتحقق من البروفايل مباشرة
+    var profile = getCurrentUserProfile();
+    if (profile && profile.is_super_admin === true) {
+        return true;
+    }
+    
+    return false;
 }
 
-// التحقق من أن المستخدم مدير (Admin)
 function isAdmin() {
+    // التحقق من الجلسة أولاً
     var user = getUserPermissionsFromSession();
-    return user && (user.role === 'admin' || user.is_super_admin === true);
+    if (user && (user.role === 'admin' || user.is_super_admin === true)) {
+        return true;
+    }
+    
+    // إذا لم نجد في الجلسة، نتحقق من البروفايل مباشرة
+    var profile = getCurrentUserProfile();
+    if (profile && (profile.role === 'admin' || profile.is_super_admin === true)) {
+        return true;
+    }
+    
+    return false;
 }
 
 // التحقق من صلاحية معينة (view, add, edit, delete) - نسخة بسيطة من الجلسة
