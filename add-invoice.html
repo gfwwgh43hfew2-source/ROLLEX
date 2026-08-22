@@ -491,7 +491,6 @@
             border: 1px solid var(--line);
         }
 
-        /* ===== CLIENT SUGGESTIONS ===== */
         .client-suggestions {
             position: relative;
             width: 100%;
@@ -1649,37 +1648,90 @@
         // ============================================================
         var SUPABASE_URL = 'https://zwuvcblrrrriuylajvba.supabase.co';
         var SUPABASE_ANON_KEY = 'sb_publishable_YFqwTEs-W_kprUgt4bgpCQ_tf5vVeFa';
-        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ============================================================
-        // HELPER FUNCTIONS
+        // HELPER FUNCTIONS - باستخدام Supabase Client
         // ============================================================
+        async function getValidToken() {
+            try {
+                // محاولة الحصول على الجلسة من Supabase
+                var { data: { session }, error } = await supabaseClient.auth.getSession();
+
+                if (error) {
+                    console.error('❌ خطأ في جلب الجلسة:', error);
+                    return null;
+                }
+
+                if (session && session.access_token) {
+                    console.log('✅ تم جلب التوكن من Supabase بنجاح');
+                    return session.access_token;
+                }
+
+                // محاولة من localStorage كحل احتياطي
+                var storedSession = localStorage.getItem('rollex_session');
+                if (storedSession) {
+                    try {
+                        var parsed = JSON.parse(storedSession);
+                        if (parsed && parsed.access_token) {
+                            console.log('✅ تم جلب التوكن من localStorage');
+                            return parsed.access_token;
+                        }
+                    } catch (e) {}
+                }
+
+                var storedSession2 = sessionStorage.getItem('rollex_session');
+                if (storedSession2) {
+                    try {
+                        var parsed2 = JSON.parse(storedSession2);
+                        if (parsed2 && parsed2.access_token) {
+                            console.log('✅ تم جلب التوكن من sessionStorage');
+                            return parsed2.access_token;
+                        }
+                    } catch (e) {}
+                }
+
+                console.warn('⚠️ لم يتم العثور على توكن صالح');
+                return null;
+            } catch (error) {
+                console.error('❌ خطأ في getValidToken:', error);
+                return null;
+            }
+        }
+
         function getToken() {
-            var session = localStorage.getItem('rollex_session');
-            if (session) {
-                try {
-                    var data = JSON.parse(session);
-                    if (data && data.access_token) {
-                        return data.access_token;
-                    }
-                } catch (e) {}
+            // هذه الدالة تعيد التوكن بشكل متزامن من التخزين المحلي
+            try {
+                var storedSession = localStorage.getItem('rollex_session');
+                if (storedSession) {
+                    try {
+                        var parsed = JSON.parse(storedSession);
+                        if (parsed && parsed.access_token) {
+                            return parsed.access_token;
+                        }
+                    } catch (e) {}
+                }
+
+                var storedSession2 = sessionStorage.getItem('rollex_session');
+                if (storedSession2) {
+                    try {
+                        var parsed2 = JSON.parse(storedSession2);
+                        if (parsed2 && parsed2.access_token) {
+                            return parsed2.access_token;
+                        }
+                    } catch (e) {}
+                }
+
+                return null;
+            } catch (error) {
+                console.error('❌ خطأ في getToken:', error);
+                return null;
             }
-            // محاولة من sessionStorage
-            var session2 = sessionStorage.getItem('rollex_session');
-            if (session2) {
-                try {
-                    var data2 = JSON.parse(session2);
-                    if (data2 && data2.access_token) {
-                        return data2.access_token;
-                    }
-                } catch (e) {}
-            }
-            return null;
         }
 
         async function getCompanyId() {
             try {
-                var token = getToken();
+                var token = await getValidToken();
                 if (!token) return null;
 
                 var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=company_id&limit=1', {
@@ -1703,7 +1755,7 @@
 
         async function getCurrentUserProfile() {
             try {
-                var token = getToken();
+                var token = await getValidToken();
                 if (!token) return null;
 
                 var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=id,name,email&limit=1', {
@@ -1727,9 +1779,8 @@
 
         function startSessionMonitor() {
             console.log('📡 بدء مراقبة الجلسة');
-            // فحص الجلسة كل دقيقة
-            setInterval(function() {
-                var token = getToken();
+            setInterval(async function() {
+                var token = await getValidToken();
                 if (!token) {
                     console.warn('⚠️ الجلسة منتهية، جاري التوجيه إلى صفحة تسجيل الدخول');
                     window.location.href = 'login.html';
@@ -1773,7 +1824,6 @@
             };
 
             function actuallyCapture() {
-                // استخدام html2pdf مباشرة مع العنصر
                 html2pdf()
                     .set(opt)
                     .from(element)
@@ -2665,11 +2715,13 @@
         // ============================================================
         async function logout() {
             try {
+                await supabaseClient.auth.signOut();
                 localStorage.removeItem('rollex_session');
                 sessionStorage.removeItem('rollex_session');
                 window.location.href = 'login.html';
             } catch (error) {
                 console.error('❌ خطأ في تسجيل الخروج:', error);
+                window.location.href = 'login.html';
             }
         }
         window.logout = logout;
@@ -2752,13 +2804,13 @@
         }
 
         // ============================================================
-        // LOAD CLIENTS
+        // LOAD CLIENTS - محسّنة مع استخدام Supabase Client
         // ============================================================
         async function loadClients() {
             try {
-                var token = getToken();
+                var token = await getValidToken();
                 if (!token) {
-                    console.warn('⚠️ لا يوجد توكن، تخطي جلب العملاء');
+                    console.warn('⚠️ لا يوجد توكن صالح، تخطي جلب العملاء');
                     return;
                 }
 
@@ -2779,6 +2831,11 @@
                 allClients = await response.json();
                 console.log('👤 تم جلب العملاء:', allClients.length);
 
+                // تحديث قائمة الاقتراحات
+                if (clientNameInput.value.trim().length > 0) {
+                    showClientSuggestions(clientNameInput.value);
+                }
+
             } catch (error) {
                 console.error('❌ خطأ في جلب العملاء:', error);
                 allClients = [];
@@ -2786,13 +2843,13 @@
         }
 
         // ============================================================
-        // LOAD PRODUCTS
+        // LOAD PRODUCTS - محسّنة مع استخدام Supabase Client
         // ============================================================
         async function loadProducts() {
             try {
-                var token = getToken();
+                var token = await getValidToken();
                 if (!token) {
-                    console.warn('⚠️ لا يوجد توكن، تخطي جلب المنتجات');
+                    console.warn('⚠️ لا يوجد توكن صالح، تخطي جلب المنتجات');
                     return;
                 }
 
@@ -2832,16 +2889,17 @@
         }
 
         // ============================================================
-        // LOAD FINISHED MOVEMENTS
+        // LOAD FINISHED MOVEMENTS - محسّنة مع استخدام Supabase Client
         // ============================================================
         async function loadFinishedMovements() {
             try {
-                var token = getToken();
+                var token = await getValidToken();
                 if (!token) {
-                    console.warn('⚠️ لا يوجد توكن، تخطي جلب حركات المخزون');
+                    console.warn('⚠️ لا يوجد توكن صالح، تخطي جلب حركات المخزون');
                     return;
                 }
 
+                console.log('🔄 جلب حركات المخزون من Supabase...');
                 var response = await fetch(SUPABASE_URL + '/rest/v1/finished_goods_movements?select=product_id,type,quantity', {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
@@ -2849,9 +2907,13 @@
                     }
                 });
 
-                if (!response.ok) throw new Error('فشل في جلب حركات المخزون');
-                allFinishedMovements = await response.json();
+                if (!response.ok) {
+                    var errorText = await response.text();
+                    console.error('❌ فشل في جلب حركات المخزون:', response.status, errorText);
+                    throw new Error('فشل في جلب حركات المخزون: ' + response.status);
+                }
 
+                allFinishedMovements = await response.json();
                 console.log('📊 تم جلب حركات المخزون:', allFinishedMovements.length);
 
             } catch (error) {
@@ -3000,7 +3062,7 @@
             }
 
             try {
-                var token = getToken();
+                var token = await getValidToken();
                 if (!token) throw new Error('جلسة منتهية');
 
                 var companyId = await getCompanyId();
@@ -3320,7 +3382,7 @@
             btnSaveInvoice.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
             try {
-                var token = getToken();
+                var token = await getValidToken();
                 if (!token) throw new Error('جلسة منتهية');
 
                 var companyId = await getCompanyId();
@@ -3478,8 +3540,8 @@
             console.log('🏭 فاتورة مبيعات جديدة - QuickData ProSoft');
             console.log('🔗 Supabase URL:', SUPABASE_URL);
 
-            var token = getToken();
-            console.log('🔑 التوكن موجود؟', token ? '✅ نعم' : '❌ لا');
+            var token = await getValidToken();
+            console.log('🔑 التوكن صالح؟', token ? '✅ نعم' : '❌ لا');
 
             if (!token) {
                 showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول للوصول إلى هذه الصفحة', 'error');
@@ -3497,7 +3559,6 @@
                 btnSavePdfDirect.addEventListener('click', saveInvoicePDFDirect);
             }
 
-            // إضافة مستمع لزر تحديث في الـ Header
             var refreshBtn = document.querySelector('.header-actions button[onclick="loadData()"]');
             if (refreshBtn) {
                 refreshBtn.addEventListener('click', loadData);
