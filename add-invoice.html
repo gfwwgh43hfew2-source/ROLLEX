@@ -491,11 +491,11 @@
             border: 1px solid var(--line);
         }
 
-        .client-suggestions {
+        .client-suggestions, .product-suggestions {
             position: relative;
             width: 100%;
         }
-        .client-suggestions .suggestions-list {
+        .client-suggestions .suggestions-list, .product-suggestions .suggestions-list {
             position: absolute;
             top: 100%;
             right: 0;
@@ -510,8 +510,8 @@
             box-shadow: var(--shadow);
             margin-top: calc(2px * var(--scale-factor));
         }
-        .client-suggestions .suggestions-list.show { display: block; }
-        .client-suggestions .suggestions-list .suggestion-item {
+        .client-suggestions .suggestions-list.show, .product-suggestions .suggestions-list.show { display: block; }
+        .client-suggestions .suggestions-list .suggestion-item, .product-suggestions .suggestions-list .suggestion-item {
             padding: calc(8px * var(--scale-factor)) calc(14px * var(--scale-factor));
             cursor: pointer;
             transition: 0.2s;
@@ -521,19 +521,19 @@
             border-bottom: 1px solid var(--line);
             font-size: calc(0.8rem * var(--scale-factor));
         }
-        .client-suggestions .suggestions-list .suggestion-item:last-child { border-bottom: none; }
-        .client-suggestions .suggestions-list .suggestion-item:hover { background: var(--accent-soft); }
-        .client-suggestions .suggestions-list .suggestion-item .client-phone {
+        .client-suggestions .suggestions-list .suggestion-item:last-child, .product-suggestions .suggestions-list .suggestion-item:last-child { border-bottom: none; }
+        .client-suggestions .suggestions-list .suggestion-item:hover, .product-suggestions .suggestions-list .suggestion-item:hover { background: var(--accent-soft); }
+        .client-suggestions .suggestions-list .suggestion-item .client-phone, .product-suggestions .suggestions-list .suggestion-item .client-phone {
             font-size: calc(0.65rem * var(--scale-factor));
             color: var(--ink-mute);
         }
-        .client-suggestions .suggestions-list .suggestion-item.add-new { color: var(--teal); font-weight: 700; }
-        .client-suggestions .suggestions-list .suggestion-item.add-new i { margin-left: calc(6px * var(--scale-factor)); }
-        .client-suggestions .suggestions-list .suggestion-item.selected {
+        .client-suggestions .suggestions-list .suggestion-item.add-new, .product-suggestions .suggestions-list .suggestion-item.add-new { color: var(--teal); font-weight: 700; }
+        .client-suggestions .suggestions-list .suggestion-item.add-new i, .product-suggestions .suggestions-list .suggestion-item.add-new i { margin-left: calc(6px * var(--scale-factor)); }
+        .client-suggestions .suggestions-list .suggestion-item.selected, .product-suggestions .suggestions-list .suggestion-item.selected {
             background: var(--accent-soft);
             border-right: calc(3px * var(--scale-factor)) solid var(--accent);
         }
-        .client-suggestions .suggestions-list .no-results {
+        .client-suggestions .suggestions-list .no-results, .product-suggestions .suggestions-list .no-results {
             padding: calc(12px * var(--scale-factor)) calc(14px * var(--scale-factor));
             text-align: center;
             color: var(--ink-mute);
@@ -1505,11 +1505,11 @@
                     </div>
 
                     <div class="form-row product-row">
-                        <div class="form-group">
+                        <div class="form-group product-suggestions">
                             <label>المنتج <span class="required">*</span></label>
-                            <select id="productSelect">
-                                <option value="">— اختر المنتج —</option>
-                            </select>
+                            <input type="text" id="productNameInput" placeholder="ابحث عن منتج..." autocomplete="off" />
+                            <div class="suggestions-list" id="productSuggestions"></div>
+                            <input type="hidden" id="productIdHidden" value="" />
                         </div>
                         <div class="form-group">
                             <label>الكمية <span class="required">*</span></label>
@@ -2735,7 +2735,9 @@
         var clientPhone = document.getElementById('clientPhone');
         var clientIdHidden = document.getElementById('clientIdHidden');
         var clientSuggestions = document.getElementById('clientSuggestions');
-        var productSelect = document.getElementById('productSelect');
+        var productNameInput = document.getElementById('productNameInput');
+        var productIdHidden = document.getElementById('productIdHidden');
+        var productSuggestions = document.getElementById('productSuggestions');
         var productQty = document.getElementById('productQty');
         var productPrice = document.getElementById('productPrice');
         var productUnit = document.getElementById('productUnit');
@@ -2762,6 +2764,8 @@
         var allFinishedMovements = [];
         var selectedClientId = null;
         var selectedSuggestionIndex = -1;
+        var selectedProductId = null;
+        var selectedProductSuggestionIndex = -1;
 
         // ============================================================
         // FLATPICKR
@@ -2870,18 +2874,6 @@
                 allProducts = await response.json();
                 console.log('📦 تم جلب المنتجات:', allProducts.length);
 
-                // تعبئة القائمة المنسدلة
-                var select = document.getElementById('productSelect');
-                select.innerHTML = '<option value="">— اختر المنتج —</option>';
-                allProducts.forEach(function(p) {
-                    var opt = document.createElement('option');
-                    opt.value = p.id;
-                    opt.textContent = (p.code ? p.code + ' — ' : '') + p.name;
-                    opt.dataset.price = p.sell_price || 0;
-                    opt.dataset.unit = p.unit || '';
-                    select.appendChild(opt);
-                });
-
             } catch (error) {
                 console.error('❌ خطأ في جلب المنتجات:', error);
                 allProducts = [];
@@ -2938,24 +2930,146 @@
         }
 
         // ============================================================
-        // PRODUCT SELECT CHANGE
+        // PRODUCT SUGGESTIONS
         // ============================================================
-        productSelect.addEventListener('change', function() {
-            var selected = this.options[this.selectedIndex];
-            if (selected && selected.value) {
-                var price = parseFloat(selected.dataset.price) || 0;
-                var unit = selected.dataset.unit || '';
-                productPrice.value = price || '';
-                productUnit.value = unit;
+        function showProductSuggestions(input) {
+            var searchTerm = input.trim().toLowerCase();
+            var suggestionsList = productSuggestions;
 
-                var balance = computeProductBalance(selected.value);
-                productStock.value = balance > 0 ? balance.toFixed(2) : '0';
-                productStock.style.color = balance > 0 ? 'var(--teal)' : 'var(--rust)';
+            if (!searchTerm || searchTerm.length < 1) {
+                suggestionsList.classList.remove('show');
+                selectedProductSuggestionIndex = -1;
+                return;
+            }
+
+            var filtered = allProducts.filter(function(product) {
+                return product.name.toLowerCase().includes(searchTerm) ||
+                    (product.code && product.code.toLowerCase().includes(searchTerm));
+            });
+
+            var results = filtered.slice(0, 10);
+
+            if (results.length === 0) {
+                suggestionsList.innerHTML = `
+                    <div class="no-results">لا توجد نتائج مطابقة</div>
+                `;
+                suggestionsList.classList.add('show');
+                selectedProductSuggestionIndex = -1;
+                return;
+            }
+
+            var html = '';
+            results.forEach(function(product, index) {
+                html += `
+                    <div class="suggestion-item" onclick="selectProduct('${product.id}', '${(product.code ? product.code + ' — ' : '') + product.name}', '${product.sell_price || 0}', '${product.unit || ''}')" data-index="${index}">
+                        <span>${product.code ? product.code + ' — ' : ''}${product.name}</span>
+                        ${product.sell_price ? `<span class="client-phone">💰 ${product.sell_price}</span>` : ''}
+                    </div>
+                `;
+            });
+
+            suggestionsList.innerHTML = html;
+            suggestionsList.classList.add('show');
+            selectedProductSuggestionIndex = -1;
+            updateProductSuggestionHighlight();
+        }
+
+        function updateProductSuggestionHighlight() {
+            var items = productSuggestions.querySelectorAll('.suggestion-item');
+            items.forEach(function(item, index) {
+                item.classList.remove('selected');
+                if (index === selectedProductSuggestionIndex) {
+                    item.classList.add('selected');
+                    item.scrollIntoView({ block: 'nearest' });
+                }
+            });
+        }
+
+        function selectProduct(id, name, price, unit) {
+            productNameInput.value = name;
+            productIdHidden.value = id;
+            selectedProductId = id;
+            productSuggestions.classList.remove('show');
+            selectedProductSuggestionIndex = -1;
+
+            var priceVal = parseFloat(price) || 0;
+            productPrice.value = priceVal || '';
+            productUnit.value = unit || '';
+
+            var balance = computeProductBalance(id);
+            productStock.value = balance > 0 ? balance.toFixed(2) : '0';
+            productStock.style.color = balance > 0 ? 'var(--teal)' : 'var(--rust)';
+
+            productNameInput.style.borderColor = 'var(--teal)';
+            setTimeout(function() {
+                productNameInput.style.borderColor = '';
+            }, 2000);
+        }
+        window.selectProduct = selectProduct;
+
+        productNameInput.addEventListener('input', function() {
+            var value = this.value.trim();
+            if (value.length >= 1) {
+                showProductSuggestions(value);
             } else {
+                productSuggestions.classList.remove('show');
+                selectedProductId = null;
+                productIdHidden.value = '';
+                selectedProductSuggestionIndex = -1;
                 productPrice.value = '';
                 productUnit.value = '';
                 productStock.value = '--';
                 productStock.style.color = '';
+            }
+        });
+
+        productNameInput.addEventListener('keydown', function(e) {
+            var items = productSuggestions.querySelectorAll('.suggestion-item');
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    selectedProductSuggestionIndex = Math.min(selectedProductSuggestionIndex + 1, items.length - 1);
+                    updateProductSuggestionHighlight();
+                }
+            }
+
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    selectedProductSuggestionIndex = Math.max(selectedProductSuggestionIndex - 1, 0);
+                    updateProductSuggestionHighlight();
+                }
+            }
+
+            if (e.key === 'Enter' && selectedProductSuggestionIndex >= 0) {
+                e.preventDefault();
+                var selectedItem = items[selectedProductSuggestionIndex];
+                if (selectedItem) {
+                    selectedItem.click();
+                }
+            }
+
+            if (e.key === 'Escape') {
+                productSuggestions.classList.remove('show');
+                selectedProductSuggestionIndex = -1;
+            }
+        });
+
+        productNameInput.addEventListener('blur', function() {
+            setTimeout(function() {
+                if (!document.activeElement || !document.activeElement.closest('.product-suggestions')) {
+                    productSuggestions.classList.remove('show');
+                    selectedProductSuggestionIndex = -1;
+                }
+            }, 200);
+        });
+
+        document.addEventListener('click', function(e) {
+            var container = document.querySelector('.product-suggestions');
+            if (container && !container.contains(e.target)) {
+                productSuggestions.classList.remove('show');
+                selectedProductSuggestionIndex = -1;
             }
         });
 
@@ -3173,15 +3287,15 @@
         // ADD PRODUCT TO ITEMS
         // ============================================================
         btnAddProduct.addEventListener('click', function() {
-            var productId = productSelect.value;
-            var productName = productSelect.options[productSelect.selectedIndex]?.textContent || '';
+            var productId = productIdHidden.value;
+            var productName = productNameInput.value.trim();
             var qty = parseFloat(productQty.value);
             var price = parseFloat(productPrice.value);
             var unit = productUnit.value.trim() || '';
 
             if (!productId) {
-                showToast('⚠️ تنبيه', 'يرجى اختيار المنتج', 'error');
-                productSelect.focus();
+                showToast('⚠️ تنبيه', 'يرجى اختيار المنتج من القائمة', 'error');
+                productNameInput.focus();
                 return;
             }
             if (!qty || qty <= 0) {
@@ -3217,14 +3331,16 @@
             clearProductFields();
 
             showToast('✅ تم الإضافة', 'تم إضافة ' + productName + ' بنجاح', 'success');
-            productSelect.focus();
+            productNameInput.focus();
         });
 
         // ============================================================
         // CLEAR PRODUCT FIELDS
         // ============================================================
         function clearProductFields() {
-            productSelect.value = '';
+            productNameInput.value = '';
+            productIdHidden.value = '';
+            selectedProductId = null;
             productQty.value = '';
             productPrice.value = '';
             productUnit.value = '';
@@ -3372,7 +3488,7 @@
             }
             if (items.length === 0) {
                 showToast('⚠️ تنبيه', 'يرجى إضافة منتج واحد على الأقل', 'error');
-                productSelect.focus();
+                productNameInput.focus();
                 return;
             }
 
