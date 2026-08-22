@@ -7,10 +7,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    
+    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="supabase-client.js"></script>
+    
     <style>
+        /* ============================================================ */
         :root {
             --ink: #121821;
             --ink-soft: #2c3644;
@@ -57,7 +59,6 @@
         .swatch-stripe span:nth-child(3) { background: var(--rust); }
         .swatch-stripe span:nth-child(4) { background: var(--blue); }
 
-        /* ============================================================ */
         .sidebar-overlay {
             display: none;
             position: fixed;
@@ -212,7 +213,6 @@
         }
         .sidebar .footer .logout-btn:hover { background: var(--surface-muted); color: var(--rust); }
 
-        /* ============================================================ */
         header {
             position: sticky;
             top: 0;
@@ -268,7 +268,6 @@
             padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface);
         }
 
-        /* ============================================================ */
         .main-content {
             flex: 1;
             padding: 20px;
@@ -675,6 +674,172 @@
     <!-- ============================================================ -->
     <script>
         // ============================================================
+        // SUPABASE CONFIGURATION - المشروع الصحيح
+        // ============================================================
+        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
+        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlKpQhNxbTpwYqyW6B6xWptn3h';
+        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ============================================================
+        // HELPER FUNCTIONS
+        // ============================================================
+        function getToken() {
+            try {
+                var storedSession = localStorage.getItem('rollex_session');
+                if (storedSession) {
+                    try {
+                        var parsed = JSON.parse(storedSession);
+                        if (parsed && parsed.access_token) {
+                            return parsed.access_token;
+                        }
+                    } catch (e) {}
+                }
+
+                var storedSession2 = sessionStorage.getItem('rollex_session');
+                if (storedSession2) {
+                    try {
+                        var parsed2 = JSON.parse(storedSession2);
+                        if (parsed2 && parsed2.access_token) {
+                            return parsed2.access_token;
+                        }
+                    } catch (e) {}
+                }
+
+                return null;
+            } catch (error) {
+                console.error('❌ خطأ في getToken:', error);
+                return null;
+            }
+        }
+
+        async function getValidToken() {
+            try {
+                var { data: { session }, error } = await supabaseClient.auth.getSession();
+
+                if (error) {
+                    console.error('❌ خطأ في جلب الجلسة:', error);
+                    return null;
+                }
+
+                if (session && session.access_token) {
+                    console.log('✅ تم جلب التوكن من Supabase بنجاح');
+                    return session.access_token;
+                }
+
+                var storedSession = localStorage.getItem('rollex_session');
+                if (storedSession) {
+                    try {
+                        var parsed = JSON.parse(storedSession);
+                        if (parsed && parsed.access_token) {
+                            console.log('✅ تم جلب التوكن من localStorage');
+                            return parsed.access_token;
+                        }
+                    } catch (e) {}
+                }
+
+                var storedSession2 = sessionStorage.getItem('rollex_session');
+                if (storedSession2) {
+                    try {
+                        var parsed2 = JSON.parse(storedSession2);
+                        if (parsed2 && parsed2.access_token) {
+                            console.log('✅ تم جلب التوكن من sessionStorage');
+                            return parsed2.access_token;
+                        }
+                    } catch (e) {}
+                }
+
+                console.warn('⚠️ لم يتم العثور على توكن صالح');
+                return null;
+            } catch (error) {
+                console.error('❌ خطأ في getValidToken:', error);
+                return null;
+            }
+        }
+
+        // ============================================================
+        // FETCH DATA DIRECTLY FROM SUPABASE - طريقة صحيحة
+        // ============================================================
+        async function fetchTable(tableName, selectColumns, orderBy) {
+            try {
+                var token = await getValidToken();
+                if (!token) {
+                    console.warn('⚠️ لا يوجد توكن صالح');
+                    return [];
+                }
+
+                var url = SUPABASE_URL + '/rest/v1/' + tableName;
+
+                var params = new URLSearchParams();
+                if (selectColumns) {
+                    params.append('select', selectColumns);
+                }
+                if (orderBy) {
+                    params.append('order', orderBy);
+                }
+
+                var queryString = params.toString();
+                if (queryString) {
+                    url += '?' + queryString;
+                }
+
+                console.log('📡 جلب البيانات من:', url);
+
+                var response = await fetch(url, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    var errorText = await response.text();
+                    console.error('❌ فشل في جلب ' + tableName + ':', response.status, errorText);
+                    return [];
+                }
+
+                var data = await response.json();
+                console.log('✅ تم جلب ' + tableName + ':', data.length, 'سجل');
+                return data;
+
+            } catch (error) {
+                console.error('❌ خطأ في fetchTable(' + tableName + '):', error);
+                return [];
+            }
+        }
+
+        // ============================================================
+        // FORMAT FUNCTIONS
+        // ============================================================
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            try {
+                var d = new Date(dateStr);
+                if (isNaN(d.getTime())) return dateStr;
+                return d.toLocaleDateString('ar-EG');
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        function formatNumber(val) {
+            var num = parseFloat(val);
+            if (isNaN(num)) return '0.00';
+            return num.toFixed(2);
+        }
+
+        function startSessionMonitor() {
+            console.log('📡 بدء مراقبة الجلسة');
+            setInterval(async function() {
+                var token = await getValidToken();
+                if (!token) {
+                    console.warn('⚠️ الجلسة منتهية، جاري التوجيه');
+                    window.location.href = 'login.html';
+                }
+            }, 60000);
+        }
+
+        // ============================================================
         // SIDEBAR TOGGLE
         // ============================================================
         var sidebar = document.getElementById('sidebar');
@@ -727,13 +892,13 @@
             else iconClass = 'warning';
 
             toast.innerHTML = `
-                        <div class="toast-icon ${iconClass}"><i class="fas ${iconMap[iconClass] || 'fa-info-circle'}"></i></div>
-                        <div class="toast-content">
-                            <div class="toast-title">${title}</div>
-                            <div class="toast-message">${message}</div>
-                        </div>
-                        <button class="toast-close"><i class="fas fa-times"></i></button>
-                    `;
+                <div class="toast-icon ${iconClass}"><i class="fas ${iconMap[iconClass] || 'fa-info-circle'}"></i></div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close"><i class="fas fa-times"></i></button>
+            `;
 
             container.appendChild(toast);
 
@@ -761,11 +926,13 @@
         // ============================================================
         async function logout() {
             try {
+                await supabaseClient.auth.signOut();
                 localStorage.removeItem('rollex_session');
                 sessionStorage.removeItem('rollex_session');
                 window.location.href = 'login.html';
             } catch (error) {
                 console.error('❌ خطأ في تسجيل الخروج:', error);
+                window.location.href = 'login.html';
             }
         }
         window.logout = logout;
@@ -779,50 +946,38 @@
         var filterClient = document.getElementById('filterClient');
         var filterInvoiceNo = document.getElementById('filterInvoiceNo');
 
-        var allClients = [];
-        var allProducts = [];
-        var allFinishedMovements = [];
         var allInvoices = [];
         var allInvoiceItems = [];
 
         // ============================================================
-        // GET TABLES
+        // LOAD DATA - الطريقة الصحيحة
         // ============================================================
-        async function getTableData(tableName, orderBy) {
+        async function loadData() {
+            console.log('🚀 بدء تحميل بيانات المبيعات...');
+            entriesBody.innerHTML =
+                '<tr><td colspan="7"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
+
             try {
-                var data = await getTable(tableName, orderBy) || [];
-                return data;
+                // جلب الفواتير
+                var invoicesData = await fetchTable('sales_invoices', '*', 'created_at.desc');
+                allInvoices = invoicesData || [];
+                console.log('📄 عدد الفواتير:', allInvoices.length);
+
+                // جلب بنود الفواتير
+                var itemsData = await fetchTable('sales_invoice_items', '*', 'created_at.desc');
+                allInvoiceItems = itemsData || [];
+                console.log('📦 عدد البنود:', allInvoiceItems.length);
+
+                displayInvoices();
+                console.log('✅ تم تحميل البيانات بنجاح!');
+
             } catch (error) {
-                console.error('❌ خطأ في جلب ' + tableName + ':', error);
-                return [];
+                console.error('❌ خطأ في تحميل البيانات:', error);
+                entriesBody.innerHTML =
+                    '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p></div></td></tr>';
             }
         }
-
-        // ============================================================
-        // COMPUTE PRODUCT BALANCE
-        // ============================================================
-        function signedQty(movement) {
-            var qty = parseFloat(movement.quantity) || 0;
-            if (movement.type === 'وارد') return Math.abs(qty);
-            if (movement.type === 'منصرف') return -Math.abs(qty);
-            return qty;
-        }
-
-        function computeProductBalance(productId) {
-            var balance = 0;
-            allFinishedMovements.forEach(function(mv) {
-                if (mv.product_id == productId) balance += signedQty(mv);
-            });
-            return balance;
-        }
-
-        // ============================================================
-        // GENERATE INVOICE NUMBER (للعرض فقط)
-        // ============================================================
-        function generateInvoiceNo() {
-            var next = allInvoices.length + 1;
-            return 'INV-' + String(next).padStart(5, '0');
-        }
+        window.loadData = loadData;
 
         // ============================================================
         // DISPLAY INVOICES
@@ -854,7 +1009,8 @@
                     '<td style="font-weight:700;">' + (inv.client_name || '-') + '</td>' +
                     '<td>' + formatDate(inv.invoice_date) + '</td>' +
                     '<td style="text-align:center;">' + itemsCount + '</td>' +
-                    '<td style="text-align:center;">' + formatNumber(inv.total_amount) + '</td>' +
+                    '<td style="text-align:center;font-weight:700;color:var(--teal);">' + formatNumber(inv.total_amount) +
+                    '</td>' +
                     '<td style="text-align:center;">' +
                     '<button class="btn-action" onclick="viewInvoice(\'' + inv.id + '\')" style="padding:4px 8px;font-size:0.6rem;background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent-soft);"><i class="fas fa-eye"></i></button> ' +
                     '<button class="btn-action danger" onclick="deleteInvoiceConfirm(\'' + inv.id + '\')" style="padding:4px 8px;font-size:0.6rem;"><i class="fas fa-trash"></i></button>' +
@@ -881,6 +1037,7 @@
         }
 
         function applyFilters() { displayInvoices(); }
+
         function resetFilters() {
             filterClient.value = '';
             filterInvoiceNo.value = '';
@@ -890,33 +1047,38 @@
         window.resetFilters = resetFilters;
 
         // ============================================================
-        // VIEW INVOICE (مودال عرض الفاتورة)
+        // VIEW INVOICE
         // ============================================================
         function viewInvoice(id) {
             var invoice = allInvoices.find(function(inv) { return inv.id == id; });
-            if (!invoice) return;
+            if (!invoice) {
+                showToast('❌ خطأ', 'الفاتورة غير موجودة', 'error');
+                return;
+            }
 
             var items = allInvoiceItems.filter(function(it) { return it.invoice_id == id; });
-            var html = '';
-            items.forEach(function(it) {
-                html += '<tr>' +
-                    '<td>' + (it.product_name || '-') + '</td>' +
-                    '<td style="text-align:center;">' + formatNumber(it.quantity) + ' ' + (it.unit || '') + '</td>' +
-                    '<td style="text-align:center;">' + formatNumber(it.unit_price) + '</td>' +
-                    '<td style="text-align:center;">' + formatNumber(it.line_total) + '</td>' +
-                    '</tr>';
-            });
 
-            alert('📄 تفاصيل الفاتورة: ' + invoice.invoice_no + '\n\n' +
-                'العميل: ' + (invoice.client_name || '-') + '\n' +
-                'التاريخ: ' + formatDate(invoice.invoice_date) + '\n' +
-                'الإجمالي: ' + formatNumber(invoice.total_amount) + ' ج.م\n\n' +
-                '📦 الأصناف:\n' +
-                items.map(function(it) {
-                    return '  - ' + (it.product_name || '-') + ' | ' + formatNumber(it.quantity) + ' ' + (it.unit || '') +
-                        ' | ' + formatNumber(it.unit_price) + ' | ' + formatNumber(it.line_total);
-                }).join('\n')
-            );
+            var msg = '📄 تفاصيل الفاتورة\n';
+            msg += '═══════════════════════════\n';
+            msg += 'رقم الفاتورة: ' + (invoice.invoice_no || '-') + '\n';
+            msg += 'العميل: ' + (invoice.client_name || '-') + '\n';
+            msg += 'التاريخ: ' + formatDate(invoice.invoice_date) + '\n';
+            msg += 'الإجمالي: ' + formatNumber(invoice.total_amount) + ' ج.م\n';
+            msg += '═══════════════════════════\n';
+            msg += '📦 الأصناف:\n';
+
+            if (items.length === 0) {
+                msg += '  (لا توجد أصناف)\n';
+            } else {
+                items.forEach(function(it, idx) {
+                    msg += (idx + 1) + '. ' + (it.product_name || '-') +
+                        ' | ' + formatNumber(it.quantity) + ' ' + (it.unit || '') +
+                        ' | ' + formatNumber(it.unit_price) +
+                        ' | ' + formatNumber(it.line_total) + '\n';
+                });
+            }
+
+            alert(msg);
         }
         window.viewInvoice = viewInvoice;
 
@@ -924,11 +1086,13 @@
         // DELETE INVOICE
         // ============================================================
         function deleteInvoiceConfirm(id) {
-            if (!confirm('هل أنت متأكد من حذف الفاتورة؟ سيتم التراجع عن حركات المخزون ورصيد العميل المرتبطة بها.')) return;
+            if (!confirm('⚠️ هل أنت متأكد من حذف الفاتورة؟\nسيتم حذف جميع البنود المرتبطة بها.')) return;
+
+            showToast('⏳ جاري الحذف', 'جاري حذف الفاتورة...', 'warning');
 
             deleteInvoice(id)
                 .then(function() {
-                    showToast('✅ تم الحذف', 'تم حذف الفاتورة والتراجع عن حركاتها', 'success');
+                    showToast('✅ تم الحذف', 'تم حذف الفاتورة بنجاح', 'success');
                     loadData();
                 })
                 .catch(function(error) {
@@ -938,45 +1102,12 @@
         window.deleteInvoiceConfirm = deleteInvoiceConfirm;
 
         async function deleteInvoice(id) {
-            var invoice = allInvoices.find(function(inv) { return inv.id == id; });
-            var items = allInvoiceItems.filter(function(it) { return it.invoice_id == id; });
-
-            var token = getToken();
+            var token = await getValidToken();
             if (!token) throw new Error('جلسة منتهية');
 
-            for (var i = 0; i < items.length; i++) {
-                if (items[i].finished_movement_id) {
-                    await fetch(SUPABASE_URL + '/rest/v1/finished_goods_movements?id=eq.' + items[i].finished_movement_id, {
-                        method: 'DELETE',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token
-                        }
-                    });
-                }
-            }
-
-            if (invoice) {
-                var client = allClients.find(function(c) { return c.id == invoice.client_id; });
-                if (client) {
-                    await fetch(SUPABASE_URL + '/rest/v1/clients?id=eq.' + client.id, {
-                        method: 'PATCH',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            total_sales: Math.max(0, (parseFloat(client.total_sales) || 0) - (parseFloat(invoice.total_amount) ||
-                                0)),
-                            due_balance: Math.max(0, (parseFloat(client.due_balance) || 0) - (parseFloat(invoice.total_amount) ||
-                                0))
-                        })
-                    });
-                }
-            }
-
-            await fetch(SUPABASE_URL + '/rest/v1/sales_invoice_items?invoice_id=eq.' + id, {
+            // 1. حذف البنود المرتبطة
+            var itemsUrl = SUPABASE_URL + '/rest/v1/sales_invoice_items?invoice_id=eq.' + id;
+            var itemsResponse = await fetch(itemsUrl, {
                 method: 'DELETE',
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
@@ -984,54 +1115,40 @@
                 }
             });
 
-            await fetch(SUPABASE_URL + '/rest/v1/sales_invoices?id=eq.' + id, {
+            if (!itemsResponse.ok) {
+                var errorText = await itemsResponse.text();
+                console.error('❌ فشل حذف البنود:', errorText);
+            }
+
+            // 2. حذف الفاتورة نفسها
+            var invoiceUrl = SUPABASE_URL + '/rest/v1/sales_invoices?id=eq.' + id;
+            var invoiceResponse = await fetch(invoiceUrl, {
                 method: 'DELETE',
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
                     'Authorization': 'Bearer ' + token
                 }
             });
-        }
 
-        // ============================================================
-        // LOAD DATA
-        // ============================================================
-        async function loadData() {
-            console.log('🚀 بدء تحميل بيانات المبيعات...');
-            entriesBody.innerHTML =
-                '<tr><td colspan="7"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
-
-            try {
-                var clientsData = await getTableData('clients', 'name.asc');
-                var productsData = await getTableData('products', 'code.asc');
-                var movementsData = await getTableData('finished_goods_movements');
-                var invoicesData = await getTableData('sales_invoices', 'created_at.desc');
-                var invoiceItemsData = await getTableData('sales_invoice_items');
-
-                allClients = clientsData;
-                allProducts = productsData;
-                allFinishedMovements = movementsData;
-                allInvoices = invoicesData;
-                allInvoiceItems = invoiceItemsData;
-
-                displayInvoices();
-                console.log('✅ تم تحميل البيانات بنجاح!');
-
-            } catch (error) {
-                console.error('❌ خطأ في تحميل البيانات:', error);
-                entriesBody.innerHTML =
-                    '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p></div></td></tr>';
+            if (!invoiceResponse.ok) {
+                var errorText = await invoiceResponse.text();
+                console.error('❌ فشل حذف الفاتورة:', errorText);
+                throw new Error('فشل حذف الفاتورة: ' + invoiceResponse.status);
             }
+
+            console.log('✅ تم حذف الفاتورة والبنود بنجاح');
         }
-        window.loadData = loadData;
 
         // ============================================================
         // INIT
         // ============================================================
         (async function init() {
             console.log('🏭 صفحة المبيعات - QuickData ProSoft');
+            console.log('🔗 Supabase URL:', SUPABASE_URL);
 
-            var token = getToken();
+            var token = await getValidToken();
+            console.log('🔑 التوكن صالح؟', token ? '✅ نعم' : '❌ لا');
+
             if (!token) {
                 entriesBody.innerHTML =
                     '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول للوصول إلى هذه الصفحة</p></div></td></tr>';
