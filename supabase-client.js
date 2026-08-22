@@ -113,10 +113,26 @@ async function refreshSession() {
 // ============================================================
 // REDIRECT TO LOGIN
 // ============================================================
+var sessionRedirectInProgress = false;
+
 function redirectToLogin() {
-    console.log('🚪 جاري التوجيه لتسجيل الدخول...');
+    if (sessionRedirectInProgress) return; // منع تكرار التوجيه من عدة أماكن في نفس الوقت
+    sessionRedirectInProgress = true;
+
+    console.log('🚪 انتهت الجلسة، جاري التوجيه لتسجيل الدخول...');
     clearSession();
-    window.location.href = 'login.html';
+
+    var delay = 0;
+    try {
+        if (typeof showToast === 'function') {
+            showToast('⚠️ انتهت الجلسة', 'يرجى تسجيل الدخول مرة أخرى', 'warning');
+            delay = 1200;
+        }
+    } catch (e) {}
+
+    setTimeout(function() {
+        window.location.href = 'login.html';
+    }, delay);
 }
 
 // ============================================================
@@ -483,13 +499,15 @@ function startSessionMonitor() {
 async function checkSessionAndRedirect() {
     var session = getSession();
     if (!session) {
-        console.log('ℹ️ لا توجد جلسة، يرجى تسجيل الدخول');
+        console.log('ℹ️ لا توجد جلسة، جاري التوجيه لتسجيل الدخول...');
+        redirectToLogin();
         return false;
     }
 
     var token = getToken();
     if (!token) {
-        console.log('ℹ️ لا يوجد توكن، يرجى تسجيل الدخول');
+        console.log('ℹ️ لا يوجد توكن، جاري التوجيه لتسجيل الدخول...');
+        redirectToLogin();
         return false;
     }
 
@@ -506,18 +524,21 @@ async function checkSessionAndRedirect() {
                 console.log('⚠️ التوكن غير صالح، محاولة التجديد...');
                 var refreshed = await refreshSession();
                 if (!refreshed) {
-                    console.log('⚠️ فشل تجديد الجلسة، سيتم طلب تسجيل الدخول...');
+                    console.log('⚠️ فشل تجديد الجلسة، جاري التوجيه لتسجيل الدخول...');
+                    redirectToLogin();
                     return false;
                 }
                 return true;
             }
+            // خطأ آخر (مثلاً مشكلة مؤقتة بالخادم) - لا نسجل خروج المستخدم بسببه
             return false;
         }
 
         return true;
 
     } catch (error) {
-        console.error('❌ خطأ في التحقق من الجلسة:', error);
+        // خطأ شبكة/اتصال - لا نسجل خروج المستخدم، فقط نُبلغ بالمشكلة
+        console.error('❌ خطأ في التحقق من الجلسة (قد تكون مشكلة اتصال):', error);
         return false;
     }
 }
@@ -743,6 +764,27 @@ window.getUserPermissionsFromSession = getUserPermissionsFromSession;
 window.isSuperAdmin = isSuperAdmin;
 window.isAdmin = isAdmin;
 window.hasPermissionSimple = hasPermissionSimple;
+
+// ============================================================
+// AUTO SESSION GUARD - يعمل تلقائياً في كل صفحة تحمّل هذا الملف
+// حتى لو نسيت الصفحة استدعاء checkSessionAndRedirect/startSessionMonitor بنفسها
+// ============================================================
+(function() {
+    var currentPage = (window.location.pathname.split('/').pop() || '').toLowerCase();
+    var publicPages = ['login.html', 'register.html', ''];
+
+    if (publicPages.indexOf(currentPage) !== -1) {
+        return; // صفحات تسجيل الدخول والتسجيل لا تحتاج لهذا الفحص
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        checkSessionAndRedirect().then(function(isValid) {
+            if (isValid) {
+                startSessionMonitor();
+            }
+        });
+    });
+})();
 
 // ============================================================
 // FINAL LOG
