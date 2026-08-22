@@ -2875,16 +2875,49 @@
         }));
 
         // ============================================================
-        // GENERATE INVOICE NUMBER
+        // GENERATE INVOICE NUMBER - رقم متسلسل حقيقي من قاعدة البيانات
         // ============================================================
-        function generateInvoiceNumber() {
+        async function generateInvoiceNumber() {
             var today = new Date();
             var year = today.getFullYear();
             var month = String(today.getMonth() + 1).padStart(2, '0');
             var day = String(today.getDate()).padStart(2, '0');
             var dateStr = year + month + day;
-            var random = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
-            invoiceNumber.value = 'INV-' + dateStr + '-' + random;
+
+            var nextSeq = 1;
+            try {
+                var token = await getValidToken();
+                var companyId = await getCompanyId();
+
+                if (token && companyId) {
+                    var response = await fetch(
+                        SUPABASE_URL + '/rest/v1/sales_invoices?select=invoice_no&company_id=eq.' + companyId + '&order=created_at.desc&limit=1',
+                        {
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': 'Bearer ' + token
+                            }
+                        }
+                    );
+
+                    if (response.ok) {
+                        var data = await response.json();
+                        if (data && data.length > 0 && data[0].invoice_no) {
+                            var match = String(data[0].invoice_no).match(/(\d+)\s*$/);
+                            if (match) {
+                                nextSeq = parseInt(match[1], 10) + 1;
+                            }
+                        }
+                    } else {
+                        console.warn('⚠️ تعذر جلب آخر رقم فاتورة من قاعدة البيانات، سيتم استخدام رقم افتراضي');
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ خطأ أثناء توليد رقم الفاتورة، سيتم استخدام رقم افتراضي:', error.message);
+            }
+
+            var seqStr = String(nextSeq).padStart(5, '0');
+            invoiceNumber.value = 'INV-' + dateStr + '-' + seqStr;
         }
 
         // ============================================================
@@ -3507,7 +3540,7 @@
         // ============================================================
         // RESET FORM
         // ============================================================
-        function resetForm() {
+        async function resetForm() {
             items = [];
             renderItems();
             calculateTotals();
@@ -3518,7 +3551,7 @@
             selectedClientId = null;
             clientSuggestions.classList.remove('show');
             setDefaultDate();
-            generateInvoiceNumber();
+            await generateInvoiceNumber();
             showToast('🔄 جديد', 'تم تجهيز فاتورة جديدة', 'warning');
         }
         window.resetForm = resetForm;
@@ -3752,7 +3785,7 @@
             }
 
             setDefaultDate();
-            generateInvoiceNumber();
+            await generateInvoiceNumber();
             await loadData();
 
             if (btnSavePdfDirect) {
