@@ -1777,15 +1777,106 @@
             }
         }
 
+        // ============================================================
+        // SESSION VALIDATION - يتحقق من صلاحية الجلسة فعلياً من السيرفر
+        // (وليس فقط وجود توكن في localStorage) ثم يوجه لصفحة الدخول عند الانتهاء
+        // ============================================================
+        var sessionRedirectInProgress = false;
+
+        function goToLogin() {
+            if (sessionRedirectInProgress) return;
+            sessionRedirectInProgress = true;
+
+            console.warn('⚠️ الجلسة منتهية، جاري التوجيه إلى صفحة تسجيل الدخول');
+            try {
+                localStorage.removeItem('rollex_session');
+                sessionStorage.removeItem('rollex_session');
+            } catch (e) {}
+
+            showToast('⚠️ انتهت الجلسة', 'يرجى تسجيل الدخول مرة أخرى', 'warning');
+            setTimeout(function() {
+                window.location.href = 'login.html';
+            }, 1200);
+        }
+
+        async function tryRefreshSession() {
+            try {
+                var raw = localStorage.getItem('rollex_session') || sessionStorage.getItem('rollex_session');
+                if (!raw) return false;
+                var parsed = JSON.parse(raw);
+                if (!parsed || !parsed.refresh_token) return false;
+
+                var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ refresh_token: parsed.refresh_token })
+                });
+
+                if (!response.ok) return false;
+                var data = await response.json();
+                if (!data.access_token) return false;
+
+                var newSession = Object.assign({}, parsed, {
+                    access_token: data.access_token,
+                    refresh_token: data.refresh_token || parsed.refresh_token,
+                    expires_at: Date.now() + ((data.expires_in || 3600) * 1000)
+                });
+
+                if (localStorage.getItem('rollex_session')) {
+                    localStorage.setItem('rollex_session', JSON.stringify(newSession));
+                } else {
+                    sessionStorage.setItem('rollex_session', JSON.stringify(newSession));
+                }
+                console.log('✅ تم تجديد الجلسة بنجاح');
+                return true;
+            } catch (error) {
+                console.error('❌ خطأ في تجديد الجلسة:', error);
+                return false;
+            }
+        }
+
+        // يتحقق من الجلسة فعلياً عند السيرفر. يعيد true إذا كانت صالحة،
+        // ويوجه المستخدم لصفحة الدخول تلقائياً إذا لم تكن كذلك.
+        async function verifySessionOrRedirect() {
+            var token = getToken();
+            if (!token) {
+                goToLogin();
+                return false;
+            }
+
+            try {
+                var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (response.ok) return true;
+
+                if (response.status === 401 || response.status === 403) {
+                    var refreshed = await tryRefreshSession();
+                    if (refreshed) return true;
+                }
+
+                goToLogin();
+                return false;
+
+            } catch (error) {
+                // خطأ اتصال بالشبكة - لا نسجل خروج المستخدم بسبب ذلك
+                console.warn('⚠️ تعذر التحقق من الجلسة (مشكلة اتصال):', error.message);
+                return true;
+            }
+        }
+
         function startSessionMonitor() {
             console.log('📡 بدء مراقبة الجلسة');
             setInterval(async function() {
-                var token = await getValidToken();
-                if (!token) {
-                    console.warn('⚠️ الجلسة منتهية، جاري التوجيه إلى صفحة تسجيل الدخول');
-                    window.location.href = 'login.html';
-                }
-            }, 60000);
+                await verifySessionOrRedirect();
+            }, 30000);
         }
 
         // ============================================================
@@ -2808,6 +2899,42 @@
         }
 
         // ============================================================
+        // FETCH ALL ROWS (يتجاوز حد الـ 1000 صف الافتراضي في Supabase)
+        // ============================================================
+        async function fetchAllRows(baseUrl, token) {
+            var pageSize = 1000;
+            var allRows = [];
+            var from = 0;
+
+            while (true) {
+                var separator = baseUrl.indexOf('?') === -1 ? '?' : '&';
+                var response = await fetch(baseUrl, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
+                        'Range-Unit': 'items',
+                        'Range': from + '-' + (from + pageSize - 1)
+                    }
+                });
+
+                if (!response.ok) {
+                    var errorText = await response.text();
+                    throw new Error('فشل في جلب البيانات: ' + response.status + ' - ' + errorText);
+                }
+
+                var pageData = await response.json();
+                allRows = allRows.concat(pageData);
+
+                if (pageData.length < pageSize) {
+                    break; // وصلنا لآخر صفحة
+                }
+                from += pageSize;
+            }
+
+            return allRows;
+        }
+
+        // ============================================================
         // LOAD CLIENTS - محسّنة مع استخدام Supabase Client
         // ============================================================
         async function loadClients() {
@@ -2819,20 +2946,7 @@
                 }
 
                 console.log('🔄 جلب العملاء من Supabase...');
-                var response = await fetch(SUPABASE_URL + '/rest/v1/clients?select=id,name,phone,code&order=name', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!response.ok) {
-                    var errorText = await response.text();
-                    console.error('❌ فشل في جلب العملاء:', response.status, errorText);
-                    throw new Error('فشل في جلب العملاء: ' + response.status);
-                }
-
-                allClients = await response.json();
+                allClients = await fetchAllRows(SUPABASE_URL + '/rest/v1/clients?select=id,name,phone,code&order=name', token);
                 console.log('👤 تم جلب العملاء:', allClients.length);
 
                 // تحديث قائمة الاقتراحات
@@ -2858,20 +2972,7 @@
                 }
 
                 console.log('🔄 جلب المنتجات من Supabase...');
-                var response = await fetch(SUPABASE_URL + '/rest/v1/products?select=id,name,code,unit,sell_price&order=name', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!response.ok) {
-                    var errorText = await response.text();
-                    console.error('❌ فشل في جلب المنتجات:', response.status, errorText);
-                    throw new Error('فشل في جلب المنتجات: ' + response.status);
-                }
-
-                allProducts = await response.json();
+                allProducts = await fetchAllRows(SUPABASE_URL + '/rest/v1/products?select=id,name,code,unit,sell_price&order=name', token);
                 console.log('📦 تم جلب المنتجات:', allProducts.length);
 
             } catch (error) {
@@ -2892,20 +2993,7 @@
                 }
 
                 console.log('🔄 جلب حركات المخزون من Supabase...');
-                var response = await fetch(SUPABASE_URL + '/rest/v1/finished_goods_movements?select=product_id,type,quantity', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!response.ok) {
-                    var errorText = await response.text();
-                    console.error('❌ فشل في جلب حركات المخزون:', response.status, errorText);
-                    throw new Error('فشل في جلب حركات المخزون: ' + response.status);
-                }
-
-                allFinishedMovements = await response.json();
+                allFinishedMovements = await fetchAllRows(SUPABASE_URL + '/rest/v1/finished_goods_movements?select=product_id,type,quantity', token);
                 console.log('📊 تم جلب حركات المخزون:', allFinishedMovements.length);
 
             } catch (error) {
@@ -3656,15 +3744,11 @@
             console.log('🏭 فاتورة مبيعات جديدة - QuickData ProSoft');
             console.log('🔗 Supabase URL:', SUPABASE_URL);
 
-            var token = await getValidToken();
-            console.log('🔑 التوكن صالح؟', token ? '✅ نعم' : '❌ لا');
+            var sessionOk = await verifySessionOrRedirect();
+            console.log('🔑 الجلسة صالحة؟', sessionOk ? '✅ نعم' : '❌ لا');
 
-            if (!token) {
-                showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول للوصول إلى هذه الصفحة', 'error');
-                setTimeout(function() {
-                    window.location.href = 'login.html';
-                }, 2000);
-                return;
+            if (!sessionOk) {
+                return; // تم التوجيه إلى صفحة تسجيل الدخول بالفعل داخل verifySessionOrRedirect
             }
 
             setDefaultDate();
@@ -3680,9 +3764,7 @@
                 refreshBtn.addEventListener('click', loadData);
             }
 
-            setTimeout(function() {
-                startSessionMonitor();
-            }, 3000);
+            startSessionMonitor();
         })();
     </script>
 
