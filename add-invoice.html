@@ -591,6 +591,15 @@
             font-weight: 600;
             border: 1px solid var(--line);
         }
+        .right-panel .form-group label .zero-badge {
+            font-size: calc(0.44rem * var(--scale-factor));
+            color: var(--rust);
+            background: var(--rust-soft);
+            padding: calc(2px * var(--scale-factor)) calc(8px * var(--scale-factor));
+            border-radius: 50px;
+            font-weight: 700;
+            border: 1px solid var(--rust);
+        }
 
         .right-panel .form-group input,
         .right-panel .form-group select {
@@ -728,6 +737,7 @@
         .items-table-wrapper table tbody tr:hover td { background: var(--accent-soft); }
         .items-table-wrapper table tbody td.num,
         .items-table-wrapper table tbody td.money { font-family: var(--font-mono); }
+        .items-table-wrapper table tbody td.zero-price { color: var(--rust); font-weight: 600; }
 
         .items-table-wrapper table thead th:nth-child(1),
         .items-table-wrapper table tbody td:nth-child(1) {
@@ -1058,6 +1068,10 @@
             background: var(--rust-soft);
             color: var(--rust);
         }
+        .print-wrapper .status-badge.free {
+            background: var(--accent-soft);
+            color: var(--accent-ink);
+        }
 
         .print-wrapper .info-grid {
             display: flex;
@@ -1126,6 +1140,10 @@
             color: var(--accent-ink);
             font-family: var(--font-mono);
         }
+        .print-wrapper table .row-free {
+            color: var(--teal);
+            font-weight: 700;
+        }
 
         .print-wrapper .invoice-summary {
             display: flex;
@@ -1189,6 +1207,7 @@
             font-weight: 700;
             color: var(--ink);
         }
+        .print-wrapper .summary-row.delivery span:last-child { color: var(--accent-ink); }
         .print-wrapper .summary-row.discount span:last-child { color: var(--rust); }
         .print-wrapper .summary-row.net {
             background: var(--ink);
@@ -1457,9 +1476,11 @@
         table.import-preview-table th, table.import-preview-table td { padding: 7px 9px; border-bottom: 1px solid var(--line); text-align: right; }
         table.import-preview-table th { background: var(--surface-muted); position: sticky; top: 0; }
         table.import-preview-table tr.bad { background: var(--rust-soft); }
+        table.import-preview-table tr.free { background: var(--accent-soft); }
         .import-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: .68rem; font-weight: 700; }
         .import-badge-ok { background: var(--teal-soft); color: var(--teal); }
         .import-badge-bad { background: var(--rust-soft); color: var(--rust); }
+        .import-badge-free { background: var(--accent-soft); color: var(--accent-ink); }
         select.import-fix { font-family: var(--font-display); padding: 3px 5px; border-radius: 6px; border: 1px solid var(--line-strong); font-size: .74rem; max-width: 200px; }
 
         .import-progress-outer { background: var(--surface-muted); border-radius: 20px; height: 12px; overflow: hidden; margin-top: 10px; border: 1px solid var(--line); }
@@ -1585,11 +1606,21 @@
                     </div>
 
                     <!-- Extra Optional Header Fields -->
-                    <div class="form-row product-row">
+                    <div class="form-row invoice-row">
                         <div class="form-group">
                             <label>رقم الفاتورة الدفتري</label>
                             <input type="text" id="originalInvoiceNo" placeholder="اختياري - لو فيه دفتر ورقي" />
                         </div>
+                        <div class="form-group">
+                            <label>
+                                <i class="fas fa-truck"></i> الناولون
+                                <span class="optional-badge">اختياري</span>
+                            </label>
+                            <input type="number" id="deliveryFee" placeholder="مصاريف الناولون" min="0" step="0.01" />
+                        </div>
+                    </div>
+
+                    <div class="form-row product-row">
                         <div class="form-group">
                             <label>المندوب</label>
                             <input type="text" id="repName" placeholder="اسم المندوب (اختياري)" />
@@ -1597,6 +1628,14 @@
                         <div class="form-group">
                             <label>الموقع</label>
                             <input type="text" id="invoiceLocation" placeholder="موقع التسليم (اختياري)" />
+                        </div>
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <div style="display:flex;gap:6px;height:38px;align-items:center;">
+                                <button class="btn-tool info" onclick="resetForm()" style="flex:1;justify-content:center;height:38px;">
+                                    <i class="fas fa-plus"></i> جديد
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -1617,8 +1656,8 @@
                             <input type="number" id="productQty" placeholder="الكمية" min="0.01" step="0.01" />
                         </div>
                         <div class="form-group">
-                            <label>سعر الوحدة <span class="required">*</span></label>
-                            <input type="number" id="productPrice" placeholder="السعر" min="0" step="0.01" />
+                            <label>سعر الوحدة <span class="zero-badge">يمكن أن يكون صفر</span></label>
+                            <input type="number" id="productPrice" placeholder="السعر (0 للهدايا)" min="0" step="0.01" />
                         </div>
                     </div>
 
@@ -1713,8 +1752,12 @@
 
                         <div class="totals-section">
                             <div class="total-item">
-                                <div class="label">الإجمالي</div>
+                                <div class="label">إجمالي الأصناف</div>
                                 <div class="value" id="totalAmount">0.00</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">الناولون</div>
+                                <div class="value" id="displayDeliveryFee" style="color:var(--accent-ink);">0.00</div>
                             </div>
                             <div class="total-item">
                                 <div class="label">الخصم</div>
@@ -1735,9 +1778,6 @@
                                 <i class="fas fa-save"></i> حفظ الفاتورة
                             </button>
                             <div class="btn-divider"></div>
-                            <button class="btn-tool primary" onclick="resetForm()">
-                                <i class="fas fa-plus"></i> جديد
-                            </button>
                             <button class="btn-tool info" onclick="previewInvoice()">
                                 <i class="fas fa-eye"></i> معاينة
                             </button>
@@ -1770,10 +1810,12 @@
 
             <div id="importStep1">
                 <p class="import-hint">
-                    الأعمدة المتوقعة: رقم الفاتورة الدفتري، التاريخ، المندوب، كود العميل، اسم العميل، الكود (كود الصنف)،
-                    المبيعات (اسم الصنف)، العبوة، العدد، سعر البيع، اجمالي مبيعات، الوزن، اللون، نوع الحصوة، الموقع، ملاحظات.
+                    الأعمدة المتوقعة: رقم الفاتورة، التاريخ، المندوب، كود العميل، اسم العميل، الكود، المبيعات، الوزن، العبوة، عدد، سعر البيع، اجمالي مبيعات.<br />
                     <strong style="color:var(--teal);display:block;margin-top:6px;">✅ يتم استيراد جميع صفوف Excel حتى لو كانت البيانات ناقصة.</strong>
                     <strong style="color:var(--rust);display:block;margin-top:4px;">⚠️ سيتم عرض الصفوف التي لا تحتوي على رقم فاتورة في سجل الأخطاء.</strong>
+                    <strong style="color:var(--accent-ink);display:block;margin-top:4px;">🚚 الناولون: يتم التعرف عليه تلقائياً من عمود "المبيعات" إذا كان يحتوي على كلمة "ناولون".</strong>
+                    <strong style="color:var(--teal);display:block;margin-top:4px;">🎁 المنتجات المجانية: يتم التعرف عليها تلقائياً عندما يكون سعر البيع = 0 أو اجمالي المبيعات = 0.</strong>
+                    <strong style="color:var(--rust);display:block;margin-top:4px;">📦 الفاتورة التي تحتوي على ناولون فقط (بدون أصناف) يتم التعامل معها كفاتورة مصاريف توصيل.</strong>
                 </p>
                 <div class="import-flex">
                     <input type="file" id="importFileInput" accept=".xlsx,.xls" />
@@ -1797,16 +1839,28 @@
                 <div class="import-table-scroll">
                     <table class="import-preview-table">
                         <thead>
-                            <tr><th>#</th><th>رقم أصلي</th><th>التاريخ</th><th>العميل</th><th>الأصناف</th><th>الإجمالي</th><th>الحالة</th></tr>
+                            <tr>
+                                <th>#</th>
+                                <th>رقم الفاتورة</th>
+                                <th>التاريخ</th>
+                                <th>المندوب</th>
+                                <th>العميل</th>
+                                <th>الأصناف</th>
+                                <th>إجمالي الأصناف</th>
+                                <th>ناولون</th>
+                                <th>الإجمالي الكلي</th>
+                                <th>الحالة</th>
+                            </tr>
                         </thead>
                         <tbody id="importPreviewBody"></tbody>
                     </table>
                 </div>
 
                 <p class="import-hint" style="margin-top:12px;">
-                    كل فاتورة مستوردة تاخد رقم فاتورة جديد بنفس ترقيم النظام، وبيتحفظ الرقم الدفتري الأصلي في عمود منفصل
-                    (مش هتتكرر لو شغّلت الاستيراد تاني على نفس الملف). كل بند بينشئ حركة "منصرف" في مخزن المنتج التام
-                    بتاريخ الفاتورة الأصلي، وأرصدة العملاء بتتحدث مرة واحدة في الآخر.
+                    كل فاتورة مستوردة تاخد رقم فاتورة جديد بنفس ترقيم النظام، وبيتحفظ الرقم الدفتري الأصلي في عمود منفصل.
+                    كل بند بينشئ حركة "منصرف" في مخزن المنتج التام بتاريخ الفاتورة الأصلي، وأرصدة العملاء بتتحدث مرة واحدة في الآخر.
+                    الناولون بيتم حفظه في حقل منفصل في قاعدة البيانات.
+                    المنتجات المجانية (سعر البيع = 0) بتتسجل كحركة منصرف بقيمة 0 مع ملاحظة "منصرف مجاني".
                 </p>
                 <div class="import-flex">
                     <button class="btn-save" id="btnRunImport"><i class="fas fa-play"></i> بدء الاستيراد الفعلي</button>
@@ -2137,7 +2191,8 @@
             return d.toLocaleDateString('ar-EG', { weekday: 'long' });
         }
 
-        function buildInvoiceHTML(client, phone, invNum, date, total, qrContainerId, companyName, companyAddress, companyPhone) {
+        function buildInvoiceHTML(client, phone, invNum, date, total, deliveryFee, qrContainerId, companyName, companyAddress,
+            companyPhone) {
             companyName = companyName || 'QuickData ProSoft';
             companyAddress = companyAddress || 'الرياض - المملكة العربية السعودية';
             companyPhone = companyPhone || '0500000000';
@@ -2146,6 +2201,10 @@
             var statusBadgeHtml = ' <span class="status-badge due"><i class="fas fa-exclamation-circle"></i> مستحق الدفع</span>';
 
             var dateFormatted = date ? new Date(date).toLocaleDateString('ar-EG') : '----';
+            var deliveryFeeVal = parseFloat(deliveryFee) || 0;
+            var totalVal = parseFloat(total) || 0;
+            var grandTotal = totalVal + deliveryFeeVal;
+            var hasItems = items && items.length > 0;
 
             var html = `
                 <div class="invoice-header">
@@ -2177,44 +2236,61 @@
                     <div class="item"><span class="label">رقم الجوال</span><div class="value">${phone}</div></div>
                     <div class="item"><span class="label">حالة الفاتورة</span><div class="value">${statusBadgeHtml}</div></div>
                 </div>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width:30px;">#</th>
-                            <th style="text-align:right;">المنتج / الخدمة</th>
-                            <th>الكمية</th>
-                            <th>سعر الوحدة</th>
-                            <th>الإجمالي</th>
-                        </tr>
-                    </thead>
-                    <tbody>
             `;
 
-            items.forEach(function(item, index) {
+            if (hasItems) {
                 html += `
-                    <tr class="data-row">
-                        <td>${index + 1}</td>
-                        <td style="text-align:right;font-weight:600;color:var(--ink);">${item.product_name}</td>
-                        <td>${item.quantity} ${item.unit || ''}</td>
-                        <td>${item.unit_price.toFixed(2)}</td>
-                        <td class="row-total">${item.total.toFixed(2)} ر.س</td>
-                    </tr>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:30px;">#</th>
+                                <th style="text-align:right;">المنتج / الخدمة</th>
+                                <th>الكمية</th>
+                                <th>سعر الوحدة</th>
+                                <th>الإجمالي</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                 `;
-            });
 
-            var totalVal = parseFloat(total) || 0;
+                items.forEach(function(item, index) {
+                    var isFree = (item.isFree || item.unit_price === 0);
+                    var freeLabel = isFree ? ' <span style="color:var(--teal);font-weight:700;">(مجاني)</span>' : '';
+                    var rowClass = isFree ? 'row-free' : 'row-total';
+                    html += `
+                        <tr class="data-row">
+                            <td>${index + 1}</td>
+                            <td style="text-align:right;font-weight:600;color:var(--ink);">${item.product_name}${freeLabel}</td>
+                            <td>${item.quantity} ${item.unit || ''}</td>
+                            <td>${item.unit_price.toFixed(2)}</td>
+                            <td class="${rowClass}">${item.total.toFixed(2)} ر.س</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                html += `
+                    <div style="text-align:center;padding:20px;background:var(--accent-soft);border-radius:8px;margin:10px 0;">
+                        <p style="font-weight:700;color:var(--accent-ink);font-size:0.9rem;">
+                            <i class="fas fa-truck"></i> هذه الفاتورة مخصصة لمصاريف الناولون فقط
+                        </p>
+                        <p style="color:var(--ink-mute);font-size:0.8rem;">لا توجد منتجات مضافة في هذه الفاتورة</p>
+                    </div>
+                `;
+            }
 
             html += `
-                    </tbody>
-                </table>
-
                 <div class="invoice-summary">
                     <div class="summary-box">
-                        <div class="summary-row"><span>الإجمالي</span><span>${totalVal.toFixed(2)} ر.س</span></div>
+                        <div class="summary-row"><span>إجمالي الأصناف</span><span>${totalVal.toFixed(2)} ر.س</span></div>
+                        <div class="summary-row delivery"><span>الناولون</span><span>${deliveryFeeVal.toFixed(2)} ر.س</span></div>
                         <div class="summary-row discount"><span>الخصم</span><span>0.00 ر.س</span></div>
                         <div class="summary-row"><span>المدفوع</span><span>0.00 ر.س</span></div>
-                        <div class="summary-row net"><span>المتبقي المستحق</span><span>${totalVal.toFixed(2)} ر.س</span></div>
+                        <div class="summary-row net"><span>المتبقي المستحق</span><span>${grandTotal.toFixed(2)} ر.س</span></div>
                     </div>
                 </div>
 
@@ -2306,8 +2382,11 @@
         // ============================================================
         function previewInvoice() {
             if (items.length === 0) {
-                showToast('⚠️ تنبيه', 'لا توجد منتجات للمعاينة', 'error');
-                return;
+                var fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
+                if (fee === 0) {
+                    showToast('⚠️ تنبيه', 'لا توجد منتجات ولا ناولون للمعاينة', 'error');
+                    return;
+                }
             }
 
             var client = document.getElementById('clientNameInput').value.trim() || 'غير محدد';
@@ -2315,14 +2394,15 @@
             var invNum = document.getElementById('invoiceNumber').value.trim() || '----';
             var date = document.getElementById('invoiceDate').value || '';
             var total = document.getElementById('totalAmount').textContent;
+            var deliveryFee = document.getElementById('deliveryFee').value || '0';
 
             var companyName = 'QuickData ProSoft';
             var companyAddress = 'الرياض - المملكة العربية السعودية';
             var companyPhone = '0500000000';
 
             var printContent = document.getElementById('printPreviewContent');
-            printContent.innerHTML = buildInvoiceHTML(client, phone, invNum, date, total, 'qrCodeContainer', companyName,
-                companyAddress, companyPhone);
+            printContent.innerHTML = buildInvoiceHTML(client, phone, invNum, date, total, deliveryFee, 'qrCodeContainer',
+                companyName, companyAddress, companyPhone);
 
             setTimeout(function() {
                 generateQRCode(invNum, client, total, 'qrCodeContainer');
@@ -2601,6 +2681,7 @@
                         table tbody tr.data-row:nth-of-type(4n+1) td { background: #fbfaf6 !important; }
                         table tbody tr:last-child td { border-bottom: none !important; }
                         table .row-total { font-weight: 800 !important; color: var(--accent-ink) !important; font-family: var(--font-mono) !important; }
+                        table .row-free { color: var(--teal) !important; font-weight: 700 !important; }
 
                         .invoice-summary {
                             display: flex !important;
@@ -2641,6 +2722,7 @@
                             border-bottom: 1px dashed var(--line) !important;
                         }
                         .summary-row span:last-child { font-family: var(--font-mono) !important; font-weight: 700 !important; color: var(--ink) !important; }
+                        .summary-row.delivery span:last-child { color: var(--accent-ink) !important; }
                         .summary-row.discount span:last-child { color: var(--rust) !important; }
                         .summary-row.net { background: var(--ink) !important; border-bottom: none !important; padding: 11px 14px !important; }
                         .summary-row.net span:first-child { color: rgba(255,255,255,0.75) !important; font-weight: 700 !important; font-size: 10.5px !important; }
@@ -2723,8 +2805,11 @@
         // ============================================================
         function downloadPDF() {
             if (items.length === 0) {
-                showToast('⚠️ تنبيه', 'لا توجد منتجات لتحويلها إلى PDF', 'error');
-                return;
+                var fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
+                if (fee === 0) {
+                    showToast('⚠️ تنبيه', 'لا توجد منتجات ولا ناولون لتحويلها إلى PDF', 'error');
+                    return;
+                }
             }
 
             var overlay = document.getElementById('printPreviewOverlay');
@@ -2745,8 +2830,11 @@
         // ============================================================
         function saveInvoicePDFDirect() {
             if (items.length === 0) {
-                showToast('⚠️ تنبيه', 'لا توجد منتجات لتحويلها إلى PDF', 'error');
-                return;
+                var fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
+                if (fee === 0) {
+                    showToast('⚠️ تنبيه', 'لا توجد منتجات ولا ناولون لتحويلها إلى PDF', 'error');
+                    return;
+                }
             }
 
             var client = document.getElementById('clientNameInput').value.trim() || 'غير محدد';
@@ -2754,6 +2842,7 @@
             var invNum = document.getElementById('invoiceNumber').value.trim() || '----';
             var date = document.getElementById('invoiceDate').value || '';
             var total = document.getElementById('totalAmount').textContent;
+            var deliveryFee = document.getElementById('deliveryFee').value || '0';
 
             var companyName = 'QuickData ProSoft';
             var companyAddress = 'الرياض - المملكة العربية السعودية';
@@ -2782,8 +2871,8 @@
             `;
             document.body.appendChild(tempContainer);
 
-            tempContainer.innerHTML = buildInvoiceHTML(client, phone, invNum, date, total, 'tempPdfQrCode', companyName,
-                companyAddress, companyPhone);
+            tempContainer.innerHTML = buildInvoiceHTML(client, phone, invNum, date, total, deliveryFee, 'tempPdfQrCode',
+                companyName, companyAddress, companyPhone);
 
             function cleanupTempPdfNodes() {
                 if (tempContainer && tempContainer.parentNode) tempContainer.parentNode.removeChild(tempContainer);
@@ -3007,6 +3096,7 @@
         var productColor = document.getElementById('productColor');
         var productAggType = document.getElementById('productAggType');
         var originalInvoiceNo = document.getElementById('originalInvoiceNo');
+        var deliveryFee = document.getElementById('deliveryFee');
         var repName = document.getElementById('repName');
         var invoiceLocation = document.getElementById('invoiceLocation');
         var btnAddProduct = document.getElementById('btnAddProduct');
@@ -3017,6 +3107,7 @@
         var btnSavePdfDirect = document.getElementById('btnSavePdfDirect');
         var itemsBody = document.getElementById('itemsBody');
         var totalAmount = document.getElementById('totalAmount');
+        var displayDeliveryFee = document.getElementById('displayDeliveryFee');
         var displayDiscount = document.getElementById('displayDiscount');
         var displayPaid = document.getElementById('displayPaid');
         var displayRemaining = document.getElementById('displayRemaining');
@@ -3065,7 +3156,6 @@
                 if (name) productByNameMap.set(name, p);
             });
 
-            // إبطال الكاش لقوائم الاختيار لأن البيانات تغيّرت
             _importClientOptionsCache = null;
             _importProductOptionsCache = null;
         }
@@ -3624,6 +3714,13 @@
         });
 
         // ============================================================
+        // DELIVERY FEE EVENT
+        // ============================================================
+        deliveryFee.addEventListener('input', function() {
+            calculateTotals();
+        });
+
+        // ============================================================
         // ADD PRODUCT TO ITEMS
         // ============================================================
         btnAddProduct.addEventListener('click', function() {
@@ -3646,8 +3743,8 @@
                 productQty.focus();
                 return;
             }
-            if (!price || price <= 0) {
-                showToast('⚠️ تنبيه', 'يرجى إدخال سعر صحيح', 'error');
+            if (price < 0) {
+                showToast('⚠️ تنبيه', 'السعر لا يمكن أن يكون سالباً', 'error');
                 productPrice.focus();
                 return;
             }
@@ -3659,6 +3756,7 @@
             }
 
             var total = qty * price;
+            var isFree = (price === 0);
 
             items.push({
                 product_id: productId,
@@ -3670,14 +3768,19 @@
                 unit_weight: unitWeight,
                 total_weight: unitWeight != null ? (unitWeight * qty) : null,
                 color: color,
-                aggregate_type: aggType
+                aggregate_type: aggType,
+                isFree: isFree
             });
 
             renderItems();
             calculateTotals();
             clearProductFields();
 
-            showToast('✅ تم الإضافة', 'تم إضافة ' + productName + ' بنجاح', 'success');
+            if (isFree) {
+                showToast('🎁 منتج مجاني', 'تم إضافة ' + productName + ' كمنتج مجاني', 'success');
+            } else {
+                showToast('✅ تم الإضافة', 'تم إضافة ' + productName + ' بنجاح', 'success');
+            }
             productNameInput.focus();
         });
 
@@ -3722,13 +3825,19 @@
 
             var html = '';
             items.forEach(function(item, index) {
+                var isFree = (item.isFree || item.unit_price === 0);
+                var freeBadge = isFree ?
+                    ' <span style="background:var(--teal-soft);color:var(--teal);padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:700;">🎁 مجاني</span>' :
+                    '';
+                var priceClass = isFree ? 'zero-price' : 'money';
+
                 html += `
                     <tr>
                         <td class="num">${index + 1}</td>
-                        <td style="text-align:right;font-weight:600;">${item.product_name}</td>
+                        <td style="text-align:right;font-weight:600;">${item.product_name} ${freeBadge}</td>
                         <td class="num">${item.quantity} ${item.unit}</td>
-                        <td class="money">${item.unit_price.toFixed(2)}</td>
-                        <td class="money" style="color:var(--teal);font-weight:700;">${item.total.toFixed(2)}</td>
+                        <td class="${priceClass}">${item.unit_price.toFixed(2)}</td>
+                        <td class="money" style="color:${isFree ? 'var(--teal)' : 'var(--teal)'};font-weight:700;">${item.total.toFixed(2)}</td>
                         <td>
                             <button class="btn-remove" onclick="removeItem(${index})"><i class="fas fa-trash"></i></button>
                         </td>
@@ -3760,10 +3869,14 @@
                 total += item.total;
             });
 
+            var fee = parseFloat(deliveryFee.value) || 0;
+            var grandTotal = total + fee;
+
             totalAmount.textContent = total.toFixed(2);
+            displayDeliveryFee.textContent = fee.toFixed(2);
             displayDiscount.textContent = '0.00';
             displayPaid.textContent = '0.00';
-            displayRemaining.textContent = total.toFixed(2);
+            displayRemaining.textContent = grandTotal.toFixed(2);
         }
 
         // ============================================================
@@ -3780,6 +3893,7 @@
             selectedClientId = null;
             clientSuggestions.classList.remove('show');
             originalInvoiceNo.value = '';
+            deliveryFee.value = '';
             repName.value = '';
             invoiceLocation.value = '';
             setDefaultDate();
@@ -3792,7 +3906,7 @@
         // CLEAR ALL
         // ============================================================
         btnClearAll.addEventListener('click', function() {
-            if (items.length === 0) {
+            if (items.length === 0 && !deliveryFee.value) {
                 resetForm();
                 return;
             }
@@ -3808,7 +3922,7 @@
         // RESET ALL
         // ============================================================
         btnResetAll.addEventListener('click', function() {
-            if (items.length === 0) {
+            if (items.length === 0 && !deliveryFee.value) {
                 resetForm();
                 return;
             }
@@ -3829,6 +3943,7 @@
             var clientPhoneVal = clientPhone.value.trim();
             var date = fpInvoiceDate.input.value;
             var invNo = invoiceNumber.value;
+            var fee = parseFloat(deliveryFee.value) || 0;
 
             if (!clientId) {
                 showToast('⚠️ تنبيه', 'يرجى اختيار العميل من القائمة أو إضافته', 'error');
@@ -3839,13 +3954,14 @@
                 showToast('⚠️ تنبيه', 'يرجى إدخال التاريخ', 'error');
                 return;
             }
-            if (items.length === 0) {
-                showToast('⚠️ تنبيه', 'يرجى إضافة منتج واحد على الأقل', 'error');
+            if (items.length === 0 && fee === 0) {
+                showToast('⚠️ تنبيه', 'يرجى إضافة منتج واحد على الأقل أو إدخال قيمة الناولون', 'error');
                 productNameInput.focus();
                 return;
             }
 
             var totalAmountVal = parseFloat(totalAmount.textContent) || 0;
+            var grandTotal = totalAmountVal + fee;
 
             btnSaveInvoice.disabled = true;
             btnSaveInvoice.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
@@ -3876,8 +3992,9 @@
                         client_name: clientName,
                         invoice_date: date,
                         status: 'مرحلة',
-                        notes: '',
+                        notes: items.length === 0 ? 'فاتورة مصاريف ناولون فقط' : '',
                         total_amount: totalAmountVal,
+                        delivery_fee: fee,
                         original_invoice_no: originalInvoiceNo.value.trim() || null,
                         rep_name: repName.value.trim() || null,
                         location: invoiceLocation.value.trim() || null
@@ -3894,9 +4011,10 @@
 
                 if (!invoiceId) throw new Error('لم يتم الحصول على معرف الفاتورة');
 
-                // 2. إنشاء حركات المخزون وبنود الفاتورة
+                // 2. إنشاء حركات المخزون وبنود الفاتورة (إذا كان هناك منتجات)
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
+                    var isFree = (item.isFree || item.unit_price === 0);
 
                     var movementResponse = await fetch(SUPABASE_URL + '/rest/v1/finished_goods_movements', {
                         method: 'POST',
@@ -3916,7 +4034,7 @@
                             unit_cost: item.unit_price,
                             total_value: item.total,
                             reference: invNo,
-                            notes: 'بيع - فاتورة ' + invNo,
+                            notes: isFree ? 'منصرف مجاني - فاتورة ' + invNo : 'بيع - فاتورة ' + invNo,
                             movement_date: date
                         })
                     });
@@ -3950,7 +4068,8 @@
                             unit_weight: item.unit_weight != null ? item.unit_weight : null,
                             total_weight: item.total_weight != null ? item.total_weight : null,
                             color: item.color || null,
-                            aggregate_type: item.aggregate_type || null
+                            aggregate_type: item.aggregate_type || null,
+                            is_free: isFree
                         })
                     });
 
@@ -3971,8 +4090,8 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            total_sales: (parseFloat(client.total_sales) || 0) + totalAmountVal,
-                            due_balance: (parseFloat(client.due_balance) || 0) + totalAmountVal
+                            total_sales: (parseFloat(client.total_sales) || 0) + grandTotal,
+                            due_balance: (parseFloat(client.due_balance) || 0) + grandTotal
                         })
                     });
                 }
@@ -4003,14 +4122,13 @@
         }
 
         // ============================================================
-        // IMPORT FROM EXCEL - تحميل مباشر بدون زر منفصل
+        // IMPORT FROM EXCEL
         // ============================================================
         var importInvoices = [];
         var importStopRequested = false;
 
         function openImportModal() {
             document.getElementById('importModalOverlay').classList.add('active');
-            // إعادة ضبط شريط التقدم
             var progressContainer = document.getElementById('importProgressContainer');
             if (progressContainer) progressContainer.style.display = 'none';
             var progressBar = document.getElementById('importProgressBar');
@@ -4043,7 +4161,6 @@
             return y + '-' + m + '-' + day;
         }
 
-        // ✅ تحليل الملف مع شريط تقدم
         function importParseWorkbookWithProgress(file) {
             return new Promise(function(resolve, reject) {
                 var reader = new FileReader();
@@ -4060,21 +4177,24 @@
             });
         }
 
-        // ✅ دالة بناء الفواتير - تستورد جميع الصفوف
         function importBuildInvoices(rows) {
             var map = {};
             var order = [];
 
             rows.forEach(function(r, rowIndex) {
-                var invNo = importNormStr(r['رقم الفاتورة الدفتري']);
+                var invNo = importNormStr(r['رقم الفاتورة']);
                 if (!invNo) {
                     console.warn('⚠️ صف رقم ' + (rowIndex + 1) + ' لا يحتوي على رقم فاتورة، سيتم تخطيه');
                     return;
                 }
 
                 var productName = importNormStr(r['المبيعات']);
-                var qty = importNormNum(r['العدد']);
+                var qty = importNormNum(r['عدد']);
                 var total = importNormNum(r['اجمالي مبيعات']);
+                var weight = r['الوزن'] != null ? importNormNum(r['الوزن']) : null;
+                var price = importNormNum(r['سعر البيع']);
+
+                var isDelivery = productName.toLowerCase().includes('ناولون');
 
                 if (!map[invNo]) {
                     map[invNo] = {
@@ -4086,24 +4206,48 @@
                         locations: {},
                         items: [],
                         matchedClientId: null,
+                        deliveryFee: 0,
+                        hasZeroPriceItems: false,
+                        hasItems: false,
+                        isDeliveryOnly: false,
                         _firstRowIndex: rowIndex
                     };
                     order.push(invNo);
                 }
 
                 var inv = map[invNo];
+
+                if (isDelivery) {
+                    inv.deliveryFee = total || 0;
+                    if (inv.items.length === 0) {
+                        inv.isDeliveryOnly = true;
+                    }
+                    return;
+                }
+
+                inv.hasItems = true;
+                inv.isDeliveryOnly = false;
+
                 if (!inv.dateISO) inv.dateISO = importExcelDateToISO(r['التاريخ']);
                 var loc = importNormStr(r['الموقع']);
                 if (loc) inv.locations[loc] = true;
 
-                var price = importNormNum(r['سعر البيع']);
                 var lineTotal = total || (qty * price);
-                var weight = r['الوزن'] != null ? importNormNum(r['الوزن']) : null;
+
+                if (price === 0 && lineTotal > 0 && qty > 0) {
+                    price = lineTotal / qty;
+                }
+
+                if (price === 0 && lineTotal === 0) {
+                    inv.hasZeroPriceItems = true;
+                }
+
+                var unit = importNormStr(r['العبوة']);
 
                 inv.items.push({
                     code: importNormStr(r['الكود']),
                     name: productName || '(بدون اسم)',
-                    unit: importNormStr(r['العبوة']),
+                    unit: unit,
                     qty: qty,
                     price: price,
                     total: lineTotal,
@@ -4112,6 +4256,7 @@
                     color: importNormStr(r['اللون']) || null,
                     aggType: importNormStr(r['نوع الحصوة']) || null,
                     matchedProductId: null,
+                    isFree: (price === 0 && lineTotal === 0),
                     _rowIndex: rowIndex
                 });
             });
@@ -4129,7 +4274,16 @@
                 var byCode = clientByCodeMap.get(inv.clientCode);
                 if (byCode) return byCode;
             }
-            if (inv.clientName) return clientByNameMap.get(inv.clientName) || null;
+            if (inv.clientName) {
+                var cleanName = inv.clientName.trim();
+                var byName = clientByNameMap.get(cleanName);
+                if (byName) return byName;
+                for (var [key, client] of clientByNameMap) {
+                    if (key.includes(cleanName) || cleanName.includes(key)) {
+                        return client;
+                    }
+                }
+            }
             return null;
         }
 
@@ -4140,12 +4294,27 @@
                 if (byCode) return byCode;
             }
             if (item.name === '(بدون اسم)') return null;
-            if (item.name) return productByNameMap.get(item.name) || null;
+            if (item.name) {
+                var cleanName = item.name.trim();
+                var byName = productByNameMap.get(cleanName);
+                if (byName) return byName;
+                for (var [key, product] of productByNameMap) {
+                    if (key.includes(cleanName) || cleanName.includes(key)) {
+                        return product;
+                    }
+                }
+            }
             return null;
         }
 
         function importInvoiceFullyMatched(inv) {
             if (!importMatchClient(inv)) return false;
+            if (inv.isDeliveryOnly) {
+                return true;
+            }
+            if (inv.items.length === 0) {
+                return true;
+            }
             return inv.items.every(function(it) { return !!importMatchProduct(it); });
         }
 
@@ -4178,45 +4347,56 @@
                 badCount = 0;
             var rowsHtml = [];
 
-            // نبني كل الـ HTML في مصفوفة أولاً ثم نكتبها دفعة واحدة (innerHTML مرة واحدة)
-            // بدل appendChild لكل صف، ونحسب المطابقة مرة واحدة فقط لكل فاتورة/صنف
-            // (بدل تكرارها مرتين لكل صف كما كان سابقًا) ونستخدم قوائم الاختيار المخزّنة مؤقتًا.
             importInvoices.forEach(function(inv, idx) {
                 var client = importMatchClient(inv);
                 var matchedItems = inv.items.map(function(it) { return { it: it, p: importMatchProduct(it) }; });
                 var allMatched = matchedItems.every(function(x) { return !!x.p; });
-                var fullyOk = !!client && allMatched;
+
+                var fullyOk = !!client && (inv.items.length === 0 || allMatched);
+
                 if (fullyOk) okCount++;
                 else badCount++;
                 if (hideOk && fullyOk) return;
 
                 var totalAmount = inv.items.reduce(function(s, it) { return s + it.total; }, 0);
+                var totalWithDelivery = totalAmount + (inv.deliveryFee || 0);
 
                 var clientCell = client ?
                     (client.name + ' <span class="import-badge import-badge-ok">مطابق</span>') :
                     ('<select class="import-fix" data-idx="' + idx + '" data-kind="client">' + importClientOptionsHtml() +
-                        '</select> <span class="import-badge import-badge-bad">' + (inv.clientName || inv.clientCode ||
-                            '؟') + '</span>');
+                        '</select> <span class="import-badge import-badge-bad">' + (inv.clientName || inv.clientCode || '؟') + '</span>');
 
                 var itemsHtml = matchedItems.map(function(x, itIdx) {
-                    var it = x.it, p = x.p;
-                    if (p) return it.name + ' × ' + it.qty + ' <span class="import-badge import-badge-ok">✓</span>';
-                    return '<div style="margin:3px 0;">' + it.name + ' × ' + it.qty +
+                    var it = x.it,
+                        p = x.p;
+                    var isFree = (it.isFree || it.price === 0);
+                    var freeBadge = isFree ? ' <span class="import-badge import-badge-free">🎁 مجاني</span>' : '';
+                    if (p) return it.name + ' × ' + it.qty + freeBadge + ' <span class="import-badge import-badge-ok">✓</span>';
+                    return '<div style="margin:3px 0;">' + it.name + ' × ' + it.qty + freeBadge +
                         ' <select class="import-fix" data-idx="' + idx + '" data-item="' + itIdx +
                         '" data-kind="product">' + importProductOptionsHtml() + '</select>' +
                         ' <span class="import-badge import-badge-bad">غير مطابق</span></div>';
                 }).join('');
 
+                var statusClass = inv.isDeliveryOnly ? 'free' : (fullyOk ? '' : 'bad');
+                var statusText = inv.isDeliveryOnly ?
+                    '<span class="import-badge import-badge-free">🚚 ناولون فقط</span>' :
+                    (fullyOk ? '<span class="import-badge import-badge-ok">جاهز</span>' :
+                        '<span class="import-badge import-badge-bad">يحتاج مطابقة</span>');
+
                 rowsHtml.push(
-                    '<tr class="' + (fullyOk ? '' : 'bad') + '">' +
+                    '<tr class="' + statusClass + '">' +
                     '<td>' + (idx + 1) + '</td>' +
                     '<td>' + inv.originalNo + '</td>' +
                     '<td>' + (inv.dateISO || '—') + '</td>' +
+                    '<td>' + (inv.rep || '—') + '</td>' +
                     '<td>' + clientCell + '</td>' +
-                    '<td>' + itemsHtml + '</td>' +
+                    '<td>' + (inv.items.length > 0 ? itemsHtml : '<span style="color:var(--ink-mute);">لا توجد أصناف</span>') +
+                    '</td>' +
                     '<td>' + totalAmount.toLocaleString('ar-EG') + '</td>' +
-                    '<td>' + (fullyOk ? '<span class="import-badge import-badge-ok">جاهز</span>' :
-                        '<span class="import-badge import-badge-bad">يحتاج مطابقة</span>') + '</td>' +
+                    '<td>' + (inv.deliveryFee ? inv.deliveryFee.toLocaleString('ar-EG') : '—') + '</td>' +
+                    '<td>' + totalWithDelivery.toLocaleString('ar-EG') + '</td>' +
+                    '<td>' + statusText + '</td>' +
                     '</tr>'
                 );
             });
@@ -4241,12 +4421,10 @@
             });
         }
 
-        // ✅ تحليل الملف مباشرة عند اختيار الملف
         document.getElementById('importFileInput').addEventListener('change', async function() {
             var file = this.files[0];
             if (!file) return;
 
-            // إظهار شريط التقدم
             var progressContainer = document.getElementById('importProgressContainer');
             if (progressContainer) progressContainer.style.display = 'block';
             var progressBar = document.getElementById('importProgressBar');
@@ -4266,10 +4444,10 @@
                 if (progressBar) progressBar.style.width = '80%';
                 progressText.textContent = 'جاري تجهيز المعاينة...';
 
-                // ✅ استخدام setTimeout لتجنب تهنيج الواجهة
                 setTimeout(function() {
                     var totalItems = importInvoices.reduce(function(s, inv) { return s + inv.items.length; }, 0);
                     var fullyOk = importInvoices.filter(importInvoiceFullyMatched).length;
+                    var deliveryOnly = importInvoices.filter(function(inv) { return inv.isDeliveryOnly; }).length;
 
                     document.getElementById('importParseStats').innerHTML =
                         '<div class="stat"><b>' + rows.length + '</b><span>صف بالإكسيل</span></div>' +
@@ -4277,7 +4455,9 @@
                         '<div class="stat"><b>' + totalItems + '</b><span>بند صنف</span></div>' +
                         '<div class="stat ok"><b>' + fullyOk + '</b><span>جاهز مباشرة</span></div>' +
                         '<div class="stat warn"><b>' + (importInvoices.length - fullyOk) +
-                        '</b><span>يحتاج مطابقة</span></div>';
+                        '</b><span>يحتاج مطابقة</span></div>' +
+                        '<div class="stat" style="background:var(--accent-soft);"><b>' + deliveryOnly +
+                        '</b><span>ناولون فقط</span></div>';
 
                     document.getElementById('importStep2').style.display = 'block';
                     importRenderPreview();
@@ -4368,10 +4548,6 @@
                 skipCount = 0,
                 failCount = 0;
 
-            // ---------------------------------------------------------------
-            // تسجيل مُجمَّع (buffered): بدل تحديث الـ DOM في كل رسالة سجل على حدة
-            // (وهو ما كان يسبب إعادة رسم متكررة للصفحة أثناء التنفيذ المتوازي)
-            // ---------------------------------------------------------------
             var logBuffer = [];
             var logFlushScheduled = false;
 
@@ -4403,13 +4579,12 @@
                     '<div class="stat warn"><b>' + failCount + '</b><span>فشلت</span></div>';
             }
 
-            // ترتيب مبدئي محلي (بدون طلبات شبكة): تخطي المستوردة سابقًا/الناقصة،
-            // ثم إسناد أرقام الفواتير الجديدة تسلسليًا مقدّمًا بشكل متزامن وآمن
             var jobs = [];
             for (var i = 0; i < toRun.length; i++) {
                 var inv = toRun[i];
                 if (existingSet[inv.originalNo]) {
-                    skipCount++; doneCount++;
+                    skipCount++;
+                    doneCount++;
                     importLogFast('↷ تخطي (مستوردة من قبل): رقم أصلي ' + inv.originalNo);
                     continue;
                 }
@@ -4418,9 +4593,16 @@
                     var p = importMatchProduct(it);
                     return p ? { item: it, product: p } : null;
                 }).filter(Boolean);
-                if (!client || validItems.length === 0) {
-                    failCount++; doneCount++;
-                    importLogFast('✗ تخطي (بيانات غير مكتملة): رقم أصلي ' + inv.originalNo);
+                if (!client) {
+                    failCount++;
+                    doneCount++;
+                    importLogFast('✗ تخطي (لا يوجد عميل مطابق): رقم أصلي ' + inv.originalNo);
+                    continue;
+                }
+                if (inv.items.length > 0 && validItems.length === 0) {
+                    failCount++;
+                    doneCount++;
+                    importLogFast('✗ تخطي (لا توجد أصناف مطابقة): رقم أصلي ' + inv.originalNo);
                     continue;
                 }
                 var newInvNo = 'INV-' + seqInfo.dateStr + '-' + String(seqInfo.seq).padStart(5, '0');
@@ -4429,15 +4611,18 @@
             }
             updateProgress();
 
-            // ---------------------------------------------------------------
-            // تنفيذ كل فاتورة بـ 3 طلبات فقط بدل (1 + 2×عدد الأصناف):
-            // حركات المخزون تُرسل دفعة واحدة (bulk)، وكذلك بنود الفاتورة (bulk)
-            // ---------------------------------------------------------------
+            var CONCURRENCY = 6;
+            var jobIndex = 0;
+
             async function processJob(job) {
-                var inv = job.inv, client = job.client, validItems = job.validItems, newInvNo = job.newInvNo;
+                var inv = job.inv,
+                    client = job.client,
+                    validItems = job.validItems,
+                    newInvNo = job.newInvNo;
                 var dateISO = inv.dateISO || new Date().toISOString().slice(0, 10);
                 var totalAmount = validItems.reduce(function(s, x) { return s + x.item.total; }, 0);
                 var locs = Object.keys(inv.locations);
+                var isDeliveryOnly = inv.isDeliveryOnly || (validItems.length === 0 && inv.deliveryFee > 0);
 
                 try {
                     var invRes = await fetch(SUPABASE_URL + '/rest/v1/sales_invoices', {
@@ -4452,8 +4637,9 @@
                             client_name: client.name,
                             invoice_date: dateISO,
                             status: 'مرحلة',
-                            notes: 'مستوردة من إكسيل',
+                            notes: isDeliveryOnly ? 'مستوردة - ناولون فقط' : 'مستوردة من إكسيل',
                             total_amount: totalAmount,
+                            delivery_fee: inv.deliveryFee || 0,
                             original_invoice_no: inv.originalNo,
                             rep_name: inv.rep || null,
                             location: locs.length ? locs.join('، ') : null
@@ -4464,62 +4650,71 @@
                     var invoiceId = invData[0] ? invData[0].id : invData.id;
                     if (!invoiceId) throw new Error('لم يتم إرجاع معرف الفاتورة');
 
-                    var mvBody = validItems.map(function(x) {
-                        var it = x.item, product = x.product;
-                        return {
-                            company_id: companyId,
-                            user_id: user && user.id ? user.id : null,
-                            product_id: product.id,
-                            product_name: product.name,
-                            type: 'منصرف',
-                            quantity: it.qty,
-                            unit_cost: it.price,
-                            total_value: it.total,
-                            reference: newInvNo,
-                            notes: 'استيراد بيانات سابقة - رقم دفتري ' + inv.originalNo,
-                            movement_date: dateISO
-                        };
-                    });
-                    var mvRes = await fetch(SUPABASE_URL + '/rest/v1/finished_goods_movements', {
-                        method: 'POST',
-                        headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token,
-                            'Content-Type': 'application/json', Prefer: 'return=representation' },
-                        body: JSON.stringify(mvBody)
-                    });
-                    if (!mvRes.ok) throw new Error(await mvRes.text());
-                    var mvData = await mvRes.json();
+                    if (validItems.length > 0) {
+                        var mvBody = validItems.map(function(x) {
+                            var it = x.item,
+                                product = x.product;
+                            var isFree = (it.isFree || it.price === 0);
+                            return {
+                                company_id: companyId,
+                                user_id: user && user.id ? user.id : null,
+                                product_id: product.id,
+                                product_name: product.name,
+                                type: 'منصرف',
+                                quantity: it.qty,
+                                unit_cost: it.price,
+                                total_value: it.total,
+                                reference: newInvNo,
+                                notes: isFree ? 'منصرف مجاني - رقم دفتري ' + inv.originalNo :
+                                    'استيراد بيانات سابقة - رقم دفتري ' + inv.originalNo,
+                                movement_date: dateISO
+                            };
+                        });
+                        var mvRes = await fetch(SUPABASE_URL + '/rest/v1/finished_goods_movements', {
+                            method: 'POST',
+                            headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token,
+                                'Content-Type': 'application/json', Prefer: 'return=representation' },
+                            body: JSON.stringify(mvBody)
+                        });
+                        if (!mvRes.ok) throw new Error(await mvRes.text());
+                        var mvData = await mvRes.json();
 
-                    var itemsBody = validItems.map(function(x, j) {
-                        var it = x.item, product = x.product;
-                        var movementId = mvData[j] ? mvData[j].id : null;
-                        return {
-                            company_id: companyId,
-                            invoice_id: invoiceId,
-                            product_id: product.id,
-                            product_name: product.name,
-                            quantity: it.qty,
-                            unit_price: it.price,
-                            unit: it.unit || '',
-                            line_total: it.total,
-                            finished_movement_id: movementId,
-                            unit_weight: it.unitWeight,
-                            total_weight: it.totalWeight,
-                            color: it.color,
-                            aggregate_type: it.aggType
-                        };
-                    });
-                    var itemRes = await fetch(SUPABASE_URL + '/rest/v1/sales_invoice_items', {
-                        method: 'POST',
-                        headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token,
-                            'Content-Type': 'application/json', Prefer: 'return=representation' },
-                        body: JSON.stringify(itemsBody)
-                    });
-                    if (!itemRes.ok) throw new Error(await itemRes.text());
+                        var itemsBody = validItems.map(function(x, j) {
+                            var it = x.item,
+                                product = x.product;
+                            var movementId = mvData[j] ? mvData[j].id : null;
+                            return {
+                                company_id: companyId,
+                                invoice_id: invoiceId,
+                                product_id: product.id,
+                                product_name: product.name,
+                                quantity: it.qty,
+                                unit_price: it.price,
+                                unit: it.unit || '',
+                                line_total: it.total,
+                                finished_movement_id: movementId,
+                                unit_weight: it.unitWeight,
+                                total_weight: it.totalWeight,
+                                color: it.color,
+                                aggregate_type: it.aggType,
+                                is_free: (it.isFree || it.price === 0)
+                            };
+                        });
+                        var itemRes = await fetch(SUPABASE_URL + '/rest/v1/sales_invoice_items', {
+                            method: 'POST',
+                            headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token,
+                                'Content-Type': 'application/json', Prefer: 'return=representation' },
+                            body: JSON.stringify(itemsBody)
+                        });
+                        if (!itemRes.ok) throw new Error(await itemRes.text());
+                    }
 
-                    clientDelta[client.id] = (clientDelta[client.id] || 0) + totalAmount;
+                    clientDelta[client.id] = (clientDelta[client.id] || 0) + totalAmount + (inv.deliveryFee || 0);
                     okCount++;
-                    importLogFast('✓ تم استيراد رقم أصلي ' + inv.originalNo + ' (' + newInvNo + ') — ' + client.name +
-                        ' — ' + totalAmount.toLocaleString('ar-EG'));
+                    var invoiceType = isDeliveryOnly ? ' (ناولون فقط)' : '';
+                    importLogFast('✓ تم استيراد رقم أصلي ' + inv.originalNo + ' (' + newInvNo + ')' + invoiceType +
+                        ' — ' + client.name + ' — ' + (totalAmount + (inv.deliveryFee || 0)).toLocaleString(
+                        'ar-EG'));
                 } catch (err) {
                     failCount++;
                     importLogFast('✗ خطأ في رقم أصلي ' + inv.originalNo + ': ' + err.message);
@@ -4527,13 +4722,6 @@
                 doneCount++;
                 updateProgress();
             }
-
-            // ---------------------------------------------------------------
-            // تشغيل عدة فواتير بالتوازي (بدل فاتورة واحدة كل مرة) عبر تجمّع
-            // عمّال بعدد محدود (Concurrency Pool) لتقليل زمن الانتظار الكلي
-            // ---------------------------------------------------------------
-            var CONCURRENCY = 6;
-            var jobIndex = 0;
 
             async function worker() {
                 while (jobIndex < jobs.length) {
