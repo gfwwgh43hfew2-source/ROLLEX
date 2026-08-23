@@ -10,7 +10,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Marcellus&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <!-- flatpickr -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
@@ -1386,89 +1385,6 @@
             .totals-section .total-item .value { font-size: calc(0.75rem * var(--scale-factor)); }
             .toast-container { top: calc(60px * var(--scale-factor)); right: calc(8px * var(--scale-factor)); max-width: calc(260px * var(--scale-factor)); }
         }
-
-        /* ============================================================ */
-        /* IMPORT MODAL */
-        /* ============================================================ */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.45);
-            backdrop-filter: blur(4px);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal-box {
-            background: var(--surface);
-            border-radius: var(--radius);
-            max-width: 520px;
-            width: 100%;
-            padding: 24px;
-            border: 1px solid var(--line);
-            box-shadow: var(--shadow);
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        .modal-box-wide { max-width: 1100px; }
-        .modal-box .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-        .modal-box .modal-header h3 {
-            font-size: 1.05rem;
-            font-weight: 800;
-            color: var(--ink);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .modal-box .modal-header h3 i { color: var(--accent); }
-        .modal-box .close-modal {
-            background: none;
-            border: none;
-            color: var(--ink-mute);
-            font-size: 1.1rem;
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: var(--radius-sm);
-        }
-        .modal-box .close-modal:hover { background: var(--surface-muted); color: var(--ink); }
-
-        .import-hint { font-size: .8rem; color: var(--ink-mute); line-height: 1.6; }
-        .import-flex { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
-        .import-stat-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
-        .import-stat-row .stat {
-            background: var(--surface-muted); border: 1px solid var(--line);
-            border-radius: var(--radius-sm); padding: 8px 14px; min-width: 110px;
-        }
-        .import-stat-row .stat b { display: block; font-size: 1.15rem; }
-        .import-stat-row .stat span { font-size: .72rem; color: var(--ink-mute); }
-        .import-stat-row .stat.ok b { color: var(--teal); }
-        .import-stat-row .stat.warn b { color: var(--rust); }
-
-        .import-table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); margin-top: 8px; }
-        table.import-preview-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
-        table.import-preview-table th, table.import-preview-table td { padding: 7px 9px; border-bottom: 1px solid var(--line); text-align: right; }
-        table.import-preview-table th { background: var(--surface-muted); position: sticky; top: 0; }
-        table.import-preview-table tr.bad { background: var(--rust-soft); }
-        .import-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: .68rem; font-weight: 700; }
-        .import-badge-ok { background: var(--teal-soft); color: var(--teal); }
-        .import-badge-bad { background: var(--rust-soft); color: var(--rust); }
-        select.import-fix { font-family: var(--font-display); padding: 3px 5px; border-radius: 6px; border: 1px solid var(--line-strong); font-size: .74rem; max-width: 200px; }
-
-        .import-progress-outer { background: var(--surface-muted); border-radius: 20px; height: 12px; overflow: hidden; margin-top: 10px; border: 1px solid var(--line); }
-        .import-progress-inner { background: var(--accent); height: 100%; width: 0%; transition: .2s; }
-        .import-log {
-            background: var(--ink); color: #dfe6e2; font-family: monospace; font-size: .74rem;
-            padding: 10px; border-radius: var(--radius-sm); max-height: 220px; overflow: auto;
-            white-space: pre-wrap; margin-top: 10px;
-        }
     </style>
 </head>
 <body>
@@ -1495,7 +1411,6 @@
                     <a href="products.html"><i class="fas fa-cubes nav-icon"></i> المنتجات</a>
                 </nav>
                 <div class="header-actions">
-                    <button onclick="openImportModal()" title="استيراد من إكسيل"><i class="fas fa-file-import"></i></button>
                     <button onclick="loadData()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
                     <button onclick="logout()" title="تسجيل الخروج"><i class="fas fa-sign-out-alt"></i></button>
                     <div class="hamburger" id="navToggle"><i class="fas fa-bars"></i></div>
@@ -1584,22 +1499,6 @@
                         </div>
                     </div>
 
-                    <!-- Extra Optional Header Fields -->
-                    <div class="form-row product-row">
-                        <div class="form-group">
-                            <label>رقم الفاتورة الدفتري</label>
-                            <input type="text" id="originalInvoiceNo" placeholder="اختياري - لو فيه دفتر ورقي" />
-                        </div>
-                        <div class="form-group">
-                            <label>المندوب</label>
-                            <input type="text" id="repName" placeholder="اسم المندوب (اختياري)" />
-                        </div>
-                        <div class="form-group">
-                            <label>الموقع</label>
-                            <input type="text" id="invoiceLocation" placeholder="موقع التسليم (اختياري)" />
-                        </div>
-                    </div>
-
                     <!-- Product Section -->
                     <div class="section-title alt" style="margin-top:0;">
                         <span class="dot"></span> إضافة منتج
@@ -1630,21 +1529,6 @@
                         <div class="form-group">
                             <label>المخزون المتاح</label>
                             <input type="text" id="productStock" disabled value="--" />
-                        </div>
-                    </div>
-
-                    <div class="form-row product-row">
-                        <div class="form-group">
-                            <label>وزن الوحدة</label>
-                            <input type="number" id="productUnitWeight" placeholder="اختياري" step="0.01" />
-                        </div>
-                        <div class="form-group">
-                            <label>اللون</label>
-                            <input type="text" id="productColor" placeholder="اختياري" />
-                        </div>
-                        <div class="form-group">
-                            <label>نوع الحصوة</label>
-                            <input type="text" id="productAggType" placeholder="اختياري" />
                         </div>
                     </div>
 
@@ -1756,58 +1640,6 @@
 
         </div>
 
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- IMPORT FROM EXCEL MODAL -->
-    <!-- ============================================================ -->
-    <div class="modal-overlay" id="importModalOverlay">
-        <div class="modal-box modal-box-wide">
-            <div class="modal-header">
-                <h3><i class="fas fa-file-import"></i> استيراد فواتير مبيعات من إكسيل</h3>
-                <button class="close-modal" onclick="closeImportModal()"><i class="fas fa-times"></i></button>
-            </div>
-
-            <div id="importStep1">
-                <p class="import-hint">
-                    الأعمدة المتوقعة: رقم الفاتورة الدفتري، التاريخ، المندوب، كود العميل، اسم العميل، الكود (كود الصنف)،
-                    المبيعات (اسم الصنف)، العبوة، العدد، سعر البيع، اجمالي مبيعات، الوزن، اللون، نوع الحصوة، الموقع، ملاحظات.
-                </p>
-                <div class="import-flex">
-                    <input type="file" id="importFileInput" accept=".xlsx,.xls" />
-                    <button class="btn-add-item" id="btnParseImport" disabled><i class="fas fa-search"></i> تحليل الملف</button>
-                </div>
-                <div class="import-stat-row" id="importParseStats"></div>
-            </div>
-
-            <div id="importStep2" style="display:none;">
-                <div class="import-flex" style="margin:10px 0;">
-                    <label style="font-size:.8rem;"><input type="checkbox" id="chkHideOkImport"> إظهار غير المطابق فقط</label>
-                    <span id="importMatchSummary" class="import-hint"></span>
-                </div>
-                <div class="import-table-scroll">
-                    <table class="import-preview-table">
-                        <thead>
-                            <tr><th>رقم أصلي</th><th>التاريخ</th><th>العميل</th><th>الأصناف</th><th>الإجمالي</th><th>الحالة</th></tr>
-                        </thead>
-                        <tbody id="importPreviewBody"></tbody>
-                    </table>
-                </div>
-
-                <p class="import-hint" style="margin-top:12px;">
-                    كل فاتورة مستوردة تاخد رقم فاتورة جديد بنفس ترقيم النظام، وبيتحفظ الرقم الدفتري الأصلي في عمود منفصل
-                    (مش هتتكرر لو شغّلت الاستيراد تاني على نفس الملف). كل بند بينشئ حركة "منصرف" في مخزن المنتج التام
-                    بتاريخ الفاتورة الأصلي، وأرصدة العملاء بتتحدث مرة واحدة في الآخر.
-                </p>
-                <div class="import-flex">
-                    <button class="btn-save" id="btnRunImport"><i class="fas fa-play"></i> بدء الاستيراد الفعلي</button>
-                    <button class="btn-tool danger" id="btnStopImport" style="display:none;"><i class="fas fa-stop"></i> إيقاف</button>
-                </div>
-                <div class="import-progress-outer"><div class="import-progress-inner" id="importProgressBar"></div></div>
-                <div class="import-stat-row" id="importRunStats"></div>
-                <div class="import-log" id="importLogBox"></div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -3001,12 +2833,6 @@
         var productPrice = document.getElementById('productPrice');
         var productUnit = document.getElementById('productUnit');
         var productStock = document.getElementById('productStock');
-        var productUnitWeight = document.getElementById('productUnitWeight');
-        var productColor = document.getElementById('productColor');
-        var productAggType = document.getElementById('productAggType');
-        var originalInvoiceNo = document.getElementById('originalInvoiceNo');
-        var repName = document.getElementById('repName');
-        var invoiceLocation = document.getElementById('invoiceLocation');
         var btnAddProduct = document.getElementById('btnAddProduct');
         var btnClearProduct = document.getElementById('btnClearProduct');
         var btnSaveInvoice = document.getElementById('btnSaveInvoice');
@@ -3153,7 +2979,7 @@
                 }
 
                 console.log('🔄 جلب العملاء من Supabase...');
-                allClients = await fetchAllRows(SUPABASE_URL + '/rest/v1/clients?select=id,name,phone,code,total_sales,due_balance&order=name', token);
+                allClients = await fetchAllRows(SUPABASE_URL + '/rest/v1/clients?select=id,name,phone,code&order=name', token);
                 console.log('👤 تم جلب العملاء:', allClients.length);
 
                 // تحديث قائمة الاقتراحات
@@ -3587,9 +3413,6 @@
             var qty = parseFloat(productQty.value);
             var price = parseFloat(productPrice.value);
             var unit = productUnit.value.trim() || '';
-            var unitWeight = parseFloat(productUnitWeight.value) || null;
-            var color = productColor.value.trim() || null;
-            var aggType = productAggType.value.trim() || null;
 
             if (!productId) {
                 showToast('⚠️ تنبيه', 'يرجى اختيار المنتج من القائمة', 'error');
@@ -3621,11 +3444,7 @@
                 quantity: qty,
                 unit_price: price,
                 unit: unit,
-                total: total,
-                unit_weight: unitWeight,
-                total_weight: unitWeight != null ? (unitWeight * qty) : null,
-                color: color,
-                aggregate_type: aggType
+                total: total
             });
 
             renderItems();
@@ -3648,9 +3467,6 @@
             productUnit.value = '';
             productStock.value = '--';
             productStock.style.color = '';
-            productUnitWeight.value = '';
-            productColor.value = '';
-            productAggType.value = '';
         }
 
         btnClearProduct.addEventListener('click', clearProductFields);
@@ -3734,9 +3550,6 @@
             clientIdHidden.value = '';
             selectedClientId = null;
             clientSuggestions.classList.remove('show');
-            originalInvoiceNo.value = '';
-            repName.value = '';
-            invoiceLocation.value = '';
             setDefaultDate();
             await generateInvoiceNumber();
             showToast('🔄 جديد', 'تم تجهيز فاتورة جديدة', 'warning');
@@ -3832,10 +3645,7 @@
                         invoice_date: date,
                         status: 'مرحلة',
                         notes: '',
-                        total_amount: totalAmountVal,
-                        original_invoice_no: originalInvoiceNo.value.trim() || null,
-                        rep_name: repName.value.trim() || null,
-                        location: invoiceLocation.value.trim() || null
+                        total_amount: totalAmountVal
                     })
                 });
 
@@ -3901,11 +3711,7 @@
                             unit_price: item.unit_price,
                             unit: item.unit || '',
                             line_total: item.total,
-                            finished_movement_id: movementId,
-                            unit_weight: item.unit_weight != null ? item.unit_weight : null,
-                            total_weight: item.total_weight != null ? item.total_weight : null,
-                            color: item.color || null,
-                            aggregate_type: item.aggregate_type || null
+                            finished_movement_id: movementId
                         })
                     });
 
@@ -3955,427 +3761,6 @@
             await loadFinishedMovements();
             console.log('✅ تم تحميل البيانات');
         }
-
-        // ============================================================
-        // IMPORT FROM EXCEL
-        // ============================================================
-        var importInvoices = [];
-        var importStopRequested = false;
-
-        function openImportModal() {
-            document.getElementById('importModalOverlay').classList.add('active');
-        }
-        function closeImportModal() {
-            document.getElementById('importModalOverlay').classList.remove('active');
-        }
-        window.openImportModal = openImportModal;
-        window.closeImportModal = closeImportModal;
-
-        function importNormStr(v) { return (v == null ? '' : String(v)).trim(); }
-        function importNormNum(v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; }
-
-        function importExcelDateToISO(v) {
-            if (v == null || v === '') return null;
-            var d;
-            if (v instanceof Date) d = v;
-            else if (typeof v === 'number') d = new Date(Math.round((v - 25569) * 86400 * 1000));
-            else d = new Date(v);
-            if (isNaN(d.getTime())) return null;
-            var y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
-            return y + '-' + m + '-' + day;
-        }
-
-        function importParseWorkbook(file) {
-            return new Promise(function(resolve, reject) {
-                var reader = new FileReader();
-                reader.onload = function(evt) {
-                    try {
-                        var wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array', cellDates: true });
-                        var ws = wb.Sheets[wb.SheetNames[0]];
-                        resolve(XLSX.utils.sheet_to_json(ws, { defval: null }));
-                    } catch (e) { reject(e); }
-                };
-                reader.onerror = reject;
-                reader.readAsArrayBuffer(file);
-            });
-        }
-
-        function importBuildInvoices(rows) {
-            var map = {}, order = [];
-            rows.forEach(function(r) {
-                var invNo = importNormStr(r['رقم الفاتورة الدفتري']);
-                if (!invNo) return;
-                var productName = importNormStr(r['المبيعات']);
-                var qty = importNormNum(r['العدد']);
-                var total = importNormNum(r['اجمالي مبيعات']);
-                if (!productName && qty === 0 && total === 0) return;
-                if (!productName) return;
-
-                if (!map[invNo]) {
-                    map[invNo] = {
-                        originalNo: invNo,
-                        dateISO: importExcelDateToISO(r['التاريخ']),
-                        clientCode: importNormStr(r['كود العميل']),
-                        clientName: importNormStr(r['اسم العميل']),
-                        rep: importNormStr(r['المندوب']),
-                        locations: {},
-                        items: [],
-                        matchedClientId: null
-                    };
-                    order.push(invNo);
-                }
-                var inv = map[invNo];
-                if (!inv.dateISO) inv.dateISO = importExcelDateToISO(r['التاريخ']);
-                var loc = importNormStr(r['الموقع']);
-                if (loc) inv.locations[loc] = true;
-
-                var price = importNormNum(r['سعر البيع']);
-                var lineTotal = total || (qty * price);
-                var weight = r['الوزن'] != null ? importNormNum(r['الوزن']) : null;
-
-                inv.items.push({
-                    code: importNormStr(r['الكود']),
-                    name: productName,
-                    unit: importNormStr(r['العبوة']),
-                    qty: qty,
-                    price: price,
-                    total: lineTotal,
-                    unitWeight: weight,
-                    totalWeight: weight != null ? weight * qty : null,
-                    color: importNormStr(r['اللون']) || null,
-                    aggType: importNormStr(r['نوع الحصوة']) || null,
-                    matchedProductId: null
-                });
-            });
-            return order.map(function(no) { return map[no]; });
-        }
-
-        function importMatchClient(inv) {
-            if (inv.matchedClientId) return allClients.find(function(c) { return c.id == inv.matchedClientId; }) || null;
-            var byCode = inv.clientCode ? allClients.find(function(c) { return importNormStr(c.code) === inv.clientCode; }) : null;
-            if (byCode) return byCode;
-            return inv.clientName ? (allClients.find(function(c) { return importNormStr(c.name) === inv.clientName; }) || null) : null;
-        }
-        function importMatchProduct(item) {
-            if (item.matchedProductId) return allProducts.find(function(p) { return p.id == item.matchedProductId; }) || null;
-            var byCode = item.code ? allProducts.find(function(p) { return importNormStr(p.code) === item.code; }) : null;
-            if (byCode) return byCode;
-            return item.name ? (allProducts.find(function(p) { return importNormStr(p.name) === item.name; }) || null) : null;
-        }
-        function importInvoiceFullyMatched(inv) {
-            if (!importMatchClient(inv)) return false;
-            return inv.items.every(function(it) { return !!importMatchProduct(it); });
-        }
-
-        function importClientOptionsHtml() {
-            var opts = '<option value="">— اختر عميل —</option>';
-            allClients.forEach(function(c) {
-                opts += '<option value="' + c.id + '">' + (c.name || '') + (c.code != null ? (' (' + c.code + ')') : '') + '</option>';
-            });
-            return opts;
-        }
-        function importProductOptionsHtml() {
-            var opts = '<option value="">— اختر صنف —</option>';
-            allProducts.forEach(function(p) {
-                opts += '<option value="' + p.id + '">' + (p.name || '') + (p.code != null ? (' (' + p.code + ')') : '') + '</option>';
-            });
-            return opts;
-        }
-
-        function importRenderPreview() {
-            var body = document.getElementById('importPreviewBody');
-            body.innerHTML = '';
-            var hideOk = document.getElementById('chkHideOkImport').checked;
-            var okCount = 0, badCount = 0;
-
-            importInvoices.forEach(function(inv, idx) {
-                var client = importMatchClient(inv);
-                var allMatched = inv.items.every(function(it) { return !!importMatchProduct(it); });
-                var fullyOk = !!client && allMatched;
-                if (fullyOk) okCount++; else badCount++;
-                if (hideOk && fullyOk) return;
-
-                var totalAmount = inv.items.reduce(function(s, it) { return s + it.total; }, 0);
-                var tr = document.createElement('tr');
-                tr.className = fullyOk ? '' : 'bad';
-
-                var clientCell = client
-                    ? (client.name + ' <span class="import-badge import-badge-ok">مطابق</span>')
-                    : ('<select class="import-fix" data-idx="' + idx + '" data-kind="client">' + importClientOptionsHtml() + '</select> <span class="import-badge import-badge-bad">' + (inv.clientName || inv.clientCode || '؟') + '</span>');
-
-                var itemsHtml = inv.items.map(function(it, itIdx) {
-                    var p = importMatchProduct(it);
-                    if (p) return it.name + ' × ' + it.qty + ' <span class="import-badge import-badge-ok">✓</span>';
-                    return '<div style="margin:3px 0;">' + it.name + ' × ' + it.qty +
-                        ' <select class="import-fix" data-idx="' + idx + '" data-item="' + itIdx + '" data-kind="product">' + importProductOptionsHtml() + '</select>' +
-                        ' <span class="import-badge import-badge-bad">غير مطابق</span></div>';
-                }).join('');
-
-                tr.innerHTML =
-                    '<td>' + inv.originalNo + '</td>' +
-                    '<td>' + (inv.dateISO || '—') + '</td>' +
-                    '<td>' + clientCell + '</td>' +
-                    '<td>' + itemsHtml + '</td>' +
-                    '<td>' + totalAmount.toLocaleString('ar-EG') + '</td>' +
-                    '<td>' + (fullyOk ? '<span class="import-badge import-badge-ok">جاهز</span>' : '<span class="import-badge import-badge-bad">يحتاج مطابقة</span>') + '</td>';
-                body.appendChild(tr);
-            });
-
-            document.getElementById('importMatchSummary').textContent =
-                'إجمالي الفواتير: ' + importInvoices.length + ' — جاهز: ' + okCount + ' — يحتاج مراجعة: ' + badCount;
-
-            body.querySelectorAll('select.import-fix').forEach(function(sel) {
-                sel.addEventListener('change', function() {
-                    var idx = parseInt(sel.getAttribute('data-idx'), 10);
-                    var kind = sel.getAttribute('data-kind');
-                    if (kind === 'client') {
-                        importInvoices[idx].matchedClientId = sel.value || null;
-                    } else {
-                        var itIdx = parseInt(sel.getAttribute('data-item'), 10);
-                        importInvoices[idx].items[itIdx].matchedProductId = sel.value || null;
-                    }
-                    importRenderPreview();
-                });
-            });
-        }
-
-        document.getElementById('importFileInput').addEventListener('change', function() {
-            document.getElementById('btnParseImport').disabled = !this.files.length;
-        });
-
-        document.getElementById('btnParseImport').addEventListener('click', async function() {
-            var file = document.getElementById('importFileInput').files[0];
-            if (!file) return;
-            this.disabled = true;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جارٍ التحليل...';
-            try {
-                var rows = await importParseWorkbook(file);
-                importInvoices = importBuildInvoices(rows);
-                var totalItems = importInvoices.reduce(function(s, inv) { return s + inv.items.length; }, 0);
-                var fullyOk = importInvoices.filter(importInvoiceFullyMatched).length;
-
-                document.getElementById('importParseStats').innerHTML =
-                    '<div class="stat"><b>' + rows.length + '</b><span>صف بالإكسيل</span></div>' +
-                    '<div class="stat"><b>' + importInvoices.length + '</b><span>فاتورة</span></div>' +
-                    '<div class="stat"><b>' + totalItems + '</b><span>بند صنف</span></div>' +
-                    '<div class="stat ok"><b>' + fullyOk + '</b><span>جاهز مباشرة</span></div>' +
-                    '<div class="stat warn"><b>' + (importInvoices.length - fullyOk) + '</b><span>يحتاج مطابقة</span></div>';
-
-                document.getElementById('importStep2').style.display = 'block';
-                importRenderPreview();
-                showToast('✅ تم', 'تم تحليل الملف بنجاح', 'success');
-            } catch (e) {
-                console.error(e);
-                showToast('❌ خطأ', 'فشل تحليل الملف: ' + e.message, 'error');
-            }
-            this.disabled = false;
-            this.innerHTML = '<i class="fas fa-search"></i> تحليل الملف';
-        });
-
-        document.getElementById('chkHideOkImport').addEventListener('change', importRenderPreview);
-
-        async function importGenerateNextInvoiceNo(companyId, token) {
-            var today = new Date();
-            var dateStr = today.getFullYear() + String(today.getMonth() + 1).padStart(2, '0') + String(today.getDate()).padStart(2, '0');
-            var nextSeq = 1;
-            try {
-                var res = await fetch(SUPABASE_URL + '/rest/v1/sales_invoices?select=invoice_no&company_id=eq.' + companyId + '&order=created_at.desc&limit=1', {
-                    headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token }
-                });
-                if (res.ok) {
-                    var data = await res.json();
-                    if (data && data.length && data[0].invoice_no) {
-                        var m = String(data[0].invoice_no).match(/(\d+)\s*$/);
-                        if (m) nextSeq = parseInt(m[1], 10) + 1;
-                    }
-                }
-            } catch (e) {}
-            return { dateStr: dateStr, seq: nextSeq };
-        }
-
-        function importLog(msg) {
-            var box = document.getElementById('importLogBox');
-            box.textContent += msg + '\n';
-            box.scrollTop = box.scrollHeight;
-        }
-
-        document.getElementById('btnRunImport').addEventListener('click', async function() {
-            var toRun = importInvoices.filter(importInvoiceFullyMatched);
-            if (toRun.length === 0) {
-                showToast('⚠️ تنبيه', 'لا توجد فواتير جاهزة للاستيراد بعد المطابقة', 'error');
-                return;
-            }
-            if (!confirm('سيتم استيراد ' + toRun.length + ' فاتورة فعليًا (خصم مخزون + تحديث أرصدة عملاء). متابعة؟')) return;
-
-            var btn = this;
-            btn.disabled = true;
-            document.getElementById('btnStopImport').style.display = 'inline-flex';
-            importStopRequested = false;
-            document.getElementById('importLogBox').textContent = '';
-
-            var token = await getValidToken();
-            var companyId = await getCompanyId();
-            var user = await getCurrentUserProfile();
-            if (!token || !companyId) {
-                showToast('❌ خطأ', 'جلسة غير صالحة', 'error');
-                btn.disabled = false;
-                return;
-            }
-
-            var existingSet = {};
-            try {
-                var existingRows = await fetchAllRows(SUPABASE_URL + '/rest/v1/sales_invoices?select=original_invoice_no&company_id=eq.' + companyId + '&original_invoice_no=not.is.null', token);
-                existingRows.forEach(function(r) { if (r.original_invoice_no) existingSet[r.original_invoice_no] = true; });
-            } catch (e) {
-                importLog('⚠️ تعذر التحقق من الفواتير المستوردة سابقًا: ' + e.message);
-            }
-
-            var seqInfo = await importGenerateNextInvoiceNo(companyId, token);
-            var clientDelta = {};
-            var okCount = 0, skipCount = 0, failCount = 0;
-
-            for (var i = 0; i < toRun.length; i++) {
-                if (importStopRequested) { importLog('⏹ تم الإيقاف بواسطة المستخدم'); break; }
-                var inv = toRun[i];
-                document.getElementById('importProgressBar').style.width = Math.round(((i + 1) / toRun.length) * 100) + '%';
-
-                if (existingSet[inv.originalNo]) {
-                    skipCount++;
-                    importLog('↷ تخطي (مستوردة من قبل): رقم أصلي ' + inv.originalNo);
-                    continue;
-                }
-
-                var client = importMatchClient(inv);
-                var validItems = inv.items.map(function(it) {
-                    var p = importMatchProduct(it);
-                    return p ? { item: it, product: p } : null;
-                }).filter(Boolean);
-                if (!client || validItems.length === 0) {
-                    failCount++;
-                    importLog('✗ تخطي (بيانات غير مكتملة): رقم أصلي ' + inv.originalNo);
-                    continue;
-                }
-
-                var dateISO = inv.dateISO || new Date().toISOString().slice(0, 10);
-                var newInvNo = 'INV-' + seqInfo.dateStr + '-' + String(seqInfo.seq).padStart(5, '0');
-                seqInfo.seq++;
-
-                var totalAmount = validItems.reduce(function(s, x) { return s + x.item.total; }, 0);
-                var locs = Object.keys(inv.locations);
-
-                try {
-                    var invRes = await fetch(SUPABASE_URL + '/rest/v1/sales_invoices', {
-                        method: 'POST',
-                        headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', Prefer: 'return=representation' },
-                        body: JSON.stringify({
-                            company_id: companyId,
-                            user_id: user && user.id ? user.id : null,
-                            invoice_no: newInvNo,
-                            client_id: client.id,
-                            client_name: client.name,
-                            invoice_date: dateISO,
-                            status: 'مرحلة',
-                            notes: 'مستوردة من إكسيل',
-                            total_amount: totalAmount,
-                            original_invoice_no: inv.originalNo,
-                            rep_name: inv.rep || null,
-                            location: locs.length ? locs.join('، ') : null
-                        })
-                    });
-                    if (!invRes.ok) throw new Error(await invRes.text());
-                    var invData = await invRes.json();
-                    var invoiceId = invData[0] ? invData[0].id : invData.id;
-                    if (!invoiceId) throw new Error('لم يتم إرجاع معرف الفاتورة');
-
-                    for (var j = 0; j < validItems.length; j++) {
-                        var it = validItems[j].item, product = validItems[j].product;
-
-                        var mvRes = await fetch(SUPABASE_URL + '/rest/v1/finished_goods_movements', {
-                            method: 'POST',
-                            headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', Prefer: 'return=representation' },
-                            body: JSON.stringify({
-                                company_id: companyId,
-                                user_id: user && user.id ? user.id : null,
-                                product_id: product.id,
-                                product_name: product.name,
-                                type: 'منصرف',
-                                quantity: it.qty,
-                                unit_cost: it.price,
-                                total_value: it.total,
-                                reference: newInvNo,
-                                notes: 'استيراد بيانات سابقة - رقم دفتري ' + inv.originalNo,
-                                movement_date: dateISO
-                            })
-                        });
-                        if (!mvRes.ok) throw new Error(await mvRes.text());
-                        var mvData = await mvRes.json();
-                        var movementId = mvData[0] ? mvData[0].id : mvData.id;
-
-                        var itemRes = await fetch(SUPABASE_URL + '/rest/v1/sales_invoice_items', {
-                            method: 'POST',
-                            headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', Prefer: 'return=representation' },
-                            body: JSON.stringify({
-                                company_id: companyId,
-                                invoice_id: invoiceId,
-                                product_id: product.id,
-                                product_name: product.name,
-                                quantity: it.qty,
-                                unit_price: it.price,
-                                unit: it.unit || '',
-                                line_total: it.total,
-                                finished_movement_id: movementId,
-                                unit_weight: it.unitWeight,
-                                total_weight: it.totalWeight,
-                                color: it.color,
-                                aggregate_type: it.aggType
-                            })
-                        });
-                        if (!itemRes.ok) throw new Error(await itemRes.text());
-                    }
-
-                    clientDelta[client.id] = (clientDelta[client.id] || 0) + totalAmount;
-                    existingSet[inv.originalNo] = true;
-                    okCount++;
-                    importLog('✓ تم استيراد رقم أصلي ' + inv.originalNo + ' (' + newInvNo + ') — ' + client.name + ' — ' + totalAmount.toLocaleString('ar-EG'));
-                } catch (err) {
-                    failCount++;
-                    importLog('✗ خطأ في رقم أصلي ' + inv.originalNo + ': ' + err.message);
-                }
-
-                document.getElementById('importRunStats').innerHTML =
-                    '<div class="stat ok"><b>' + okCount + '</b><span>تم بنجاح</span></div>' +
-                    '<div class="stat"><b>' + skipCount + '</b><span>متخطاة</span></div>' +
-                    '<div class="stat warn"><b>' + failCount + '</b><span>فشلت</span></div>';
-            }
-
-            importLog('… جارٍ تحديث أرصدة العملاء');
-            for (var clientId in clientDelta) {
-                var c = allClients.find(function(cc) { return cc.id == clientId; });
-                if (!c) continue;
-                try {
-                    await fetch(SUPABASE_URL + '/rest/v1/clients?id=eq.' + clientId, {
-                        method: 'PATCH',
-                        headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            total_sales: (parseFloat(c.total_sales) || 0) + clientDelta[clientId],
-                            due_balance: (parseFloat(c.due_balance) || 0) + clientDelta[clientId]
-                        })
-                    });
-                    c.total_sales = (parseFloat(c.total_sales) || 0) + clientDelta[clientId];
-                    c.due_balance = (parseFloat(c.due_balance) || 0) + clientDelta[clientId];
-                } catch (e) {
-                    importLog('✗ فشل تحديث رصيد العميل ' + c.name + ': ' + e.message);
-                }
-            }
-
-            importLog('✅ انتهى الاستيراد — نجاح: ' + okCount + ' / تخطي: ' + skipCount + ' / فشل: ' + failCount);
-            showToast('✅ تم', 'اكتمل الاستيراد', 'success');
-            btn.disabled = false;
-            document.getElementById('btnStopImport').style.display = 'none';
-            await generateInvoiceNumber();
-        });
-
-        document.getElementById('btnStopImport').addEventListener('click', function() { importStopRequested = true; });
 
         // ============================================================
         // EXPOSE FUNCTIONS
