@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+<title>كشف المبيعات (مطابق للإكسيل) - QuickData ProSoft</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+    :root {
+        --ink: #121821;
+        --ink-soft: #2c3644;
+        --ink-mute: #6d7883;
+        --paper: #eef1ef;
+        --surface: #ffffff;
+        --surface-muted: #f4f6f5;
+        --line: #dde3e0;
+        --line-strong: #c7d0cc;
+        --accent: #dd9f2e;
+        --accent-ink: #7a5312;
+        --accent-soft: #faead0;
+        --teal: #1d7b6c;
+        --teal-soft: #e2f2ee;
+        --rust: #bf4f30;
+        --rust-soft: #fbe8e1;
+        --blue: #2f5b8a;
+        --radius: 14px;
+        --radius-sm: 9px;
+        --shadow: 0 14px 34px -16px rgba(18, 24, 33, 0.28);
+        --shadow-sm: 0 3px 10px -4px rgba(18, 24, 33, 0.18);
+        --font-display: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
+        --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: var(--font-display);
+        background: var(--paper);
+        color: var(--ink);
+        direction: rtl;
+        min-height: 100vh;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    .topbar {
+        background: var(--surface);
+        border-bottom: 1px solid var(--line);
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        box-shadow: var(--shadow-sm);
+    }
+    .topbar .title-block { display: flex; align-items: center; gap: 12px; }
+    .topbar .mark {
+        width: 38px; height: 38px; border-radius: var(--radius-sm);
+        background: var(--accent); color: #fff; display: flex; align-items: center;
+        justify-content: center; font-weight: 900; font-size: 1rem; flex-shrink: 0;
+    }
+    .topbar h1 { font-size: 1.05rem; font-weight: 800; }
+    .topbar h1 span { display: block; font-size: 0.7rem; font-weight: 500; color: var(--ink-mute); margin-top: 2px; }
+    .topbar .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .btn {
+        font-family: var(--font-display);
+        border: 1px solid var(--line-strong);
+        background: var(--surface);
+        color: var(--ink-soft);
+        padding: 9px 14px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        transition: .15s;
+    }
+    .btn:hover { background: var(--surface-muted); }
+    .btn-accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-accent:hover { filter: brightness(0.95); }
+    .btn-teal { background: var(--teal); border-color: var(--teal); color: #fff; }
+    .btn-teal:hover { filter: brightness(0.95); }
+
+    .container { padding: 18px 20px 60px; max-width: 1600px; margin: 0 auto; }
+
+    .stats-row {
+        display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .stat-card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        padding: 12px 16px;
+        min-width: 140px;
+        box-shadow: var(--shadow-sm);
+    }
+    .stat-card b { display: block; font-size: 1.15rem; font-weight: 800; color: var(--ink); }
+    .stat-card span { font-size: 0.72rem; color: var(--ink-mute); }
+    .stat-card.teal b { color: var(--teal); }
+    .stat-card.accent b { color: var(--accent-ink); }
+
+    .filter-bar {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        padding: 12px 14px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+        align-items: center;
+    }
+    .filter-bar input, .filter-bar select {
+        font-family: var(--font-display);
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+        background: var(--surface);
+        color: var(--ink);
+        min-width: 160px;
+    }
+    .filter-bar label { font-size: 0.75rem; color: var(--ink-mute); display: flex; align-items: center; gap: 6px; }
+
+    .sheet-wrap {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: auto;
+        max-height: 78vh;
+    }
+    table.sheet {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.76rem;
+        white-space: nowrap;
+    }
+    table.sheet thead th {
+        position: sticky;
+        top: 0;
+        background: var(--ink);
+        color: #fff;
+        padding: 9px 10px;
+        font-weight: 700;
+        font-size: 0.72rem;
+        text-align: right;
+        border-left: 1px solid rgba(255,255,255,0.12);
+        z-index: 5;
+    }
+    table.sheet tbody td {
+        padding: 7px 10px;
+        border-bottom: 1px solid var(--line);
+        border-left: 1px solid var(--line);
+        text-align: right;
+        color: var(--ink-soft);
+    }
+    table.sheet tbody tr.group-alt td { background: var(--surface-muted); }
+    table.sheet tbody tr.group-start td { border-top: 2px solid var(--line-strong); }
+    table.sheet tbody tr.cancelled td { background: var(--rust-soft); color: var(--rust); }
+    table.sheet tbody tr:hover td { background: var(--accent-soft); }
+    table.sheet td.num, table.sheet th.num { font-family: var(--font-mono); text-align: center; }
+    table.sheet td.invno { font-weight: 800; color: var(--accent-ink); }
+    table.sheet td.client { font-weight: 700; }
+    table.sheet td.total { font-weight: 800; color: var(--teal); }
+
+    .empty-state, .loading-state {
+        padding: 60px 20px;
+        text-align: center;
+        color: var(--ink-mute);
+    }
+    .empty-state i, .loading-state i { font-size: 2rem; margin-bottom: 10px; display: block; }
+    .loading-state i { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media print {
+        .topbar, .filter-bar, .stats-row { display: none !important; }
+        body { background: #fff; }
+        .container { padding: 0; }
+        .sheet-wrap { max-height: none; overflow: visible; border: none; box-shadow: none; }
+        table.sheet thead th { position: static; }
+    }
+
+    @media (max-width: 720px) {
+        .topbar { padding: 10px 12px; }
+        .container { padding: 12px; }
+    }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="title-block">
+        <div class="mark">🏭</div>
+        <h1>كشف المبيعات <span>عرض مطابق لترتيب وأعمدة شيت الإكسيل الأصلي</span></h1>
+    </div>
+    <div class="actions">
+        <a class="btn" href="sales.html"><i class="fas fa-arrow-right"></i> رجوع للمبيعات</a>
+        <button class="btn" id="btnReload"><i class="fas fa-rotate"></i> تحديث</button>
+        <button class="btn btn-teal" id="btnPrint"><i class="fas fa-print"></i> طباعة</button>
+    </div>
+</div>
+
+<div class="container">
+
+    <div class="stats-row" id="statsRow"></div>
+
+    <div class="filter-bar">
+        <label>
+            <input type="text" id="searchBox" placeholder="بحث برقم الفاتورة أو اسم العميل أو الصنف..." style="min-width:260px;" />
+        </label>
+        <label>
+            <input type="checkbox" id="chkHideCancelled" checked /> إخفاء الفواتير الملغاة (بدون أصناف)
+        </label>
+    </div>
+
+    <div class="sheet-wrap">
+        <table class="sheet" id="sheetTable">
+            <thead>
+                <tr>
+                    <th class="num">#</th>
+                    <th>رقم الفاتورة الدفتري</th>
+                    <th>التاريخ</th>
+                    <th>المندوب</th>
+                    <th>كود العميل</th>
+                    <th>اسم العميل</th>
+                    <th>الكود</th>
+                    <th>المبيعات (الصنف)</th>
+                    <th class="num">الوزن</th>
+                    <th>العبوة</th>
+                    <th class="num">العدد</th>
+                    <th class="num">سعر البيع</th>
+                    <th class="num">اجمالي مبيعات</th>
+                    <th class="num">اجمالي الوزن</th>
+                    <th>اللون</th>
+                    <th>نوع الحصوة</th>
+                    <th>الموقع</th>
+                </tr>
+            </thead>
+            <tbody id="sheetBody">
+                <tr><td colspan="17"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    // ============================================================
+    // SUPABASE CONFIGURATION
+    // ============================================================
+    var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
+    var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
+    var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ============================================================
+    // AUTH HELPERS (نفس منطق باقي صفحات النظام)
+    // ============================================================
+    function getToken() {
+        try {
+            var storedSession = localStorage.getItem('rollex_session');
+            if (storedSession) {
+                var parsed = JSON.parse(storedSession);
+                if (parsed && parsed.access_token) return parsed.access_token;
+            }
+            var storedSession2 = sessionStorage.getItem('rollex_session');
+            if (storedSession2) {
+                var parsed2 = JSON.parse(storedSession2);
+                if (parsed2 && parsed2.access_token) return parsed2.access_token;
+            }
+            return null;
+        } catch (e) { return null; }
+    }
+
+    async function getValidToken() {
+        try {
+            var { data: { session } } = await supabaseClient.auth.getSession();
+            if (session && session.access_token) {
+                localStorage.setItem('rollex_session', JSON.stringify({
+                    access_token: session.access_token,
+                    refresh_token: session.refresh_token,
+                    expires_at: session.expires_at
+                }));
+                return session.access_token;
+            }
+            var storedSession = localStorage.getItem('rollex_session');
+            if (storedSession) {
+                var parsed = JSON.parse(storedSession);
+                if (parsed && parsed.access_token) {
+                    var checkResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                        headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + parsed.access_token }
+                    });
+                    if (checkResponse.ok) return parsed.access_token;
+                    if ((checkResponse.status === 401 || checkResponse.status === 403) && parsed.refresh_token) {
+                        var refreshResponse = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+                            method: 'POST',
+                            headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ refresh_token: parsed.refresh_token })
+                        });
+                        if (refreshResponse.ok) {
+                            var refreshData = await refreshResponse.json();
+                            if (refreshData.access_token) {
+                                localStorage.setItem('rollex_session', JSON.stringify({
+                                    access_token: refreshData.access_token,
+                                    refresh_token: refreshData.refresh_token || parsed.refresh_token,
+                                    expires_at: Date.now() + ((refreshData.expires_in || 3600) * 1000)
+                                }));
+                                return refreshData.access_token;
+                            }
+                        }
+                    }
+                }
+            }
+            var storedSession2 = sessionStorage.getItem('rollex_session');
+            if (storedSession2) {
+                var parsed2 = JSON.parse(storedSession2);
+                if (parsed2 && parsed2.access_token) return parsed2.access_token;
+            }
+            return null;
+        } catch (e) {
+            console.error('❌ خطأ في getValidToken:', e);
+            return null;
+        }
+    }
+
+    async function verifySessionOrRedirect() {
+        var token = getToken();
+        if (!token) { window.location.href = 'login.html'; return false; }
+        try {
+            var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token }
+            });
+            if (response.ok) return true;
+            window.location.href = 'login.html';
+            return false;
+        } catch (e) {
+            // مشكلة اتصال - لا نسجل خروج المستخدم
+            return true;
+        }
+    }
+
+    // ============================================================
+    // DATA FETCH HELPERS
+    // ============================================================
+    async function fetchAllRows(baseUrl, token) {
+        var pageSize = 1000, allRows = [], from = 0;
+        while (true) {
+            var response = await fetch(baseUrl, {
+                headers: {
+                    apikey: SUPABASE_ANON_KEY,
+                    Authorization: 'Bearer ' + token,
+                    'Range-Unit': 'items',
+                    Range: from + '-' + (from + pageSize - 1)
+                }
+            });
+            if (!response.ok) throw new Error('فشل جلب البيانات: ' + response.status);
+            var pageData = await response.json();
+            allRows = allRows.concat(pageData);
+            if (pageData.length < pageSize) break;
+            from += pageSize;
+        }
+        return allRows;
+    }
+
+    function formatDateShort(dateStr) {
+        if (!dateStr) return '—';
+        try {
+            var d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString('ar-EG');
+        } catch (e) { return dateStr; }
+    }
+
+    function formatNum(val) {
+        if (val === null || val === undefined || val === '') return '';
+        var n = parseFloat(val);
+        if (isNaN(n)) return '';
+        return n.toLocaleString('ar-EG', { maximumFractionDigits: 2 });
+    }
+
+    // ============================================================
+    // ORDERING - نفس منطق ترتيب شاشة المبيعات: الفواتير المستوردة
+    // (اللي ليها original_invoice_no) بترتيب وقت إنشائها الفعلي تصاعديًا
+    // (بيطابق ترتيب صفوف الإكسيل وقت الاستيراد دفعة واحدة)، والفواتير
+    // اليدوية بترتيب التاريخ الأحدث أولاً وتتصدر القائمة.
+    // ============================================================
+    function invoiceSortKey(inv) {
+        var raw = inv.original_invoice_no;
+        return { hasOriginal: raw != null && String(raw).trim() !== '' };
+    }
+    function sortInvoices(list) {
+        return list.slice().sort(function(a, b) {
+            var ka = invoiceSortKey(a), kb = invoiceSortKey(b);
+            if (ka.hasOriginal && !kb.hasOriginal) return 1;   // اليدوية فوق
+            if (!ka.hasOriginal && kb.hasOriginal) return -1;
+            if (ka.hasOriginal && kb.hasOriginal) {
+                return new Date(a.created_at) - new Date(b.created_at);
+            }
+            return new Date(b.invoice_date) - new Date(a.invoice_date);
+        });
+    }
+
+    // ============================================================
+    // MAIN LOAD
+    // ============================================================
+    var allInvoices = [], allItems = [], clientCodeMap = {}, productCodeMap = {};
+
+    async function loadAll() {
+        var body = document.getElementById('sheetBody');
+        body.innerHTML = '<tr><td colspan="17"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
+
+        var token = await getValidToken();
+        if (!token) {
+            body.innerHTML = '<tr><td colspan="17"><div class="empty-state"><i class="fas fa-lock"></i><p>جلسة غير صالحة</p></div></td></tr>';
+            return;
+        }
+
+        try {
+            var invoicesP = fetchAllRows(SUPABASE_URL + '/rest/v1/sales_invoices?select=*', token);
+            var itemsP = fetchAllRows(SUPABASE_URL + '/rest/v1/sales_invoice_items?select=*&order=created_at.asc', token);
+            var clientsP = fetchAllRows(SUPABASE_URL + '/rest/v1/clients?select=id,code,name', token);
+            var productsP = fetchAllRows(SUPABASE_URL + '/rest/v1/products?select=id,code,name', token);
+
+            var results = await Promise.all([invoicesP, itemsP, clientsP, productsP]);
+            allInvoices = sortInvoices(results[0]);
+            allItems = results[1];
+
+            clientCodeMap = {};
+            results[2].forEach(function(c) { clientCodeMap[c.id] = c.code; });
+            productCodeMap = {};
+            results[3].forEach(function(p) { productCodeMap[p.id] = p.code; });
+
+            render();
+        } catch (e) {
+            console.error(e);
+            body.innerHTML = '<tr><td colspan="17"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات: ' + e.message + '</p></div></td></tr>';
+        }
+    }
+
+    function render() {
+        var search = document.getElementById('searchBox').value.trim().toLowerCase();
+        var hideCancelled = document.getElementById('chkHideCancelled').checked;
+
+        var itemsByInvoice = {};
+        allItems.forEach(function(it) {
+            if (!itemsByInvoice[it.invoice_id]) itemsByInvoice[it.invoice_id] = [];
+            itemsByInvoice[it.invoice_id].push(it);
+        });
+
+        var body = document.getElementById('sheetBody');
+        var html = '';
+        var rowCounter = 0;
+        var invoiceCount = 0, itemCount = 0, totalSum = 0;
+        var groupIdx = 0;
+
+        allInvoices.forEach(function(inv) {
+            var items = itemsByInvoice[inv.id] || [];
+
+            if (hideCancelled && items.length === 0) return;
+
+            if (search) {
+                var haystack = (
+                    (inv.original_invoice_no || '') + ' ' +
+                    (inv.invoice_no || '') + ' ' +
+                    (inv.client_name || '') + ' ' +
+                    items.map(function(it) { return it.product_name || ''; }).join(' ')
+                ).toLowerCase();
+                if (haystack.indexOf(search) === -1) return;
+            }
+
+            invoiceCount++;
+            groupIdx++;
+            var altClass = (groupIdx % 2 === 0) ? ' group-alt' : '';
+            var clientCode = clientCodeMap[inv.client_id];
+
+            if (items.length === 0) {
+                rowCounter++;
+                html += '<tr class="group-start cancelled' + altClass + '">' +
+                    '<td class="num">' + rowCounter + '</td>' +
+                    '<td class="invno">' + (inv.original_invoice_no || inv.invoice_no || '-') + '</td>' +
+                    '<td>' + formatDateShort(inv.invoice_date) + '</td>' +
+                    '<td>' + (inv.rep_name || '') + '</td>' +
+                    '<td class="num">' + (clientCode != null ? clientCode : '') + '</td>' +
+                    '<td class="client">' + (inv.client_name || 'ملغي') + '</td>' +
+                    '<td colspan="10" style="text-align:center;color:var(--rust);font-weight:700;">فاتورة بدون أصناف (ملغي)</td>' +
+                    '</tr>';
+                return;
+            }
+
+            items.forEach(function(it, idx) {
+                rowCounter++;
+                itemCount++;
+                totalSum += parseFloat(it.line_total) || 0;
+                var isFirst = idx === 0;
+                var prodCode = productCodeMap[it.product_id];
+
+                html += '<tr class="' + (isFirst ? 'group-start' : '') + altClass + '">' +
+                    '<td class="num">' + rowCounter + '</td>' +
+                    '<td class="invno">' + (inv.original_invoice_no || inv.invoice_no || '-') + '</td>' +
+                    '<td>' + formatDateShort(inv.invoice_date) + '</td>' +
+                    '<td>' + (inv.rep_name || '') + '</td>' +
+                    '<td class="num">' + (clientCode != null ? clientCode : '') + '</td>' +
+                    '<td class="client">' + (inv.client_name || '') + '</td>' +
+                    '<td class="num">' + (prodCode != null ? prodCode : '') + '</td>' +
+                    '<td>' + (it.product_name || '') + '</td>' +
+                    '<td class="num">' + formatNum(it.unit_weight) + '</td>' +
+                    '<td>' + (it.unit || '') + '</td>' +
+                    '<td class="num">' + formatNum(it.quantity) + '</td>' +
+                    '<td class="num">' + formatNum(it.unit_price) + '</td>' +
+                    '<td class="num total">' + formatNum(it.line_total) + '</td>' +
+                    '<td class="num">' + formatNum(it.total_weight) + '</td>' +
+                    '<td>' + (it.color || '') + '</td>' +
+                    '<td>' + (it.aggregate_type || '') + '</td>' +
+                    '<td>' + (inv.location || '') + '</td>' +
+                    '</tr>';
+            });
+        });
+
+        if (rowCounter === 0) {
+            html = '<tr><td colspan="17"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد نتائج مطابقة</p></div></td></tr>';
+        }
+
+        body.innerHTML = html;
+
+        document.getElementById('statsRow').innerHTML =
+            '<div class="stat-card"><b>' + invoiceCount + '</b><span>عدد الفواتير المعروضة</span></div>' +
+            '<div class="stat-card"><b>' + itemCount + '</b><span>عدد الأصناف (الصفوف)</span></div>' +
+            '<div class="stat-card teal"><b>' + formatNum(totalSum) + '</b><span>إجمالي المبيعات (ج.م)</span></div>' +
+            '<div class="stat-card accent"><b>' + allInvoices.length + '</b><span>إجمالي الفواتير في النظام</span></div>';
+    }
+
+    document.getElementById('searchBox').addEventListener('input', render);
+    document.getElementById('chkHideCancelled').addEventListener('change', render);
+    document.getElementById('btnReload').addEventListener('click', loadAll);
+    document.getElementById('btnPrint').addEventListener('click', function() { window.print(); });
+
+    (async function init() {
+        var ok = await verifySessionOrRedirect();
+        if (!ok) return;
+        await loadAll();
+    })();
+</script>
+
+</body>
+</html>
