@@ -1777,7 +1777,14 @@
                 </p>
                 <div class="import-flex">
                     <input type="file" id="importFileInput" accept=".xlsx,.xls" />
-                    <button class="btn-add-item" id="btnParseImport" disabled><i class="fas fa-search"></i> تحليل الملف</button>
+                    <div class="import-progress-outer" id="importProgressContainer" style="display:none; margin-top: 10px;">
+                        <div style="font-size:0.75rem;color:var(--ink-mute);margin-bottom:4px;">
+                            <span id="importProgressText">جاري تحليل الملف...</span>
+                        </div>
+                        <div class="import-progress-outer" style="margin-top:0;">
+                            <div class="import-progress-inner" id="importProgressBar" style="width:0%;"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="import-stat-row" id="importParseStats"></div>
             </div>
@@ -1805,7 +1812,7 @@
                     <button class="btn-save" id="btnRunImport"><i class="fas fa-play"></i> بدء الاستيراد الفعلي</button>
                     <button class="btn-tool danger" id="btnStopImport" style="display:none;"><i class="fas fa-stop"></i> إيقاف</button>
                 </div>
-                <div class="import-progress-outer"><div class="import-progress-inner" id="importProgressBar"></div></div>
+                <div class="import-progress-outer"><div class="import-progress-inner" id="importProgressBar2" style="width:0%;"></div></div>
                 <div class="import-stat-row" id="importRunStats"></div>
                 <div class="import-log" id="importLogBox"></div>
             </div>
@@ -3953,13 +3960,21 @@
         }
 
         // ============================================================
-        // IMPORT FROM EXCEL - استيراد جميع صفوف Excel (حتى الناقصة)
+        // IMPORT FROM EXCEL - تحميل مباشر بدون زر منفصل
         // ============================================================
         var importInvoices = [];
         var importStopRequested = false;
 
         function openImportModal() {
             document.getElementById('importModalOverlay').classList.add('active');
+            // إعادة ضبط شريط التقدم
+            var progressContainer = document.getElementById('importProgressContainer');
+            if (progressContainer) progressContainer.style.display = 'none';
+            var progressBar = document.getElementById('importProgressBar');
+            if (progressBar) progressBar.style.width = '0%';
+            document.getElementById('importStep2').style.display = 'none';
+            document.getElementById('importParseStats').innerHTML = '';
+            document.getElementById('importFileInput').value = '';
         }
 
         function closeImportModal() {
@@ -3985,14 +4000,16 @@
             return y + '-' + m + '-' + day;
         }
 
-        function importParseWorkbook(file) {
+        // ✅ تحليل الملف مع شريط تقدم
+        function importParseWorkbookWithProgress(file) {
             return new Promise(function(resolve, reject) {
                 var reader = new FileReader();
                 reader.onload = function(evt) {
                     try {
                         var wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array', cellDates: true });
                         var ws = wb.Sheets[wb.SheetNames[0]];
-                        resolve(XLSX.utils.sheet_to_json(ws, { defval: null }));
+                        var allRows = XLSX.utils.sheet_to_json(ws, { defval: null });
+                        resolve(allRows);
                     } catch (e) { reject(e); }
                 };
                 reader.onerror = reject;
@@ -4000,7 +4017,7 @@
             });
         }
 
-        // ✅ الدالة المحسّنة - تستورد جميع صفوف Excel حتى لو كانت البيانات ناقصة
+        // ✅ دالة بناء الفواتير - تستورد جميع الصفوف
         function importBuildInvoices(rows) {
             var map = {};
             var order = [];
@@ -4008,7 +4025,6 @@
             rows.forEach(function(r, rowIndex) {
                 var invNo = importNormStr(r['رقم الفاتورة الدفتري']);
                 if (!invNo) {
-                    // سجل تحذير للصفوف المتخطية بدون رقم فاتورة
                     console.warn('⚠️ صف رقم ' + (rowIndex + 1) + ' لا يحتوي على رقم فاتورة، سيتم تخطيه');
                     return;
                 }
@@ -4016,9 +4032,6 @@
                 var productName = importNormStr(r['المبيعات']);
                 var qty = importNormNum(r['العدد']);
                 var total = importNormNum(r['اجمالي مبيعات']);
-
-                // ✅ لا نتخطى الصف حتى لو كانت البيانات ناقصة
-                // يتم إنشاء فاتورة وبند مع بيانات (أو فارغة)
 
                 if (!map[invNo]) {
                     map[invNo] = {
@@ -4044,7 +4057,6 @@
                 var lineTotal = total || (qty * price);
                 var weight = r['الوزن'] != null ? importNormNum(r['الوزن']) : null;
 
-                // ✅ نضيف البند دائماً حتى لو كانت البيانات ناقصة
                 inv.items.push({
                     code: importNormStr(r['الكود']),
                     name: productName || '(بدون اسم)',
@@ -4061,7 +4073,6 @@
                 });
             });
 
-            // ترتيب الفواتير حسب ترتيب أول صف لها في Excel
             order.sort(function(a, b) {
                 return map[a]._firstRowIndex - map[b]._firstRowIndex;
             });
@@ -4082,7 +4093,6 @@
             if (item.matchedProductId) return allProducts.find(function(p) { return p.id == item.matchedProductId; }) || null;
             var byCode = item.code ? allProducts.find(function(p) { return importNormStr(p.code) === item.code; }) : null;
             if (byCode) return byCode;
-            // ✅ إذا كان اسم المنتج '(بدون اسم)'، نعتبره غير مطابق
             if (item.name === '(بدون اسم)') return null;
             return item.name ? (allProducts.find(function(p) { return importNormStr(p.name) === item.name; }) || null) :
                 null;
@@ -4175,38 +4185,62 @@
             });
         }
 
-        document.getElementById('importFileInput').addEventListener('change', function() {
-            document.getElementById('btnParseImport').disabled = !this.files.length;
-        });
-
-        document.getElementById('btnParseImport').addEventListener('click', async function() {
-            var file = document.getElementById('importFileInput').files[0];
+        // ✅ تحليل الملف مباشرة عند اختيار الملف
+        document.getElementById('importFileInput').addEventListener('change', async function() {
+            var file = this.files[0];
             if (!file) return;
-            this.disabled = true;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جارٍ التحليل...';
+
+            // إظهار شريط التقدم
+            var progressContainer = document.getElementById('importProgressContainer');
+            if (progressContainer) progressContainer.style.display = 'block';
+            var progressBar = document.getElementById('importProgressBar');
+            if (progressBar) progressBar.style.width = '0%';
+            var progressText = document.getElementById('importProgressText');
+            if (progressText) progressText.textContent = 'جاري قراءة الملف...';
+
             try {
-                var rows = await importParseWorkbook(file);
+                progressText.textContent = 'جاري تحليل البيانات...';
+                var rows = await importParseWorkbookWithProgress(file);
+
+                progressText.textContent = 'جاري بناء الفواتير...';
+                if (progressBar) progressBar.style.width = '50%';
+
                 importInvoices = importBuildInvoices(rows);
-                var totalItems = importInvoices.reduce(function(s, inv) { return s + inv.items.length; }, 0);
-                var fullyOk = importInvoices.filter(importInvoiceFullyMatched).length;
 
-                document.getElementById('importParseStats').innerHTML =
-                    '<div class="stat"><b>' + rows.length + '</b><span>صف بالإكسيل</span></div>' +
-                    '<div class="stat"><b>' + importInvoices.length + '</b><span>فاتورة</span></div>' +
-                    '<div class="stat"><b>' + totalItems + '</b><span>بند صنف</span></div>' +
-                    '<div class="stat ok"><b>' + fullyOk + '</b><span>جاهز مباشرة</span></div>' +
-                    '<div class="stat warn"><b>' + (importInvoices.length - fullyOk) +
-                    '</b><span>يحتاج مطابقة</span></div>';
+                if (progressBar) progressBar.style.width = '80%';
+                progressText.textContent = 'جاري تجهيز المعاينة...';
 
-                document.getElementById('importStep2').style.display = 'block';
-                importRenderPreview();
-                showToast('✅ تم', 'تم تحليل الملف بنجاح', 'success');
+                // ✅ استخدام setTimeout لتجنب تهنيج الواجهة
+                setTimeout(function() {
+                    var totalItems = importInvoices.reduce(function(s, inv) { return s + inv.items.length; }, 0);
+                    var fullyOk = importInvoices.filter(importInvoiceFullyMatched).length;
+
+                    document.getElementById('importParseStats').innerHTML =
+                        '<div class="stat"><b>' + rows.length + '</b><span>صف بالإكسيل</span></div>' +
+                        '<div class="stat"><b>' + importInvoices.length + '</b><span>فاتورة</span></div>' +
+                        '<div class="stat"><b>' + totalItems + '</b><span>بند صنف</span></div>' +
+                        '<div class="stat ok"><b>' + fullyOk + '</b><span>جاهز مباشرة</span></div>' +
+                        '<div class="stat warn"><b>' + (importInvoices.length - fullyOk) +
+                        '</b><span>يحتاج مطابقة</span></div>';
+
+                    document.getElementById('importStep2').style.display = 'block';
+                    importRenderPreview();
+
+                    if (progressBar) progressBar.style.width = '100%';
+                    progressText.textContent = '✅ تم التحليل بنجاح!';
+
+                    setTimeout(function() {
+                        if (progressContainer) progressContainer.style.display = 'none';
+                    }, 1500);
+
+                    showToast('✅ تم', 'تم تحليل الملف بنجاح', 'success');
+                }, 50);
+
             } catch (e) {
                 console.error(e);
                 showToast('❌ خطأ', 'فشل تحليل الملف: ' + e.message, 'error');
+                if (progressContainer) progressContainer.style.display = 'none';
             }
-            this.disabled = false;
-            this.innerHTML = '<i class="fas fa-search"></i> تحليل الملف';
         });
 
         document.getElementById('chkHideOkImport').addEventListener('change', importRenderPreview);
@@ -4281,7 +4315,8 @@
             for (var i = 0; i < toRun.length; i++) {
                 if (importStopRequested) { importLog('⏹ تم الإيقاف بواسطة المستخدم'); break; }
                 var inv = toRun[i];
-                document.getElementById('importProgressBar').style.width = Math.round(((i + 1) / toRun.length) * 100) + '%';
+                var progressBar = document.getElementById('importProgressBar2');
+                if (progressBar) progressBar.style.width = Math.round(((i + 1) / toRun.length) * 100) + '%';
 
                 if (existingSet[inv.originalNo]) {
                     skipCount++;
