@@ -1051,7 +1051,38 @@
                 return;
             }
 
+            // ترتيب حسب رقم الفاتورة الدفتري الأصلي (original_invoice_no) عشان يطابق
+            // ترتيب صفوف شيت الإكسيل الأصلي. لو الفاتورة مش مستوردة (مفيش original_invoice_no)
+            // بترجع لترتيب التاريخ كبديل.
+            function invoiceSortKey(inv) {
+                var raw = inv.original_invoice_no;
+                if (raw != null && String(raw).trim() !== '') {
+                    var m = String(raw).match(/\d+/);
+                    if (m) return { hasOriginal: true, num: parseInt(m[0], 10), raw: String(raw) };
+                    return { hasOriginal: true, num: null, raw: String(raw) };
+                }
+                return { hasOriginal: false, num: null, raw: '' };
+            }
+
             var sorted = filtered.slice().sort(function(a, b) {
+                var ka = invoiceSortKey(a), kb = invoiceSortKey(b);
+
+                // الفواتير اللي ليها رقم أصلي (مستوردة من إكسيل) تتصدر بترتيب الشيت
+                if (ka.hasOriginal && !kb.hasOriginal) return -1;
+                if (!ka.hasOriginal && kb.hasOriginal) return 1;
+
+                if (ka.hasOriginal && kb.hasOriginal) {
+                    if (ka.num != null && kb.num != null && ka.num !== kb.num) {
+                        return ka.num - kb.num;
+                    }
+                    if (ka.num != null && kb.num == null) return -1;
+                    if (ka.num == null && kb.num != null) return 1;
+                    if (ka.raw !== kb.raw) return ka.raw.localeCompare(kb.raw, 'ar');
+                    // نفس الرقم الأصلي بالظبط (مثلاً بنود لنفس الفاتورة) -> رجّع لترتيب الإضافة
+                    return new Date(a.created_at) - new Date(b.created_at);
+                }
+
+                // فواتير مش مستوردة (اتضافت يدوي) -> رتّبها بالتاريخ الأحدث أولاً
                 return new Date(b.invoice_date) - new Date(a.invoice_date);
             });
 
