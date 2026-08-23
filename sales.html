@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        /* ============================================================ */
+        /* ===== جميع الستايلات كما هي ===== */
         :root {
             --ink: #121821;
             --ink-soft: #2c3644;
@@ -681,62 +681,85 @@
         var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ============================================================
-        // HELPER FUNCTIONS
+        // GET VALID TOKEN - مع تجديد تلقائي
         // ============================================================
-        function getToken() {
-            try {
-                var storedSession = localStorage.getItem('rollex_session');
-                if (storedSession) {
-                    try {
-                        var parsed = JSON.parse(storedSession);
-                        if (parsed && parsed.access_token) {
-                            return parsed.access_token;
-                        }
-                    } catch (e) {}
-                }
-
-                var storedSession2 = sessionStorage.getItem('rollex_session');
-                if (storedSession2) {
-                    try {
-                        var parsed2 = JSON.parse(storedSession2);
-                        if (parsed2 && parsed2.access_token) {
-                            return parsed2.access_token;
-                        }
-                    } catch (e) {}
-                }
-
-                return null;
-            } catch (error) {
-                console.error('❌ خطأ في getToken:', error);
-                return null;
-            }
-        }
-
         async function getValidToken() {
             try {
+                // 1. محاولة جلب الجلسة من Supabase أولاً (أحدث توكن)
                 var { data: { session }, error } = await supabaseClient.auth.getSession();
 
                 if (error) {
-                    console.error('❌ خطأ في جلب الجلسة:', error);
-                    return null;
+                    console.error('❌ خطأ في جلب الجلسة من Supabase:', error.message);
+                    // نكمل للمحاولة من localStorage
                 }
 
+                // 2. إذا كان هناك جلسة نشطة من Supabase
                 if (session && session.access_token) {
                     console.log('✅ تم جلب التوكن من Supabase بنجاح');
+                    // تحديث localStorage بالتوكن الجديد
+                    var sessionData = {
+                        access_token: session.access_token,
+                        refresh_token: session.refresh_token,
+                        expires_at: session.expires_at
+                    };
+                    localStorage.setItem('rollex_session', JSON.stringify(sessionData));
                     return session.access_token;
                 }
 
+                // 3. محاولة من localStorage مع التحقق من الصلاحية
                 var storedSession = localStorage.getItem('rollex_session');
                 if (storedSession) {
                     try {
                         var parsed = JSON.parse(storedSession);
                         if (parsed && parsed.access_token) {
-                            console.log('✅ تم جلب التوكن من localStorage');
-                            return parsed.access_token;
+                            // التحقق من صلاحية التوكن
+                            var checkResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                                headers: {
+                                    'apikey': SUPABASE_ANON_KEY,
+                                    'Authorization': 'Bearer ' + parsed.access_token
+                                }
+                            });
+
+                            if (checkResponse.ok) {
+                                console.log('✅ التوكن من localStorage لا يزال صالحاً');
+                                return parsed.access_token;
+                            }
+
+                            // إذا كان التوكن منتهياً، نحاول تجديده
+                            if (checkResponse.status === 401 || checkResponse.status === 403) {
+                                console.log('🔄 التوكن منتهي، محاولة التجديد...');
+                                if (parsed.refresh_token) {
+                                    var refreshResponse = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+                                        method: 'POST',
+                                        headers: {
+                                            'apikey': SUPABASE_ANON_KEY,
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({ refresh_token: parsed.refresh_token })
+                                    });
+
+                                    if (refreshResponse.ok) {
+                                        var refreshData = await refreshResponse.json();
+                                        if (refreshData.access_token) {
+                                            var newSession = {
+                                                access_token: refreshData.access_token,
+                                                refresh_token: refreshData.refresh_token || parsed.refresh_token,
+                                                expires_at: Date.now() + ((refreshData.expires_in || 3600) * 1000)
+                                            };
+                                            localStorage.setItem('rollex_session', JSON.stringify(newSession));
+                                            console.log('✅ تم تجديد التوكن بنجاح');
+                                            return refreshData.access_token;
+                                        }
+                                    }
+                                }
+                            }
                         }
-                    } catch (e) {}
+                    } catch (e) {
+                        console.warn('⚠️ فشل تحليل الجلسة من localStorage:', e);
+                    }
                 }
 
+                // 4. محاولة من sessionStorage
                 var storedSession2 = sessionStorage.getItem('rollex_session');
                 if (storedSession2) {
                     try {
@@ -750,6 +773,7 @@
 
                 console.warn('⚠️ لم يتم العثور على توكن صالح');
                 return null;
+
             } catch (error) {
                 console.error('❌ خطأ في getValidToken:', error);
                 return null;
