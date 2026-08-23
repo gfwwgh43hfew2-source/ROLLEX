@@ -1106,7 +1106,47 @@
             });
 
             entriesBody.innerHTML = html;
+            lastVisibleInvoices = sorted;
         }
+
+        // ============================================================
+        // EXPORT TO EXCEL
+        // ============================================================
+        function exportToExcel() {
+            var rows = lastVisibleInvoices.length ? lastVisibleInvoices : filterInvoices(allInvoices);
+
+            if (!rows.length) {
+                showToast('تصدير إكسيل', 'لا توجد بيانات للتصدير', 'warning');
+                return;
+            }
+
+            var data = rows.map(function(inv, index) {
+                var itemsCount = allInvoiceItems.filter(function(it) { return it.invoice_id == inv.id; }).length;
+                return {
+                    '#': index + 1,
+                    'رقم الفاتورة': inv.invoice_no || '-',
+                    'العميل': inv.client_name || '-',
+                    'تاريخ الفاتورة': formatDate(inv.invoice_date),
+                    'عدد الأصناف': itemsCount,
+                    'الإجمالي': parseFloat(inv.total_amount) || 0
+                };
+            });
+
+            var ws = XLSX.utils.json_to_sheet(data);
+            ws['!cols'] = [{ wch: 5 }, { wch: 16 }, { wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
+
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'المبيعات');
+
+            var fileName = 'كشف_المبيعات_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+            XLSX.writeFile(wb, fileName);
+
+            showToast('تم التصدير', 'تم تصدير الملف بنجاح', 'success');
+        }
+        window.exportToExcel = exportToExcel;
+
+        var btnExportExcel = document.getElementById('btnExportExcel');
+        if (btnExportExcel) btnExportExcel.addEventListener('click', exportToExcel);
 
         // ============================================================
         // FILTER INVOICES
