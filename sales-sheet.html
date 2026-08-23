@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
     :root {
@@ -205,6 +206,7 @@
     <div class="actions">
         <a class="btn" href="sales.html"><i class="fas fa-arrow-right"></i> رجوع للمبيعات</a>
         <button class="btn" id="btnReload"><i class="fas fa-rotate"></i> تحديث</button>
+        <button class="btn btn-accent" id="btnExportExcel"><i class="fas fa-file-excel"></i> تصدير إلى إكسيل</button>
         <button class="btn btn-teal" id="btnPrint"><i class="fas fa-print"></i> طباعة</button>
     </div>
 </div>
@@ -415,6 +417,7 @@
     // MAIN LOAD
     // ============================================================
     var allInvoices = [], allItems = [], clientCodeMap = {}, productCodeMap = {};
+    var lastVisibleRows = [];
 
     async function loadAll() {
         var body = document.getElementById('sheetBody');
@@ -463,6 +466,7 @@
         var rowCounter = 0;
         var invoiceCount = 0, itemCount = 0, totalSum = 0;
         var groupIdx = 0;
+        lastVisibleRows = [];
 
         allInvoices.forEach(function(inv) {
             var items = itemsByInvoice[inv.id] || [];
@@ -495,6 +499,25 @@
                     '<td class="client">' + (inv.client_name || 'ملغي') + '</td>' +
                     '<td colspan="10" style="text-align:center;color:var(--rust);font-weight:700;">فاتورة بدون أصناف (ملغي)</td>' +
                     '</tr>';
+                lastVisibleRows.push({
+                    '#': rowCounter,
+                    'رقم الفاتورة الدفتري': inv.original_invoice_no || inv.invoice_no || '-',
+                    'التاريخ': formatDateShort(inv.invoice_date),
+                    'المندوب': inv.rep_name || '',
+                    'كود العميل': clientCode != null ? clientCode : '',
+                    'اسم العميل': inv.client_name || 'ملغي',
+                    'الكود': '',
+                    'المبيعات (الصنف)': 'فاتورة بدون أصناف (ملغي)',
+                    'الوزن': '',
+                    'العبوة': '',
+                    'العدد': '',
+                    'سعر البيع': '',
+                    'اجمالي مبيعات': '',
+                    'اجمالي الوزن': '',
+                    'اللون': '',
+                    'نوع الحصوة': '',
+                    'الموقع': inv.location || ''
+                });
                 return;
             }
 
@@ -524,6 +547,26 @@
                     '<td>' + (it.aggregate_type || '') + '</td>' +
                     '<td>' + (inv.location || '') + '</td>' +
                     '</tr>';
+
+                lastVisibleRows.push({
+                    '#': rowCounter,
+                    'رقم الفاتورة الدفتري': inv.original_invoice_no || inv.invoice_no || '-',
+                    'التاريخ': formatDateShort(inv.invoice_date),
+                    'المندوب': inv.rep_name || '',
+                    'كود العميل': clientCode != null ? clientCode : '',
+                    'اسم العميل': inv.client_name || '',
+                    'الكود': prodCode != null ? prodCode : '',
+                    'المبيعات (الصنف)': it.product_name || '',
+                    'الوزن': parseFloat(it.unit_weight) || '',
+                    'العبوة': it.unit || '',
+                    'العدد': parseFloat(it.quantity) || '',
+                    'سعر البيع': parseFloat(it.unit_price) || '',
+                    'اجمالي مبيعات': parseFloat(it.line_total) || 0,
+                    'اجمالي الوزن': parseFloat(it.total_weight) || '',
+                    'اللون': it.color || '',
+                    'نوع الحصوة': it.aggregate_type || '',
+                    'الموقع': inv.location || ''
+                });
             });
         });
 
@@ -540,9 +583,34 @@
             '<div class="stat-card accent"><b>' + allInvoices.length + '</b><span>إجمالي الفواتير في النظام</span></div>';
     }
 
+    // ============================================================
+    // EXPORT TO EXCEL
+    // ============================================================
+    function exportToExcel() {
+        if (!lastVisibleRows.length) {
+            alert('لا توجد بيانات للتصدير');
+            return;
+        }
+
+        var ws = XLSX.utils.json_to_sheet(lastVisibleRows);
+        ws['!cols'] = [
+            { wch: 5 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 10 },
+            { wch: 24 }, { wch: 8 }, { wch: 24 }, { wch: 8 }, { wch: 8 },
+            { wch: 8 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 10 },
+            { wch: 12 }, { wch: 14 }
+        ];
+
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'كشف المبيعات');
+
+        var fileName = 'كشف_المبيعات_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+        XLSX.writeFile(wb, fileName);
+    }
+
     document.getElementById('searchBox').addEventListener('input', render);
     document.getElementById('chkHideCancelled').addEventListener('change', render);
     document.getElementById('btnReload').addEventListener('click', loadAll);
+    document.getElementById('btnExportExcel').addEventListener('click', exportToExcel);
     document.getElementById('btnPrint').addEventListener('click', function() { window.print(); });
 
     (async function init() {
