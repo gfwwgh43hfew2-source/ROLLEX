@@ -1772,7 +1772,8 @@
                 <p class="import-hint">
                     الأعمدة المتوقعة: رقم الفاتورة الدفتري، التاريخ، المندوب، كود العميل، اسم العميل، الكود (كود الصنف)،
                     المبيعات (اسم الصنف)، العبوة، العدد، سعر البيع، اجمالي مبيعات، الوزن، اللون، نوع الحصوة، الموقع، ملاحظات.
-                    <strong style="color:var(--teal);display:block;margin-top:6px;">✅ يتم الحفاظ على ترتيب الصفوف كما هو في ملف Excel.</strong>
+                    <strong style="color:var(--teal);display:block;margin-top:6px;">✅ يتم استيراد جميع صفوف Excel حتى لو كانت البيانات ناقصة.</strong>
+                    <strong style="color:var(--rust);display:block;margin-top:4px;">⚠️ سيتم عرض الصفوف التي لا تحتوي على رقم فاتورة في سجل الأخطاء.</strong>
                 </p>
                 <div class="import-flex">
                     <input type="file" id="importFileInput" accept=".xlsx,.xls" />
@@ -3952,7 +3953,7 @@
         }
 
         // ============================================================
-        // IMPORT FROM EXCEL - مع الحفاظ على ترتيب Excel
+        // IMPORT FROM EXCEL - استيراد جميع صفوف Excel (حتى الناقصة)
         // ============================================================
         var importInvoices = [];
         var importStopRequested = false;
@@ -3999,20 +4000,25 @@
             });
         }
 
-        // ✅ الدالة المحسّنة - تحافظ على ترتيب Excel الأصلي
+        // ✅ الدالة المحسّنة - تستورد جميع صفوف Excel حتى لو كانت البيانات ناقصة
         function importBuildInvoices(rows) {
             var map = {};
             var order = [];
 
             rows.forEach(function(r, rowIndex) {
                 var invNo = importNormStr(r['رقم الفاتورة الدفتري']);
-                if (!invNo) return;
+                if (!invNo) {
+                    // سجل تحذير للصفوف المتخطية بدون رقم فاتورة
+                    console.warn('⚠️ صف رقم ' + (rowIndex + 1) + ' لا يحتوي على رقم فاتورة، سيتم تخطيه');
+                    return;
+                }
 
                 var productName = importNormStr(r['المبيعات']);
                 var qty = importNormNum(r['العدد']);
                 var total = importNormNum(r['اجمالي مبيعات']);
-                if (!productName && qty === 0 && total === 0) return;
-                if (!productName) return;
+
+                // ✅ لا نتخطى الصف حتى لو كانت البيانات ناقصة
+                // يتم إنشاء فاتورة وبند مع بيانات (أو فارغة)
 
                 if (!map[invNo]) {
                     map[invNo] = {
@@ -4024,7 +4030,7 @@
                         locations: {},
                         items: [],
                         matchedClientId: null,
-                        _firstRowIndex: rowIndex // ✅ حفظ ترتيب الصف الأول
+                        _firstRowIndex: rowIndex
                     };
                     order.push(invNo);
                 }
@@ -4038,9 +4044,10 @@
                 var lineTotal = total || (qty * price);
                 var weight = r['الوزن'] != null ? importNormNum(r['الوزن']) : null;
 
+                // ✅ نضيف البند دائماً حتى لو كانت البيانات ناقصة
                 inv.items.push({
                     code: importNormStr(r['الكود']),
-                    name: productName,
+                    name: productName || '(بدون اسم)',
                     unit: importNormStr(r['العبوة']),
                     qty: qty,
                     price: price,
@@ -4050,11 +4057,11 @@
                     color: importNormStr(r['اللون']) || null,
                     aggType: importNormStr(r['نوع الحصوة']) || null,
                     matchedProductId: null,
-                    _rowIndex: rowIndex // ✅ حفظ ترتيب كل صف
+                    _rowIndex: rowIndex
                 });
             });
 
-            // ✅ ترتيب الفواتير حسب ترتيب أول صف لها في Excel
+            // ترتيب الفواتير حسب ترتيب أول صف لها في Excel
             order.sort(function(a, b) {
                 return map[a]._firstRowIndex - map[b]._firstRowIndex;
             });
@@ -4065,7 +4072,7 @@
         function importMatchClient(inv) {
             if (inv.matchedClientId) return allClients.find(function(c) { return c.id == inv.matchedClientId; }) || null;
             var byCode = inv.clientCode ? allClients.find(function(c) { return importNormStr(c.code) === inv.clientCode; }) :
-            null;
+                null;
             if (byCode) return byCode;
             return inv.clientName ? (allClients.find(function(c) { return importNormStr(c.name) === inv.clientName; }) ||
                 null) : null;
@@ -4075,6 +4082,8 @@
             if (item.matchedProductId) return allProducts.find(function(p) { return p.id == item.matchedProductId; }) || null;
             var byCode = item.code ? allProducts.find(function(p) { return importNormStr(p.code) === item.code; }) : null;
             if (byCode) return byCode;
+            // ✅ إذا كان اسم المنتج '(بدون اسم)'، نعتبره غير مطابق
+            if (item.name === '(بدون اسم)') return null;
             return item.name ? (allProducts.find(function(p) { return importNormStr(p.name) === item.name; }) || null) :
                 null;
         }
@@ -4205,7 +4214,7 @@
         async function importGenerateNextInvoiceNo(companyId, token) {
             var today = new Date();
             var dateStr = today.getFullYear() + String(today.getMonth() + 1).padStart(2, '0') + String(today.getDate())
-            .padStart(2, '0');
+                .padStart(2, '0');
             var nextSeq = 1;
             try {
                 var res = await fetch(SUPABASE_URL + '/rest/v1/sales_invoices?select=invoice_no&company_id=eq.' + companyId +
@@ -4236,7 +4245,7 @@
                 return;
             }
             if (!confirm('سيتم استيراد ' + toRun.length +
-                    ' فاتورة فعليًا (خصم مخزون + تحديث أرصدة عملاء). متابعة？')) return;
+                    ' فاتورة فعليًا (خصم مخزون + تحديث أرصدة عملاء). متابعة؟')) return;
 
             var btn = this;
             btn.disabled = true;
