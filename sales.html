@@ -1054,26 +1054,26 @@
                 return;
             }
 
-            // ترتيب الفواتير المستوردة حسب وقت الإنشاء الفعلي تصاعديًا (created_at)
-            // ده بيطابق بالظبط ترتيب ظهور الصفوف في شيت الإكسيل، لأن الاستيراد
-            // بيعالج الفواتير بالتتابع من أول صف للآخر ويحفظها فورًا في قاعدة البيانات.
-            // ملحوظة: رقم الفاتورة الدفتري نفسه (original_invoice_no) مش مضمون إنه
-            // متسلسل في الشيت (زي ما بيحصل مع فواتير "ملغي" أو أرقام بحروف زي "م51")
-            // فمينفعش نعتمد عليه للترتيب.
+            // ترتيب الفواتير المستوردة حسب "رقم الفاتورة الدفتري" (original_invoice_no)
+            // تصاعديًا بترتيب طبيعي (numeric) يتعامل صح مع أرقام زي "م51" أو بادئات
+            // نصية. لو فيه فاتورتين بنفس الرقم الدفتري (نادر) نرجع لترتيب وقت
+            // الإنشاء الفعلي (created_at) كفاصل تعادل فقط.
             function invoiceSortKey(inv) {
                 var raw = inv.original_invoice_no;
                 var hasOriginal = raw != null && String(raw).trim() !== '';
-                return { hasOriginal: hasOriginal };
+                return { hasOriginal: hasOriginal, raw: hasOriginal ? String(raw).trim() : '' };
             }
 
             var sorted = filtered.slice().sort(function(a, b) {
                 var ka = invoiceSortKey(a), kb = invoiceSortKey(b);
 
-                // الفواتير المستوردة من إكسيل تتصدر بترتيب الشيت (created_at تصاعديًا)
+                // الفواتير المستوردة من إكسيل تتصدر مرتبة برقمها الدفتري تصاعديًا
                 if (ka.hasOriginal && !kb.hasOriginal) return -1;
                 if (!ka.hasOriginal && kb.hasOriginal) return 1;
 
                 if (ka.hasOriginal && kb.hasOriginal) {
+                    var cmp = ka.raw.localeCompare(kb.raw, 'ar', { numeric: true, sensitivity: 'base' });
+                    if (cmp !== 0) return cmp;
                     return new Date(a.created_at) - new Date(b.created_at);
                 }
 
