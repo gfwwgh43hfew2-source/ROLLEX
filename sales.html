@@ -1051,34 +1051,26 @@
                 return;
             }
 
-            // ترتيب حسب رقم الفاتورة الدفتري الأصلي (original_invoice_no) عشان يطابق
-            // ترتيب صفوف شيت الإكسيل الأصلي. لو الفاتورة مش مستوردة (مفيش original_invoice_no)
-            // بترجع لترتيب التاريخ كبديل.
+            // ترتيب الفواتير المستوردة حسب وقت الإنشاء الفعلي تصاعديًا (created_at)
+            // ده بيطابق بالظبط ترتيب ظهور الصفوف في شيت الإكسيل، لأن الاستيراد
+            // بيعالج الفواتير بالتتابع من أول صف للآخر ويحفظها فورًا في قاعدة البيانات.
+            // ملحوظة: رقم الفاتورة الدفتري نفسه (original_invoice_no) مش مضمون إنه
+            // متسلسل في الشيت (زي ما بيحصل مع فواتير "ملغي" أو أرقام بحروف زي "م51")
+            // فمينفعش نعتمد عليه للترتيب.
             function invoiceSortKey(inv) {
                 var raw = inv.original_invoice_no;
-                if (raw != null && String(raw).trim() !== '') {
-                    var m = String(raw).match(/\d+/);
-                    if (m) return { hasOriginal: true, num: parseInt(m[0], 10), raw: String(raw) };
-                    return { hasOriginal: true, num: null, raw: String(raw) };
-                }
-                return { hasOriginal: false, num: null, raw: '' };
+                var hasOriginal = raw != null && String(raw).trim() !== '';
+                return { hasOriginal: hasOriginal };
             }
 
             var sorted = filtered.slice().sort(function(a, b) {
                 var ka = invoiceSortKey(a), kb = invoiceSortKey(b);
 
-                // الفواتير اللي ليها رقم أصلي (مستوردة من إكسيل) تتصدر بترتيب الشيت
+                // الفواتير المستوردة من إكسيل تتصدر بترتيب الشيت (created_at تصاعديًا)
                 if (ka.hasOriginal && !kb.hasOriginal) return -1;
                 if (!ka.hasOriginal && kb.hasOriginal) return 1;
 
                 if (ka.hasOriginal && kb.hasOriginal) {
-                    if (ka.num != null && kb.num != null && ka.num !== kb.num) {
-                        return ka.num - kb.num;
-                    }
-                    if (ka.num != null && kb.num == null) return -1;
-                    if (ka.num == null && kb.num != null) return 1;
-                    if (ka.raw !== kb.raw) return ka.raw.localeCompare(kb.raw, 'ar');
-                    // نفس الرقم الأصلي بالظبط (مثلاً بنود لنفس الفاتورة) -> رجّع لترتيب الإضافة
                     return new Date(a.created_at) - new Date(b.created_at);
                 }
 
@@ -1143,7 +1135,10 @@
                 return;
             }
 
-            var items = allInvoiceItems.filter(function(it) { return it.invoice_id == id; });
+            var items = allInvoiceItems
+                .filter(function(it) { return it.invoice_id == id; })
+                .slice()
+                .sort(function(a, b) { return new Date(a.created_at) - new Date(b.created_at); });
 
             var msg = '📄 تفاصيل الفاتورة\n';
             msg += '═══════════════════════════\n';
