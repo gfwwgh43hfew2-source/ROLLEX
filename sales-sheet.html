@@ -388,13 +388,14 @@
 
     // ============================================================
     // ORDERING - نفس منطق ترتيب شاشة المبيعات: الفواتير المستوردة
-    // (اللي ليها original_invoice_no) بترتيب وقت إنشائها الفعلي تصاعديًا
-    // (بيطابق ترتيب صفوف الإكسيل وقت الاستيراد دفعة واحدة)، والفواتير
-    // اليدوية بترتيب التاريخ الأحدث أولاً وتتصدر القائمة.
+    // (اللي ليها original_invoice_no) بترتيب "رقم الفاتورة الدفتري" تصاعديًا
+    // بترتيب طبيعي (numeric) يتعامل صح مع أرقام زي "م51" أو بادئات نصية،
+    // والفواتير اليدوية بترتيب التاريخ الأحدث أولاً وتتصدر القائمة.
     // ============================================================
     function invoiceSortKey(inv) {
         var raw = inv.original_invoice_no;
-        return { hasOriginal: raw != null && String(raw).trim() !== '' };
+        var hasOriginal = raw != null && String(raw).trim() !== '';
+        return { hasOriginal: hasOriginal, raw: hasOriginal ? String(raw).trim() : '' };
     }
     function sortInvoices(list) {
         return list.slice().sort(function(a, b) {
@@ -402,6 +403,8 @@
             if (ka.hasOriginal && !kb.hasOriginal) return 1;   // اليدوية فوق
             if (!ka.hasOriginal && kb.hasOriginal) return -1;
             if (ka.hasOriginal && kb.hasOriginal) {
+                var cmp = ka.raw.localeCompare(kb.raw, 'ar', { numeric: true, sensitivity: 'base' });
+                if (cmp !== 0) return cmp;
                 return new Date(a.created_at) - new Date(b.created_at);
             }
             return new Date(b.invoice_date) - new Date(a.invoice_date);
