@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
-<title>كشف المبيعات (مطابق للإكسيل) - QuickData ProSoft</title>
+<title>كشف المبيعات - QuickData ProSoft</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -89,6 +89,8 @@
     .btn-accent:hover { filter: brightness(0.95); }
     .btn-teal { background: var(--teal); border-color: var(--teal); color: #fff; }
     .btn-teal:hover { filter: brightness(0.95); }
+    .btn-blue { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .btn-blue:hover { filter: brightness(0.85); }
 
     .container { padding: 18px 20px 60px; max-width: 1600px; margin: 0 auto; }
 
@@ -107,6 +109,7 @@
     .stat-card span { font-size: 0.72rem; color: var(--ink-mute); }
     .stat-card.teal b { color: var(--teal); }
     .stat-card.accent b { color: var(--accent-ink); }
+    .stat-card.rust b { color: var(--rust); }
 
     .filter-bar {
         background: var(--surface);
@@ -152,26 +155,50 @@
         color: #fff;
         padding: 9px 10px;
         font-weight: 700;
-        font-size: 0.72rem;
+        font-size: 0.7rem;
         text-align: right;
         border-left: 1px solid rgba(255,255,255,0.12);
         z-index: 5;
     }
+    table.sheet thead th.num { text-align: center; }
     table.sheet tbody td {
         padding: 7px 10px;
         border-bottom: 1px solid var(--line);
         border-left: 1px solid var(--line);
         text-align: right;
         color: var(--ink-soft);
+        font-size: 0.74rem;
     }
+    table.sheet tbody td.num { font-family: var(--font-mono); text-align: center; }
     table.sheet tbody tr.group-alt td { background: var(--surface-muted); }
     table.sheet tbody tr.group-start td { border-top: 2px solid var(--line-strong); }
-    table.sheet tbody tr.cancelled td { background: var(--rust-soft); color: var(--rust); }
+    table.sheet tbody tr.free-item td { background: var(--accent-soft); }
+    table.sheet tbody tr.free-item td .free-badge {
+        display: inline-block;
+        background: var(--teal);
+        color: #fff;
+        padding: 1px 8px;
+        border-radius: 20px;
+        font-size: 0.6rem;
+        font-weight: 700;
+        margin-right: 5px;
+    }
+    table.sheet tbody tr.delivery-row td { background: #e8f4fd; }
+    table.sheet tbody tr.delivery-row td .delivery-badge {
+        display: inline-block;
+        background: var(--blue);
+        color: #fff;
+        padding: 1px 8px;
+        border-radius: 20px;
+        font-size: 0.6rem;
+        font-weight: 700;
+        margin-right: 5px;
+    }
     table.sheet tbody tr:hover td { background: var(--accent-soft); }
-    table.sheet td.num, table.sheet th.num { font-family: var(--font-mono); text-align: center; }
     table.sheet td.invno { font-weight: 800; color: var(--accent-ink); }
     table.sheet td.client { font-weight: 700; }
     table.sheet td.total { font-weight: 800; color: var(--teal); }
+    table.sheet td.zero-price { color: var(--rust); }
 
     .empty-state, .loading-state {
         padding: 60px 20px;
@@ -182,17 +209,28 @@
     .loading-state i { animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* تنسيق العمود الثابت للتمرير */
+    .table-scroll-wrapper {
+        overflow: auto;
+        max-height: 78vh;
+        position: relative;
+    }
+
     @media print {
         .topbar, .filter-bar, .stats-row { display: none !important; }
         body { background: #fff; }
         .container { padding: 0; }
         .sheet-wrap { max-height: none; overflow: visible; border: none; box-shadow: none; }
         table.sheet thead th { position: static; }
+        .table-scroll-wrapper { max-height: none; overflow: visible; }
     }
 
     @media (max-width: 720px) {
         .topbar { padding: 10px 12px; }
         .container { padding: 12px; }
+        .filter-bar input, .filter-bar select { min-width: 120px; }
+        table.sheet { font-size: 0.65rem; }
+        table.sheet thead th, table.sheet tbody td { padding: 5px 6px; }
     }
 </style>
 </head>
@@ -200,57 +238,71 @@
 
 <div class="topbar">
     <div class="title-block">
-        <div class="mark">🏭</div>
-        <h1>كشف المبيعات <span>عرض مطابق لترتيب وأعمدة شيت الإكسيل الأصلي</span></h1>
+        <div class="mark">📊</div>
+        <h1>كشف المبيعات <span>عرض جميع الفواتير مع بنودها</span></h1>
     </div>
     <div class="actions">
-        <a class="btn" href="sales.html"><i class="fas fa-arrow-right"></i> رجوع للمبيعات</a>
+        <a class="btn" href="sales.html"><i class="fas fa-arrow-right"></i> رجوع</a>
         <button class="btn" id="btnReload"><i class="fas fa-rotate"></i> تحديث</button>
-        <button class="btn btn-accent" id="btnExportExcel"><i class="fas fa-file-excel"></i> تصدير إلى إكسيل</button>
+        <button class="btn btn-accent" id="btnExportExcel"><i class="fas fa-file-excel"></i> إكسيل</button>
         <button class="btn btn-teal" id="btnPrint"><i class="fas fa-print"></i> طباعة</button>
     </div>
 </div>
 
 <div class="container">
 
-    <div class="stats-row" id="statsRow"></div>
+    <div class="stats-row" id="statsRow">
+        <div class="stat-card"><b>جاري التحميل...</b><span>الرجاء الانتظار</span></div>
+    </div>
 
     <div class="filter-bar">
         <label>
-            <input type="text" id="searchBox" placeholder="بحث برقم الفاتورة أو اسم العميل أو الصنف..." style="min-width:260px;" />
+            <input type="text" id="searchBox" placeholder="بحث: رقم الفاتورة، العميل، المنتج..." style="min-width:280px;" />
         </label>
         <label>
-            <input type="checkbox" id="chkHideCancelled" checked /> إخفاء الفواتير الملغاة (بدون أصناف)
+            <select id="filterClient">
+                <option value="">جميع العملاء</option>
+            </select>
         </label>
+        <label>
+            <input type="checkbox" id="chkHideFree" /> إخفاء المنتجات المجانية
+        </label>
+        <label>
+            <input type="checkbox" id="chkHideDelivery" /> إخفاء الناولون فقط
+        </label>
+        <span style="font-size:0.7rem;color:var(--ink-mute);margin-right:auto;" id="rowCounter"></span>
     </div>
 
     <div class="sheet-wrap">
-        <table class="sheet" id="sheetTable">
-            <thead>
-                <tr>
-                    <th class="num">#</th>
-                    <th>رقم الفاتورة الدفتري</th>
-                    <th>التاريخ</th>
-                    <th>المندوب</th>
-                    <th>كود العميل</th>
-                    <th>اسم العميل</th>
-                    <th>الكود</th>
-                    <th>المبيعات (الصنف)</th>
-                    <th class="num">الوزن</th>
-                    <th>العبوة</th>
-                    <th class="num">العدد</th>
-                    <th class="num">سعر البيع</th>
-                    <th class="num">اجمالي مبيعات</th>
-                    <th class="num">اجمالي الوزن</th>
-                    <th>اللون</th>
-                    <th>نوع الحصوة</th>
-                    <th>الموقع</th>
-                </tr>
-            </thead>
-            <tbody id="sheetBody">
-                <tr><td colspan="17"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>
-            </tbody>
-        </table>
+        <div class="table-scroll-wrapper" id="tableScrollWrapper">
+            <table class="sheet" id="sheetTable">
+                <thead>
+                    <tr>
+                        <th class="num" style="width:40px;">#</th>
+                        <th style="min-width:100px;">رقم الفاتورة الدفتري</th>
+                        <th style="min-width:90px;">التاريخ</th>
+                        <th style="min-width:100px;">المندوب</th>
+                        <th style="min-width:80px;">كود العميل</th>
+                        <th style="min-width:150px;">اسم العميل</th>
+                        <th style="min-width:80px;">الكود</th>
+                        <th style="min-width:180px;">المنتج</th>
+                        <th class="num" style="min-width:60px;">الوزن</th>
+                        <th style="min-width:70px;">العبوة</th>
+                        <th class="num" style="min-width:60px;">العدد</th>
+                        <th class="num" style="min-width:80px;">سعر البيع</th>
+                        <th class="num" style="min-width:90px;">الإجمالي</th>
+                        <th class="num" style="min-width:80px;">الوزن الكلي</th>
+                        <th style="min-width:80px;">اللون</th>
+                        <th style="min-width:80px;">نوع الحصوة</th>
+                        <th style="min-width:100px;">الموقع</th>
+                        <th style="min-width:80px;">الحالة</th>
+                    </tr>
+                </thead>
+                <tbody id="sheetBody">
+                    <tr><td colspan="18"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
 </div>
@@ -264,7 +316,7 @@
     var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // ============================================================
-    // AUTH HELPERS (نفس منطق باقي صفحات النظام)
+    // AUTH HELPERS
     // ============================================================
     function getToken() {
         try {
@@ -344,7 +396,6 @@
             window.location.href = 'login.html';
             return false;
         } catch (e) {
-            // مشكلة اتصال - لا نسجل خروج المستخدم
             return true;
         }
     }
@@ -388,27 +439,33 @@
         return n.toLocaleString('ar-EG', { maximumFractionDigits: 2 });
     }
 
-    // ============================================================
-    // ORDERING - نفس منطق ترتيب شاشة المبيعات: الفواتير المستوردة
-    // (اللي ليها original_invoice_no) بترتيب "رقم الفاتورة الدفتري" تصاعديًا
-    // بترتيب طبيعي (numeric) يتعامل صح مع أرقام زي "م51" أو بادئات نصية،
-    // والفواتير اليدوية بترتيب التاريخ الأحدث أولاً وتتصدر القائمة.
-    // ============================================================
-    function invoiceSortKey(inv) {
-        var raw = inv.original_invoice_no;
-        var hasOriginal = raw != null && String(raw).trim() !== '';
-        return { hasOriginal: hasOriginal, raw: hasOriginal ? String(raw).trim() : '' };
+    function isNumeric(str) {
+        if (typeof str === 'number') return true;
+        if (typeof str !== 'string') return false;
+        return /^\d+$/.test(str.trim());
     }
+
     function sortInvoices(list) {
         return list.slice().sort(function(a, b) {
-            var ka = invoiceSortKey(a), kb = invoiceSortKey(b);
-            if (ka.hasOriginal && !kb.hasOriginal) return 1;   // اليدوية فوق
-            if (!ka.hasOriginal && kb.hasOriginal) return -1;
-            if (ka.hasOriginal && kb.hasOriginal) {
-                var cmp = ka.raw.localeCompare(kb.raw, 'ar', { numeric: true, sensitivity: 'base' });
-                if (cmp !== 0) return cmp;
-                return new Date(a.created_at) - new Date(b.created_at);
+            var aOrig = a.original_invoice_no != null && String(a.original_invoice_no).trim() !== '';
+            var bOrig = b.original_invoice_no != null && String(b.original_invoice_no).trim() !== '';
+            
+            // الفواتير المستوردة (لها original_invoice_no) تتصدر القائمة
+            if (aOrig && !bOrig) return -1;
+            if (!aOrig && bOrig) return 1;
+            
+            // كلاهما مستورد أو كلاهما يدوي
+            if (aOrig && bOrig) {
+                var aNum = a.original_invoice_no;
+                var bNum = b.original_invoice_no;
+                // ترتيب رقمي إذا كانت أرقاماً
+                if (isNumeric(aNum) && isNumeric(bNum)) {
+                    return parseInt(aNum) - parseInt(bNum);
+                }
+                return String(aNum).localeCompare(String(bNum), 'ar', { numeric: true });
             }
+            
+            // الفواتير اليدوية حسب التاريخ الأحدث أولاً
             return new Date(b.invoice_date) - new Date(a.invoice_date);
         });
     }
@@ -416,44 +473,65 @@
     // ============================================================
     // MAIN LOAD
     // ============================================================
-    var allInvoices = [], allItems = [], clientCodeMap = {}, productCodeMap = {};
+    var allInvoices = [], allItems = [];
+    var clientMap = {}, productMap = {};
     var lastVisibleRows = [];
 
     async function loadAll() {
         var body = document.getElementById('sheetBody');
-        body.innerHTML = '<tr><td colspan="17"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
+        body.innerHTML = '<tr><td colspan="18"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
 
         var token = await getValidToken();
         if (!token) {
-            body.innerHTML = '<tr><td colspan="17"><div class="empty-state"><i class="fas fa-lock"></i><p>جلسة غير صالحة</p></div></td></tr>';
+            body.innerHTML = '<tr><td colspan="18"><div class="empty-state"><i class="fas fa-lock"></i><p>جلسة غير صالحة</p></div></td></tr>';
             return;
         }
 
         try {
             var invoicesP = fetchAllRows(SUPABASE_URL + '/rest/v1/sales_invoices?select=*', token);
             var itemsP = fetchAllRows(SUPABASE_URL + '/rest/v1/sales_invoice_items?select=*&order=created_at.asc', token);
-            var clientsP = fetchAllRows(SUPABASE_URL + '/rest/v1/clients?select=id,code,name', token);
-            var productsP = fetchAllRows(SUPABASE_URL + '/rest/v1/products?select=id,code,name', token);
+            var clientsP = fetchAllRows(SUPABASE_URL + '/rest/v1/clients?select=id,code,name,phone', token);
+            var productsP = fetchAllRows(SUPABASE_URL + '/rest/v1/products?select=id,product_code,product_name,product_unit,sell_price', token);
 
             var results = await Promise.all([invoicesP, itemsP, clientsP, productsP]);
             allInvoices = sortInvoices(results[0]);
             allItems = results[1];
 
-            clientCodeMap = {};
-            results[2].forEach(function(c) { clientCodeMap[c.id] = c.code; });
-            productCodeMap = {};
-            results[3].forEach(function(p) { productCodeMap[p.id] = p.code; });
+            clientMap = {};
+            results[2].forEach(function(c) { clientMap[c.id] = c; });
+            productMap = {};
+            results[3].forEach(function(p) { productMap[p.id] = p; });
 
+            populateClientFilter();
             render();
         } catch (e) {
             console.error(e);
-            body.innerHTML = '<tr><td colspan="17"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات: ' + e.message + '</p></div></td></tr>';
+            body.innerHTML = '<tr><td colspan="18"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات: ' + e.message + '</p></div></td></tr>';
         }
+    }
+
+    function populateClientFilter() {
+        var select = document.getElementById('filterClient');
+        var currentVal = select.value;
+        select.innerHTML = '<option value="">جميع العملاء</option>';
+        var names = {};
+        Object.values(clientMap).forEach(function(c) {
+            if (c.name && !names[c.name]) {
+                names[c.name] = true;
+                var opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name + (c.code ? ' (' + c.code + ')' : '');
+                select.appendChild(opt);
+            }
+        });
+        if (currentVal) select.value = currentVal;
     }
 
     function render() {
         var search = document.getElementById('searchBox').value.trim().toLowerCase();
-        var hideCancelled = document.getElementById('chkHideCancelled').checked;
+        var filterClient = document.getElementById('filterClient').value;
+        var hideFree = document.getElementById('chkHideFree').checked;
+        var hideDelivery = document.getElementById('chkHideDelivery').checked;
 
         var itemsByInvoice = {};
         allItems.forEach(function(it) {
@@ -464,88 +542,131 @@
         var body = document.getElementById('sheetBody');
         var html = '';
         var rowCounter = 0;
-        var invoiceCount = 0, itemCount = 0, totalSum = 0;
+        var invoiceCount = 0, itemCount = 0, totalSum = 0, freeCount = 0, deliveryCount = 0;
         var groupIdx = 0;
         lastVisibleRows = [];
 
         allInvoices.forEach(function(inv) {
             var items = itemsByInvoice[inv.id] || [];
+            var client = clientMap[inv.client_id];
 
-            if (hideCancelled && items.length === 0) return;
+            // تصفية حسب العميل
+            if (filterClient && inv.client_id !== filterClient) return;
 
+            // تصفية حسب البحث
             if (search) {
                 var haystack = (
                     (inv.original_invoice_no || '') + ' ' +
                     (inv.invoice_no || '') + ' ' +
                     (inv.client_name || '') + ' ' +
+                    (client ? client.code || '' : '') + ' ' +
                     items.map(function(it) { return it.product_name || ''; }).join(' ')
                 ).toLowerCase();
                 if (haystack.indexOf(search) === -1) return;
             }
 
+            // تجاهل الفواتير التي تحتوي على منتجات مجانية فقط (إذا تم اختيار الإخفاء)
+            if (hideFree && items.every(function(it) { return it.is_free === true || it.unit_price === 0; })) return;
+
+            // تجاهل فواتير الناولون فقط (إذا تم اختيار الإخفاء)
+            if (hideDelivery && items.length === 0 && inv.delivery_fee > 0) return;
+
             invoiceCount++;
             groupIdx++;
             var altClass = (groupIdx % 2 === 0) ? ' group-alt' : '';
-            var clientCode = clientCodeMap[inv.client_id];
+            var clientCode = client ? client.code : '';
 
+            // إذا كانت الفاتورة بدون أصناف (ناولون فقط)
             if (items.length === 0) {
                 rowCounter++;
-                html += '<tr class="group-start cancelled' + altClass + '">' +
+                var isDeliveryOnly = inv.delivery_fee > 0;
+                var rowClass = 'group-start' + altClass;
+                if (isDeliveryOnly) rowClass += ' delivery-row';
+                
+                html += '<tr class="' + rowClass + '">' +
                     '<td class="num">' + rowCounter + '</td>' +
                     '<td class="invno">' + (inv.original_invoice_no || inv.invoice_no || '-') + '</td>' +
                     '<td>' + formatDateShort(inv.invoice_date) + '</td>' +
                     '<td>' + (inv.rep_name || '') + '</td>' +
-                    '<td class="num">' + (clientCode != null ? clientCode : '') + '</td>' +
-                    '<td class="client">' + (inv.client_name || 'ملغي') + '</td>' +
-                    '<td colspan="10" style="text-align:center;color:var(--rust);font-weight:700;">فاتورة بدون أصناف (ملغي)</td>' +
+                    '<td class="num">' + (clientCode || '') + '</td>' +
+                    '<td class="client">' + (inv.client_name || '') + '</td>' +
+                    '<td></td>' +
+                    '<td>' + (isDeliveryOnly ? '<span class="delivery-badge">🚚 ناولون</span>' : 'فاتورة بدون أصناف') + '</td>' +
+                    '<td class="num"></td>' +
+                    '<td></td>' +
+                    '<td class="num"></td>' +
+                    '<td class="num"></td>' +
+                    '<td class="num total">' + formatNum(inv.delivery_fee) + '</td>' +
+                    '<td class="num"></td>' +
+                    '<td></td>' +
+                    '<td></td>' +
+                    '<td>' + (inv.location || '') + '</td>' +
+                    '<td>' + (isDeliveryOnly ? '🚚 ناولون' : 'ملغي') + '</td>' +
                     '</tr>';
+                    
+                if (isDeliveryOnly) deliveryCount++;
+                
                 lastVisibleRows.push({
                     '#': rowCounter,
                     'رقم الفاتورة الدفتري': inv.original_invoice_no || inv.invoice_no || '-',
                     'التاريخ': formatDateShort(inv.invoice_date),
                     'المندوب': inv.rep_name || '',
-                    'كود العميل': clientCode != null ? clientCode : '',
-                    'اسم العميل': inv.client_name || 'ملغي',
+                    'كود العميل': clientCode || '',
+                    'اسم العميل': inv.client_name || '',
                     'الكود': '',
-                    'المبيعات (الصنف)': 'فاتورة بدون أصناف (ملغي)',
+                    'المنتج': isDeliveryOnly ? 'ناولون' : 'فاتورة بدون أصناف',
                     'الوزن': '',
                     'العبوة': '',
                     'العدد': '',
                     'سعر البيع': '',
-                    'اجمالي مبيعات': '',
-                    'اجمالي الوزن': '',
+                    'الإجمالي': inv.delivery_fee || 0,
+                    'الوزن الكلي': '',
                     'اللون': '',
                     'نوع الحصوة': '',
-                    'الموقع': inv.location || ''
+                    'الموقع': inv.location || '',
+                    'الحالة': isDeliveryOnly ? 'ناولون' : 'ملغي'
                 });
                 return;
             }
 
+            // عرض بنود الفاتورة
             items.forEach(function(it, idx) {
                 rowCounter++;
                 itemCount++;
-                totalSum += parseFloat(it.line_total) || 0;
-                var isFirst = idx === 0;
-                var prodCode = productCodeMap[it.product_id];
+                var isFree = (it.is_free === true || it.unit_price === 0);
+                if (isFree) freeCount++;
+                
+                var prod = productMap[it.product_id];
+                var prodCode = prod ? prod.product_code : '';
+                var lineTotal = parseFloat(it.line_total) || 0;
+                totalSum += lineTotal;
 
-                html += '<tr class="' + (isFirst ? 'group-start' : '') + altClass + '">' +
+                var isFirst = idx === 0;
+                var rowClass = (isFirst ? 'group-start' : '') + altClass;
+                if (isFree) rowClass += ' free-item';
+
+                var freeBadge = isFree ? ' <span class="free-badge">🎁 مجاني</span>' : '';
+                var priceClass = isFree ? 'zero-price' : '';
+
+                html += '<tr class="' + rowClass + '">' +
                     '<td class="num">' + rowCounter + '</td>' +
                     '<td class="invno">' + (inv.original_invoice_no || inv.invoice_no || '-') + '</td>' +
                     '<td>' + formatDateShort(inv.invoice_date) + '</td>' +
                     '<td>' + (inv.rep_name || '') + '</td>' +
-                    '<td class="num">' + (clientCode != null ? clientCode : '') + '</td>' +
+                    '<td class="num">' + (clientCode || '') + '</td>' +
                     '<td class="client">' + (inv.client_name || '') + '</td>' +
-                    '<td class="num">' + (prodCode != null ? prodCode : '') + '</td>' +
-                    '<td>' + (it.product_name || '') + '</td>' +
+                    '<td class="num">' + (prodCode || '') + '</td>' +
+                    '<td>' + (it.product_name || '') + freeBadge + '</td>' +
                     '<td class="num">' + formatNum(it.unit_weight) + '</td>' +
                     '<td>' + (it.unit || '') + '</td>' +
                     '<td class="num">' + formatNum(it.quantity) + '</td>' +
-                    '<td class="num">' + formatNum(it.unit_price) + '</td>' +
-                    '<td class="num total">' + formatNum(it.line_total) + '</td>' +
+                    '<td class="num ' + priceClass + '">' + formatNum(it.unit_price) + '</td>' +
+                    '<td class="num total">' + formatNum(lineTotal) + '</td>' +
                     '<td class="num">' + formatNum(it.total_weight) + '</td>' +
                     '<td>' + (it.color || '') + '</td>' +
                     '<td>' + (it.aggregate_type || '') + '</td>' +
                     '<td>' + (inv.location || '') + '</td>' +
+                    '<td>' + (isFree ? '🎁 مجاني' : (it.unit_price === 0 ? 'مجاني' : 'بيع')) + '</td>' +
                     '</tr>';
 
                 lastVisibleRows.push({
@@ -553,34 +674,40 @@
                     'رقم الفاتورة الدفتري': inv.original_invoice_no || inv.invoice_no || '-',
                     'التاريخ': formatDateShort(inv.invoice_date),
                     'المندوب': inv.rep_name || '',
-                    'كود العميل': clientCode != null ? clientCode : '',
+                    'كود العميل': clientCode || '',
                     'اسم العميل': inv.client_name || '',
-                    'الكود': prodCode != null ? prodCode : '',
-                    'المبيعات (الصنف)': it.product_name || '',
+                    'الكود': prodCode || '',
+                    'المنتج': it.product_name || '',
                     'الوزن': parseFloat(it.unit_weight) || '',
                     'العبوة': it.unit || '',
                     'العدد': parseFloat(it.quantity) || '',
-                    'سعر البيع': parseFloat(it.unit_price) || '',
-                    'اجمالي مبيعات': parseFloat(it.line_total) || 0,
-                    'اجمالي الوزن': parseFloat(it.total_weight) || '',
+                    'سعر البيع': parseFloat(it.unit_price) || 0,
+                    'الإجمالي': lineTotal,
+                    'الوزن الكلي': parseFloat(it.total_weight) || '',
                     'اللون': it.color || '',
                     'نوع الحصوة': it.aggregate_type || '',
-                    'الموقع': inv.location || ''
+                    'الموقع': inv.location || '',
+                    'الحالة': isFree ? 'مجاني' : 'بيع'
                 });
             });
         });
 
         if (rowCounter === 0) {
-            html = '<tr><td colspan="17"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد نتائج مطابقة</p></div></td></tr>';
+            html = '<tr><td colspan="18"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد نتائج مطابقة للبحث</p></div></td></tr>';
         }
 
         body.innerHTML = html;
 
-        document.getElementById('statsRow').innerHTML =
-            '<div class="stat-card"><b>' + invoiceCount + '</b><span>عدد الفواتير المعروضة</span></div>' +
-            '<div class="stat-card"><b>' + itemCount + '</b><span>عدد الأصناف (الصفوف)</span></div>' +
+        document.getElementById('rowCounter').textContent = 'إجمالي الصفوف: ' + rowCounter;
+
+        document.getElementById('statsRow').innerHTML = 
+            '<div class="stat-card"><b>' + invoiceCount + '</b><span>فواتير معروضة</span></div>' +
+            '<div class="stat-card"><b>' + itemCount + '</b><span>بنود (صفوف)</span></div>' +
             '<div class="stat-card teal"><b>' + formatNum(totalSum) + '</b><span>إجمالي المبيعات (ج.م)</span></div>' +
-            '<div class="stat-card accent"><b>' + allInvoices.length + '</b><span>إجمالي الفواتير في النظام</span></div>';
+            '<div class="stat-card accent"><b>' + allInvoices.length + '</b><span>إجمالي الفواتير</span></div>' +
+            '<div class="stat-card"><b>' + allItems.length + '</b><span>إجمالي البنود</span></div>' +
+            (freeCount > 0 ? '<div class="stat-card rust"><b>' + freeCount + '</b><span>🎁 منتجات مجانية</span></div>' : '') +
+            (deliveryCount > 0 ? '<div class="stat-card" style="border-color:var(--blue);"><b>' + deliveryCount + '</b><span>🚚 ناولون</span></div>' : '');
     }
 
     // ============================================================
@@ -595,9 +722,9 @@
         var ws = XLSX.utils.json_to_sheet(lastVisibleRows);
         ws['!cols'] = [
             { wch: 5 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 10 },
-            { wch: 24 }, { wch: 8 }, { wch: 24 }, { wch: 8 }, { wch: 8 },
-            { wch: 8 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 10 },
-            { wch: 12 }, { wch: 14 }
+            { wch: 24 }, { wch: 10 }, { wch: 30 }, { wch: 8 }, { wch: 8 },
+            { wch: 8 }, { wch: 10 }, { wch: 14 }, { wch: 10 }, { wch: 12 },
+            { wch: 12 }, { wch: 14 }, { wch: 10 }
         ];
 
         var wb = XLSX.utils.book_new();
@@ -607,12 +734,20 @@
         XLSX.writeFile(wb, fileName);
     }
 
+    // ============================================================
+    // EVENT LISTENERS
+    // ============================================================
     document.getElementById('searchBox').addEventListener('input', render);
-    document.getElementById('chkHideCancelled').addEventListener('change', render);
+    document.getElementById('filterClient').addEventListener('change', render);
+    document.getElementById('chkHideFree').addEventListener('change', render);
+    document.getElementById('chkHideDelivery').addEventListener('change', render);
     document.getElementById('btnReload').addEventListener('click', loadAll);
     document.getElementById('btnExportExcel').addEventListener('click', exportToExcel);
     document.getElementById('btnPrint').addEventListener('click', function() { window.print(); });
 
+    // ============================================================
+    // INIT
+    // ============================================================
     (async function init() {
         var ok = await verifySessionOrRedirect();
         if (!ok) return;
