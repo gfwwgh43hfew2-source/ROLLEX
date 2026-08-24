@@ -1558,50 +1558,91 @@
         function escapeAttr(str) { return String(str).replace(/'/g, "\\'"); }
 
         // ============================================================
-        // GET PRODUCTS WITH PROGRESS
+        // GET PRODUCTS WITH PROGRESS (مع معالجة الأخطاء)
         // ============================================================
         async function getProductsWithProgress(onProgress) {
             try {
                 var token = getToken();
                 if (!token) {
                     console.warn('⚠️ لا يوجد توكن');
+                    if (onProgress) onProgress(0, 0);
                     return [];
                 }
 
                 var companyId = await getCompanyId();
                 if (!companyId) {
                     console.warn('⚠️ لم يتم العثور على company_id');
+                    if (onProgress) onProgress(0, 0);
                     return [];
                 }
+
+                console.log('📊 جلب المنتجات للشركة:', companyId);
 
                 var allProducts = [];
                 var page = 0;
                 var pageSize = 1000;
                 var hasMore = true;
                 var totalLoaded = 0;
+                var totalCount = 0;
 
-                var countUrl = SUPABASE_URL + '/rest/v1/products?select=id&company_id=eq.' + companyId;
-                var countResponse = await fetch(countUrl, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
+                // ✅ أولاً: التحقق من وجود الجدول والأعمدة
+                try {
+                    var testUrl = SUPABASE_URL + '/rest/v1/products?select=id&limit=1&company_id=eq.' + companyId;
+                    var testResponse = await fetch(testUrl, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + token
+                        }
+                    });
+
+                    if (testResponse.status === 404) {
+                        console.error('❌ جدول products غير موجود في قاعدة البيانات');
+                        showToast('❌ خطأ', 'جدول المنتجات غير موجود. يرجى إنشاؤه أولاً.', 'error');
+                        if (onProgress) onProgress(0, 0);
+                        return [];
                     }
-                });
-                var countData = await countResponse.json();
-                var totalCount = countData ? countData.length : 0;
-                console.log('📊 إجمالي المنتجات في قاعدة البيانات:', totalCount);
 
-                if (totalCount === 0) {
+                    if (testResponse.status === 403) {
+                        console.error('❌ لا يوجد صلاحية للوصول إلى جدول products');
+                        console.warn('⚠️ تأكد من:');
+                        console.warn('  1. وجود جدول products في قاعدة البيانات');
+                        console.warn('  2. تفعيل RLS على الجدول');
+                        console.warn('  3. وجود سياسات RLS صحيحة');
+                        showToast('⚠️ تنبيه', 'لا توجد صلاحية للوصول إلى المنتجات. يرجى التواصل مع المدير.', 'warning');
+                        if (onProgress) onProgress(0, 0);
+                        return [];
+                    }
+
+                    if (!testResponse.ok) {
+                        console.warn('⚠️ فشل اختبار الاتصال بالجدول:', testResponse.status);
+                        if (onProgress) onProgress(0, 0);
+                        return [];
+                    }
+
+                    var testData = await testResponse.json();
+                    totalCount = testData ? testData.length : 0;
+                    console.log('📊 إجمالي المنتجات في قاعدة البيانات:', totalCount);
+
+                } catch (testError) {
+                    console.error('❌ خطأ في اختبار الاتصال:', testError);
+                    if (onProgress) onProgress(0, 0);
                     return [];
                 }
 
+                if (totalCount === 0) {
+                    if (onProgress) onProgress(0, 0);
+                    return [];
+                }
+
+                // ✅ تحديث النص الأولي
                 if (onProgress) {
                     onProgress(0, totalCount);
                 }
 
+                // ✅ جلب البيانات بالتصفح
                 while (hasMore) {
                     var offset = page * pageSize;
-                    var url = SUPABASE_URL + '/rest/v1/products?select=*&company_id=eq.' + companyId + 
+                    var url = SUPABASE_URL + '/rest/v1/products?select=*&company_id=eq.' + companyId +
                         '&order=product_code.asc&limit=' + pageSize + '&offset=' + offset;
 
                     var response = await fetch(url, {
@@ -1617,7 +1658,7 @@
                     }
 
                     var data = await response.json();
-                    
+
                     if (!data || data.length === 0) {
                         hasMore = false;
                         break;
@@ -1646,6 +1687,8 @@
 
             } catch (error) {
                 console.error('❌ خطأ في جلب المنتجات:', error);
+                showToast('❌ خطأ', 'فشل تحميل المنتجات: ' + error.message, 'error');
+                if (onProgress) onProgress(0, 0);
                 return [];
             }
         }
@@ -1745,9 +1788,9 @@
                     '<i class="fas ' + (hasAnyProducts ? 'fa-filter-circle-xmark' : 'fa-inbox') + '"></i>' +
                     '<p>' + (hasAnyProducts ? 'لا توجد نتائج مطابقة للفلاتر الحالية' : 'لا توجد منتجات بعد') + '</p>' +
                     '<div class="empty-sub">' + (hasAnyProducts ? 'جرّب تعديل أو إلغاء الفلاتر' : 'ابدأ بإضافة أول منتج لمصنعك') + '</div>' +
-                    (hasAnyProducts
-                        ? '<button class="btn-action" onclick="resetFilters()"><i class="fas fa-undo"></i> إلغاء الفلاتر</button>'
-                        : '<button class="btn-action primary" onclick="openAddModal()"><i class="fas fa-plus"></i> إضافة منتج جديد</button>') +
+                    (hasAnyProducts ?
+                        '<button class="btn-action" onclick="resetFilters()"><i class="fas fa-undo"></i> إلغاء الفلاتر</button>' :
+                        '<button class="btn-action primary" onclick="openAddModal()"><i class="fas fa-plus"></i> إضافة منتج جديد</button>') +
                     '</div></td></tr>';
                 document.getElementById('paginationBar').style.display = 'none';
                 updateBulkToolbar();
@@ -1794,7 +1837,8 @@
             entriesBody.querySelectorAll('.row-check').forEach(function(cb) {
                 cb.addEventListener('change', function() {
                     var id = this.getAttribute('data-id');
-                    if (this.checked) selectedIds[id] = true; else delete selectedIds[id];
+                    if (this.checked) selectedIds[id] = true;
+                    else delete selectedIds[id];
                     var tr = this.closest('tr');
                     if (tr) tr.classList.toggle('row-selected', this.checked);
                     updateBulkToolbar();
@@ -1832,7 +1876,8 @@
             var numericKeys = { product_weight: 1, cost_price: 1, sell_price: 1, min_stock: 1 };
             var copy = list.slice();
             copy.sort(function(a, b) {
-                var av = a[key], bv = b[key];
+                var av = a[key],
+                    bv = b[key];
                 if (numericKeys[key]) {
                     av = parseFloat(av) || 0;
                     bv = parseFloat(bv) || 0;
@@ -1862,6 +1907,7 @@
         document.querySelectorAll('th.sortable').forEach(function(th) {
             th.setAttribute('tabindex', '0');
             th.setAttribute('role', 'button');
+
             function activate() {
                 var key = th.getAttribute('data-sort');
                 if (sortState.key === key) {
@@ -1875,7 +1921,8 @@
             }
             th.addEventListener('click', activate);
             th.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); }
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault();
+                    activate(); }
             });
         });
 
@@ -1909,7 +1956,8 @@
                 else if (pagesToShow[pagesToShow.length - 1] !== '...') pagesToShow.push('...');
             }
             pagesToShow.forEach(function(p) {
-                if (p === '...') { html += '<span style="padding:0 4px;color:var(--ink-mute);">…</span>'; return; }
+                if (p === '...') { html += '<span style="padding:0 4px;color:var(--ink-mute);">…</span>';
+                    return; }
                 html += '<button class="' + (p === pageState.current ? 'active' : '') + '" onclick="gotoPage(' + p + ')">' + p + '</button>';
             });
 
@@ -1942,7 +1990,8 @@
             var all = document.getElementById('selectAllCheck');
             if (!all) return;
             var visibleChecks = Array.prototype.slice.call(entriesBody.querySelectorAll('.row-check'));
-            if (visibleChecks.length === 0) { all.checked = false; all.indeterminate = false; return; }
+            if (visibleChecks.length === 0) { all.checked = false;
+                all.indeterminate = false; return; }
             var checkedCount = visibleChecks.filter(function(c) { return c.checked; }).length;
             all.checked = checkedCount === visibleChecks.length;
             all.indeterminate = checkedCount > 0 && checkedCount < visibleChecks.length;
@@ -1953,7 +2002,8 @@
             entriesBody.querySelectorAll('.row-check').forEach(function(cb) {
                 cb.checked = checked;
                 var id = cb.getAttribute('data-id');
-                if (checked) selectedIds[id] = true; else delete selectedIds[id];
+                if (checked) selectedIds[id] = true;
+                else delete selectedIds[id];
                 var tr = cb.closest('tr');
                 if (tr) tr.classList.toggle('row-selected', checked);
             });
@@ -1972,7 +2022,8 @@
             entriesBody.querySelectorAll('.row-check').forEach(function(cb) { cb.checked = false; });
             entriesBody.querySelectorAll('tr').forEach(function(tr) { tr.classList.remove('row-selected'); });
             var all = document.getElementById('selectAllCheck');
-            if (all) { all.checked = false; all.indeterminate = false; }
+            if (all) { all.checked = false;
+                all.indeterminate = false; }
             updateBulkToolbar();
         }
         window.clearSelection = clearSelection;
@@ -1996,10 +2047,11 @@
             if (!ok) return;
 
             var okBtn = document.getElementById('confirmOkBtn');
-            var successCount = 0, failCount = 0;
+            var successCount = 0,
+                failCount = 0;
             for (var i = 0; i < ids.length; i++) {
-                try { await deleteProduct(ids[i]); successCount++; }
-                catch (e) { failCount++; }
+                try { await deleteProduct(ids[i]);
+                    successCount++; } catch (e) { failCount++; }
             }
             selectedIds = {};
             updateBulkToolbar();
@@ -2019,7 +2071,8 @@
             if (filterProductName.value.trim()) chips.push({ key: 'filterProductName', label: 'الاسم: "' + filterProductName.value.trim() + '"' });
             if (filterStatus.value !== 'all') chips.push({ key: 'filterStatus', label: 'الحالة: ' + filterStatus.value });
 
-            if (chips.length === 0) { row.style.display = 'none'; row.innerHTML = ''; return; }
+            if (chips.length === 0) { row.style.display = 'none';
+                row.innerHTML = ''; return; }
             row.style.display = 'flex';
             row.innerHTML = chips.map(function(c) {
                 return '<span class="active-filter-chip">' + escapeHtml(c.label) + '<button onclick="clearOneFilter(\'' + c.key + '\')" aria-label="إزالة الفلتر"><i class="fas fa-times"></i></button></span>';
@@ -2051,7 +2104,9 @@
             });
         }
 
-        function applyFilters() { saveViewPrefs(); displayProducts(allProducts); }
+        function applyFilters() { saveViewPrefs();
+            displayProducts(allProducts); }
+
         function resetFilters() {
             filterProductCode.value = '';
             filterProductName.value = '';
@@ -2060,7 +2115,8 @@
             displayProducts(allProducts);
         }
 
-        var liveFilter = debounce(function() { saveViewPrefs(); displayProducts(allProducts); }, 300);
+        var liveFilter = debounce(function() { saveViewPrefs();
+            displayProducts(allProducts); }, 300);
         [filterProductCode, filterProductName].forEach(function(input) {
             input.addEventListener('input', function() {
                 var clearBtn = document.querySelector('.clear-input-btn[data-clears="' + input.id + '"]');
@@ -2068,7 +2124,8 @@
                 liveFilter();
             });
             input.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') { e.preventDefault(); applyFilters(); }
+                if (e.key === 'Enter') { e.preventDefault();
+                    applyFilters(); }
             });
         });
         filterStatus.addEventListener('change', applyFilters);
@@ -2297,7 +2354,7 @@
                     { wch: 14 }, // سعر بيع المنتج
                     { wch: 16 }, // الحد الأدنى للمخزون
                     { wch: 12 }, // الحالة
-                    { wch: 30 }  // ملاحظات
+                    { wch: 30 } // ملاحظات
                 ];
                 var finalFileName = fileName || ('المنتجات_' + new Date().toISOString().split('T')[0] + '.xlsx');
                 XLSX.writeFile(wb, finalFileName);
@@ -2355,7 +2412,7 @@
                 { wch: 14 }, // سعر بيع المنتج
                 { wch: 16 }, // الحد الأدنى للمخزون
                 { wch: 12 }, // الحالة
-                { wch: 30 }  // ملاحظات
+                { wch: 30 } // ملاحظات
             ];
             XLSX.writeFile(wb, 'قالب_استيراد_المنتجات.xlsx');
             showToast('✅ تم التحميل', 'تم تحميل القالب بنجاح', 'success');
@@ -2430,11 +2487,11 @@
                     progressText.textContent = 'جاري استيراد السجل ' + (i + 1) + ' من ' + jsonData.length;
 
                     var row = jsonData[i];
-                    
+
                     // ✅ قراءة البيانات بالأعمدة الجديدة
                     var productCode = row['كود المنتج'] || row['product_code'] || '';
                     var productName = row['اسم المنتج'] || row['product_name'] || '';
-                    
+
                     if (!productCode) {
                         errorCount++;
                         errors.push('صف ' + (i + 1) + ': كود المنتج مطلوب');
@@ -2511,9 +2568,10 @@
         }
 
         // ============================================================
-        // LOAD DATA
+        // LOAD DATA (مع معالجة الأخطاء)
         // ============================================================
         async function loadData() {
+            // إظهار مؤشر التحميل وإخفاء الجدول
             loadingContainer.style.display = 'flex';
             loadingContainer.classList.remove('hidden');
             tableContainer.style.display = 'none';
@@ -2526,35 +2584,54 @@
             try {
                 var startTime = Date.now();
 
+                // جلب المنتجات مع عرض التقدم
                 var products = await getProductsWithProgress(function(current, total) {
-                    var percent = Math.round((current / total) * 100);
-                    loadingProgress.textContent = current.toLocaleString() + ' من ' + total.toLocaleString() + ' منتج (' + percent + '%)';
-                    loadingSub.textContent = 'تم تحميل ' + current.toLocaleString() + ' من ' + total.toLocaleString() + ' منتج';
+                    if (total > 0) {
+                        var percent = Math.round((current / total) * 100);
+                        loadingProgress.textContent = current.toLocaleString() + ' من ' + total.toLocaleString() + ' منتج (' + percent + '%)';
+                        loadingSub.textContent = 'تم تحميل ' + current.toLocaleString() + ' من ' + total.toLocaleString() + ' منتج';
+                    } else {
+                        loadingProgress.textContent = 'جاري التحميل...';
+                        loadingSub.textContent = 'لا توجد منتجات بعد';
+                    }
                 });
 
-                allProducts = products;
+                allProducts = products || [];
 
+                // تأخير بسيط لإظهار اكتمال التحميل
                 var elapsed = Date.now() - startTime;
                 var minDisplayTime = 500;
                 if (elapsed < minDisplayTime) {
                     await new Promise(r => setTimeout(r, minDisplayTime - elapsed));
                 }
 
+                // عرض البيانات في الجدول
                 displayProducts(allProducts);
 
+                // الانتظار حتى ينتهي المتصفح من رسم الجدول
                 await new Promise(resolve => requestAnimationFrame(resolve));
                 await new Promise(resolve => requestAnimationFrame(resolve));
                 await new Promise(r => setTimeout(r, 50));
 
-                loadingSub.textContent = '✅ تم تحميل ' + allProducts.length.toLocaleString() + ' منتج بنجاح!';
-                loadingProgress.textContent = '✅ جاهز!';
-                loadingProgress.style.color = 'var(--teal)';
+                // تحديث النص النهائي
+                if (allProducts.length > 0) {
+                    loadingSub.textContent = '✅ تم تحميل ' + allProducts.length.toLocaleString() + ' منتج بنجاح!';
+                    loadingProgress.textContent = '✅ جاهز!';
+                    loadingProgress.style.color = 'var(--teal)';
+                } else {
+                    loadingSub.textContent = '📦 لا توجد منتجات';
+                    loadingProgress.textContent = 'اضغط على "منتج جديد" للإضافة';
+                    loadingProgress.style.color = 'var(--accent-ink)';
+                }
 
+                // إخفاء مؤشر التحميل مع تأثير انسيابي
                 loadingContainer.classList.add('hidden');
 
+                // إظهار الجدول بعد التأكد من اكتمال الرسم
                 setTimeout(function() {
                     loadingContainer.style.display = 'none';
                     tableContainer.style.display = 'block';
+
                     requestAnimationFrame(function() {
                         requestAnimationFrame(function() {
                             tableContainer.classList.add('show');
@@ -2568,6 +2645,37 @@
                 loadingProgress.textContent = '❌ فشل التحميل';
                 loadingProgress.style.color = 'var(--rust)';
 
+                // عرض رسالة الخطأ للمستخدم
+                var errorMessage = error.message || 'خطأ غير معروف';
+                if (errorMessage.includes('403')) {
+                    entriesBody.innerHTML = `<tr><td colspan="11"><div class="empty-state">
+                        <i class="fas fa-lock" style="color:var(--rust);"></i>
+                        <p>⚠️ لا توجد صلاحية للوصول إلى المنتجات</p>
+                        <div class="empty-sub">تأكد من وجود جدول products في قاعدة البيانات ومن تفعيل RLS</div>
+                        <button class="btn-action primary" onclick="loadData()" style="margin-top:12px;">
+                            <i class="fas fa-sync-alt"></i> إعادة المحاولة
+                        </button>
+                    </div></td></tr>`;
+                } else if (errorMessage.includes('404')) {
+                    entriesBody.innerHTML = `<tr><td colspan="11"><div class="empty-state">
+                        <i class="fas fa-table" style="color:var(--accent-ink);"></i>
+                        <p>❌ جدول المنتجات غير موجود</p>
+                        <div class="empty-sub">يرجى إنشاء جدول products في قاعدة البيانات أولاً</div>
+                        <button class="btn-action primary" onclick="loadData()" style="margin-top:12px;">
+                            <i class="fas fa-sync-alt"></i> إعادة المحاولة
+                        </button>
+                    </div></td></tr>`;
+                } else {
+                    entriesBody.innerHTML = `<tr><td colspan="11"><div class="empty-state">
+                        <i class="fas fa-exclamation-circle" style="color:var(--rust);"></i>
+                        <p>❌ حدث خطأ في تحميل البيانات</p>
+                        <div class="empty-sub">${escapeHtml(errorMessage)}</div>
+                        <button class="btn-action primary" onclick="loadData()" style="margin-top:12px;">
+                            <i class="fas fa-sync-alt"></i> إعادة المحاولة
+                        </button>
+                    </div></td></tr>`;
+                }
+
                 setTimeout(function() {
                     loadingContainer.classList.add('hidden');
                     setTimeout(function() {
@@ -2576,7 +2684,6 @@
                         requestAnimationFrame(function() {
                             requestAnimationFrame(function() {
                                 tableContainer.classList.add('show');
-                                entriesBody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p></div></td></tr>';
                             });
                         });
                     }, 300);
