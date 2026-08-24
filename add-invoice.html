@@ -3300,7 +3300,7 @@
         }
 
         // ============================================================
-        // LOAD PRODUCTS
+        // LOAD PRODUCTS - المعدلة لتتناسب مع هيكل قاعدة البيانات الفعلي
         // ============================================================
         async function loadProducts() {
             try {
@@ -3311,13 +3311,35 @@
                 }
 
                 console.log('🔄 جلب المنتجات من Supabase...');
-                allProducts = await fetchAllRows(SUPABASE_URL + '/rest/v1/products?select=id,name,code,unit,sell_price&order=name',
-                    token);
+
+                // استخدام الأسماء الصحيحة للأعمدة من قاعدة البيانات
+                var allData = await fetchAllRows(
+                    SUPABASE_URL + '/rest/v1/products?select=id,product_code,product_name,product_unit,sell_price,cost_price,product_weight,min_stock,status',
+                    token
+                );
+
+                // تحويل البيانات إلى الشكل الذي يتوقعه الكود
+                allProducts = allData.map(function(row) {
+                    return {
+                        id: row.id,
+                        name: row.product_name || 'بدون اسم',
+                        code: row.product_code || '',
+                        unit: row.product_unit || '',
+                        sell_price: row.sell_price || 0,
+                        cost_price: row.cost_price || 0,
+                        weight: row.product_weight || null,
+                        min_stock: row.min_stock || 0,
+                        status: row.status || 'نشط'
+                    };
+                });
+
                 console.log('📦 تم جلب المنتجات:', allProducts.length);
+                rebuildLookupIndexes();
 
             } catch (error) {
                 console.error('❌ خطأ في جلب المنتجات:', error);
                 allProducts = [];
+                showToast('⚠️ تنبيه', 'فشل جلب المنتجات من قاعدة البيانات: ' + error.message, 'warning');
             }
         }
 
@@ -4122,7 +4144,7 @@
         }
 
         // ============================================================
-        // IMPORT FROM EXCEL - لاستيراد المبيعات فقط (بدون مرتجعات)
+        // IMPORT FROM EXCEL - المعدلة للتعامل مع أسماء الأعمدة المختلفة والمنتجات المجانية
         // ============================================================
         var importInvoices = [];
         var importStopRequested = false;
@@ -4182,26 +4204,45 @@
             var order = [];
 
             rows.forEach(function(r, rowIndex) {
-                // ✅ رقم الفاتورة (قد يكون رقم أو نص)
-                var invNo = importNormStr(r['رقم الفاتورة']);
+
+                // دالة مساعدة للبحث عن قيمة عمود بأسماء مختلفة
+                function getColumnValue(columnNames) {
+                    for (var i = 0; i < columnNames.length; i++) {
+                        var colName = columnNames[i];
+                        if (r[colName] !== undefined && r[colName] !== null && r[colName] !== '') {
+                            var val = importNormStr(r[colName]);
+                            if (val) {
+                                return val;
+                            }
+                        }
+                    }
+                    return null;
+                }
+
+                // ✅ البحث عن رقم الفاتورة بأسماء محتملة مختلفة
+                var invNo = getColumnValue(['رقم الفاتورة', 'رقم الفاتورة ', 'Invoice No', 'invoice_no', 'رقم الفاتورة']);
+                // إذا لم يتم العثور على رقم فاتورة، تخطي الصف مع رسالة واضحة
                 if (!invNo) {
-                    console.warn('⚠️ صف رقم ' + (rowIndex + 1) + ' لا يحتوي على رقم فاتورة، سيتم تخطيه');
+                    console.warn('⚠️ صف رقم ' + (rowIndex + 1) + ' لا يحتوي على رقم فاتورة (تم البحث بأسماء متعددة)، سيتم تخطيه');
                     return;
                 }
 
+                // تطبيع رقم الفاتورة (إزالة المسافات الزائدة وتحويل إلى نص)
+                invNo = invNo.trim().toString();
+
                 // ✅ التحقق من اسم الحساب - نستورد فقط المبيعات (نتجاهل المرتجعات)
-                var accountName = importNormStr(r['اسم الحساب'] || r['اسم الحساب']);
+                var accountName = importNormStr(r['اسم الحساب'] || r['account_name'] || '');
                 if (accountName.toLowerCase().includes('مرتجع')) {
                     console.log('ℹ️ تخطي صف مرتجع في الفاتورة:', invNo);
                     return;
                 }
 
-                var productCode = importNormStr(r['الكود']);
-                var productName = importNormStr(r['المبيعات']);
-                var qty = importNormNum(r['العدد']);
-                var total = importNormNum(r['اجمالي مبيعات']);
+                var productCode = importNormStr(r['الكود'] || r['code']);
+                var productName = importNormStr(r['المبيعات'] || r['product_name'] || r['المنتج']);
+                var qty = importNormNum(r['العدد'] || r['quantity']);
+                var total = importNormNum(r['اجمالي مبيعات'] || r['total']);
                 var weight = r['الوزن'] != null ? importNormNum(r['الوزن']) : null;
-                var price = importNormNum(r['سعر البيع']);
+                var price = importNormNum(r['سعر البيع'] || r['sell_price']);
 
                 // ✅ التحقق من أن هذا ناولون
                 var isDelivery = productName.toLowerCase().includes('ناولون') || productCode === '+';
@@ -4209,10 +4250,10 @@
                 if (!map[invNo]) {
                     map[invNo] = {
                         originalNo: invNo,
-                        dateISO: importExcelDateToISO(r['التاريخ']),
-                        clientCode: importNormStr(r['كود العميل']),
-                        clientName: importNormStr(r['اسم العميل']),
-                        rep: importNormStr(r['المندوب']),
+                        dateISO: importExcelDateToISO(r['التاريخ'] || r['date']),
+                        clientCode: importNormStr(r['كود العميل'] || r['client_code']),
+                        clientName: importNormStr(r['اسم العميل'] || r['client_name']),
+                        rep: importNormStr(r['المندوب'] || r['rep']),
                         accountName: accountName,
                         locations: {},
                         items: [],
@@ -4246,8 +4287,8 @@
                     inv.hasZeroPriceItems = true;
                 }
 
-                if (!inv.dateISO) inv.dateISO = importExcelDateToISO(r['التاريخ']);
-                var loc = importNormStr(r['الموقع']);
+                if (!inv.dateISO) inv.dateISO = importExcelDateToISO(r['التاريخ'] || r['date']);
+                var loc = importNormStr(r['الموقع'] || r['location']);
                 if (loc) inv.locations[loc] = true;
 
                 var lineTotal = total || (qty * price);
@@ -4258,9 +4299,9 @@
                     unitPrice = lineTotal / qty;
                 }
 
-                var unit = importNormStr(r['العبوة']);
+                var unit = importNormStr(r['العبوة'] || r['unit']);
                 var color = importNormStr(r['اللون']) || null;
-                var aggType = importNormStr(r['نوع الحصوة']) || null;
+                var aggType = importNormStr(r['نوع الحصوة'] || r['aggregate_type']) || null;
                 var notes = importNormStr(r['ملاحظات']) || null;
 
                 inv.items.push({
