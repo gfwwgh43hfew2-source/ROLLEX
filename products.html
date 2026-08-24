@@ -1281,9 +1281,9 @@
                     <input type="text" id="productName" placeholder="مثال: دهان بلاستيك أبيض" required />
                 </div>
                 <div class="form-group">
-                    <label>وزن المنتج</label>
-                    <input type="number" id="productWeight" placeholder="0.00" min="0" step="0.01" value="0" />
-                    <div class="helper-text">وزن الوحدة بالكيلوجرام أو الجرام</div>
+                    <label>وزن المنتج <span class="required">*</span></label>
+                    <input type="number" id="productWeight" placeholder="0.00" min="0" step="0.01" value="0" required />
+                    <div class="helper-text">وزن الوحدة بالكيلوجرام أو الجرام (مطلوب للتمييز بين نفس المنتج بأوزان مختلفة)</div>
                 </div>
                 <div class="form-group">
                     <label>عبوة المنتج</label>
@@ -1347,6 +1347,7 @@
                     <input type="file" id="importFile" accept=".xlsx,.xls" required />
                     <div class="helper-text">الصيغ المدعومة: .xlsx, .xls</div>
                     <div class="helper-text" style="color:var(--accent-ink);font-weight:700;">الأعمدة المطلوبة: كود المنتج، اسم المنتج، وزن المنتج، عبوة المنتج، تكلفة المنتج، سعر بيع المنتج، الحد الأدنى للمخزون، الحالة، ملاحظات</div>
+                    <div class="helper-text" style="color:var(--teal);font-weight:600;">ملاحظة: الوزن مطلوب للتمييز بين نفس المنتج بأوزان مختلفة</div>
                 </div>
 
                 <div class="import-progress" id="importProgress">
@@ -1595,10 +1596,6 @@
                         }
                     });
 
-                    // 200 = الجدول موجود (حتى لو فارغ)
-                    // 403 = مشكلة في RLS أو الصلاحيات (قد يكون الجدول فارغاً)
-                    // 404 = الجدول غير موجود
-                    
                     if (testResponse.status === 404) {
                         console.error('❌ جدول products غير موجود في قاعدة البيانات');
                         showToast('❌ خطأ', 'جدول المنتجات غير موجود. يرجى إنشاؤه أولاً.', 'error');
@@ -1608,8 +1605,6 @@
 
                     if (testResponse.status === 403) {
                         console.warn('⚠️ RLS يمنع الوصول (قد يكون الجدول فارغاً)');
-                        // ✅ نستمر في التنفيذ بدلاً من الإرجاع، لأن الجدول قد يكون فارغاً
-                        // وهذا ليس خطأ، بل حالة طبيعية
                     }
 
                     if (!testResponse.ok && testResponse.status !== 403 && testResponse.status !== 404) {
@@ -1638,8 +1633,6 @@
                         var countData = await countResponse.json();
                         totalCount = countData ? countData.length : 0;
                     } else if (countResponse.status === 403) {
-                        // 403 يعني أن الجدول فارغ أو RLS يمنع الوصول
-                        // في كلتا الحالتين، نعتبر أنه لا توجد بيانات
                         totalCount = 0;
                         console.log('ℹ️ لا توجد منتجات (الجدول فارغ أو RLS يمنع الوصول)');
                     } else {
@@ -1652,18 +1645,15 @@
                 
                 console.log('📊 إجمالي المنتجات في قاعدة البيانات:', totalCount);
 
-                // ✅ إذا كان العدد الإجمالي 0، نرجع مصفوفة فارغة (بدون خطأ)
                 if (totalCount === 0) {
                     if (onProgress) onProgress(0, 0);
                     return [];
                 }
 
-                // ✅ تحديث النص الأولي
                 if (onProgress) {
                     onProgress(0, totalCount);
                 }
 
-                // ✅ جلب البيانات بالتصفح
                 while (hasMore) {
                     var offset = page * pageSize;
                     var url = SUPABASE_URL + '/rest/v1/products?select=*&company_id=eq.' + companyId +
@@ -1678,7 +1668,6 @@
 
                     if (!response.ok) {
                         if (response.status === 403) {
-                            // 403 قد يعني أن الجدول فارغ، نعتبره 0 منتجات
                             console.log('ℹ️ لا توجد منتجات (الجدول فارغ)');
                             break;
                         }
@@ -1730,7 +1719,7 @@
         }
 
         // ============================================================
-        // INSERT PRODUCT (باستخدام الأعمدة الجديدة)
+        // INSERT PRODUCT (باستخدام الأعمدة الجديدة مع الوزن)
         // ============================================================
         async function insertProduct(data) {
             var isValid = await checkSessionAndRedirect();
@@ -2288,6 +2277,11 @@
                 document.getElementById('productName').focus();
                 return;
             }
+            if (data.product_weight < 0) {
+                showToast('⚠️ تنبيه', 'الوزن لا يمكن أن يكون سالباً', 'error');
+                document.getElementById('productWeight').focus();
+                return;
+            }
 
             var btn = document.getElementById('submitBtn');
             btn.disabled = true;
@@ -2408,6 +2402,16 @@
                 'الحالة': 'نشط',
                 'ملاحظات': 'دهان بلاستيك للجدران الداخلية'
             }, {
+                'كود المنتج': 'FG-001',
+                'اسم المنتج': 'دهان بلاستيك أبيض',
+                'وزن المنتج': 25,
+                'عبوة المنتج': 'عبوة',
+                'تكلفة المنتج': 100,
+                'سعر بيع المنتج': 140,
+                'الحد الأدنى للمخزون': 30,
+                'الحالة': 'نشط',
+                'ملاحظات': 'دهان بلاستيك للجدران الداخلية - وزن مختلف'
+            }, {
                 'كود المنتج': 'FG-002',
                 'اسم المنتج': 'دهان زيتي لامع',
                 'وزن المنتج': 25,
@@ -2417,16 +2421,6 @@
                 'الحد الأدنى للمخزون': 30,
                 'الحالة': 'نشط',
                 'ملاحظات': 'دهان زيتي للأسطح الخشبية'
-            }, {
-                'كود المنتج': 'FG-003',
-                'اسم المنتج': 'معجون دهان',
-                'وزن المنتج': 10,
-                'عبوة المنتج': 'كجم',
-                'تكلفة المنتج': 40,
-                'سعر بيع المنتج': 60,
-                'الحد الأدنى للمخزون': 20,
-                'الحالة': 'نشط',
-                'ملاحظات': 'معجون للجدران'
             }];
             var ws = XLSX.utils.json_to_sheet(templateData);
             var wb = XLSX.utils.book_new();
@@ -2463,7 +2457,7 @@
         }
 
         // ============================================================
-        // IMPORT FROM EXCEL (باستخدام الأعمدة الجديدة)
+        // IMPORT FROM EXCEL (النسخة النهائية مع التحقق من التكرارات)
         // ============================================================
         async function importFromExcel(event) {
             event.preventDefault();
@@ -2504,8 +2498,12 @@
                 progressText.textContent = 'جاري استيراد البيانات...';
 
                 var successCount = 0;
+                var updateCount = 0;
                 var errorCount = 0;
                 var errors = [];
+
+                // ✅ جلب المنتجات الموجودة مسبقاً للمقارنة
+                var existingProducts = await getProducts();
 
                 for (var i = 0; i < jsonData.length; i++) {
                     var percent = Math.round(((i + 1) / jsonData.length) * 100);
@@ -2517,8 +2515,15 @@
                     var row = jsonData[i];
 
                     // ✅ قراءة البيانات بالأعمدة الجديدة
-                    var productCode = row['كود المنتج'] || row['product_code'] || '';
-                    var productName = row['اسم المنتج'] || row['product_name'] || '';
+                    var productCode = (row['كود المنتج'] || row['product_code'] || '').toString().trim();
+                    var productName = (row['اسم المنتج'] || row['product_name'] || '').toString().trim();
+                    var productWeight = parseFloat(row['وزن المنتج'] || row['product_weight'] || 0);
+                    var productUnit = row['عبوة المنتج'] || row['product_unit'] || 'لتر';
+                    var costPrice = parseFloat(row['تكلفة المنتج'] || row['cost_price'] || 0);
+                    var sellPrice = parseFloat(row['سعر بيع المنتج'] || row['sell_price'] || 0);
+                    var minStock = parseFloat(row['الحد الأدنى للمخزون'] || row['min_stock'] || 0);
+                    var status = row['الحالة'] || row['status'] || 'نشط';
+                    var notes = row['ملاحظات'] || row['notes'] || '';
 
                     if (!productCode) {
                         errorCount++;
@@ -2530,23 +2535,84 @@
                         errors.push('صف ' + (i + 1) + ': اسم المنتج مطلوب');
                         continue;
                     }
+                    if (productWeight < 0) {
+                        errorCount++;
+                        errors.push('صف ' + (i + 1) + ': الوزن لا يمكن أن يكون سالباً');
+                        continue;
+                    }
 
                     try {
-                        await insertProduct({
-                            product_code: productCode.trim(),
-                            product_name: productName.trim(),
-                            product_weight: parseFloat(row['وزن المنتج'] || row['product_weight'] || 0),
-                            product_unit: row['عبوة المنتج'] || row['product_unit'] || 'لتر',
-                            cost_price: parseFloat(row['تكلفة المنتج'] || row['cost_price'] || 0),
-                            sell_price: parseFloat(row['سعر بيع المنتج'] || row['sell_price'] || 0),
-                            min_stock: parseFloat(row['الحد الأدنى للمخزون'] || row['min_stock'] || 0),
-                            status: row['الحالة'] || row['status'] || 'نشط',
-                            notes: row['ملاحظات'] || row['notes'] || ''
+                        // ✅ التحقق من وجود المنتج بنفس الكود والوزن
+                        var existingByCodeAndWeight = existingProducts.find(function(p) {
+                            return p.product_code === productCode && 
+                                   p.product_weight === productWeight;
                         });
-                        successCount++;
+
+                        // ✅ التحقق من وجود المنتج بنفس الاسم والوزن
+                        var existingByNameAndWeight = existingProducts.find(function(p) {
+                            return p.product_name === productName && 
+                                   p.product_weight === productWeight;
+                        });
+
+                        if (existingByCodeAndWeight) {
+                            // ✅ تحديث المنتج الموجود (نفس الكود والوزن)
+                            console.log('🔄 تحديث منتج موجود:', productName, '(', productCode, ') - وزن:', productWeight);
+                            await updateProduct(existingByCodeAndWeight.id, {
+                                product_code: productCode,
+                                product_name: productName,
+                                product_weight: productWeight,
+                                product_unit: productUnit,
+                                cost_price: costPrice,
+                                sell_price: sellPrice,
+                                min_stock: minStock,
+                                status: status,
+                                notes: notes
+                            });
+                            updateCount++;
+                        } else if (existingByNameAndWeight) {
+                            // ✅ تحديث المنتج الموجود (نفس الاسم والوزن)
+                            console.log('🔄 تحديث منتج موجود (بنفس الاسم والوزن):', productName, '- وزن:', productWeight);
+                            await updateProduct(existingByNameAndWeight.id, {
+                                product_code: productCode,
+                                product_name: productName,
+                                product_weight: productWeight,
+                                product_unit: productUnit,
+                                cost_price: costPrice,
+                                sell_price: sellPrice,
+                                min_stock: minStock,
+                                status: status,
+                                notes: notes
+                            });
+                            updateCount++;
+                        } else {
+                            // ✅ إضافة منتج جديد
+                            console.log('➕ إضافة منتج جديد:', productName, '(', productCode, ') - وزن:', productWeight);
+                            await insertProduct({
+                                product_code: productCode,
+                                product_name: productName,
+                                product_weight: productWeight,
+                                product_unit: productUnit,
+                                cost_price: costPrice,
+                                sell_price: sellPrice,
+                                min_stock: minStock,
+                                status: status,
+                                notes: notes
+                            });
+                            successCount++;
+                            
+                            // ✅ إضافة المنتج الجديد إلى قائمة المنتجات الموجودة (لتجنب التكرار في نفس الجلسة)
+                            existingProducts.push({
+                                id: 'temp_' + Date.now() + '_' + i,
+                                product_code: productCode,
+                                product_name: productName,
+                                product_weight: productWeight
+                            });
+                        }
+
                     } catch (err) {
                         errorCount++;
                         errors.push('صف ' + (i + 1) + ': ' + err.message);
+                        console.error('❌ خطأ في الصف ' + (i + 1) + ':', err.message);
                     }
 
                     await new Promise(r => setTimeout(r, 20));
@@ -2556,19 +2622,22 @@
                 progressBar.style.width = '100%';
                 progressPercent.textContent = '100%';
 
-                if (successCount > 0) {
-                    showToast(
-                        '✅ تم الاستيراد',
-                        'تم استيراد ' + successCount + ' منتج' +
-                        (errorCount > 0 ? '، وفشل ' + errorCount + ' منتج' : ''),
-                        'success'
-                    );
+                var totalProcessed = successCount + updateCount;
+                if (totalProcessed > 0) {
+                    var message = 'تم استيراد ' + successCount + ' منتج جديد';
+                    if (updateCount > 0) {
+                        message += '، وتحديث ' + updateCount + ' منتج موجود';
+                    }
+                    if (errorCount > 0) {
+                        message += '، وفشل ' + errorCount + ' منتج';
+                    }
+                    showToast('✅ تم الاستيراد', message, 'success');
                     setTimeout(function() {
                         closeImportModal();
                         loadData();
                         progressDiv.style.display = 'none';
                         progressBar.style.width = '0%';
-                    }, 1200);
+                    }, 1500);
                 } else {
                     showToast('❌ فشل الاستيراد', 'لم يتم استيراد أي منتج. تحقق من البيانات', 'error');
                     setTimeout(function() {
@@ -2599,7 +2668,6 @@
         // LOAD DATA (النسخة النهائية مع معالجة 403)
         // ============================================================
         async function loadData() {
-            // إظهار مؤشر التحميل وإخفاء الجدول
             loadingContainer.style.display = 'flex';
             loadingContainer.classList.remove('hidden');
             tableContainer.style.display = 'none';
@@ -2612,7 +2680,6 @@
             try {
                 var startTime = Date.now();
 
-                // جلب المنتجات مع عرض التقدم
                 var products = await getProductsWithProgress(function(current, total) {
                     if (total > 0) {
                         var percent = Math.round((current / total) * 100);
@@ -2626,22 +2693,18 @@
 
                 allProducts = products || [];
 
-                // تأخير بسيط لإظهار اكتمال التحميل
                 var elapsed = Date.now() - startTime;
                 var minDisplayTime = 500;
                 if (elapsed < minDisplayTime) {
                     await new Promise(r => setTimeout(r, minDisplayTime - elapsed));
                 }
 
-                // عرض البيانات في الجدول
                 displayProducts(allProducts);
 
-                // الانتظار حتى ينتهي المتصفح من رسم الجدول
                 await new Promise(resolve => requestAnimationFrame(resolve));
                 await new Promise(resolve => requestAnimationFrame(resolve));
                 await new Promise(r => setTimeout(r, 50));
 
-                // تحديث النص النهائي
                 if (allProducts.length > 0) {
                     loadingSub.textContent = '✅ تم تحميل ' + allProducts.length.toLocaleString() + ' منتج بنجاح!';
                     loadingProgress.textContent = '✅ جاهز!';
@@ -2652,10 +2715,8 @@
                     loadingProgress.style.color = 'var(--accent-ink)';
                 }
 
-                // إخفاء مؤشر التحميل مع تأثير انسيابي
                 loadingContainer.classList.add('hidden');
 
-                // إظهار الجدول بعد التأكد من اكتمال الرسم
                 setTimeout(function() {
                     loadingContainer.style.display = 'none';
                     tableContainer.style.display = 'block';
@@ -2673,7 +2734,6 @@
                 loadingProgress.textContent = '❌ فشل التحميل';
                 loadingProgress.style.color = 'var(--rust)';
 
-                // عرض رسالة الخطأ للمستخدم
                 var errorMessage = error.message || 'خطأ غير معروف';
                 if (errorMessage.includes('403')) {
                     entriesBody.innerHTML = `<tr><td colspan="11"><div class="empty-state">
