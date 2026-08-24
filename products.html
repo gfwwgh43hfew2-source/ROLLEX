@@ -11,7 +11,6 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="supabase-client.js"></script>
     <style>
-        /* ============================================================ */
         :root {
             --ink: #121821;
             --ink-soft: #2c3644;
@@ -435,9 +434,6 @@
             font-weight: 700;
         }
 
-        /* ============================================================ */
-        /* TABLE WRAPPER مع مؤشر التحميل المتقدم */
-        /* ============================================================ */
         .table-wrapper {
             background: var(--surface);
             border-radius: var(--radius);
@@ -448,7 +444,6 @@
             position: relative;
         }
 
-        /* ===== SPINNER ===== */
         .spinner {
             width: 48px;
             height: 48px;
@@ -462,7 +457,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* ===== LOADING CONTAINER ===== */
         #loadingContainer {
             display: flex;
             flex-direction: column;
@@ -505,7 +499,6 @@
             margin-left: 6px;
         }
 
-        /* ===== TABLE CONTAINER ===== */
         #tableContainer {
             display: none;
             opacity: 0;
@@ -686,7 +679,6 @@
         }
         .modal-box .form-actions .btn-cancel:hover { background: var(--surface-muted); }
 
-        /* ===== PROGRESS BAR للاستيراد ===== */
         .import-progress {
             display: none;
             margin-top: 12px;
@@ -790,10 +782,6 @@
             nav { display: flex !important; }
             .sidebar-overlay { display: none !important; }
         }
-
-        /* ============================================================ */
-        /* UX ENHANCEMENTS */
-        /* ============================================================ */
 
         a:focus-visible, button:focus-visible, input:focus-visible,
         select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
@@ -1216,12 +1204,8 @@
             </div>
         </div>
 
-        <!-- ============================================================ -->
-        <!-- TABLE WRAPPER -->
-        <!-- ============================================================ -->
         <div class="table-wrapper" id="tableWrapper">
 
-            <!-- ===== مؤشر التحميل ===== -->
             <div id="loadingContainer">
                 <div class="spinner"></div>
                 <div class="loading-title">جاري تحميل المنتجات</div>
@@ -1231,7 +1215,6 @@
                 </div>
             </div>
 
-            <!-- ===== الجدول (مخفي في البداية) ===== -->
             <div id="tableContainer">
                 <table>
                     <thead>
@@ -1559,7 +1542,7 @@
         function escapeAttr(str) { return String(str).replace(/'/g, "\\'"); }
 
         // ============================================================
-        // GET PRODUCTS WITH PROGRESS (النسخة النهائية مع حل مشكلة 403)
+        // GET PRODUCTS WITH PROGRESS
         // ============================================================
         async function getProductsWithProgress(onProgress) {
             try {
@@ -1586,7 +1569,6 @@
                 var totalLoaded = 0;
                 var totalCount = 0;
 
-                // ✅ التحقق من وجود الجدول باستخدام limit=0 (بدون الحاجة لبيانات)
                 try {
                     var testUrl = SUPABASE_URL + '/rest/v1/products?select=id&limit=0&company_id=eq.' + companyId;
                     var testResponse = await fetch(testUrl, {
@@ -1619,7 +1601,6 @@
                     return [];
                 }
 
-                // ✅ محاولة جلب البيانات بشكل طبيعي
                 try {
                     var countUrl = SUPABASE_URL + '/rest/v1/products?select=id&company_id=eq.' + companyId;
                     var countResponse = await fetch(countUrl, {
@@ -1719,7 +1700,7 @@
         }
 
         // ============================================================
-        // INSERT PRODUCT (باستخدام الأعمدة الجديدة مع الوزن)
+        // INSERT PRODUCT
         // ============================================================
         async function insertProduct(data) {
             var isValid = await checkSessionAndRedirect();
@@ -1750,7 +1731,7 @@
         }
 
         // ============================================================
-        // UPDATE PRODUCT (باستخدام الأعمدة الجديدة)
+        // UPDATE PRODUCT
         // ============================================================
         async function updateProduct(id, data) {
             var payload = {
@@ -2342,7 +2323,7 @@
         }
 
         // ============================================================
-        // EXPORT TO EXCEL (باستخدام الأعمدة الجديدة)
+        // EXPORT TO EXCEL
         // ============================================================
         function exportToExcel(products, fileName) {
             var dataToExport = products || allProducts;
@@ -2368,15 +2349,8 @@
                 var wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, 'المنتجات');
                 ws['!cols'] = [
-                    { wch: 15 }, // كود المنتج
-                    { wch: 30 }, // اسم المنتج
-                    { wch: 14 }, // وزن المنتج
-                    { wch: 14 }, // عبوة المنتج
-                    { wch: 14 }, // تكلفة المنتج
-                    { wch: 14 }, // سعر بيع المنتج
-                    { wch: 16 }, // الحد الأدنى للمخزون
-                    { wch: 12 }, // الحالة
-                    { wch: 30 } // ملاحظات
+                    { wch: 15 }, { wch: 30 }, { wch: 14 }, { wch: 14 },
+                    { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 12 }, { wch: 30 }
                 ];
                 var finalFileName = fileName || ('المنتجات_' + new Date().toISOString().split('T')[0] + '.xlsx');
                 XLSX.writeFile(wb, finalFileName);
@@ -2388,7 +2362,7 @@
         }
 
         // ============================================================
-        // DOWNLOAD TEMPLATE (باستخدام الأعمدة الجديدة)
+        // DOWNLOAD TEMPLATE
         // ============================================================
         function downloadTemplate() {
             var templateData = [{
@@ -2426,15 +2400,8 @@
             var wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'قالب المنتجات');
             ws['!cols'] = [
-                { wch: 15 }, // كود المنتج
-                { wch: 30 }, // اسم المنتج
-                { wch: 14 }, // وزن المنتج
-                { wch: 14 }, // عبوة المنتج
-                { wch: 14 }, // تكلفة المنتج
-                { wch: 14 }, // سعر بيع المنتج
-                { wch: 16 }, // الحد الأدنى للمخزون
-                { wch: 12 }, // الحالة
-                { wch: 30 } // ملاحظات
+                { wch: 15 }, { wch: 30 }, { wch: 14 }, { wch: 14 },
+                { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 12 }, { wch: 30 }
             ];
             XLSX.writeFile(wb, 'قالب_استيراد_المنتجات.xlsx');
             showToast('✅ تم التحميل', 'تم تحميل القالب بنجاح', 'success');
@@ -2457,7 +2424,7 @@
         }
 
         // ============================================================
-        // IMPORT FROM EXCEL (النسخة النهائية - استيراد جميع المنتجات الفريدة)
+        // IMPORT FROM EXCEL (مع القيد الجديد)
         // ============================================================
         async function importFromExcel(event) {
             event.preventDefault();
@@ -2503,11 +2470,7 @@
                 var errorCount = 0;
                 var errors = [];
 
-                // ✅ جلب المنتجات الموجودة مسبقاً
                 var existingProducts = await getProducts();
-
-                // ✅ إنشاء مجموعة لتتبع المنتجات المضافة في هذه الجلسة
-                var addedInSession = new Set();
 
                 for (var i = 0; i < jsonData.length; i++) {
                     var percent = Math.round(((i + 1) / jsonData.length) * 100);
@@ -2518,21 +2481,13 @@
 
                     var row = jsonData[i];
 
-                    // ✅ قراءة البيانات مع معالجة الأخطاء
                     var productCode = (row['كود المنتج'] || row['product_code'] || '').toString().trim();
                     var productName = (row['اسم المنتج'] || row['product_name'] || '').toString().trim();
                     
-                    // ✅ معالجة الوزن (قد يكون 111 للمنتجات بدون وزن)
                     var weightStr = (row['وزن المنتج'] || row['product_weight'] || '0').toString().trim();
-                    var productWeight = parseFloat(weightStr);
-                    if (isNaN(productWeight)) {
-                        var numericPart = weightStr.replace(/[^0-9.]/g, '');
-                        productWeight = parseFloat(numericPart) || 0;
-                    }
-                    // إذا كان الوزن 111، نعتبره 0 (بدون وزن)
-                    if (productWeight === 111) {
-                        productWeight = 0;
-                    }
+                    var productWeight = parseFloat(weightStr.replace(/[^0-9.]/g, ''));
+                    if (isNaN(productWeight)) productWeight = 0;
+                    if (productWeight === 111) productWeight = 0;
                     
                     var productUnit = row['عبوة المنتج'] || row['product_unit'] || 'عبوة';
                     var costPrice = parseFloat(row['تكلفة المنتج'] || row['cost_price'] || 0) || 0;
@@ -2541,18 +2496,14 @@
                     var status = row['الحاله'] || row['status'] || 'نشط';
                     var notes = row['ملاحظات'] || row['notes'] || '';
 
-                    // ✅ تنظيف الكود من الأحرف غير المرغوب فيها
                     productCode = productCode.replace(/[^0-9.]/g, '');
-                    // إذا كان الكود يحتوي على نقاط متعددة، نأخذ الأولى فقط
                     if (productCode.split('.').length > 2) {
                         var parts = productCode.split('.');
                         productCode = parts[0] + '.' + parts.slice(1).join('');
                     }
 
-                    // ✅ تنظيف الاسم من المسافات الزائدة
                     productName = productName.replace(/\s+/g, ' ').trim();
 
-                    // ✅ التحقق من البيانات المطلوبة
                     if (!productCode) {
                         errorCount++;
                         errors.push('صف ' + (i + 1) + ': كود المنتج مطلوب');
@@ -2564,43 +2515,17 @@
                         continue;
                     }
 
-                    // ✅ إنشاء مفتاح فريد للمنتج (الكود + الوزن)
-                    var uniqueKey = productCode + '|' + productWeight;
-
-                    // ✅ التحقق من التكرار داخل الملف نفسه
-                    if (addedInSession.has(uniqueKey)) {
-                        skipCount++;
-                        console.warn('⚠️ تخطي (مكرر داخل الملف):', productName, '- وزن:', productWeight);
-                        continue;
-                    }
-
                     try {
-                        // ✅ البحث عن المنتج الموجود
                         var existingProduct = null;
                         
-                        // 1. البحث بالكود + الوزن
+                        // البحث بالكود + الاسم + الوزن (التطابق التام)
                         existingProduct = existingProducts.find(function(p) {
                             return p.product_code === productCode && 
+                                   p.product_name === productName && 
                                    Math.abs(p.product_weight - productWeight) < 0.001;
                         });
-                        
-                        // 2. البحث بالاسم + الوزن
-                        if (!existingProduct) {
-                            existingProduct = existingProducts.find(function(p) {
-                                return p.product_name === productName && 
-                                       Math.abs(p.product_weight - productWeight) < 0.001;
-                            });
-                        }
-
-                        // 3. البحث بالكود فقط (إذا لم يتم العثور)
-                        if (!existingProduct) {
-                            existingProduct = existingProducts.find(function(p) {
-                                return p.product_code === productCode;
-                            });
-                        }
 
                         if (existingProduct) {
-                            // ✅ تحديث المنتج الموجود
                             console.log('🔄 تحديث منتج موجود:', productName, '(', productCode, ') - وزن:', productWeight);
                             await updateProduct(existingProduct.id, {
                                 product_code: productCode,
@@ -2615,7 +2540,6 @@
                             });
                             updateCount++;
                         } else {
-                            // ✅ إضافة منتج جديد
                             console.log('➕ إضافة منتج جديد:', productName, '(', productCode, ') - وزن:', productWeight);
                             var newProduct = await insertProduct({
                                 product_code: productCode,
@@ -2640,13 +2564,10 @@
                             }
                         }
 
-                        // ✅ إضافة المفتاح إلى المجموعة لمنع التكرار داخل الملف
-                        addedInSession.add(uniqueKey);
-
                     } catch (err) {
                         if (err.message && err.message.includes('duplicate key')) {
                             skipCount++;
-                            console.warn('⚠️ تخطي (مكرر في قاعدة البيانات):', productName, '- وزن:', productWeight);
+                            console.warn('⚠️ تخطي (مكرر تام):', productName, '- وزن:', productWeight);
                         } else {
                             errorCount++;
                             errors.push('صف ' + (i + 1) + ': ' + err.message);
@@ -2661,14 +2582,13 @@
                 progressBar.style.width = '100%';
                 progressPercent.textContent = '100%';
 
-                var totalProcessed = successCount + updateCount;
                 var message = '';
                 if (successCount > 0) message += 'تم إضافة ' + successCount + ' منتج جديد';
                 if (updateCount > 0) message += (message ? '، ' : '') + 'تحديث ' + updateCount + ' منتج';
-                if (skipCount > 0) message += (message ? '، ' : '') + 'تخطي ' + skipCount + ' مكرر';
+                if (skipCount > 0) message += (message ? '، ' : '') + 'تخطي ' + skipCount + ' مكرر تام';
                 if (errorCount > 0) message += (message ? '، ' : '') + 'فشل ' + errorCount + ' منتج';
                 
-                if (totalProcessed > 0 || skipCount > 0) {
+                if (successCount > 0 || updateCount > 0 || skipCount > 0) {
                     showToast('✅ تم الاستيراد', message, 'success');
                 } else {
                     showToast('❌ فشل الاستيراد', 'لم يتم استيراد أي منتج. تحقق من البيانات', 'error');
@@ -2700,7 +2620,7 @@
         }
 
         // ============================================================
-        // LOAD DATA (النسخة النهائية مع معالجة 403)
+        // LOAD DATA
         // ============================================================
         async function loadData() {
             loadingContainer.style.display = 'flex';
@@ -2755,7 +2675,6 @@
                 setTimeout(function() {
                     loadingContainer.style.display = 'none';
                     tableContainer.style.display = 'block';
-
                     requestAnimationFrame(function() {
                         requestAnimationFrame(function() {
                             tableContainer.classList.add('show');
