@@ -1810,12 +1810,12 @@
 
             <div id="importStep1">
                 <p class="import-hint">
-                    الأعمدة المتوقعة: رقم الفاتورة، التاريخ، المندوب، كود العميل، اسم العميل، الكود، المبيعات، الوزن، العبوة، عدد، سعر البيع، اجمالي مبيعات.<br />
+                    الأعمدة المتوقعة: رقم الفاتورة، التاريخ، المندوب، كود العميل، اسم العميل، اسم الحساب، الكود، المبيعات، الوزن، العبوة، العدد، سعر البيع، اجمالي مبيعات، اجمالي الوزن، اللون، نوع الحصوة، ملاحظات، الموقع.<br />
                     <strong style="color:var(--teal);display:block;margin-top:6px;">✅ يتم استيراد جميع صفوف Excel حتى لو كانت البيانات ناقصة.</strong>
                     <strong style="color:var(--rust);display:block;margin-top:4px;">⚠️ سيتم عرض الصفوف التي لا تحتوي على رقم فاتورة في سجل الأخطاء.</strong>
-                    <strong style="color:var(--accent-ink);display:block;margin-top:4px;">🚚 الناولون: يتم التعرف عليه تلقائياً من عمود "المبيعات" إذا كان يحتوي على كلمة "ناولون".</strong>
+                    <strong style="color:var(--accent-ink);display:block;margin-top:4px;">🚚 الناولون: يتم التعرف عليه تلقائياً من عمود "المبيعات" إذا كان يحتوي على كلمة "ناولون" أو "+".</strong>
                     <strong style="color:var(--teal);display:block;margin-top:4px;">🎁 المنتجات المجانية: يتم التعرف عليها تلقائياً عندما يكون سعر البيع = 0 أو اجمالي المبيعات = 0.</strong>
-                    <strong style="color:var(--rust);display:block;margin-top:4px;">📦 الفاتورة التي تحتوي على ناولون فقط (بدون أصناف) يتم التعامل معها كفاتورة مصاريف توصيل.</strong>
+                    <strong style="color:var(--teal);display:block;margin-top:4px;">📦 يتم تجميع الصفوف حسب رقم الفاتورة تلقائياً.</strong>
                 </p>
                 <div class="import-flex">
                     <input type="file" id="importFileInput" accept=".xlsx,.xls" />
@@ -4122,7 +4122,7 @@
         }
 
         // ============================================================
-        // IMPORT FROM EXCEL
+        // IMPORT FROM EXCEL - لاستيراد المبيعات فقط (بدون مرتجعات)
         // ============================================================
         var importInvoices = [];
         var importStopRequested = false;
@@ -4182,19 +4182,29 @@
             var order = [];
 
             rows.forEach(function(r, rowIndex) {
+                // ✅ رقم الفاتورة (قد يكون رقم أو نص)
                 var invNo = importNormStr(r['رقم الفاتورة']);
                 if (!invNo) {
                     console.warn('⚠️ صف رقم ' + (rowIndex + 1) + ' لا يحتوي على رقم فاتورة، سيتم تخطيه');
                     return;
                 }
 
+                // ✅ التحقق من اسم الحساب - نستورد فقط المبيعات (نتجاهل المرتجعات)
+                var accountName = importNormStr(r['اسم الحساب'] || r['اسم الحساب']);
+                if (accountName.toLowerCase().includes('مرتجع')) {
+                    console.log('ℹ️ تخطي صف مرتجع في الفاتورة:', invNo);
+                    return;
+                }
+
+                var productCode = importNormStr(r['الكود']);
                 var productName = importNormStr(r['المبيعات']);
-                var qty = importNormNum(r['عدد']);
+                var qty = importNormNum(r['العدد']);
                 var total = importNormNum(r['اجمالي مبيعات']);
                 var weight = r['الوزن'] != null ? importNormNum(r['الوزن']) : null;
                 var price = importNormNum(r['سعر البيع']);
 
-                var isDelivery = productName.toLowerCase().includes('ناولون');
+                // ✅ التحقق من أن هذا ناولون
+                var isDelivery = productName.toLowerCase().includes('ناولون') || productCode === '+';
 
                 if (!map[invNo]) {
                     map[invNo] = {
@@ -4203,6 +4213,7 @@
                         clientCode: importNormStr(r['كود العميل']),
                         clientName: importNormStr(r['اسم العميل']),
                         rep: importNormStr(r['المندوب']),
+                        accountName: accountName,
                         locations: {},
                         items: [],
                         matchedClientId: null,
@@ -4225,38 +4236,47 @@
                     return;
                 }
 
+                // ✅ التحقق من أن هذا منتج مجاني
+                var isFree = (price === 0 || total === 0);
+
                 inv.hasItems = true;
                 inv.isDeliveryOnly = false;
+
+                if (isFree) {
+                    inv.hasZeroPriceItems = true;
+                }
 
                 if (!inv.dateISO) inv.dateISO = importExcelDateToISO(r['التاريخ']);
                 var loc = importNormStr(r['الموقع']);
                 if (loc) inv.locations[loc] = true;
 
                 var lineTotal = total || (qty * price);
+                var unitPrice = price;
 
-                if (price === 0 && lineTotal > 0 && qty > 0) {
-                    price = lineTotal / qty;
-                }
-
-                if (price === 0 && lineTotal === 0) {
-                    inv.hasZeroPriceItems = true;
+                // ✅ حساب السعر من الإجمالي إذا كان السعر 0
+                if (unitPrice === 0 && lineTotal > 0 && qty > 0) {
+                    unitPrice = lineTotal / qty;
                 }
 
                 var unit = importNormStr(r['العبوة']);
+                var color = importNormStr(r['اللون']) || null;
+                var aggType = importNormStr(r['نوع الحصوة']) || null;
+                var notes = importNormStr(r['ملاحظات']) || null;
 
                 inv.items.push({
-                    code: importNormStr(r['الكود']),
+                    code: productCode,
                     name: productName || '(بدون اسم)',
                     unit: unit,
                     qty: qty,
-                    price: price,
+                    price: unitPrice,
                     total: lineTotal,
                     unitWeight: weight,
                     totalWeight: weight != null ? weight * qty : null,
-                    color: importNormStr(r['اللون']) || null,
-                    aggType: importNormStr(r['نوع الحصوة']) || null,
+                    color: color,
+                    aggType: aggType,
+                    notes: notes,
                     matchedProductId: null,
-                    isFree: (price === 0 && lineTotal === 0),
+                    isFree: isFree,
                     _rowIndex: rowIndex
                 });
             });
@@ -4293,15 +4313,13 @@
                 var byCode = productByCodeMap.get(item.code);
                 if (byCode) return byCode;
             }
-            if (item.name === '(بدون اسم)') return null;
-            if (item.name) {
-                var cleanName = item.name.trim();
-                var byName = productByNameMap.get(cleanName);
-                if (byName) return byName;
-                for (var [key, product] of productByNameMap) {
-                    if (key.includes(cleanName) || cleanName.includes(key)) {
-                        return product;
-                    }
+            if (item.name === '(بدون اسم)' || !item.name) return null;
+            var cleanName = item.name.trim();
+            var byName = productByNameMap.get(cleanName);
+            if (byName) return byName;
+            for (var [key, product] of productByNameMap) {
+                if (key.includes(cleanName) || cleanName.includes(key)) {
+                    return product;
                 }
             }
             return null;
@@ -4351,7 +4369,6 @@
                 var client = importMatchClient(inv);
                 var matchedItems = inv.items.map(function(it) { return { it: it, p: importMatchProduct(it) }; });
                 var allMatched = matchedItems.every(function(x) { return !!x.p; });
-
                 var fullyOk = !!client && (inv.items.length === 0 || allMatched);
 
                 if (fullyOk) okCount++;
