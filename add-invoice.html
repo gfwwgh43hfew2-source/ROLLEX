@@ -3997,7 +3997,7 @@
 
                 if (!companyId) throw new Error('لم يتم العثور على company_id');
 
-                // 1. إنشاء رأس الفاتورة
+                // 1. إنشاء رأس الفاتورة مع delivery_fee
                 var invoiceResponse = await fetch(SUPABASE_URL + '/rest/v1/sales_invoices', {
                     method: 'POST',
                     headers: {
@@ -4016,6 +4016,7 @@
                         status: 'مرحلة',
                         notes: items.length === 0 ? 'فاتورة مصاريف ناولون فقط' : '',
                         total_amount: totalAmountVal,
+                        delivery_fee: fee,
                         original_invoice_no: originalInvoiceNo.value.trim() || null,
                         rep_name: repName.value.trim() || null,
                         location: invoiceLocation.value.trim() || null
@@ -4032,7 +4033,7 @@
 
                 if (!invoiceId) throw new Error('لم يتم الحصول على معرف الفاتورة');
 
-                // 2. إنشاء حركات المخزون وبنود الفاتورة (إذا كان هناك منتجات)
+                // 2. إنشاء حركات المخزون وبنود الفاتورة (مع is_free)
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
                     var isFree = (item.isFree || item.unit_price === 0);
@@ -4068,6 +4069,7 @@
                     var movementData = await movementResponse.json();
                     var movementId = movementData[0]?.id || movementData.id;
 
+                    // ✅ إرسال is_free إلى sales_invoice_items (العمود موجود في قاعدة البيانات)
                     var itemResponse = await fetch(SUPABASE_URL + '/rest/v1/sales_invoice_items', {
                         method: 'POST',
                         headers: {
@@ -4782,33 +4784,29 @@
                 var deliveryFee = inv.deliveryFee || 0;
 
                 try {
-                    // بناء كائن البيانات مع الأعمدة الموجودة فقط في الجدول
+                    // ✅ بناء كائن البيانات مع delivery_fee (العمود موجود في قاعدة البيانات)
                     var invoiceData = {
                         company_id: companyId,
                         invoice_no: newInvNo,
                         client_id: client.id,
                         client_name: client.name,
                         invoice_date: dateISO,
-                        total_amount: totalAmount
+                        total_amount: totalAmount,
+                        delivery_fee: deliveryFee
                     };
 
                     // إضافة الحقول الاختيارية فقط إذا كانت موجودة
                     if (user && user.id) invoiceData.user_id = user.id;
                     if (inv.rep) invoiceData.rep_name = inv.rep;
                     if (locs.length) invoiceData.location = locs.join('، ');
+                    if (inv.originalNo) invoiceData.original_invoice_no = inv.originalNo;
 
-                    // بناء الملاحظات مع تضمين الناولون إذا كان موجوداً
+                    // بناء الملاحظات
                     var notesParts = [];
                     if (isDeliveryOnly) {
                         notesParts.push('مستوردة - ناولون فقط');
                     } else if (validItems.length > 0) {
                         notesParts.push('مستوردة من إكسيل');
-                    }
-                    if (deliveryFee > 0) {
-                        notesParts.push('الناولون: ' + deliveryFee.toFixed(2) + ' ر.س');
-                    }
-                    if (inv.originalNo) {
-                        notesParts.push('رقم دفتري: ' + inv.originalNo);
                     }
                     if (notesParts.length > 0) {
                         invoiceData.notes = notesParts.join(' | ');
@@ -4870,10 +4868,12 @@
                         if (!mvRes.ok) throw new Error(await mvRes.text());
                         var mvData = await mvRes.json();
 
+                        // ✅ بناء بنود الفاتورة مع is_free (العمود موجود في قاعدة البيانات)
                         var itemsBody = validItems.map(function(x, j) {
                             var it = x.item,
                                 product = x.product;
                             var movementId = mvData[j] ? mvData[j].id : null;
+                            var isFree = (it.isFree || it.price === 0);
                             return {
                                 company_id: companyId,
                                 invoice_id: invoiceId,
@@ -4888,7 +4888,7 @@
                                 total_weight: it.totalWeight,
                                 color: it.color,
                                 aggregate_type: it.aggType,
-                                is_free: (it.isFree || it.price === 0)
+                                is_free: isFree
                             };
                         });
                         var itemRes = await fetch(SUPABASE_URL + '/rest/v1/sales_invoice_items', {
