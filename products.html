@@ -2457,212 +2457,201 @@
         }
 
         // ============================================================
-        // IMPORT FROM EXCEL (النسخة النهائية مع التحقق من التكرارات)
-        // ============================================================
-        async function importFromExcel(event) {
-            event.preventDefault();
+// IMPORT FROM EXCEL (النسخة النهائية مع حل مشكلة temp IDs)
+// ============================================================
+async function importFromExcel(event) {
+    event.preventDefault();
 
-            var file = document.getElementById('importFile').files[0];
-            if (!file) {
-                showToast('⚠️ تنبيه', 'يرجى اختيار ملف Excel', 'error');
-                return;
+    var file = document.getElementById('importFile').files[0];
+    if (!file) {
+        showToast('⚠️ تنبيه', 'يرجى اختيار ملف Excel', 'error');
+        return;
+    }
+
+    var btn = document.getElementById('importSubmitBtn');
+    var progressDiv = document.getElementById('importProgress');
+    var progressBar = document.getElementById('progressBar');
+    var progressText = document.getElementById('progressText');
+    var progressPercent = document.getElementById('progressPercent');
+    var progressCount = document.getElementById('progressCount');
+    var progressTotal = document.getElementById('progressTotal');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاستيراد...';
+    progressDiv.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressPercent.textContent = '0%';
+    progressCount.textContent = '0';
+    progressText.textContent = 'جاري تحليل الملف...';
+
+    try {
+        var data = await file.arrayBuffer();
+        var workbook = XLSX.read(data, { type: 'array' });
+        var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        var jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+        if (!jsonData || jsonData.length === 0) {
+            throw new Error('الملف فارغ أو غير صحيح');
+        }
+
+        progressTotal.textContent = jsonData.length;
+        progressText.textContent = 'جاري استيراد البيانات...';
+
+        var successCount = 0;
+        var updateCount = 0;
+        var errorCount = 0;
+        var errors = [];
+
+        // ✅ جلب المنتجات الموجودة مسبقاً من قاعدة البيانات
+        var existingProducts = await getProducts();
+
+        for (var i = 0; i < jsonData.length; i++) {
+            var percent = Math.round(((i + 1) / jsonData.length) * 100);
+            progressBar.style.width = percent + '%';
+            progressPercent.textContent = percent + '%';
+            progressCount.textContent = i + 1;
+            progressText.textContent = 'جاري استيراد السجل ' + (i + 1) + ' من ' + jsonData.length;
+
+            var row = jsonData[i];
+
+            // ✅ قراءة البيانات بالأعمدة الجديدة
+            var productCode = (row['كود المنتج'] || row['product_code'] || '').toString().trim();
+            var productName = (row['اسم المنتج'] || row['product_name'] || '').toString().trim();
+            var productWeight = parseFloat(row['وزن المنتج'] || row['product_weight'] || 0);
+            var productUnit = row['عبوة المنتج'] || row['product_unit'] || 'لتر';
+            var costPrice = parseFloat(row['تكلفة المنتج'] || row['cost_price'] || 0);
+            var sellPrice = parseFloat(row['سعر بيع المنتج'] || row['sell_price'] || 0);
+            var minStock = parseFloat(row['الحد الأدنى للمخزون'] || row['min_stock'] || 0);
+            var status = row['الحالة'] || row['status'] || 'نشط';
+            var notes = row['ملاحظات'] || row['notes'] || '';
+
+            if (!productCode) {
+                errorCount++;
+                errors.push('صف ' + (i + 1) + ': كود المنتج مطلوب');
+                continue;
             }
-
-            var btn = document.getElementById('importSubmitBtn');
-            var progressDiv = document.getElementById('importProgress');
-            var progressBar = document.getElementById('progressBar');
-            var progressText = document.getElementById('progressText');
-            var progressPercent = document.getElementById('progressPercent');
-            var progressCount = document.getElementById('progressCount');
-            var progressTotal = document.getElementById('progressTotal');
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاستيراد...';
-            progressDiv.style.display = 'block';
-            progressBar.style.width = '0%';
-            progressPercent.textContent = '0%';
-            progressCount.textContent = '0';
-            progressText.textContent = 'جاري تحليل الملف...';
+            if (!productName) {
+                errorCount++;
+                errors.push('صف ' + (i + 1) + ': اسم المنتج مطلوب');
+                continue;
+            }
+            if (productWeight < 0) {
+                errorCount++;
+                errors.push('صف ' + (i + 1) + ': الوزن لا يمكن أن يكون سالباً');
+                continue;
+            }
 
             try {
-                var data = await file.arrayBuffer();
-                var workbook = XLSX.read(data, { type: 'array' });
-                var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                var jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                // ✅ البحث عن المنتج في قاعدة البيانات باستخدام الكود والوزن
+                var existingProduct = existingProducts.find(function(p) {
+                    return p.product_code === productCode && 
+                           p.product_weight === productWeight;
+                });
 
-                if (!jsonData || jsonData.length === 0) {
-                    throw new Error('الملف فارغ أو غير صحيح');
+                // ✅ إذا لم يتم العثور بالكود، حاول البحث بالاسم والوزن
+                if (!existingProduct) {
+                    existingProduct = existingProducts.find(function(p) {
+                        return p.product_name === productName && 
+                               p.product_weight === productWeight;
+                    });
                 }
 
-                progressTotal.textContent = jsonData.length;
-                progressText.textContent = 'جاري استيراد البيانات...';
-
-                var successCount = 0;
-                var updateCount = 0;
-                var errorCount = 0;
-                var errors = [];
-
-                // ✅ جلب المنتجات الموجودة مسبقاً للمقارنة
-                var existingProducts = await getProducts();
-
-                for (var i = 0; i < jsonData.length; i++) {
-                    var percent = Math.round(((i + 1) / jsonData.length) * 100);
-                    progressBar.style.width = percent + '%';
-                    progressPercent.textContent = percent + '%';
-                    progressCount.textContent = i + 1;
-                    progressText.textContent = 'جاري استيراد السجل ' + (i + 1) + ' من ' + jsonData.length;
-
-                    var row = jsonData[i];
-
-                    // ✅ قراءة البيانات بالأعمدة الجديدة
-                    var productCode = (row['كود المنتج'] || row['product_code'] || '').toString().trim();
-                    var productName = (row['اسم المنتج'] || row['product_name'] || '').toString().trim();
-                    var productWeight = parseFloat(row['وزن المنتج'] || row['product_weight'] || 0);
-                    var productUnit = row['عبوة المنتج'] || row['product_unit'] || 'لتر';
-                    var costPrice = parseFloat(row['تكلفة المنتج'] || row['cost_price'] || 0);
-                    var sellPrice = parseFloat(row['سعر بيع المنتج'] || row['sell_price'] || 0);
-                    var minStock = parseFloat(row['الحد الأدنى للمخزون'] || row['min_stock'] || 0);
-                    var status = row['الحالة'] || row['status'] || 'نشط';
-                    var notes = row['ملاحظات'] || row['notes'] || '';
-
-                    if (!productCode) {
-                        errorCount++;
-                        errors.push('صف ' + (i + 1) + ': كود المنتج مطلوب');
-                        continue;
-                    }
-                    if (!productName) {
-                        errorCount++;
-                        errors.push('صف ' + (i + 1) + ': اسم المنتج مطلوب');
-                        continue;
-                    }
-                    if (productWeight < 0) {
-                        errorCount++;
-                        errors.push('صف ' + (i + 1) + ': الوزن لا يمكن أن يكون سالباً');
-                        continue;
-                    }
-
-                    try {
-                        // ✅ التحقق من وجود المنتج بنفس الكود والوزن
-                        var existingByCodeAndWeight = existingProducts.find(function(p) {
-                            return p.product_code === productCode && 
-                                   p.product_weight === productWeight;
-                        });
-
-                        // ✅ التحقق من وجود المنتج بنفس الاسم والوزن
-                        var existingByNameAndWeight = existingProducts.find(function(p) {
-                            return p.product_name === productName && 
-                                   p.product_weight === productWeight;
-                        });
-
-                        if (existingByCodeAndWeight) {
-                            // ✅ تحديث المنتج الموجود (نفس الكود والوزن)
-                            console.log('🔄 تحديث منتج موجود:', productName, '(', productCode, ') - وزن:', productWeight);
-                            await updateProduct(existingByCodeAndWeight.id, {
-                                product_code: productCode,
-                                product_name: productName,
-                                product_weight: productWeight,
-                                product_unit: productUnit,
-                                cost_price: costPrice,
-                                sell_price: sellPrice,
-                                min_stock: minStock,
-                                status: status,
-                                notes: notes
-                            });
-                            updateCount++;
-                        } else if (existingByNameAndWeight) {
-                            // ✅ تحديث المنتج الموجود (نفس الاسم والوزن)
-                            console.log('🔄 تحديث منتج موجود (بنفس الاسم والوزن):', productName, '- وزن:', productWeight);
-                            await updateProduct(existingByNameAndWeight.id, {
-                                product_code: productCode,
-                                product_name: productName,
-                                product_weight: productWeight,
-                                product_unit: productUnit,
-                                cost_price: costPrice,
-                                sell_price: sellPrice,
-                                min_stock: minStock,
-                                status: status,
-                                notes: notes
-                            });
-                            updateCount++;
-                        } else {
-                            // ✅ إضافة منتج جديد
-                            console.log('➕ إضافة منتج جديد:', productName, '(', productCode, ') - وزن:', productWeight);
-                            await insertProduct({
-                                product_code: productCode,
-                                product_name: productName,
-                                product_weight: productWeight,
-                                product_unit: productUnit,
-                                cost_price: costPrice,
-                                sell_price: sellPrice,
-                                min_stock: minStock,
-                                status: status,
-                                notes: notes
-                            });
-                            successCount++;
-                            
-                            // ✅ إضافة المنتج الجديد إلى قائمة المنتجات الموجودة (لتجنب التكرار في نفس الجلسة)
-                            existingProducts.push({
-                                id: 'temp_' + Date.now() + '_' + i,
-                                product_code: productCode,
-                                product_name: productName,
-                                product_weight: productWeight
-                            });
-                        }
-
-                    } catch (err) {
-                        errorCount++;
-                        errors.push('صف ' + (i + 1) + ': ' + err.message);
-                        console.error('❌ خطأ في الصف ' + (i + 1) + ':', err.message);
-                    }
-
-                    await new Promise(r => setTimeout(r, 20));
-                }
-
-                progressText.textContent = '✅ تم الانتهاء!';
-                progressBar.style.width = '100%';
-                progressPercent.textContent = '100%';
-
-                var totalProcessed = successCount + updateCount;
-                if (totalProcessed > 0) {
-                    var message = 'تم استيراد ' + successCount + ' منتج جديد';
-                    if (updateCount > 0) {
-                        message += '، وتحديث ' + updateCount + ' منتج موجود';
-                    }
-                    if (errorCount > 0) {
-                        message += '، وفشل ' + errorCount + ' منتج';
-                    }
-                    showToast('✅ تم الاستيراد', message, 'success');
-                    setTimeout(function() {
-                        closeImportModal();
-                        loadData();
-                        progressDiv.style.display = 'none';
-                        progressBar.style.width = '0%';
-                    }, 1500);
+                if (existingProduct) {
+                    // ✅ تحديث المنتج الموجود (معرف حقيقي من قاعدة البيانات)
+                    console.log('🔄 تحديث منتج موجود:', productName, '(', productCode, ') - وزن:', productWeight, '| ID:', existingProduct.id);
+                    await updateProduct(existingProduct.id, {
+                        product_code: productCode,
+                        product_name: productName,
+                        product_weight: productWeight,
+                        product_unit: productUnit,
+                        cost_price: costPrice,
+                        sell_price: sellPrice,
+                        min_stock: minStock,
+                        status: status,
+                        notes: notes
+                    });
+                    updateCount++;
                 } else {
-                    showToast('❌ فشل الاستيراد', 'لم يتم استيراد أي منتج. تحقق من البيانات', 'error');
-                    setTimeout(function() {
-                        progressDiv.style.display = 'none';
-                        progressBar.style.width = '0%';
-                    }, 2000);
+                    // ✅ إضافة منتج جديد
+                    console.log('➕ إضافة منتج جديد:', productName, '(', productCode, ') - وزن:', productWeight);
+                    var newProduct = await insertProduct({
+                        product_code: productCode,
+                        product_name: productName,
+                        product_weight: productWeight,
+                        product_unit: productUnit,
+                        cost_price: costPrice,
+                        sell_price: sellPrice,
+                        min_stock: minStock,
+                        status: status,
+                        notes: notes
+                    });
+                    successCount++;
+                    
+                    // ✅ إضافة المنتج الجديد إلى قائمة المنتجات الموجودة (مع معرف حقيقي)
+                    if (newProduct && newProduct.id) {
+                        existingProducts.push({
+                            id: newProduct.id,
+                            product_code: productCode,
+                            product_name: productName,
+                            product_weight: productWeight
+                        });
+                    }
                 }
 
-                if (errors.length > 0) {
-                    console.log('❌ أخطاء الاستيراد:');
-                    errors.forEach(function(err) { console.log('  - ' + err); });
-                }
-
-            } catch (error) {
-                console.error('❌ خطأ في الاستيراد:', error);
-                showToast('❌ خطأ', error.message || 'فشل استيراد البيانات', 'error');
-                setTimeout(function() {
-                    progressDiv.style.display = 'none';
-                    progressBar.style.width = '0%';
-                }, 2000);
+            } catch (err) {
+                errorCount++;
+                errors.push('صف ' + (i + 1) + ': ' + err.message);
+                console.error('❌ خطأ في الصف ' + (i + 1) + ':', err.message);
             }
 
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-upload"></i> استيراد';
+            await new Promise(r => setTimeout(r, 20));
         }
+
+        progressText.textContent = '✅ تم الانتهاء!';
+        progressBar.style.width = '100%';
+        progressPercent.textContent = '100%';
+
+        var totalProcessed = successCount + updateCount;
+        if (totalProcessed > 0) {
+            var message = 'تم استيراد ' + successCount + ' منتج جديد';
+            if (updateCount > 0) {
+                message += '، وتحديث ' + updateCount + ' منتج موجود';
+            }
+            if (errorCount > 0) {
+                message += '، وفشل ' + errorCount + ' منتج';
+            }
+            showToast('✅ تم الاستيراد', message, 'success');
+            setTimeout(function() {
+                closeImportModal();
+                loadData();
+                progressDiv.style.display = 'none';
+                progressBar.style.width = '0%';
+            }, 1500);
+        } else {
+            showToast('❌ فشل الاستيراد', 'لم يتم استيراد أي منتج. تحقق من البيانات', 'error');
+            setTimeout(function() {
+                progressDiv.style.display = 'none';
+                progressBar.style.width = '0%';
+            }, 2000);
+        }
+
+        if (errors.length > 0) {
+            console.log('❌ أخطاء الاستيراد:');
+            errors.forEach(function(err) { console.log('  - ' + err); });
+        }
+
+    } catch (error) {
+        console.error('❌ خطأ في الاستيراد:', error);
+        showToast('❌ خطأ', error.message || 'فشل استيراد البيانات', 'error');
+        setTimeout(function() {
+            progressDiv.style.display = 'none';
+            progressBar.style.width = '0%';
+        }, 2000);
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-upload"></i> استيراد';
+}
 
         // ============================================================
         // LOAD DATA (النسخة النهائية مع معالجة 403)
