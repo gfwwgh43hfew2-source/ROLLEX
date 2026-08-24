@@ -4016,7 +4016,6 @@
                         status: 'مرحلة',
                         notes: items.length === 0 ? 'فاتورة مصاريف ناولون فقط' : '',
                         total_amount: totalAmountVal,
-                        delivery_fee: fee,
                         original_invoice_no: originalInvoiceNo.value.trim() || null,
                         rep_name: repName.value.trim() || null,
                         location: invoiceLocation.value.trim() || null
@@ -4144,10 +4143,11 @@
         }
 
         // ============================================================
-        // IMPORT FROM EXCEL - المعدلة للتعامل مع أسماء الأعمدة المختلفة والمنتجات المجانية
+        // IMPORT FROM EXCEL - النسخة المحسنة بالكامل مع الكشف التلقائي عن الأعمدة
         // ============================================================
         var importInvoices = [];
         var importStopRequested = false;
+        var importColumnMap = {};
 
         function openImportModal() {
             document.getElementById('importModalOverlay').classList.add('active');
@@ -4158,6 +4158,7 @@
             document.getElementById('importStep2').style.display = 'none';
             document.getElementById('importParseStats').innerHTML = '';
             document.getElementById('importFileInput').value = '';
+            importColumnMap = {};
         }
 
         function closeImportModal() {
@@ -4199,50 +4200,147 @@
             });
         }
 
+        // دالة لتعيين أسماء الأعمدة تلقائياً
+        function autoDetectColumns(row) {
+            var map = {};
+            var keys = Object.keys(row);
+
+            console.log('🔍 أسماء الأعمدة في ملف الإكسيل:', keys);
+
+            // البحث عن كل عمود باستخدام عدة أنماط
+            keys.forEach(function(key) {
+                var lowerKey = key.toLowerCase().trim();
+
+                // رقم الفاتورة
+                if (lowerKey.includes('رقم الفاتورة') || lowerKey.includes('invoice') || lowerKey === 'رقم الفاتورة' || lowerKey === 'invoice_no' || lowerKey === 'رقم الفاتورة الدفتري') {
+                    map.invoiceNo = key;
+                }
+                // التاريخ
+                else if (lowerKey.includes('التاريخ') || lowerKey.includes('date')) {
+                    map.date = key;
+                }
+                // المندوب
+                else if (lowerKey.includes('مندوب') || lowerKey.includes('rep')) {
+                    map.rep = key;
+                }
+                // كود العميل
+                else if (lowerKey.includes('كود العميل') || lowerKey.includes('client_code') || lowerKey.includes('client code')) {
+                    map.clientCode = key;
+                }
+                // اسم العميل
+                else if (lowerKey.includes('اسم العميل') || lowerKey.includes('client_name') || lowerKey.includes('client name')) {
+                    map.clientName = key;
+                }
+                // اسم الحساب
+                else if (lowerKey.includes('اسم الحساب') || lowerKey.includes('account_name') || lowerKey.includes('account name')) {
+                    map.accountName = key;
+                }
+                // الكود (كود المنتج)
+                else if (lowerKey === 'الكود' || lowerKey === 'code' || lowerKey === 'product_code') {
+                    map.productCode = key;
+                }
+                // المبيعات (اسم المنتج)
+                else if (lowerKey === 'المبيعات' || lowerKey === 'product_name' || lowerKey === 'المنتج' || lowerKey === 'product') {
+                    map.productName = key;
+                }
+                // الوزن
+                else if (lowerKey.includes('الوزن') || lowerKey.includes('weight')) {
+                    map.weight = key;
+                }
+                // العبوة (وحدة القياس)
+                else if (lowerKey.includes('العبوة') || lowerKey.includes('unit')) {
+                    map.unit = key;
+                }
+                // العدد (الكمية)
+                else if (lowerKey === 'العدد' || lowerKey.includes('quantity') || lowerKey.includes('qty')) {
+                    map.quantity = key;
+                }
+                // سعر البيع
+                else if (lowerKey.includes('سعر البيع') || lowerKey.includes('sell_price') || lowerKey.includes('unit_price')) {
+                    map.sellPrice = key;
+                }
+                // اجمالي مبيعات
+                else if (lowerKey.includes('اجمالي مبيعات') || lowerKey.includes('total') || lowerKey.includes('line_total')) {
+                    map.total = key;
+                }
+                // اجمالي الوزن
+                else if (lowerKey.includes('اجمالي الوزن') || lowerKey.includes('total_weight')) {
+                    map.totalWeight = key;
+                }
+                // اللون
+                else if (lowerKey.includes('اللون') || lowerKey.includes('color')) {
+                    map.color = key;
+                }
+                // نوع الحصوة
+                else if (lowerKey.includes('نوع الحصوة') || lowerKey.includes('agg_type') || lowerKey.includes('aggregate_type')) {
+                    map.aggType = key;
+                }
+                // ملاحظات
+                else if (lowerKey.includes('ملاحظات') || lowerKey.includes('notes')) {
+                    map.notes = key;
+                }
+                // الموقع
+                else if (lowerKey.includes('الموقع') || lowerKey.includes('location')) {
+                    map.location = key;
+                }
+            });
+
+            console.log('🗺️ خريطة الأعمدة المكتشفة:', map);
+            return map;
+        }
+
         function importBuildInvoices(rows) {
+            if (rows.length === 0) return [];
+
+            // الكشف التلقائي عن أسماء الأعمدة من الصف الأول
+            importColumnMap = autoDetectColumns(rows[0]);
+
             var map = {};
             var order = [];
 
             rows.forEach(function(r, rowIndex) {
 
-                // دالة مساعدة للبحث عن قيمة عمود بأسماء مختلفة
-                function getColumnValue(columnNames) {
-                    for (var i = 0; i < columnNames.length; i++) {
-                        var colName = columnNames[i];
-                        if (r[colName] !== undefined && r[colName] !== null && r[colName] !== '') {
-                            var val = importNormStr(r[colName]);
-                            if (val) {
-                                return val;
-                            }
-                        }
+                // دالة مساعدة للحصول على قيمة عمود باستخدام الخريطة
+                function getValue(columnType, defaultValue) {
+                    var colName = importColumnMap[columnType];
+                    if (colName && r[colName] !== undefined && r[colName] !== null && r[colName] !== '') {
+                        return importNormStr(r[colName]);
                     }
-                    return null;
+                    return defaultValue || null;
                 }
 
-                // ✅ البحث عن رقم الفاتورة بأسماء محتملة مختلفة
-                var invNo = getColumnValue(['رقم الفاتورة', 'رقم الفاتورة ', 'Invoice No', 'invoice_no', 'رقم الفاتورة']);
-                // إذا لم يتم العثور على رقم فاتورة، تخطي الصف مع رسالة واضحة
+                // دالة مساعدة للحصول على قيمة رقمية
+                function getNumberValue(columnType, defaultValue) {
+                    var colName = importColumnMap[columnType];
+                    if (colName && r[colName] !== undefined && r[colName] !== null && r[colName] !== '') {
+                        return importNormNum(r[colName]);
+                    }
+                    return defaultValue || 0;
+                }
+
+                // ✅ الحصول على رقم الفاتورة
+                var invNo = getValue('invoiceNo');
                 if (!invNo) {
-                    console.warn('⚠️ صف رقم ' + (rowIndex + 1) + ' لا يحتوي على رقم فاتورة (تم البحث بأسماء متعددة)، سيتم تخطيه');
+                    console.warn('⚠️ صف رقم ' + (rowIndex + 1) + ' لا يحتوي على رقم فاتورة، سيتم تخطيه');
                     return;
                 }
 
-                // تطبيع رقم الفاتورة (إزالة المسافات الزائدة وتحويل إلى نص)
+                // تطبيع رقم الفاتورة
                 invNo = invNo.trim().toString();
 
                 // ✅ التحقق من اسم الحساب - نستورد فقط المبيعات (نتجاهل المرتجعات)
-                var accountName = importNormStr(r['اسم الحساب'] || r['account_name'] || '');
+                var accountName = getValue('accountName', '');
                 if (accountName.toLowerCase().includes('مرتجع')) {
                     console.log('ℹ️ تخطي صف مرتجع في الفاتورة:', invNo);
                     return;
                 }
 
-                var productCode = importNormStr(r['الكود'] || r['code']);
-                var productName = importNormStr(r['المبيعات'] || r['product_name'] || r['المنتج']);
-                var qty = importNormNum(r['العدد'] || r['quantity']);
-                var total = importNormNum(r['اجمالي مبيعات'] || r['total']);
-                var weight = r['الوزن'] != null ? importNormNum(r['الوزن']) : null;
-                var price = importNormNum(r['سعر البيع'] || r['sell_price']);
+                var productCode = getValue('productCode', '');
+                var productName = getValue('productName', '');
+                var qty = getNumberValue('quantity');
+                var total = getNumberValue('total');
+                var weight = getNumberValue('weight', null);
+                var price = getNumberValue('sellPrice');
 
                 // ✅ التحقق من أن هذا ناولون
                 var isDelivery = productName.toLowerCase().includes('ناولون') || productCode === '+';
@@ -4250,10 +4348,10 @@
                 if (!map[invNo]) {
                     map[invNo] = {
                         originalNo: invNo,
-                        dateISO: importExcelDateToISO(r['التاريخ'] || r['date']),
-                        clientCode: importNormStr(r['كود العميل'] || r['client_code']),
-                        clientName: importNormStr(r['اسم العميل'] || r['client_name']),
-                        rep: importNormStr(r['المندوب'] || r['rep']),
+                        dateISO: importExcelDateToISO(getValue('date')),
+                        clientCode: getValue('clientCode', ''),
+                        clientName: getValue('clientName', ''),
+                        rep: getValue('rep', ''),
                         accountName: accountName,
                         locations: {},
                         items: [],
@@ -4287,8 +4385,8 @@
                     inv.hasZeroPriceItems = true;
                 }
 
-                if (!inv.dateISO) inv.dateISO = importExcelDateToISO(r['التاريخ'] || r['date']);
-                var loc = importNormStr(r['الموقع'] || r['location']);
+                if (!inv.dateISO) inv.dateISO = importExcelDateToISO(getValue('date'));
+                var loc = getValue('location');
                 if (loc) inv.locations[loc] = true;
 
                 var lineTotal = total || (qty * price);
@@ -4299,10 +4397,10 @@
                     unitPrice = lineTotal / qty;
                 }
 
-                var unit = importNormStr(r['العبوة'] || r['unit']);
-                var color = importNormStr(r['اللون']) || null;
-                var aggType = importNormStr(r['نوع الحصوة'] || r['aggregate_type']) || null;
-                var notes = importNormStr(r['ملاحظات']) || null;
+                var unit = getValue('unit', '');
+                var color = getValue('color', null);
+                var aggType = getValue('aggType', null);
+                var notes = getValue('notes', null);
 
                 inv.items.push({
                     code: productCode,
@@ -4681,29 +4779,60 @@
                 var totalAmount = validItems.reduce(function(s, x) { return s + x.item.total; }, 0);
                 var locs = Object.keys(inv.locations);
                 var isDeliveryOnly = inv.isDeliveryOnly || (validItems.length === 0 && inv.deliveryFee > 0);
+                var deliveryFee = inv.deliveryFee || 0;
 
                 try {
+                    // بناء كائن البيانات مع الأعمدة الموجودة فقط في الجدول
+                    var invoiceData = {
+                        company_id: companyId,
+                        invoice_no: newInvNo,
+                        client_id: client.id,
+                        client_name: client.name,
+                        invoice_date: dateISO,
+                        total_amount: totalAmount
+                    };
+
+                    // إضافة الحقول الاختيارية فقط إذا كانت موجودة
+                    if (user && user.id) invoiceData.user_id = user.id;
+                    if (inv.rep) invoiceData.rep_name = inv.rep;
+                    if (locs.length) invoiceData.location = locs.join('، ');
+
+                    // بناء الملاحظات مع تضمين الناولون إذا كان موجوداً
+                    var notesParts = [];
+                    if (isDeliveryOnly) {
+                        notesParts.push('مستوردة - ناولون فقط');
+                    } else if (validItems.length > 0) {
+                        notesParts.push('مستوردة من إكسيل');
+                    }
+                    if (deliveryFee > 0) {
+                        notesParts.push('الناولون: ' + deliveryFee.toFixed(2) + ' ر.س');
+                    }
+                    if (inv.originalNo) {
+                        notesParts.push('رقم دفتري: ' + inv.originalNo);
+                    }
+                    if (notesParts.length > 0) {
+                        invoiceData.notes = notesParts.join(' | ');
+                    }
+
+                    console.log('📤 محاولة حفظ الفاتورة:', JSON.stringify(invoiceData, null, 2));
+
                     var invRes = await fetch(SUPABASE_URL + '/rest/v1/sales_invoices', {
                         method: 'POST',
-                        headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token,
-                            'Content-Type': 'application/json', Prefer: 'return=representation' },
-                        body: JSON.stringify({
-                            company_id: companyId,
-                            user_id: user && user.id ? user.id : null,
-                            invoice_no: newInvNo,
-                            client_id: client.id,
-                            client_name: client.name,
-                            invoice_date: dateISO,
-                            status: 'مرحلة',
-                            notes: isDeliveryOnly ? 'مستوردة - ناولون فقط' : 'مستوردة من إكسيل',
-                            total_amount: totalAmount,
-                            delivery_fee: inv.deliveryFee || 0,
-                            original_invoice_no: inv.originalNo,
-                            rep_name: inv.rep || null,
-                            location: locs.length ? locs.join('، ') : null
-                        })
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + token,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=representation'
+                        },
+                        body: JSON.stringify(invoiceData)
                     });
-                    if (!invRes.ok) throw new Error(await invRes.text());
+
+                    if (!invRes.ok) {
+                        var errorText = await invRes.text();
+                        console.error('❌ خطأ في حفظ الفاتورة:', invRes.status, errorText);
+                        throw new Error('فشل حفظ الفاتورة: ' + errorText);
+                    }
+
                     var invData = await invRes.json();
                     var invoiceId = invData[0] ? invData[0].id : invData.id;
                     if (!invoiceId) throw new Error('لم يتم إرجاع معرف الفاتورة');
@@ -4730,8 +4859,12 @@
                         });
                         var mvRes = await fetch(SUPABASE_URL + '/rest/v1/finished_goods_movements', {
                             method: 'POST',
-                            headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token,
-                                'Content-Type': 'application/json', Prefer: 'return=representation' },
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': 'Bearer ' + token,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'return=representation'
+                            },
                             body: JSON.stringify(mvBody)
                         });
                         if (!mvRes.ok) throw new Error(await mvRes.text());
@@ -4760,22 +4893,26 @@
                         });
                         var itemRes = await fetch(SUPABASE_URL + '/rest/v1/sales_invoice_items', {
                             method: 'POST',
-                            headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token,
-                                'Content-Type': 'application/json', Prefer: 'return=representation' },
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': 'Bearer ' + token,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'return=representation'
+                            },
                             body: JSON.stringify(itemsBody)
                         });
                         if (!itemRes.ok) throw new Error(await itemRes.text());
                     }
 
-                    clientDelta[client.id] = (clientDelta[client.id] || 0) + totalAmount + (inv.deliveryFee || 0);
+                    clientDelta[client.id] = (clientDelta[client.id] || 0) + totalAmount + deliveryFee;
                     okCount++;
                     var invoiceType = isDeliveryOnly ? ' (ناولون فقط)' : '';
                     importLogFast('✓ تم استيراد رقم أصلي ' + inv.originalNo + ' (' + newInvNo + ')' + invoiceType +
-                        ' — ' + client.name + ' — ' + (totalAmount + (inv.deliveryFee || 0)).toLocaleString(
-                        'ar-EG'));
+                        ' — ' + client.name + ' — ' + (totalAmount + deliveryFee).toLocaleString('ar-EG'));
                 } catch (err) {
                     failCount++;
                     importLogFast('✗ خطأ في رقم أصلي ' + inv.originalNo + ': ' + err.message);
+                    console.error('❌ تفاصيل الخطأ:', err);
                 }
                 doneCount++;
                 updateProgress();
@@ -4807,8 +4944,11 @@
                     try {
                         await fetch(SUPABASE_URL + '/rest/v1/clients?id=eq.' + clientId, {
                             method: 'PATCH',
-                            headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token,
-                                'Content-Type': 'application/json' },
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': 'Bearer ' + token,
+                                'Content-Type': 'application/json'
+                            },
                             body: JSON.stringify({
                                 total_sales: (parseFloat(c.total_sales) || 0) + clientDelta[clientId],
                                 due_balance: (parseFloat(c.due_balance) || 0) + clientDelta[clientId]
