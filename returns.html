@@ -791,6 +791,9 @@
             <div class="search-title">
                 <i class="fas fa-search"></i>
                 البحث عن فاتورة مبيعات
+                <span style="font-size:0.6rem;color:var(--ink-mute);font-weight:600;margin-right:auto;">
+                    <i class="fas fa-info-circle"></i> اختر فاتورة لعرض منتجاتها لاسترجاعها
+                </span>
             </div>
             <div class="search-row">
                 <div class="form-group">
@@ -887,8 +890,8 @@
                     <div class="value total-credit" id="totalCredit">0.00</div>
                 </div>
                 <div class="summary-item" style="border-color:var(--rust);">
-                    <div class="label">حالة المرتجع</div>
-                    <div class="value" id="returnStatus" style="font-size:0.8rem;color:var(--rust);">جاري التجهيز</div>
+                    <div class="label">رقم فاتورة المرتجع</div>
+                    <div class="value" id="returnInvoiceNo" style="font-size:0.85rem;color:var(--accent-ink);font-family:var(--font-mono);">جاري التجهيز</div>
                 </div>
             </div>
             <div class="return-actions">
@@ -1000,6 +1003,22 @@
                 return false;
             } catch (e) {
                 return true;
+            }
+        }
+
+        async function getCurrentUserProfile() {
+            try {
+                var token = await getValidToken();
+                if (!token) return null;
+                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=id,name,email,role&limit=1', {
+                    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
+                });
+                if (!response.ok) return null;
+                var data = await response.json();
+                return data && data.length > 0 ? data[0] : null;
+            } catch (error) {
+                console.error('❌ خطأ في جلب البروفايل:', error);
+                return null;
             }
         }
 
@@ -1356,7 +1375,11 @@
                     return_qty: 0,
                     is_free: item.is_free === true || item.unit_price === 0,
                     invoice_item_id: item.id,
-                    invoice_id: item.invoice_id
+                    invoice_id: item.invoice_id,
+                    unit_weight: item.unit_weight || null,
+                    total_weight: item.total_weight || null,
+                    color: item.color || null,
+                    aggregate_type: item.aggregate_type || null
                 };
             });
 
@@ -1370,6 +1393,9 @@
             });
 
             updateSummary();
+            // إعادة تعيين رقم فاتورة المرتجع
+            document.getElementById('returnInvoiceNo').textContent = 'جاري التجهيز...';
+            document.getElementById('returnInvoiceNo').style.color = 'var(--ink-mute)';
         }
 
         function updateReturnQty(index) {
@@ -1435,9 +1461,15 @@
             if (totalReturnQty === 0) {
                 statusEl.textContent = '⚠️ لم يتم تحديد أي مرتجع';
                 statusEl.style.color = 'var(--ink-mute)';
+                document.getElementById('returnInvoiceNo').textContent = 'جاري التجهيز...';
+                document.getElementById('returnInvoiceNo').style.color = 'var(--ink-mute)';
             } else {
                 statusEl.textContent = '✅ جاهز للتنفيذ (' + totalReturnQty + ' وحدة)';
                 statusEl.style.color = 'var(--teal)';
+                // توليد رقم فاتورة مرتجع مؤقت للعرض
+                var tempNo = 'RET-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 99999) + 1).padStart(5, '0');
+                document.getElementById('returnInvoiceNo').textContent = tempNo + ' (سيتغير عند الحفظ)';
+                document.getElementById('returnInvoiceNo').style.color = 'var(--accent-ink)';
             }
         }
 
@@ -1447,6 +1479,8 @@
             document.getElementById('totalCredit').textContent = '0.00';
             document.getElementById('returnStatus').textContent = 'جاري التجهيز';
             document.getElementById('returnStatus').style.color = 'var(--rust)';
+            document.getElementById('returnInvoiceNo').textContent = 'جاري التجهيز...';
+            document.getElementById('returnInvoiceNo').style.color = 'var(--ink-mute)';
         }
 
         // ============================================================
@@ -1462,7 +1496,48 @@
         });
 
         // ============================================================
-        // PROCESS RETURN
+        // GENERATE RETURN INVOICE NUMBER (يدوياً من قاعدة البيانات)
+        // ============================================================
+        async function generateReturnInvoiceNo(companyId, token) {
+            var now = new Date();
+            var year = now.getFullYear();
+            var prefix = 'RET-' + year + '-';
+
+            try {
+                // محاولة جلب آخر رقم من جدول return_invoices
+                var response = await fetch(
+                    SUPABASE_URL + '/rest/v1/return_invoices?select=return_invoice_no&company_id=eq.' + companyId +
+                    '&return_invoice_no=like.' + prefix + '%&order=return_invoice_no.desc&limit=1',
+                    {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + token
+                        }
+                    }
+                );
+
+                if (!response.ok) throw new Error('فشل جلب آخر رقم');
+
+                var data = await response.json();
+                var nextSeq = 1;
+
+                if (data && data.length > 0 && data[0].return_invoice_no) {
+                    var match = data[0].return_invoice_no.match(/(\d+)$/);
+                    if (match) {
+                        nextSeq = parseInt(match[1], 10) + 1;
+                    }
+                }
+
+                return prefix + String(nextSeq).padStart(5, '0');
+
+            } catch (error) {
+                console.warn('⚠️ فشل في جلب آخر رقم، استخدام الرقم 1:', error);
+                return prefix + '00001';
+            }
+        }
+
+        // ============================================================
+        // PROCESS RETURN (باستخدام دفتر مستقل)
         // ============================================================
         document.getElementById('btnProcessReturn').addEventListener('click', async function() {
             if (!currentInvoice) {
@@ -1485,6 +1560,7 @@
                 if (!token) throw new Error('جلسة غير صالحة');
 
                 var companyId = await getCompanyId();
+                var user = await getCurrentUserProfile();
                 if (!companyId) throw new Error('لم يتم العثور على company_id');
 
                 var returnItemsToProcess = returnItems.filter(function(item) { return (item.return_qty || 0) > 0; });
@@ -1492,10 +1568,12 @@
                     return sum + (item.return_qty * item.unit_price);
                 }, 0);
 
-                var returnInvoiceNo = 'RET-' + currentInvoice.invoice_no;
+                // ✅ 1. توليد رقم فاتورة مرتجع جديد (من دفتر المرتجعات)
+                var returnInvoiceNo = await generateReturnInvoiceNo(companyId, token);
+                console.log('📄 رقم فاتورة المرتجع:', returnInvoiceNo);
 
-                // 1. Create return invoice
-                var invResponse = await fetch(SUPABASE_URL + '/rest/v1/sales_invoices', {
+                // ✅ 2. إنشاء فاتورة مرتجع في جدول return_invoices
+                var returnInvResponse = await fetch(SUPABASE_URL + '/rest/v1/return_invoices', {
                     method: 'POST',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
@@ -1505,44 +1583,45 @@
                     },
                     body: JSON.stringify({
                         company_id: companyId,
-                        invoice_no: returnInvoiceNo,
+                        return_invoice_no: returnInvoiceNo,
+                        original_invoice_id: currentInvoice.id,
+                        original_invoice_no: currentInvoice.invoice_no,
                         client_id: currentInvoice.client_id,
                         client_name: currentInvoice.client_name,
-                        invoice_date: new Date().toISOString().slice(0, 10),
+                        return_date: new Date().toISOString().slice(0, 10),
+                        total_return_value: totalReturn,
                         status: 'مرتجع',
-                        total_amount: -totalReturn,
-                        notes: 'مرتجع عن فاتورة ' + currentInvoice.invoice_no,
-                        original_invoice_no: currentInvoice.invoice_no,
-                        rep_name: currentInvoice.rep_name || null,
-                        location: currentInvoice.location || null,
-                        return_status: 'مرتجع جزئي'
+                        notes: 'مرتجع عن فاتورة ' + currentInvoice.invoice_no + ' (' + returnItemsToProcess.length + ' منتج)',
+                        created_by: user?.id || null
                     })
                 });
 
-                if (!invResponse.ok) {
-                    var errorText = await invResponse.text();
+                if (!returnInvResponse.ok) {
+                    var errorText = await returnInvResponse.text();
                     throw new Error('فشل إنشاء فاتورة المرتجع: ' + errorText);
                 }
 
-                var invData = await invResponse.json();
-                var returnInvoiceId = invData[0]?.id || invData.id;
+                var returnInvData = await returnInvResponse.json();
+                var returnInvoiceId = returnInvData[0]?.id || returnInvData.id;
 
-                // 2. Process each returned item
+                // ✅ 3. إنشاء بنود المرتجع في return_invoice_items
                 for (var i = 0; i < returnItemsToProcess.length; i++) {
                     var item = returnItemsToProcess[i];
                     var returnQty = item.return_qty;
                     var returnValue = returnQty * item.unit_price;
 
-                    // Stock movement (return = add back to stock)
-                    await fetch(SUPABASE_URL + '/rest/v1/finished_goods_movements', {
+                    // حركة مخزون (وارد)
+                    var mvResponse = await fetch(SUPABASE_URL + '/rest/v1/finished_goods_movements', {
                         method: 'POST',
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
                             'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=representation'
                         },
                         body: JSON.stringify({
                             company_id: companyId,
+                            user_id: user?.id || null,
                             product_id: item.product_id,
                             product_name: item.product_name,
                             type: 'وارد',
@@ -1550,34 +1629,52 @@
                             unit_cost: item.unit_price,
                             total_value: returnValue,
                             reference: returnInvoiceNo,
-                            notes: 'مرتجع - عن فاتورة ' + currentInvoice.invoice_no,
+                            notes: 'مرتجع - فاتورة ' + returnInvoiceNo + ' عن ' + currentInvoice.invoice_no,
                             movement_date: new Date().toISOString().slice(0, 10)
                         })
                     });
 
-                    // Return invoice item
-                    await fetch(SUPABASE_URL + '/rest/v1/sales_invoice_items', {
+                    if (!mvResponse.ok) {
+                        var mvError = await mvResponse.text();
+                        throw new Error('فشل إنشاء حركة المخزون: ' + mvError);
+                    }
+
+                    var mvData = await mvResponse.json();
+                    var movementId = mvData[0]?.id || mvData.id;
+
+                    // بند المرتجع في جدول return_invoice_items
+                    var itemResponse = await fetch(SUPABASE_URL + '/rest/v1/return_invoice_items', {
                         method: 'POST',
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
                             'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=representation'
                         },
                         body: JSON.stringify({
-                            company_id: companyId,
-                            invoice_id: returnInvoiceId,
+                            return_invoice_id: returnInvoiceId,
                             product_id: item.product_id,
                             product_name: item.product_name,
-                            quantity: -returnQty,
+                            original_quantity: item.quantity,
+                            returned_quantity: returnQty,
                             unit_price: item.unit_price,
+                            line_total: returnValue,
                             unit: item.unit || '',
-                            line_total: -returnValue,
-                            is_free: item.is_free || false
+                            unit_weight: item.unit_weight || null,
+                            total_weight: item.total_weight || null,
+                            color: item.color || null,
+                            aggregate_type: item.aggregate_type || null,
+                            movement_id: movementId
                         })
                     });
+
+                    if (!itemResponse.ok) {
+                        var itemError = await itemResponse.text();
+                        throw new Error('فشل إنشاء بند المرتجع: ' + itemError);
+                    }
                 }
 
-                // 3. Update client balance
+                // ✅ 4. تحديث رصيد العميل (خصم قيمة المرتجع)
                 var client = allClients.find(function(c) { return c.id == currentInvoice.client_id; });
                 if (client) {
                     await fetch(SUPABASE_URL + '/rest/v1/clients?id=eq.' + currentInvoice.client_id, {
@@ -1593,7 +1690,7 @@
                     });
                 }
 
-                // 4. Update original invoice return_status
+                // ✅ 5. تحديث حالة الفاتورة الأصلية
                 await fetch(SUPABASE_URL + '/rest/v1/sales_invoices?id=eq.' + currentInvoice.id, {
                     method: 'PATCH',
                     headers: {
@@ -1607,7 +1704,7 @@
                 });
 
                 showToast('✅ تم تنفيذ المرتجع',
-                    'تم استرجاع ' + returnItemsToProcess.length + ' منتج بقيمة ' + formatNum(totalReturn),
+                    'فاتورة مرتجع رقم: ' + returnInvoiceNo + ' بقيمة ' + formatNum(totalReturn),
                     'success');
 
                 resetReturnItems();
@@ -1650,6 +1747,8 @@
                 return sum + (item.return_qty * item.unit_price);
             }, 0);
 
+            var returnInvoiceNo = document.getElementById('returnInvoiceNo').textContent || 'RET-*****';
+
             var content = `
                 <div style="font-family:'Cairo',Arial,sans-serif;direction:rtl;padding:20px;max-width:300px;margin:0 auto;">
                     <div style="text-align:center;border-bottom:2px solid #dd9f2e;padding-bottom:12px;margin-bottom:14px;">
@@ -1657,6 +1756,7 @@
                         <p style="font-size:11px;color:#6d7883;">QuickData ProSoft</p>
                     </div>
                     <div style="font-size:12px;margin-bottom:12px;">
+                        <p><strong>رقم المرتجع:</strong> ${returnInvoiceNo}</p>
                         <p><strong>الفاتورة الأصلية:</strong> ${invoiceNo}</p>
                         <p><strong>العميل:</strong> ${clientName}</p>
                         <p><strong>التاريخ:</strong> ${new Date().toLocaleDateString('ar-EG')}</p>
@@ -1764,7 +1864,7 @@
         // INIT
         // ============================================================
         (async function init() {
-            console.log('🔄 صفحة مرتجعات المبيعات - QuickData ProSoft');
+            console.log('🔄 صفحة مرتجعات المبيعات - QuickData ProSoft (دفتر مستقل)');
 
             var sessionOk = await verifySessionOrRedirect();
             if (!sessionOk) return;
