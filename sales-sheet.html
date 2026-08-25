@@ -64,10 +64,17 @@
         max-width: 1500px;
         margin: 0 auto;
         min-height: 100vh;
-        background: var(--paper);
+        background:
+            repeating-linear-gradient(0deg, rgba(18,24,33,0.018) 0px, rgba(18,24,33,0.018) 1px, transparent 1px, transparent 32px),
+            var(--paper);
         display: flex;
         position: relative;
         box-shadow: 0 0 0 1px rgba(0,0,0,0.06);
+        animation: leaf-in .5s ease both;
+    }
+    @keyframes leaf-in {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
     /* binder rail with punched holes — sits on the bound edge (right, since RTL) */
@@ -90,6 +97,15 @@
         background: var(--paper);
         box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);
         flex-shrink: 0;
+        position: relative;
+    }
+    .binder-rail .ribbon {
+        position: absolute;
+        top: 0; right: 9px;
+        width: 12px; height: 64px;
+        background: var(--rust);
+        clip-path: polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%);
+        box-shadow: -1px 0 3px rgba(0,0,0,0.25);
     }
     .binder-rail .spine-label {
         writing-mode: vertical-rl;
@@ -126,7 +142,7 @@
     .seal {
         width: 54px; height: 54px; border-radius: 50%;
         border: 2px solid var(--accent);
-        outline: 1px solid var(--accent);
+        outline: 1px dashed var(--accent);
         outline-offset: 3px;
         display: flex; align-items: center; justify-content: center;
         flex-shrink: 0;
@@ -136,7 +152,14 @@
         font-size: 0.95rem;
         transform: rotate(-6deg);
         background: var(--accent-soft);
+        box-shadow:
+            0 0 0 3px var(--surface),
+            0.5px 0.5px 0 1px rgba(122,83,18,0.15),
+            -0.5px -0.5px 0 1px rgba(122,83,18,0.1);
+        text-shadow: 0.3px 0.3px 0 rgba(122,83,18,0.25);
+        transition: transform .25s ease;
     }
+    .seal:hover { transform: rotate(-2deg) scale(1.04); }
     .title-block { display: flex; align-items: center; gap: 16px; }
     .title-block .txt h1 {
         font-size: 1.28rem; font-weight: 800; color: var(--ink); letter-spacing: -0.01em;
@@ -193,9 +216,21 @@
         position: relative;
         color: var(--ink);
         mix-blend-mode: multiply;
+        transition: transform .18s ease;
+    }
+    .stat-card::before {
+        content: '';
+        display: inline-block;
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        margin-left: 6px;
+        vertical-align: middle;
+        opacity: 0.7;
     }
     .stat-card:nth-child(odd) { transform: rotate(-1.6deg); }
     .stat-card:nth-child(even) { transform: rotate(1.3deg); }
+    .stat-card:hover { transform: rotate(0deg) scale(1.03); }
     .stat-card b {
         display: inline-block; font-size: 1.05rem; font-weight: 800;
         font-family: var(--font-mono); letter-spacing: -0.02em;
@@ -218,7 +253,15 @@
         flex-wrap: wrap;
         align-items: center;
     }
-    .field { display: flex; flex-direction: column; gap: 3px; }
+    .field {
+        display: flex; flex-direction: column; gap: 3px;
+        background: var(--surface);
+        border: 1px solid var(--line-strong);
+        border-bottom: none;
+        padding: 7px 16px 9px;
+        margin-top: -12px;
+        clip-path: polygon(8% 0, 92% 0, 100% 100%, 0% 100%);
+    }
     .field .field-label {
         font-size: 0.62rem; color: var(--ink-mute); font-weight: 700;
         letter-spacing: 0.06em; text-transform: uppercase;
@@ -306,6 +349,16 @@
         text-transform: uppercase;
     }
     table.sheet thead th.num { text-align: center; }
+    table.sheet thead th:first-child {
+        border-left: 2px solid var(--rust);
+        color: var(--rust-soft);
+    }
+    table.sheet tbody td:first-child {
+        border-left: 2px solid var(--rust);
+        color: var(--rust);
+        font-family: var(--font-mono);
+        font-weight: 700;
+    }
     table.sheet tbody td {
         padding: 7px 12px;
         border-bottom: 1px solid var(--line);
@@ -315,6 +368,8 @@
         font-size: 0.74rem;
     }
     table.sheet tbody td.num { font-family: var(--font-mono); text-align: center; font-variant-numeric: tabular-nums; }
+    table.sheet tbody tr td { transition: background-color .1s ease; }
+    table.sheet tbody tr:hover td:first-child { box-shadow: inset 3px 0 0 var(--rust); }
     table.sheet tbody tr.group-alt td { background: var(--surface-muted); }
     table.sheet tbody tr.group-start td { border-top: 2px solid var(--line-strong); }
     table.sheet tbody tr.free-item td { background: var(--accent-soft); }
@@ -382,8 +437,10 @@
         .binder-rail { gap: 16px; padding: 18px 0; }
         .binder-rail .hole { width: 8px; height: 8px; }
         .binder-rail .spine-label { display: none; }
+        .binder-rail .ribbon { display: none; }
         .cover { padding: 16px 16px 12px; }
-        .filter-bar { padding: 10px 16px; gap: 14px; }
+        .filter-bar { padding: 14px 16px 10px; gap: 12px; }
+        .field { clip-path: none; margin-top: 0; border-bottom: 1px solid var(--line-strong); }
         table.sheet { font-size: 0.65rem; }
         table.sheet thead th, table.sheet tbody td { padding: 6px 8px; }
         .stats-row { gap: 10px; margin-top: 14px; }
@@ -398,6 +455,7 @@
 
 <div class="ledger">
     <div class="binder-rail" aria-hidden="true">
+        <div class="ribbon"></div>
         <div class="hole"></div>
         <div class="hole"></div>
         <div class="hole"></div>
