@@ -379,6 +379,55 @@
             background: #ffffff;
             box-shadow: 0 0 0 calc(3px * var(--scale-factor)) rgba(221,159,46,0.15);
         }
+
+        /* ✅ عميل مع اقتراحات - نفس نظام add-invoice */
+        .filter-bar .form-group.client-suggestions {
+            position: relative;
+            flex: 2;
+        }
+        .filter-bar .form-group.client-suggestions .suggestions-list {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            left: 0;
+            background: #ffffff;
+            border: 1px solid var(--line);
+            border-radius: calc(var(--radius-sm) * var(--scale-factor));
+            max-height: calc(200px * var(--scale-factor));
+            overflow-y: auto;
+            z-index: 999;
+            display: none;
+            box-shadow: var(--shadow);
+            margin-top: calc(2px * var(--scale-factor));
+        }
+        .filter-bar .form-group.client-suggestions .suggestions-list.show { display: block; }
+        .filter-bar .form-group.client-suggestions .suggestions-list .suggestion-item {
+            padding: calc(8px * var(--scale-factor)) calc(14px * var(--scale-factor));
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--line);
+            font-size: calc(0.8rem * var(--scale-factor));
+        }
+        .filter-bar .form-group.client-suggestions .suggestions-list .suggestion-item:last-child { border-bottom: none; }
+        .filter-bar .form-group.client-suggestions .suggestions-list .suggestion-item:hover { background: var(--accent-soft); }
+        .filter-bar .form-group.client-suggestions .suggestions-list .suggestion-item .client-phone {
+            font-size: calc(0.65rem * var(--scale-factor));
+            color: var(--ink-mute);
+        }
+        .filter-bar .form-group.client-suggestions .suggestions-list .suggestion-item.selected {
+            background: var(--accent-soft);
+            border-right: calc(3px * var(--scale-factor)) solid var(--accent);
+        }
+        .filter-bar .form-group.client-suggestions .suggestions-list .no-results {
+            padding: calc(12px * var(--scale-factor)) calc(14px * var(--scale-factor));
+            text-align: center;
+            color: var(--ink-mute);
+            font-size: calc(0.75rem * var(--scale-factor));
+        }
+
         .filter-bar .btn-filter {
             padding: calc(6px * var(--scale-factor)) calc(18px * var(--scale-factor));
             border-radius: calc(var(--radius-sm) * var(--scale-factor));
@@ -902,10 +951,15 @@
                 <label><i class="fas fa-hashtag"></i> رقم المرتجع</label>
                 <input type="text" id="filterReturnNo" placeholder="مثال: RET-2026-00001" />
             </div>
-            <div class="form-group">
+            
+            <!-- ✅ حقل العميل مع اقتراحات -->
+            <div class="form-group client-suggestions">
                 <label><i class="fas fa-user"></i> العميل</label>
-                <select id="filterClient"><option value="">جميع العملاء</option></select>
+                <input type="text" id="filterClientInput" placeholder="ابحث عن عميل..." autocomplete="off" />
+                <div class="suggestions-list" id="clientSuggestions"></div>
+                <input type="hidden" id="filterClient" value="" />
             </div>
+            
             <div class="form-group">
                 <label><i class="fas fa-calendar"></i> من تاريخ</label>
                 <input type="date" id="filterDateFrom" />
@@ -963,6 +1017,8 @@
         var allReturnItems = [];
         var allClients = [];
         var currentModalReturn = null;
+        var selectedClientId = null;
+        var selectedSuggestionIndex = -1;
 
         // ============================================================
         // TOAST
@@ -1016,6 +1072,139 @@
         window.showToast = showToast;
 
         // ============================================================
+        // CLIENT SUGGESTIONS (نفس نظام add-invoice)
+        // ============================================================
+        function showClientSuggestions(input) {
+            var searchTerm = input.trim().toLowerCase();
+            var suggestionsList = document.getElementById('clientSuggestions');
+
+            if (!searchTerm || searchTerm.length < 1) {
+                suggestionsList.classList.remove('show');
+                selectedSuggestionIndex = -1;
+                return;
+            }
+
+            var filtered = allClients.filter(function(client) {
+                return client.name.toLowerCase().includes(searchTerm) ||
+                    (client.phone && client.phone.includes(searchTerm)) ||
+                    (client.code && client.code.toLowerCase().includes(searchTerm));
+            });
+
+            var results = filtered.slice(0, 10);
+
+            if (results.length === 0) {
+                suggestionsList.innerHTML = `
+                    <div class="no-results">لا توجد نتائج مطابقة</div>
+                `;
+                suggestionsList.classList.add('show');
+                selectedSuggestionIndex = -1;
+                return;
+            }
+
+            var html = '';
+            results.forEach(function(client, index) {
+                html += `
+                    <div class="suggestion-item" onclick="selectClientFilter('${client.id}', '${client.name}')" data-index="${index}">
+                        <span>${client.code ? client.code + ' — ' : ''}${client.name}</span>
+                        ${client.phone ? `<span class="client-phone">📱 ${client.phone}</span>` : ''}
+                    </div>
+                `;
+            });
+
+            suggestionsList.innerHTML = html;
+            suggestionsList.classList.add('show');
+            selectedSuggestionIndex = -1;
+            updateSuggestionHighlight();
+        }
+
+        function updateSuggestionHighlight() {
+            var items = document.querySelectorAll('#clientSuggestions .suggestion-item');
+            items.forEach(function(item, index) {
+                item.classList.remove('selected');
+                if (index === selectedSuggestionIndex) {
+                    item.classList.add('selected');
+                    item.scrollIntoView({ block: 'nearest' });
+                }
+            });
+        }
+
+        function selectClientFilter(id, name) {
+            document.getElementById('filterClientInput').value = name;
+            document.getElementById('filterClient').value = id;
+            selectedClientId = id;
+            document.getElementById('clientSuggestions').classList.remove('show');
+            selectedSuggestionIndex = -1;
+            
+            // تحديث الجدول تلقائياً
+            renderTable();
+        }
+        window.selectClientFilter = selectClientFilter;
+
+        // إضافة مستمعات لأحداث الإدخال
+        document.getElementById('filterClientInput').addEventListener('input', function() {
+            var value = this.value.trim();
+            if (value.length >= 1) {
+                showClientSuggestions(value);
+            } else {
+                document.getElementById('clientSuggestions').classList.remove('show');
+                document.getElementById('filterClient').value = '';
+                selectedClientId = null;
+                selectedSuggestionIndex = -1;
+                renderTable();
+            }
+        });
+
+        document.getElementById('filterClientInput').addEventListener('keydown', function(e) {
+            var items = document.querySelectorAll('#clientSuggestions .suggestion-item');
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, items.length - 1);
+                    updateSuggestionHighlight();
+                }
+            }
+
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, 0);
+                    updateSuggestionHighlight();
+                }
+            }
+
+            if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
+                e.preventDefault();
+                var selectedItem = items[selectedSuggestionIndex];
+                if (selectedItem) {
+                    selectedItem.click();
+                }
+            }
+
+            if (e.key === 'Escape') {
+                document.getElementById('clientSuggestions').classList.remove('show');
+                selectedSuggestionIndex = -1;
+            }
+        });
+
+        document.getElementById('filterClientInput').addEventListener('blur', function() {
+            setTimeout(function() {
+                if (!document.activeElement || !document.activeElement.closest('.client-suggestions')) {
+                    document.getElementById('clientSuggestions').classList.remove('show');
+                    selectedSuggestionIndex = -1;
+                }
+            }, 200);
+        });
+
+        document.addEventListener('click', function(e) {
+            var container = document.querySelector('.client-suggestions');
+            if (container && !container.contains(e.target)) {
+                document.getElementById('clientSuggestions').classList.remove('show');
+                selectedSuggestionIndex = -1;
+            }
+        });
+
+        // ============================================================
         // LOAD DATA
         // ============================================================
         async function loadData() {
@@ -1062,17 +1251,16 @@
                     allReturnItems = [];
                 }
 
-                // جلب العملاء للفلترة
+                // جلب العملاء
                 var { data: clients, error: clientsError } = await supabaseClient
                     .from('clients')
-                    .select('id,name,code')
+                    .select('id,name,code,phone')
                     .eq('company_id', companyId)
                     .order('name');
 
                 if (clientsError) throw new Error(clientsError.message);
                 allClients = clients || [];
 
-                populateClientFilter();
                 renderStats();
                 renderTable();
 
@@ -1082,26 +1270,6 @@
                 console.error('❌ خطأ في تحميل البيانات:', error);
                 showToast('❌ خطأ', error.message || 'فشل تحميل البيانات', 'error');
             }
-        }
-
-        // ============================================================
-        // POPULATE CLIENT FILTER
-        // ============================================================
-        function populateClientFilter() {
-            var select = document.getElementById('filterClient');
-            var currentVal = select.value;
-            select.innerHTML = '<option value="">جميع العملاء</option>';
-            var names = {};
-            allClients.forEach(function(c) {
-                if (c.name && !names[c.name]) {
-                    names[c.name] = true;
-                    var opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = c.name + (c.code ? ' (' + c.code + ')' : '');
-                    select.appendChild(opt);
-                }
-            });
-            if (currentVal) select.value = currentVal;
         }
 
         // ============================================================
@@ -1118,7 +1286,6 @@
                 if (r.client_id) clientsSet[r.client_id] = true;
             });
 
-            // حساب عدد المنتجات المرتجعة
             allReturnItems.forEach(function(item) {
                 totalItems += parseFloat(item.returned_quantity) || 0;
             });
@@ -1194,16 +1361,10 @@
             var dateTo = document.getElementById('filterDateTo').value;
 
             return allReturns.filter(function(r) {
-                // فلترة رقم المرتجع
                 if (returnNo && !r.return_invoice_no.toLowerCase().includes(returnNo)) return false;
-
-                // فلترة العميل
                 if (clientId && r.client_id !== clientId) return false;
-
-                // فلترة التاريخ
                 if (dateFrom && r.return_date < dateFrom) return false;
                 if (dateTo && r.return_date > dateTo) return false;
-
                 return true;
             });
         }
@@ -1224,7 +1385,6 @@
                 return item.return_invoice_id === returnInvoice.id;
             });
 
-            // تفاصيل المرتجع
             var detailGrid = document.getElementById('detailGrid');
             detailGrid.innerHTML = `
                 <div class="detail-item">
@@ -1257,7 +1417,6 @@
                 </div>
             `;
 
-            // بنود المرتجع
             var itemsContainer = document.getElementById('modalItemsContainer');
             if (items.length === 0) {
                 itemsContainer.innerHTML = '<p style="text-align:center;color:var(--ink-mute);padding:20px;">لا توجد منتجات في هذا المرتجع</p>';
@@ -1295,7 +1454,6 @@
                     `;
                 });
 
-                // إجمالي
                 var totalReturn = items.reduce(function(sum, item) {
                     return sum + (parseFloat(item.line_total) || 0);
                 }, 0);
@@ -1455,7 +1613,6 @@
 
                 showToast('⏳ جاري التنفيذ', 'جاري إلغاء المرتجع...', 'warning');
 
-                // 1. حذف بنود المرتجع
                 var { error: itemsError } = await supabaseClient
                     .from('return_invoice_items')
                     .delete()
@@ -1463,7 +1620,6 @@
 
                 if (itemsError) throw new Error('فشل حذف بنود المرتجع: ' + itemsError.message);
 
-                // 2. حذف فاتورة المرتجع
                 var { error: returnError } = await supabaseClient
                     .from('return_invoices')
                     .delete()
@@ -1471,7 +1627,6 @@
 
                 if (returnError) throw new Error('فشل حذف المرتجع: ' + returnError.message);
 
-                // 3. إعادة تحميل البيانات
                 await loadData();
 
                 showToast('✅ تم الإلغاء', 'تم إلغاء المرتجع بنجاح', 'success');
@@ -1565,13 +1720,15 @@
 
         document.getElementById('btnResetFilter').addEventListener('click', function() {
             document.getElementById('filterReturnNo').value = '';
+            document.getElementById('filterClientInput').value = '';
             document.getElementById('filterClient').value = '';
             document.getElementById('filterDateFrom').value = '';
             document.getElementById('filterDateTo').value = '';
+            document.getElementById('clientSuggestions').classList.remove('show');
+            selectedClientId = null;
             renderTable();
         });
 
-        // Enter key for filter
         document.getElementById('filterReturnNo').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') renderTable();
         });
@@ -1630,7 +1787,6 @@
             startSessionMonitor();
             await loadData();
 
-            // تحديث تلقائي كل 60 ثانية
             setInterval(function() {
                 loadData();
             }, 60000);
