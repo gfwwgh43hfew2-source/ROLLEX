@@ -11,6 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
+        /* === نفس الاستايلات السابقة === */
         :root {
             --ink: #121821;
             --ink-soft: #2c3644;
@@ -566,6 +567,11 @@
         .return-summary .summary-item .value.total-return { color: var(--rust); }
         .return-summary .summary-item .value.total-credit { color: var(--teal); }
         .return-summary .summary-item .value.total-items { color: var(--accent-ink); }
+        .return-summary .summary-item .value.return-no { 
+            color: var(--accent-ink); 
+            font-size: 0.85rem;
+            font-family: var(--font-mono);
+        }
 
         .return-actions {
             display: flex;
@@ -889,9 +895,9 @@
                     <div class="label">المبلغ المسترد للعميل</div>
                     <div class="value total-credit" id="totalCredit">0.00</div>
                 </div>
-                <div class="summary-item" style="border-color:var(--rust);">
+                <div class="summary-item" style="border-color:var(--accent);">
                     <div class="label">رقم فاتورة المرتجع</div>
-                    <div class="value" id="returnInvoiceNo" style="font-size:0.85rem;color:var(--accent-ink);font-family:var(--font-mono);">جاري التجهيز</div>
+                    <div class="value return-no" id="returnInvoiceNo">جاري التجهيز...</div>
                 </div>
             </div>
             <div class="return-actions">
@@ -924,7 +930,6 @@
         var currentItems = [];
         var returnItems = [];
         var allClients = [];
-        var allInvoices = [];
 
         // ============================================================
         // AUTH HELPERS
@@ -1393,9 +1398,6 @@
             });
 
             updateSummary();
-            // إعادة تعيين رقم فاتورة المرتجع
-            document.getElementById('returnInvoiceNo').textContent = 'جاري التجهيز...';
-            document.getElementById('returnInvoiceNo').style.color = 'var(--ink-mute)';
         }
 
         function updateReturnQty(index) {
@@ -1442,7 +1444,7 @@
         }
 
         // ============================================================
-        // UPDATE SUMMARY
+        // UPDATE SUMMARY - المعدل (مع التحقق من وجود العناصر)
         // ============================================================
         function updateSummary() {
             var totalReturnQty = 0;
@@ -1453,34 +1455,61 @@
                 totalReturnValue += (item.return_qty || 0) * item.unit_price;
             });
 
-            document.getElementById('totalReturnQty').textContent = totalReturnQty;
-            document.getElementById('totalReturnValue').textContent = formatNum(totalReturnValue);
-            document.getElementById('totalCredit').textContent = formatNum(totalReturnValue);
+            var totalReturnQtyEl = document.getElementById('totalReturnQty');
+            var totalReturnValueEl = document.getElementById('totalReturnValue');
+            var totalCreditEl = document.getElementById('totalCredit');
+            var returnStatusEl = document.getElementById('returnStatus');
+            var returnInvoiceNoEl = document.getElementById('returnInvoiceNo');
 
-            var statusEl = document.getElementById('returnStatus');
-            if (totalReturnQty === 0) {
-                statusEl.textContent = '⚠️ لم يتم تحديد أي مرتجع';
-                statusEl.style.color = 'var(--ink-mute)';
-                document.getElementById('returnInvoiceNo').textContent = 'جاري التجهيز...';
-                document.getElementById('returnInvoiceNo').style.color = 'var(--ink-mute)';
-            } else {
-                statusEl.textContent = '✅ جاهز للتنفيذ (' + totalReturnQty + ' وحدة)';
-                statusEl.style.color = 'var(--teal)';
-                // توليد رقم فاتورة مرتجع مؤقت للعرض
-                var tempNo = 'RET-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 99999) + 1).padStart(5, '0');
-                document.getElementById('returnInvoiceNo').textContent = tempNo + ' (سيتغير عند الحفظ)';
-                document.getElementById('returnInvoiceNo').style.color = 'var(--accent-ink)';
+            if (totalReturnQtyEl) totalReturnQtyEl.textContent = totalReturnQty;
+            if (totalReturnValueEl) totalReturnValueEl.textContent = formatNum(totalReturnValue);
+            if (totalCreditEl) totalCreditEl.textContent = formatNum(totalReturnValue);
+
+            if (returnStatusEl) {
+                if (totalReturnQty === 0) {
+                    returnStatusEl.textContent = '⚠️ لم يتم تحديد أي مرتجع';
+                    returnStatusEl.style.color = 'var(--ink-mute)';
+                } else {
+                    returnStatusEl.textContent = '✅ جاهز للتنفيذ (' + totalReturnQty + ' وحدة)';
+                    returnStatusEl.style.color = 'var(--teal)';
+                }
+            }
+
+            if (returnInvoiceNoEl) {
+                if (totalReturnQty === 0) {
+                    returnInvoiceNoEl.textContent = 'جاري التجهيز...';
+                    returnInvoiceNoEl.style.color = 'var(--ink-mute)';
+                } else {
+                    var tempNo = 'RET-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 99999) + 1).padStart(5, '0');
+                    returnInvoiceNoEl.textContent = tempNo + ' (سيتغير عند الحفظ)';
+                    returnInvoiceNoEl.style.color = 'var(--accent-ink)';
+                }
             }
         }
 
+        // ============================================================
+        // RESET SUMMARY - المعدل (مع التحقق من وجود العناصر)
+        // ============================================================
         function resetSummary() {
-            document.getElementById('totalReturnQty').textContent = '0';
-            document.getElementById('totalReturnValue').textContent = '0.00';
-            document.getElementById('totalCredit').textContent = '0.00';
-            document.getElementById('returnStatus').textContent = 'جاري التجهيز';
-            document.getElementById('returnStatus').style.color = 'var(--rust)';
-            document.getElementById('returnInvoiceNo').textContent = 'جاري التجهيز...';
-            document.getElementById('returnInvoiceNo').style.color = 'var(--ink-mute)';
+            var totalReturnQtyEl = document.getElementById('totalReturnQty');
+            var totalReturnValueEl = document.getElementById('totalReturnValue');
+            var totalCreditEl = document.getElementById('totalCredit');
+            var returnStatusEl = document.getElementById('returnStatus');
+            var returnInvoiceNoEl = document.getElementById('returnInvoiceNo');
+
+            if (totalReturnQtyEl) totalReturnQtyEl.textContent = '0';
+            if (totalReturnValueEl) totalReturnValueEl.textContent = '0.00';
+            if (totalCreditEl) totalCreditEl.textContent = '0.00';
+            
+            if (returnStatusEl) {
+                returnStatusEl.textContent = 'جاري التجهيز';
+                returnStatusEl.style.color = 'var(--rust)';
+            }
+            
+            if (returnInvoiceNoEl) {
+                returnInvoiceNoEl.textContent = 'جاري التجهيز...';
+                returnInvoiceNoEl.style.color = 'var(--ink-mute)';
+            }
         }
 
         // ============================================================
@@ -1496,7 +1525,7 @@
         });
 
         // ============================================================
-        // GENERATE RETURN INVOICE NUMBER (يدوياً من قاعدة البيانات)
+        // GENERATE RETURN INVOICE NUMBER
         // ============================================================
         async function generateReturnInvoiceNo(companyId, token) {
             var now = new Date();
@@ -1504,7 +1533,6 @@
             var prefix = 'RET-' + year + '-';
 
             try {
-                // محاولة جلب آخر رقم من جدول return_invoices
                 var response = await fetch(
                     SUPABASE_URL + '/rest/v1/return_invoices?select=return_invoice_no&company_id=eq.' + companyId +
                     '&return_invoice_no=like.' + prefix + '%&order=return_invoice_no.desc&limit=1',
@@ -1537,7 +1565,7 @@
         }
 
         // ============================================================
-        // PROCESS RETURN (باستخدام دفتر مستقل)
+        // PROCESS RETURN
         // ============================================================
         document.getElementById('btnProcessReturn').addEventListener('click', async function() {
             if (!currentInvoice) {
@@ -1568,11 +1596,9 @@
                     return sum + (item.return_qty * item.unit_price);
                 }, 0);
 
-                // ✅ 1. توليد رقم فاتورة مرتجع جديد (من دفتر المرتجعات)
                 var returnInvoiceNo = await generateReturnInvoiceNo(companyId, token);
                 console.log('📄 رقم فاتورة المرتجع:', returnInvoiceNo);
 
-                // ✅ 2. إنشاء فاتورة مرتجع في جدول return_invoices
                 var returnInvResponse = await fetch(SUPABASE_URL + '/rest/v1/return_invoices', {
                     method: 'POST',
                     headers: {
@@ -1604,13 +1630,11 @@
                 var returnInvData = await returnInvResponse.json();
                 var returnInvoiceId = returnInvData[0]?.id || returnInvData.id;
 
-                // ✅ 3. إنشاء بنود المرتجع في return_invoice_items
                 for (var i = 0; i < returnItemsToProcess.length; i++) {
                     var item = returnItemsToProcess[i];
                     var returnQty = item.return_qty;
                     var returnValue = returnQty * item.unit_price;
 
-                    // حركة مخزون (وارد)
                     var mvResponse = await fetch(SUPABASE_URL + '/rest/v1/finished_goods_movements', {
                         method: 'POST',
                         headers: {
@@ -1642,7 +1666,6 @@
                     var mvData = await mvResponse.json();
                     var movementId = mvData[0]?.id || mvData.id;
 
-                    // بند المرتجع في جدول return_invoice_items
                     var itemResponse = await fetch(SUPABASE_URL + '/rest/v1/return_invoice_items', {
                         method: 'POST',
                         headers: {
@@ -1674,7 +1697,6 @@
                     }
                 }
 
-                // ✅ 4. تحديث رصيد العميل (خصم قيمة المرتجع)
                 var client = allClients.find(function(c) { return c.id == currentInvoice.client_id; });
                 if (client) {
                     await fetch(SUPABASE_URL + '/rest/v1/clients?id=eq.' + currentInvoice.client_id, {
@@ -1690,7 +1712,6 @@
                     });
                 }
 
-                // ✅ 5. تحديث حالة الفاتورة الأصلية
                 await fetch(SUPABASE_URL + '/rest/v1/sales_invoices?id=eq.' + currentInvoice.id, {
                     method: 'PATCH',
                     headers: {
@@ -1747,7 +1768,8 @@
                 return sum + (item.return_qty * item.unit_price);
             }, 0);
 
-            var returnInvoiceNo = document.getElementById('returnInvoiceNo').textContent || 'RET-*****';
+            var returnInvoiceNoEl = document.getElementById('returnInvoiceNo');
+            var returnInvoiceNo = returnInvoiceNoEl ? returnInvoiceNoEl.textContent : 'RET-*****';
 
             var content = `
                 <div style="font-family:'Cairo',Arial,sans-serif;direction:rtl;padding:20px;max-width:300px;margin:0 auto;">
