@@ -32,23 +32,45 @@
         --radius-sm: 9px;
         --shadow: 0 14px 34px -16px rgba(18, 24, 33, 0.28);
         --shadow-sm: 0 3px 10px -4px rgba(18, 24, 33, 0.18);
+        --shadow-lg: 0 24px 60px -20px rgba(18, 24, 33, 0.32), 0 4px 14px -4px rgba(18, 24, 33, 0.12);
+        --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.6);
         --font-display: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
         --font-mono: 'JetBrains Mono', ui-monospace, monospace;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    ::selection { background: var(--accent-soft); color: var(--accent-ink); }
+
+    html { scroll-behavior: smooth; }
+
     body {
         font-family: var(--font-display);
-        background: var(--paper);
+        background:
+            radial-gradient(1200px 600px at 8% -10%, rgba(221,159,46,0.07), transparent 60%),
+            radial-gradient(1000px 500px at 100% 0%, rgba(29,123,108,0.06), transparent 55%),
+            var(--paper);
         color: var(--ink);
         direction: rtl;
         min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+        letter-spacing: -0.01em;
     }
     a { text-decoration: none; color: inherit; }
 
+    /* custom scrollbars */
+    ::-webkit-scrollbar { width: 11px; height: 11px; }
+    ::-webkit-scrollbar-track { background: var(--surface-muted); }
+    ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 20px; border: 3px solid var(--surface-muted); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--ink-mute); }
+
+    /* ============================================================
+       TOPBAR
+    ============================================================ */
     .topbar {
-        background: var(--surface);
+        background: rgba(255,255,255,0.86);
+        backdrop-filter: blur(14px) saturate(160%);
+        -webkit-backdrop-filter: blur(14px) saturate(160%);
         border-bottom: 1px solid var(--line);
-        padding: 14px 20px;
+        padding: 14px 24px;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -57,16 +79,31 @@
         position: sticky;
         top: 0;
         z-index: 50;
-        box-shadow: var(--shadow-sm);
+        box-shadow: 0 1px 0 rgba(18,24,33,0.03), var(--shadow-sm);
     }
-    .topbar .title-block { display: flex; align-items: center; gap: 12px; }
+    .topbar::after {
+        content: '';
+        position: absolute;
+        inset: auto 0 -3px 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent), var(--teal) 55%, var(--blue));
+        opacity: 0.9;
+    }
+    .topbar { position: sticky; }
+    .topbar .title-block { display: flex; align-items: center; gap: 13px; }
     .topbar .mark {
-        width: 38px; height: 38px; border-radius: var(--radius-sm);
-        background: var(--accent); color: #fff; display: flex; align-items: center;
-        justify-content: center; font-weight: 900; font-size: 1rem; flex-shrink: 0;
+        width: 42px; height: 42px; border-radius: 12px;
+        background: linear-gradient(155deg, var(--accent) 0%, #c9871f 100%);
+        color: #fff; display: flex; align-items: center;
+        justify-content: center; font-weight: 900; font-size: 1.15rem; flex-shrink: 0;
+        box-shadow: 0 8px 18px -6px rgba(221,159,46,0.55), var(--shadow-inset);
+        position: relative;
     }
-    .topbar h1 { font-size: 1.05rem; font-weight: 800; }
-    .topbar h1 span { display: block; font-size: 0.7rem; font-weight: 500; color: var(--ink-mute); margin-top: 2px; }
+    .topbar h1 {
+        font-size: 1.12rem; font-weight: 800; letter-spacing: -0.01em;
+        display: flex; flex-direction: column; gap: 2px;
+    }
+    .topbar h1 span { font-size: 0.72rem; font-weight: 500; color: var(--ink-mute); letter-spacing: 0; }
     .topbar .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
     .btn {
@@ -74,139 +111,184 @@
         border: 1px solid var(--line-strong);
         background: var(--surface);
         color: var(--ink-soft);
-        padding: 9px 14px;
+        padding: 9px 16px;
         border-radius: 10px;
         font-size: 0.8rem;
         font-weight: 700;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
-        gap: 7px;
-        transition: .15s;
+        gap: 8px;
+        transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease, filter .16s ease;
+        box-shadow: var(--shadow-sm);
     }
-    .btn:hover { background: var(--surface-muted); }
-    .btn-accent { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .btn-accent:hover { filter: brightness(0.95); }
-    .btn-teal { background: var(--teal); border-color: var(--teal); color: #fff; }
-    .btn-teal:hover { filter: brightness(0.95); }
-    .btn-blue { background: var(--blue); border-color: var(--blue); color: #fff; }
-    .btn-blue:hover { filter: brightness(0.85); }
+    .btn:hover { background: var(--surface-muted); transform: translateY(-1px); box-shadow: 0 8px 18px -8px rgba(18,24,33,0.25); }
+    .btn:active { transform: translateY(0); }
+    .btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+    .btn i { font-size: 0.82rem; }
+    .btn-accent { background: linear-gradient(155deg, var(--accent), #c9871f); border-color: var(--accent); color: #fff; box-shadow: 0 8px 18px -8px rgba(221,159,46,0.55); }
+    .btn-accent:hover { filter: brightness(1.04); }
+    .btn-teal { background: linear-gradient(155deg, var(--teal), #14574c); border-color: var(--teal); color: #fff; box-shadow: 0 8px 18px -8px rgba(29,123,108,0.5); }
+    .btn-teal:hover { filter: brightness(1.06); }
+    .btn-blue { background: linear-gradient(155deg, var(--blue), #234668); border-color: var(--blue); color: #fff; box-shadow: 0 8px 18px -8px rgba(47,91,138,0.5); }
+    .btn-blue:hover { filter: brightness(1.08); }
 
-    .container { padding: 18px 20px 60px; max-width: 1600px; margin: 0 auto; }
+    .container { padding: 22px 24px 70px; max-width: 1600px; margin: 0 auto; }
 
+    /* ============================================================
+       STATS
+    ============================================================ */
     .stats-row {
-        display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+        display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
     }
     .stat-card {
         background: var(--surface);
         border: 1px solid var(--line);
-        border-radius: var(--radius-sm);
-        padding: 12px 16px;
-        min-width: 140px;
+        border-radius: 12px;
+        padding: 14px 18px;
+        min-width: 150px;
         box-shadow: var(--shadow-sm);
+        position: relative;
+        overflow: hidden;
+        transition: transform .18s ease, box-shadow .18s ease;
     }
-    .stat-card b { display: block; font-size: 1.15rem; font-weight: 800; color: var(--ink); }
-    .stat-card span { font-size: 0.72rem; color: var(--ink-mute); }
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        inset-inline-start: 0; top: 0; bottom: 0;
+        width: 3px;
+        background: var(--line-strong);
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .stat-card b { display: block; font-size: 1.32rem; font-weight: 800; color: var(--ink); font-family: var(--font-mono); letter-spacing: -0.02em; }
+    .stat-card span { font-size: 0.72rem; color: var(--ink-mute); font-weight: 600; }
     .stat-card.teal b { color: var(--teal); }
+    .stat-card.teal::before { background: var(--teal); }
     .stat-card.accent b { color: var(--accent-ink); }
+    .stat-card.accent::before { background: var(--accent); }
     .stat-card.rust b { color: var(--rust); }
+    .stat-card.rust::before { background: var(--rust); }
 
+    /* ============================================================
+       FILTER BAR
+    ============================================================ */
     .filter-bar {
         background: var(--surface);
         border: 1px solid var(--line);
-        border-radius: var(--radius-sm);
-        padding: 12px 14px;
+        border-radius: 12px;
+        padding: 13px 16px;
         display: flex;
-        gap: 10px;
+        gap: 12px;
         flex-wrap: wrap;
-        margin-bottom: 14px;
+        margin-bottom: 16px;
         align-items: center;
+        box-shadow: var(--shadow-sm);
     }
-    .filter-bar input, .filter-bar select {
+    .filter-bar input[type="text"], .filter-bar select {
         font-family: var(--font-display);
         border: 1px solid var(--line-strong);
-        border-radius: 8px;
-        padding: 8px 10px;
+        border-radius: 9px;
+        padding: 9px 12px;
         font-size: 0.8rem;
-        background: var(--surface);
+        background: var(--surface-muted);
         color: var(--ink);
         min-width: 160px;
+        transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
     }
-    .filter-bar label { font-size: 0.75rem; color: var(--ink-mute); display: flex; align-items: center; gap: 6px; }
+    .filter-bar input[type="text"]:focus, .filter-bar select:focus {
+        outline: none;
+        border-color: var(--accent);
+        background: var(--surface);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .filter-bar input[type="checkbox"] {
+        width: 16px; height: 16px; accent-color: var(--teal); cursor: pointer;
+    }
+    .filter-bar label { font-size: 0.76rem; color: var(--ink-mute); display: flex; align-items: center; gap: 7px; font-weight: 600; cursor: pointer; }
 
+    /* ============================================================
+       TABLE
+    ============================================================ */
     .sheet-wrap {
         background: var(--surface);
         border: 1px solid var(--line);
         border-radius: var(--radius);
-        box-shadow: var(--shadow);
+        box-shadow: var(--shadow-lg);
         overflow: auto;
         max-height: 78vh;
     }
     table.sheet {
         width: 100%;
-        border-collapse: collapse;
-        font-size: 0.76rem;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.77rem;
         white-space: nowrap;
     }
     table.sheet thead th {
         position: sticky;
         top: 0;
-        background: var(--ink);
+        background: linear-gradient(180deg, #1a222d 0%, var(--ink) 100%);
         color: #fff;
-        padding: 9px 10px;
+        padding: 12px 12px;
         font-weight: 700;
-        font-size: 0.7rem;
+        font-size: 0.71rem;
+        letter-spacing: 0.01em;
         text-align: right;
-        border-left: 1px solid rgba(255,255,255,0.12);
+        border-left: 1px solid rgba(255,255,255,0.1);
         z-index: 5;
+        box-shadow: 0 2px 0 rgba(0,0,0,0.08);
     }
     table.sheet thead th.num { text-align: center; }
     table.sheet tbody td {
-        padding: 7px 10px;
+        padding: 8px 12px;
         border-bottom: 1px solid var(--line);
         border-left: 1px solid var(--line);
         text-align: right;
         color: var(--ink-soft);
-        font-size: 0.74rem;
+        font-size: 0.75rem;
+        transition: background-color .1s ease;
     }
-    table.sheet tbody td.num { font-family: var(--font-mono); text-align: center; }
+    table.sheet tbody td.num { font-family: var(--font-mono); text-align: center; font-variant-numeric: tabular-nums; }
     table.sheet tbody tr.group-alt td { background: var(--surface-muted); }
     table.sheet tbody tr.group-start td { border-top: 2px solid var(--line-strong); }
     table.sheet tbody tr.free-item td { background: var(--accent-soft); }
     table.sheet tbody tr.free-item td .free-badge {
         display: inline-block;
-        background: var(--teal);
+        background: linear-gradient(155deg, var(--teal), #14574c);
         color: #fff;
-        padding: 1px 8px;
+        padding: 2px 9px;
         border-radius: 20px;
-        font-size: 0.6rem;
+        font-size: 0.62rem;
         font-weight: 700;
         margin-right: 5px;
+        box-shadow: 0 2px 6px -2px rgba(29,123,108,0.6);
     }
     table.sheet tbody tr.delivery-row td { background: #e8f4fd; }
     table.sheet tbody tr.delivery-row td .delivery-badge {
         display: inline-block;
-        background: var(--blue);
+        background: linear-gradient(155deg, var(--blue), #234668);
         color: #fff;
-        padding: 1px 8px;
+        padding: 2px 9px;
         border-radius: 20px;
-        font-size: 0.6rem;
+        font-size: 0.62rem;
         font-weight: 700;
         margin-right: 5px;
+        box-shadow: 0 2px 6px -2px rgba(47,91,138,0.6);
     }
     table.sheet tbody tr:hover td { background: var(--accent-soft); }
     table.sheet td.invno { font-weight: 800; color: var(--accent-ink); }
     table.sheet td.client { font-weight: 700; }
     table.sheet td.total { font-weight: 800; color: var(--teal); }
-    table.sheet td.zero-price { color: var(--rust); }
+    table.sheet td.zero-price { color: var(--rust); font-weight: 700; }
 
     .empty-state, .loading-state {
-        padding: 60px 20px;
+        padding: 70px 20px;
         text-align: center;
         color: var(--ink-mute);
     }
-    .empty-state i, .loading-state i { font-size: 2rem; margin-bottom: 10px; display: block; }
-    .loading-state i { animation: spin 1s linear infinite; }
+    .empty-state i, .loading-state i { font-size: 2.2rem; margin-bottom: 12px; display: block; color: var(--line-strong); }
+    .loading-state i { animation: spin 1s linear infinite; color: var(--accent); }
+    .empty-state p, .loading-state p { font-size: 0.85rem; font-weight: 600; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* تنسيق العمود الثابت للتمرير */
@@ -221,7 +303,7 @@
         body { background: #fff; }
         .container { padding: 0; }
         .sheet-wrap { max-height: none; overflow: visible; border: none; box-shadow: none; }
-        table.sheet thead th { position: static; }
+        table.sheet thead th { position: static; background: var(--ink) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .table-scroll-wrapper { max-height: none; overflow: visible; }
     }
 
@@ -230,7 +312,12 @@
         .container { padding: 12px; }
         .filter-bar input, .filter-bar select { min-width: 120px; }
         table.sheet { font-size: 0.65rem; }
-        table.sheet thead th, table.sheet tbody td { padding: 5px 6px; }
+        table.sheet thead th, table.sheet tbody td { padding: 6px 8px; }
+        .stat-card { min-width: 130px; padding: 11px 14px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
 </style>
 </head>
@@ -238,8 +325,8 @@
 
 <div class="topbar">
     <div class="title-block">
-        <div class="mark">📊</div>
-        <h1>كشف المبيعات <span>عرض جميع الفواتير مع بنودها</span></h1>
+        <div class="mark"><i class="fa-solid fa-chart-column"></i></div>
+        <h1>كشف المبيعات <span>عرض جميع الفواتير مع بنودها — QuickData ProSoft</span></h1>
     </div>
     <div class="actions">
         <a class="btn" href="sales.html"><i class="fas fa-arrow-right"></i> رجوع</a>
@@ -256,8 +343,9 @@
     </div>
 
     <div class="filter-bar">
-        <label>
-            <input type="text" id="searchBox" placeholder="بحث: رقم الفاتورة، العميل، المنتج..." style="min-width:280px;" />
+        <label style="position:relative;">
+            <i class="fas fa-magnifying-glass" style="position:absolute;inset-inline-start:12px;color:var(--ink-mute);font-size:0.78rem;pointer-events:none;"></i>
+            <input type="text" id="searchBox" placeholder="بحث: رقم الفاتورة، العميل، المنتج..." style="min-width:280px;padding-inline-start:32px;" />
         </label>
         <label>
             <select id="filterClient">
@@ -270,7 +358,7 @@
         <label>
             <input type="checkbox" id="chkHideDelivery" /> إخفاء الناولون فقط
         </label>
-        <span style="font-size:0.7rem;color:var(--ink-mute);margin-right:auto;" id="rowCounter"></span>
+        <span style="font-size:0.72rem;color:var(--ink-mute);margin-right:auto;font-weight:700;" id="rowCounter"></span>
     </div>
 
     <div class="sheet-wrap">
