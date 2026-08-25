@@ -4291,6 +4291,16 @@
             return map;
         }
 
+        // دالة لتسجيل معلومات التصحيح عند اكتشاف ناولون
+        function logDeliveryDetection(row, index) {
+            console.log('🚚 تم اكتشاف ناولون في الصف رقم ' + (index + 1) + ':');
+            console.log('  - الكود:', row['الكود'] || row['code']);
+            console.log('  - المبيعات:', row['المبيعات'] || row['product_name']);
+            console.log('  - العدد:', row['العدد'] || row['quantity']);
+            console.log('  - سعر البيع:', row['سعر البيع'] || row['sell_price']);
+            console.log('  - اجمالي مبيعات:', row['اجمالي مبيعات'] || row['total']);
+        }
+
         function importBuildInvoices(rows) {
             if (rows.length === 0) return [];
 
@@ -4344,8 +4354,49 @@
                 var weight = getNumberValue('weight', null);
                 var price = getNumberValue('sellPrice');
 
-                // ✅ التحقق من أن هذا ناولون
-                var isDelivery = productName.toLowerCase().includes('ناولون') || productCode === '+';
+                // ✅ التحقق من أن هذا ناولون - محسن للتعامل مع المسافات والأحرف المختلفة
+                var isDelivery = false;
+
+                // تنظيف النصوص من المسافات الزائدة
+                var cleanProductName = (productName || '').trim();
+                var cleanProductCode = (productCode || '').trim();
+
+                // 1. التحقق من اسم المنتج
+                if (cleanProductName) {
+                    var lowerName = cleanProductName.toLowerCase();
+                    if (lowerName === 'ناولون' || 
+                        lowerName.includes('ناولون') ||
+                        lowerName === 'ناو لون' ||
+                        lowerName.includes('ناو لون') ||
+                        lowerName === 'delivery' ||
+                        lowerName.includes('delivery')) {
+                        isDelivery = true;
+                    }
+                }
+
+                // 2. التحقق من الكود
+                if (cleanProductCode) {
+                    if (cleanProductCode === '+' || 
+                        cleanProductCode === 'ناو' ||
+                        cleanProductCode === 'delivery') {
+                        isDelivery = true;
+                    }
+                }
+
+                // 3. التحقق من الوزن والعبوة (إذا كان الوزن 0 والكمية 0 والمبلغ > 0)
+                if (!isDelivery && qty === 0 && weight === 0 && total > 0) {
+                    isDelivery = true;
+                }
+
+                // 4. التحقق من اجمالي مبيعات (إذا كان المنتج فارغاً والمبلغ موجود)
+                if (!isDelivery && !cleanProductName && total > 0) {
+                    isDelivery = true;
+                }
+
+                // تسجيل معلومات التصحيح عند اكتشاف ناولون
+                if (isDelivery) {
+                    logDeliveryDetection(r, rowIndex);
+                }
 
                 if (!map[invNo]) {
                     map[invNo] = {
@@ -4369,11 +4420,14 @@
 
                 var inv = map[invNo];
 
+                // ✅ معالجة الناولون
                 if (isDelivery) {
                     inv.deliveryFee = total || 0;
                     if (inv.items.length === 0) {
                         inv.isDeliveryOnly = true;
                     }
+                    // تسجيل أن الفاتورة تحتوي على ناولون
+                    console.log('✅ تم إضافة ناولون بقيمة ' + inv.deliveryFee + ' للفاتورة رقم ' + invNo);
                     return;
                 }
 
