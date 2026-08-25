@@ -9,11 +9,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
     
-    <!-- ✅ استخدام supabase-client.js بدلاً من الكود المخصص -->
+    <!-- ✅ المكتبة المطلوبة أولاً -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- ✅ ثم ملف supabase-client.js -->
     <script src="supabase-client.js"></script>
 
     <style>
-        /* ===== جميع الاستايلات كما هي (نفس الكود السابق) ===== */
+        /* ===== جميع الاستايلات كما هي ===== */
         :root {
             --ink: #121821;
             --ink-soft: #2c3644;
@@ -1219,7 +1222,7 @@
         }
 
         // ============================================================
-        // RENDER ITEMS (نفس الكود السابق)
+        // RENDER ITEMS
         // ============================================================
         function renderItems(items) {
             var tbody = document.getElementById('itemsBody');
@@ -1271,7 +1274,7 @@
         }
 
         // ============================================================
-        // RETURN QUANTITY MANAGEMENT (نفس الكود السابق)
+        // RETURN QUANTITY MANAGEMENT
         // ============================================================
         function resetReturnItems() {
             returnItems = currentItems.map(function(item, index) {
@@ -1592,6 +1595,13 @@
                     .eq('id', currentInvoice.id);
 
                 if (updateError) console.warn('⚠️ فشل تحديث حالة الفاتورة:', updateError.message);
+
+                // تحديث رقم فاتورة المرتجع في الواجهة
+                var returnInvoiceNoEl = document.getElementById('returnInvoiceNo');
+                if (returnInvoiceNoEl) {
+                    returnInvoiceNoEl.textContent = returnInvoiceNo;
+                    returnInvoiceNoEl.style.color = 'var(--teal)';
+                }
 
                 showToast('✅ تم تنفيذ المرتجع',
                     'فاتورة مرتجع رقم: ' + returnInvoiceNo + ' بقيمة ' + formatNum(totalReturn),
