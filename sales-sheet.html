@@ -11,6 +11,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
+    /* ============================================================
+       DESIGN CONCEPT: "دفتر الأستاذ" — Digital Ledger Book
+       Same color tokens as before, entirely new visual language:
+       a bound accounting ledger — punched binder rail, ink-stamped
+       summary marks, typed index tabs for filters, and true ruled
+       columnar-pad table rows. No glass, no gradients, no glow —
+       flat ink-on-paper, the way a real ledger reads.
+    ============================================================ */
     :root {
         --ink: #121821;
         --ink-soft: #2c3644;
@@ -28,225 +36,283 @@
         --rust: #bf4f30;
         --rust-soft: #fbe8e1;
         --blue: #2f5b8a;
-        --radius: 14px;
-        --radius-sm: 9px;
-        --shadow: 0 14px 34px -16px rgba(18, 24, 33, 0.28);
-        --shadow-sm: 0 3px 10px -4px rgba(18, 24, 33, 0.18);
-        --shadow-lg: 0 24px 60px -20px rgba(18, 24, 33, 0.32), 0 4px 14px -4px rgba(18, 24, 33, 0.12);
-        --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.6);
         --font-display: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
         --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+        --rail-w: 34px;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     ::selection { background: var(--accent-soft); color: var(--accent-ink); }
 
-    html { scroll-behavior: smooth; }
-
     body {
         font-family: var(--font-display);
-        background:
-            radial-gradient(1200px 600px at 8% -10%, rgba(221,159,46,0.07), transparent 60%),
-            radial-gradient(1000px 500px at 100% 0%, rgba(29,123,108,0.06), transparent 55%),
-            var(--paper);
+        background: var(--ink);
         color: var(--ink);
         direction: rtl;
         min-height: 100vh;
-        -webkit-font-smoothing: antialiased;
-        letter-spacing: -0.01em;
     }
     a { text-decoration: none; color: inherit; }
 
-    /* custom scrollbars */
-    ::-webkit-scrollbar { width: 11px; height: 11px; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track { background: var(--surface-muted); }
-    ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 20px; border: 3px solid var(--surface-muted); }
+    ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 0; }
     ::-webkit-scrollbar-thumb:hover { background: var(--ink-mute); }
 
     /* ============================================================
-       TOPBAR
+       THE LEDGER — bound book laid on a dark desk
     ============================================================ */
-    .topbar {
-        background: rgba(255,255,255,0.86);
-        backdrop-filter: blur(14px) saturate(160%);
-        -webkit-backdrop-filter: blur(14px) saturate(160%);
-        border-bottom: 1px solid var(--line);
-        padding: 14px 24px;
+    .ledger {
+        max-width: 1500px;
+        margin: 0 auto;
+        min-height: 100vh;
+        background: var(--paper);
         display: flex;
+        position: relative;
+        box-shadow: 0 0 0 1px rgba(0,0,0,0.06);
+    }
+
+    /* binder rail with punched holes — sits on the bound edge (right, since RTL) */
+    .binder-rail {
+        width: var(--rail-w);
+        flex-shrink: 0;
+        background: var(--ink);
+        display: flex;
+        flex-direction: column;
         align-items: center;
-        justify-content: space-between;
-        gap: 14px;
-        flex-wrap: wrap;
+        gap: 26px;
+        padding: 26px 0;
+        position: sticky;
+        top: 0;
+        align-self: flex-start;
+        height: 100vh;
+    }
+    .binder-rail .hole {
+        width: 11px; height: 11px; border-radius: 50%;
+        background: var(--paper);
+        box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);
+        flex-shrink: 0;
+    }
+    .binder-rail .spine-label {
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        color: var(--accent);
+        font-family: var(--font-mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.14em;
+        margin-top: auto;
+        margin-bottom: 12px;
+        opacity: 0.85;
+    }
+
+    .page { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+    /* ============================================================
+       COVER STRIP — replaces the old topbar
+    ============================================================ */
+    .cover {
+        background: var(--surface);
+        border-bottom: 3px double var(--ink);
+        padding: 20px 28px 16px;
         position: sticky;
         top: 0;
         z-index: 50;
-        box-shadow: 0 1px 0 rgba(18,24,33,0.03), var(--shadow-sm);
     }
-    .topbar::after {
-        content: '';
-        position: absolute;
-        inset: auto 0 -3px 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--accent), var(--teal) 55%, var(--blue));
-        opacity: 0.9;
+    .cover-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
     }
-    .topbar { position: sticky; }
-    .topbar .title-block { display: flex; align-items: center; gap: 13px; }
-    .topbar .mark {
-        width: 42px; height: 42px; border-radius: 12px;
-        background: linear-gradient(155deg, var(--accent) 0%, #c9871f 100%);
-        color: #fff; display: flex; align-items: center;
-        justify-content: center; font-weight: 900; font-size: 1.15rem; flex-shrink: 0;
-        box-shadow: 0 8px 18px -6px rgba(221,159,46,0.55), var(--shadow-inset);
-        position: relative;
+    .seal {
+        width: 54px; height: 54px; border-radius: 50%;
+        border: 2px solid var(--accent);
+        outline: 1px solid var(--accent);
+        outline-offset: 3px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        color: var(--accent-ink);
+        font-weight: 900;
+        font-family: var(--font-mono);
+        font-size: 0.95rem;
+        transform: rotate(-6deg);
+        background: var(--accent-soft);
     }
-    .topbar h1 {
-        font-size: 1.12rem; font-weight: 800; letter-spacing: -0.01em;
-        display: flex; flex-direction: column; gap: 2px;
+    .title-block { display: flex; align-items: center; gap: 16px; }
+    .title-block .txt h1 {
+        font-size: 1.28rem; font-weight: 800; color: var(--ink); letter-spacing: -0.01em;
     }
-    .topbar h1 span { font-size: 0.72rem; font-weight: 500; color: var(--ink-mute); letter-spacing: 0; }
-    .topbar .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .title-block .txt .ref {
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        color: var(--ink-mute);
+        letter-spacing: 0.03em;
+        margin-top: 3px;
+    }
+    .title-block .txt .ref span { color: var(--teal); font-weight: 700; }
 
+    .cover-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-start; }
     .btn {
         font-family: var(--font-display);
-        border: 1px solid var(--line-strong);
+        border: 1px solid var(--ink);
         background: var(--surface);
-        color: var(--ink-soft);
-        padding: 9px 16px;
-        border-radius: 10px;
-        font-size: 0.8rem;
+        color: var(--ink);
+        padding: 8px 14px;
+        border-radius: 0;
+        font-size: 0.76rem;
         font-weight: 700;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease, filter .16s ease;
-        box-shadow: var(--shadow-sm);
+        gap: 7px;
+        transition: background-color .12s ease, color .12s ease;
     }
-    .btn:hover { background: var(--surface-muted); transform: translateY(-1px); box-shadow: 0 8px 18px -8px rgba(18,24,33,0.25); }
-    .btn:active { transform: translateY(0); }
+    .btn:hover { background: var(--ink); color: var(--surface); }
     .btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-    .btn i { font-size: 0.82rem; }
-    .btn-accent { background: linear-gradient(155deg, var(--accent), #c9871f); border-color: var(--accent); color: #fff; box-shadow: 0 8px 18px -8px rgba(221,159,46,0.55); }
-    .btn-accent:hover { filter: brightness(1.04); }
-    .btn-teal { background: linear-gradient(155deg, var(--teal), #14574c); border-color: var(--teal); color: #fff; box-shadow: 0 8px 18px -8px rgba(29,123,108,0.5); }
-    .btn-teal:hover { filter: brightness(1.06); }
-    .btn-blue { background: linear-gradient(155deg, var(--blue), #234668); border-color: var(--blue); color: #fff; box-shadow: 0 8px 18px -8px rgba(47,91,138,0.5); }
-    .btn-blue:hover { filter: brightness(1.08); }
-
-    .container { padding: 22px 24px 70px; max-width: 1600px; margin: 0 auto; }
+    .btn-accent { background: var(--accent); border-color: var(--accent-ink); color: var(--accent-ink); }
+    .btn-accent:hover { background: var(--accent-ink); color: #fff; border-color: var(--accent-ink); }
+    .btn-teal { background: var(--teal); border-color: var(--teal); color: #fff; }
+    .btn-teal:hover { background: #14574c; }
 
     /* ============================================================
-       STATS
+       STAMP ROW — statsRow is filled by JS with .stat-card /
+       .stat-card.teal / .stat-card.accent / .stat-card.rust /
+       and one plain .stat-card with inline border-color:var(--blue)
     ============================================================ */
     .stats-row {
-        display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
+        display: flex; gap: 18px; flex-wrap: wrap;
+        margin-top: 18px;
+        padding-top: 4px;
     }
     .stat-card {
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 14px 18px;
-        min-width: 150px;
-        box-shadow: var(--shadow-sm);
+        background: transparent;
+        border: 2px solid var(--ink);
+        border-radius: 999px 999px 999px 4px;
+        padding: 7px 18px 7px 14px;
+        min-width: auto;
+        box-shadow: none;
         position: relative;
-        overflow: hidden;
-        transition: transform .18s ease, box-shadow .18s ease;
+        color: var(--ink);
+        mix-blend-mode: multiply;
     }
-    .stat-card::before {
-        content: '';
-        position: absolute;
-        inset-inline-start: 0; top: 0; bottom: 0;
-        width: 3px;
-        background: var(--line-strong);
+    .stat-card:nth-child(odd) { transform: rotate(-1.6deg); }
+    .stat-card:nth-child(even) { transform: rotate(1.3deg); }
+    .stat-card b {
+        display: inline-block; font-size: 1.05rem; font-weight: 800;
+        font-family: var(--font-mono); letter-spacing: -0.02em;
+        color: inherit;
     }
-    .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
-    .stat-card b { display: block; font-size: 1.32rem; font-weight: 800; color: var(--ink); font-family: var(--font-mono); letter-spacing: -0.02em; }
-    .stat-card span { font-size: 0.72rem; color: var(--ink-mute); font-weight: 600; }
-    .stat-card.teal b { color: var(--teal); }
-    .stat-card.teal::before { background: var(--teal); }
-    .stat-card.accent b { color: var(--accent-ink); }
-    .stat-card.accent::before { background: var(--accent); }
-    .stat-card.rust b { color: var(--rust); }
-    .stat-card.rust::before { background: var(--rust); }
+    .stat-card span { font-size: 0.66rem; color: inherit; opacity: 0.75; font-weight: 700; margin-right: 6px; }
+    .stat-card.teal { border-color: var(--teal); color: var(--teal); }
+    .stat-card.accent { border-color: var(--accent-ink); color: var(--accent-ink); }
+    .stat-card.rust { border-color: var(--rust); color: var(--rust); }
 
     /* ============================================================
-       FILTER BAR
+       INDEX TABS — filter-bar restyled as ledger tab dividers
     ============================================================ */
     .filter-bar {
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 13px 16px;
+        background: var(--surface-muted);
+        border-bottom: 1px solid var(--line-strong);
+        padding: 12px 28px;
         display: flex;
-        gap: 12px;
+        gap: 22px;
         flex-wrap: wrap;
-        margin-bottom: 16px;
         align-items: center;
-        box-shadow: var(--shadow-sm);
+    }
+    .field { display: flex; flex-direction: column; gap: 3px; }
+    .field .field-label {
+        font-size: 0.62rem; color: var(--ink-mute); font-weight: 700;
+        letter-spacing: 0.06em; text-transform: uppercase;
+        font-family: var(--font-mono);
     }
     .filter-bar input[type="text"], .filter-bar select {
         font-family: var(--font-display);
-        border: 1px solid var(--line-strong);
-        border-radius: 9px;
-        padding: 9px 12px;
-        font-size: 0.8rem;
-        background: var(--surface-muted);
+        border: none;
+        border-bottom: 2px solid var(--line-strong);
+        border-radius: 0;
+        padding: 4px 2px;
+        font-size: 0.82rem;
+        background: transparent;
         color: var(--ink);
-        min-width: 160px;
-        transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+        min-width: 200px;
     }
+    .filter-bar select { min-width: 170px; cursor: pointer; }
     .filter-bar input[type="text"]:focus, .filter-bar select:focus {
         outline: none;
-        border-color: var(--accent);
-        background: var(--surface);
-        box-shadow: 0 0 0 3px var(--accent-soft);
+        border-bottom-color: var(--accent);
     }
-    .filter-bar input[type="checkbox"] {
-        width: 16px; height: 16px; accent-color: var(--teal); cursor: pointer;
+    .toggle-field {
+        display: flex; align-items: center; gap: 8px;
+        cursor: pointer;
+        padding-top: 14px;
     }
-    .filter-bar label { font-size: 0.76rem; color: var(--ink-mute); display: flex; align-items: center; gap: 7px; font-weight: 600; cursor: pointer; }
+    .toggle-field input[type="checkbox"] {
+        appearance: none; -webkit-appearance: none;
+        width: 16px; height: 16px;
+        border: 2px solid var(--ink);
+        cursor: pointer;
+        position: relative;
+        flex-shrink: 0;
+    }
+    .toggle-field input[type="checkbox"]:checked { background: var(--ink); }
+    .toggle-field input[type="checkbox"]:checked::after {
+        content: '✓'; position: absolute; inset: -3px 0 0 0;
+        color: var(--paper); font-size: 0.7rem; text-align: center; font-weight: 900;
+    }
+    .toggle-field span { font-size: 0.76rem; color: var(--ink-soft); font-weight: 600; }
+    #rowCounter {
+        margin-inline-start: auto;
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        color: var(--ink-mute);
+        font-weight: 600;
+        padding-top: 14px;
+    }
 
     /* ============================================================
-       TABLE
+       COLUMNAR LEDGER TABLE
     ============================================================ */
     .sheet-wrap {
         background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow-lg);
+        border: none;
+        box-shadow: none;
         overflow: auto;
-        max-height: 78vh;
+        max-height: none;
+        flex: 1;
+    }
+    .table-scroll-wrapper {
+        overflow: auto;
+        max-height: 74vh;
+        position: relative;
     }
     table.sheet {
         width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        font-size: 0.77rem;
+        border-collapse: collapse;
+        font-size: 0.76rem;
         white-space: nowrap;
     }
     table.sheet thead th {
         position: sticky;
         top: 0;
-        background: linear-gradient(180deg, #1a222d 0%, var(--ink) 100%);
-        color: #fff;
-        padding: 12px 12px;
+        background: var(--surface);
+        color: var(--ink);
+        padding: 10px 12px;
         font-weight: 700;
-        font-size: 0.71rem;
-        letter-spacing: 0.01em;
+        font-size: 0.66rem;
+        letter-spacing: 0.04em;
         text-align: right;
-        border-left: 1px solid rgba(255,255,255,0.1);
+        border-bottom: 2px solid var(--ink);
         z-index: 5;
-        box-shadow: 0 2px 0 rgba(0,0,0,0.08);
+        font-family: var(--font-mono);
+        text-transform: uppercase;
     }
     table.sheet thead th.num { text-align: center; }
     table.sheet tbody td {
-        padding: 8px 12px;
+        padding: 7px 12px;
         border-bottom: 1px solid var(--line);
-        border-left: 1px solid var(--line);
+        border-left: none;
         text-align: right;
         color: var(--ink-soft);
-        font-size: 0.75rem;
-        transition: background-color .1s ease;
+        font-size: 0.74rem;
     }
     table.sheet tbody td.num { font-family: var(--font-mono); text-align: center; font-variant-numeric: tabular-nums; }
     table.sheet tbody tr.group-alt td { background: var(--surface-muted); }
@@ -254,146 +320,183 @@
     table.sheet tbody tr.free-item td { background: var(--accent-soft); }
     table.sheet tbody tr.free-item td .free-badge {
         display: inline-block;
-        background: linear-gradient(155deg, var(--teal), #14574c);
-        color: #fff;
-        padding: 2px 9px;
-        border-radius: 20px;
-        font-size: 0.62rem;
+        background: none;
+        color: var(--teal);
+        border: 1.5px solid var(--teal);
+        padding: 0 7px;
+        border-radius: 999px;
+        font-size: 0.6rem;
         font-weight: 700;
         margin-right: 5px;
-        box-shadow: 0 2px 6px -2px rgba(29,123,108,0.6);
     }
-    table.sheet tbody tr.delivery-row td { background: #e8f4fd; }
+    table.sheet tbody tr.delivery-row td { background: var(--surface-muted); }
     table.sheet tbody tr.delivery-row td .delivery-badge {
         display: inline-block;
-        background: linear-gradient(155deg, var(--blue), #234668);
-        color: #fff;
-        padding: 2px 9px;
-        border-radius: 20px;
-        font-size: 0.62rem;
+        background: none;
+        color: var(--blue);
+        border: 1.5px solid var(--blue);
+        padding: 0 7px;
+        border-radius: 999px;
+        font-size: 0.6rem;
         font-weight: 700;
         margin-right: 5px;
-        box-shadow: 0 2px 6px -2px rgba(47,91,138,0.6);
     }
     table.sheet tbody tr:hover td { background: var(--accent-soft); }
-    table.sheet td.invno { font-weight: 800; color: var(--accent-ink); }
+    table.sheet td.invno { font-weight: 800; color: var(--accent-ink); font-family: var(--font-mono); }
     table.sheet td.client { font-weight: 700; }
-    table.sheet td.total { font-weight: 800; color: var(--teal); }
+    table.sheet td.total { font-weight: 800; color: var(--teal); border-bottom: 2px double var(--teal); }
     table.sheet td.zero-price { color: var(--rust); font-weight: 700; }
 
     .empty-state, .loading-state {
-        padding: 70px 20px;
+        padding: 80px 20px;
         text-align: center;
         color: var(--ink-mute);
     }
-    .empty-state i, .loading-state i { font-size: 2.2rem; margin-bottom: 12px; display: block; color: var(--line-strong); }
+    .empty-state i, .loading-state i { font-size: 2rem; margin-bottom: 12px; display: block; }
     .loading-state i { animation: spin 1s linear infinite; color: var(--accent); }
-    .empty-state p, .loading-state p { font-size: 0.85rem; font-weight: 600; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* تنسيق العمود الثابت للتمرير */
-    .table-scroll-wrapper {
-        overflow: auto;
-        max-height: 78vh;
-        position: relative;
+    /* footer strip — ties off the page like a ledger closing line */
+    .foot-strip {
+        border-top: 3px double var(--ink);
+        padding: 10px 28px;
+        font-family: var(--font-mono);
+        font-size: 0.64rem;
+        color: var(--ink-mute);
+        display: flex;
+        justify-content: space-between;
+        background: var(--surface);
     }
 
     @media print {
-        .topbar, .filter-bar, .stats-row { display: none !important; }
         body { background: #fff; }
-        .container { padding: 0; }
-        .sheet-wrap { max-height: none; overflow: visible; border: none; box-shadow: none; }
-        table.sheet thead th { position: static; background: var(--ink) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .binder-rail, .filter-bar, .cover-actions, .foot-strip { display: none !important; }
+        .ledger { box-shadow: none; }
+        .sheet-wrap { max-height: none; overflow: visible; }
+        table.sheet thead th { position: static; }
         .table-scroll-wrapper { max-height: none; overflow: visible; }
     }
 
-    @media (max-width: 720px) {
-        .topbar { padding: 10px 12px; }
-        .container { padding: 12px; }
-        .filter-bar input, .filter-bar select { min-width: 120px; }
+    @media (max-width: 860px) {
+        :root { --rail-w: 20px; }
+        .binder-rail { gap: 16px; padding: 18px 0; }
+        .binder-rail .hole { width: 8px; height: 8px; }
+        .binder-rail .spine-label { display: none; }
+        .cover { padding: 16px 16px 12px; }
+        .filter-bar { padding: 10px 16px; gap: 14px; }
         table.sheet { font-size: 0.65rem; }
         table.sheet thead th, table.sheet tbody td { padding: 6px 8px; }
-        .stat-card { min-width: 130px; padding: 11px 14px; }
+        .stats-row { gap: 10px; margin-top: 14px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        *, *::before, *::after { transition: none !important; animation-duration: 0.01ms !important; }
     }
 </style>
 </head>
 <body>
 
-<div class="topbar">
-    <div class="title-block">
-        <div class="mark"><i class="fa-solid fa-chart-column"></i></div>
-        <h1>كشف المبيعات <span>عرض جميع الفواتير مع بنودها — QuickData ProSoft</span></h1>
-    </div>
-    <div class="actions">
-        <a class="btn" href="sales.html"><i class="fas fa-arrow-right"></i> رجوع</a>
-        <button class="btn" id="btnReload"><i class="fas fa-rotate"></i> تحديث</button>
-        <button class="btn btn-accent" id="btnExportExcel"><i class="fas fa-file-excel"></i> إكسيل</button>
-        <button class="btn btn-teal" id="btnPrint"><i class="fas fa-print"></i> طباعة</button>
-    </div>
-</div>
-
-<div class="container">
-
-    <div class="stats-row" id="statsRow">
-        <div class="stat-card"><b>جاري التحميل...</b><span>الرجاء الانتظار</span></div>
+<div class="ledger">
+    <div class="binder-rail" aria-hidden="true">
+        <div class="hole"></div>
+        <div class="hole"></div>
+        <div class="hole"></div>
+        <div class="hole"></div>
+        <div class="hole"></div>
+        <div class="hole"></div>
+        <div class="hole"></div>
+        <div class="hole"></div>
+        <span class="spine-label">QUICKDATA · PROSOFT · LEDGER</span>
     </div>
 
-    <div class="filter-bar">
-        <label style="position:relative;">
-            <i class="fas fa-magnifying-glass" style="position:absolute;inset-inline-start:12px;color:var(--ink-mute);font-size:0.78rem;pointer-events:none;"></i>
-            <input type="text" id="searchBox" placeholder="بحث: رقم الفاتورة، العميل، المنتج..." style="min-width:280px;padding-inline-start:32px;" />
-        </label>
-        <label>
-            <select id="filterClient">
-                <option value="">جميع العملاء</option>
-            </select>
-        </label>
-        <label>
-            <input type="checkbox" id="chkHideFree" /> إخفاء المنتجات المجانية
-        </label>
-        <label>
-            <input type="checkbox" id="chkHideDelivery" /> إخفاء الناولون فقط
-        </label>
-        <span style="font-size:0.72rem;color:var(--ink-mute);margin-right:auto;font-weight:700;" id="rowCounter"></span>
-    </div>
+    <div class="page">
+        <div class="cover">
+            <div class="cover-top">
+                <div class="title-block">
+                    <div class="seal">QDP</div>
+                    <div class="txt">
+                        <h1>كشف المبيعات</h1>
+                        <div class="ref">دفتر الحساب · عرض جميع الفواتير وبنودها — <span id="todayRef"></span></div>
+                    </div>
+                </div>
+                <div class="cover-actions">
+                    <a class="btn" href="sales.html"><i class="fas fa-arrow-right"></i> رجوع</a>
+                    <button class="btn" id="btnReload"><i class="fas fa-rotate"></i> تحديث</button>
+                    <button class="btn btn-accent" id="btnExportExcel"><i class="fas fa-file-excel"></i> إكسيل</button>
+                    <button class="btn btn-teal" id="btnPrint"><i class="fas fa-print"></i> طباعة</button>
+                </div>
+            </div>
 
-    <div class="sheet-wrap">
-        <div class="table-scroll-wrapper" id="tableScrollWrapper">
-            <table class="sheet" id="sheetTable">
-                <thead>
-                    <tr>
-                        <th class="num" style="width:40px;">#</th>
-                        <th style="min-width:100px;">رقم الفاتورة الدفتري</th>
-                        <th style="min-width:90px;">التاريخ</th>
-                        <th style="min-width:100px;">المندوب</th>
-                        <th style="min-width:80px;">كود العميل</th>
-                        <th style="min-width:150px;">اسم العميل</th>
-                        <th style="min-width:80px;">الكود</th>
-                        <th style="min-width:180px;">المنتج</th>
-                        <th class="num" style="min-width:60px;">الوزن</th>
-                        <th style="min-width:70px;">العبوة</th>
-                        <th class="num" style="min-width:60px;">العدد</th>
-                        <th class="num" style="min-width:80px;">سعر البيع</th>
-                        <th class="num" style="min-width:90px;">الإجمالي</th>
-                        <th class="num" style="min-width:80px;">الوزن الكلي</th>
-                        <th style="min-width:80px;">اللون</th>
-                        <th style="min-width:80px;">نوع الحصوة</th>
-                        <th style="min-width:100px;">الموقع</th>
-                        <th style="min-width:80px;">الحالة</th>
-                    </tr>
-                </thead>
-                <tbody id="sheetBody">
-                    <tr><td colspan="18"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>
-                </tbody>
-            </table>
+            <div class="stats-row" id="statsRow">
+                <div class="stat-card"><b>جاري التحميل...</b><span>الرجاء الانتظار</span></div>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <div class="field">
+                <span class="field-label">بحث</span>
+                <input type="text" id="searchBox" placeholder="رقم الفاتورة، العميل، المنتج..." style="min-width:260px;" />
+            </div>
+            <div class="field">
+                <span class="field-label">العميل</span>
+                <select id="filterClient">
+                    <option value="">جميع العملاء</option>
+                </select>
+            </div>
+            <label class="toggle-field">
+                <input type="checkbox" id="chkHideFree" />
+                <span>إخفاء المنتجات المجانية</span>
+            </label>
+            <label class="toggle-field">
+                <input type="checkbox" id="chkHideDelivery" />
+                <span>إخفاء الناولون فقط</span>
+            </label>
+            <span id="rowCounter"></span>
+        </div>
+
+        <div class="sheet-wrap">
+            <div class="table-scroll-wrapper" id="tableScrollWrapper">
+                <table class="sheet" id="sheetTable">
+                    <thead>
+                        <tr>
+                            <th class="num" style="width:40px;">#</th>
+                            <th style="min-width:100px;">رقم الفاتورة الدفتري</th>
+                            <th style="min-width:90px;">التاريخ</th>
+                            <th style="min-width:100px;">المندوب</th>
+                            <th style="min-width:80px;">كود العميل</th>
+                            <th style="min-width:150px;">اسم العميل</th>
+                            <th style="min-width:80px;">الكود</th>
+                            <th style="min-width:180px;">المنتج</th>
+                            <th class="num" style="min-width:60px;">الوزن</th>
+                            <th style="min-width:70px;">العبوة</th>
+                            <th class="num" style="min-width:60px;">العدد</th>
+                            <th class="num" style="min-width:80px;">سعر البيع</th>
+                            <th class="num" style="min-width:90px;">الإجمالي</th>
+                            <th class="num" style="min-width:80px;">الوزن الكلي</th>
+                            <th style="min-width:80px;">اللون</th>
+                            <th style="min-width:80px;">نوع الحصوة</th>
+                            <th style="min-width:100px;">الموقع</th>
+                            <th style="min-width:80px;">الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sheetBody">
+                        <tr><td colspan="18"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="foot-strip">
+            <span>QuickData ProSoft © دفتر الحساب الرقمي</span>
+            <span id="footRef"></span>
         </div>
     </div>
-
 </div>
+
+<script>
+    document.getElementById('todayRef').textContent = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('footRef').textContent = 'صفحة مطبوعة رقميًا — ' + new Date().toLocaleTimeString('ar-EG');
+</script>
 
 <script>
     // ============================================================
