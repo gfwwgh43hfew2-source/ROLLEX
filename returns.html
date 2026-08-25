@@ -16,7 +16,7 @@
     <script src="supabase-client.js"></script>
 
     <style>
-        /* ===== جميع الاستايلات كما هي ===== */
+        /* ===== جميع الاستايلات مع إضافة استايلات الاقتراحات ===== */
         :root {
             --ink: #121821;
             --ink-soft: #2c3644;
@@ -692,6 +692,54 @@
         .loading-state i { animation: spin 1s linear infinite; font-size: calc(1.5rem * var(--scale-factor)); }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* ===== استايلات الاقتراحات ===== */
+        .client-suggestions {
+            position: relative;
+            width: 100%;
+        }
+        .client-suggestions .suggestions-list {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            left: 0;
+            background: #ffffff;
+            border: 1px solid var(--line);
+            border-radius: calc(var(--radius-sm) * var(--scale-factor));
+            max-height: calc(200px * var(--scale-factor));
+            overflow-y: auto;
+            z-index: 999;
+            display: none;
+            box-shadow: var(--shadow);
+            margin-top: calc(2px * var(--scale-factor));
+        }
+        .client-suggestions .suggestions-list.show { display: block; }
+        .client-suggestions .suggestions-list .suggestion-item {
+            padding: calc(8px * var(--scale-factor)) calc(14px * var(--scale-factor));
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--line);
+            font-size: calc(0.8rem * var(--scale-factor));
+        }
+        .client-suggestions .suggestions-list .suggestion-item:last-child { border-bottom: none; }
+        .client-suggestions .suggestions-list .suggestion-item:hover { background: var(--accent-soft); }
+        .client-suggestions .suggestions-list .suggestion-item .client-phone {
+            font-size: calc(0.65rem * var(--scale-factor));
+            color: var(--ink-mute);
+        }
+        .client-suggestions .suggestions-list .suggestion-item.selected {
+            background: var(--accent-soft);
+            border-right: calc(3px * var(--scale-factor)) solid var(--accent);
+        }
+        .client-suggestions .suggestions-list .no-results {
+            padding: calc(12px * var(--scale-factor)) calc(14px * var(--scale-factor));
+            text-align: center;
+            color: var(--ink-mute);
+            font-size: calc(0.75rem * var(--scale-factor));
+        }
+
         @media (min-width: 769px) {
             .mobile-nav-bottom,
             .mobile-nav-overlay,
@@ -814,10 +862,15 @@
                     <label><i class="fas fa-hashtag"></i> رقم الفاتورة</label>
                     <input type="text" id="searchInvoiceNo" placeholder="مثال: INV-20260824-00001" />
                 </div>
-                <div class="form-group">
+                
+                <!-- ✅ حقل العميل مع اقتراحات -->
+                <div class="form-group client-suggestions">
                     <label><i class="fas fa-user"></i> العميل</label>
-                    <select id="searchClient"><option value="">جميع العملاء</option></select>
+                    <input type="text" id="clientNameInput" placeholder="ابحث عن عميل..." autocomplete="off" />
+                    <div class="suggestions-list" id="clientSuggestions"></div>
+                    <input type="hidden" id="clientIdHidden" value="" />
                 </div>
+                
                 <div class="form-group" style="flex:0 0 auto;min-width:unset;">
                     <button class="btn-search" id="btnSearchInvoice">
                         <i class="fas fa-search"></i> بحث
@@ -938,6 +991,8 @@
         var currentItems = [];
         var returnItems = [];
         var allClients = [];
+        var selectedClientId = null;
+        var selectedSuggestionIndex = -1;
 
         // ============================================================
         // TOAST (نسخة بسيطة)
@@ -991,6 +1046,149 @@
 
         // جعل showToast متاحة عالمياً
         window.showToast = showToast;
+
+        // ============================================================
+        // CLIENT SUGGESTIONS (نفس نظام add-invoice)
+        // ============================================================
+        function showClientSuggestions(input) {
+            var searchTerm = input.trim().toLowerCase();
+            var suggestionsList = document.getElementById('clientSuggestions');
+
+            if (!searchTerm || searchTerm.length < 1) {
+                suggestionsList.classList.remove('show');
+                selectedSuggestionIndex = -1;
+                return;
+            }
+
+            var filtered = allClients.filter(function(client) {
+                return client.name.toLowerCase().includes(searchTerm) ||
+                    (client.phone && client.phone.includes(searchTerm)) ||
+                    (client.code && client.code.toLowerCase().includes(searchTerm));
+            });
+
+            var results = filtered.slice(0, 10);
+
+            if (results.length === 0) {
+                suggestionsList.innerHTML = `
+                    <div class="no-results">لا توجد نتائج مطابقة</div>
+                `;
+                suggestionsList.classList.add('show');
+                selectedSuggestionIndex = -1;
+                return;
+            }
+
+            var html = '';
+            results.forEach(function(client, index) {
+                html += `
+                    <div class="suggestion-item" onclick="selectClient('${client.id}', '${client.name}', '${client.phone || ''}')" data-index="${index}">
+                        <span>${client.code ? client.code + ' — ' : ''}${client.name}</span>
+                        ${client.phone ? `<span class="client-phone">📱 ${client.phone}</span>` : ''}
+                    </div>
+                `;
+            });
+
+            suggestionsList.innerHTML = html;
+            suggestionsList.classList.add('show');
+            selectedSuggestionIndex = -1;
+            updateSuggestionHighlight();
+        }
+
+        function updateSuggestionHighlight() {
+            var items = document.querySelectorAll('#clientSuggestions .suggestion-item');
+            items.forEach(function(item, index) {
+                item.classList.remove('selected');
+                if (index === selectedSuggestionIndex) {
+                    item.classList.add('selected');
+                    item.scrollIntoView({ block: 'nearest' });
+                }
+            });
+        }
+
+        function selectClient(id, name, phone) {
+            document.getElementById('clientNameInput').value = name;
+            document.getElementById('clientIdHidden').value = id;
+            selectedClientId = id;
+            document.getElementById('clientSuggestions').classList.remove('show');
+            selectedSuggestionIndex = -1;
+
+            // تحديث حقل رقم الجوال إذا كان موجوداً
+            if (phone && document.getElementById('clientPhone')) {
+                document.getElementById('clientPhone').value = phone;
+            }
+
+            // تلوين الحقل للتمييز
+            document.getElementById('clientNameInput').style.borderColor = 'var(--teal)';
+            setTimeout(function() {
+                document.getElementById('clientNameInput').style.borderColor = '';
+            }, 2000);
+
+            // تنفيذ البحث تلقائياً
+            searchInvoice();
+        }
+        window.selectClient = selectClient;
+
+        // إضافة مستمعات لأحداث الإدخال
+        document.getElementById('clientNameInput').addEventListener('input', function() {
+            var value = this.value.trim();
+            if (value.length >= 1) {
+                showClientSuggestions(value);
+            } else {
+                document.getElementById('clientSuggestions').classList.remove('show');
+                document.getElementById('clientIdHidden').value = '';
+                selectedClientId = null;
+                selectedSuggestionIndex = -1;
+            }
+        });
+
+        document.getElementById('clientNameInput').addEventListener('keydown', function(e) {
+            var items = document.querySelectorAll('#clientSuggestions .suggestion-item');
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, items.length - 1);
+                    updateSuggestionHighlight();
+                }
+            }
+
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, 0);
+                    updateSuggestionHighlight();
+                }
+            }
+
+            if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
+                e.preventDefault();
+                var selectedItem = items[selectedSuggestionIndex];
+                if (selectedItem) {
+                    selectedItem.click();
+                }
+            }
+
+            if (e.key === 'Escape') {
+                document.getElementById('clientSuggestions').classList.remove('show');
+                selectedSuggestionIndex = -1;
+            }
+        });
+
+        document.getElementById('clientNameInput').addEventListener('blur', function() {
+            setTimeout(function() {
+                if (!document.activeElement || !document.activeElement.closest('.client-suggestions')) {
+                    document.getElementById('clientSuggestions').classList.remove('show');
+                    selectedSuggestionIndex = -1;
+                }
+            }, 200);
+        });
+
+        document.addEventListener('click', function(e) {
+            var container = document.querySelector('.client-suggestions');
+            if (container && !container.contains(e.target)) {
+                document.getElementById('clientSuggestions').classList.remove('show');
+                selectedSuggestionIndex = -1;
+            }
+        });
 
         // ============================================================
         // FETCH HELPERS (باستخدام الدوال من supabase-client.js)
@@ -1066,28 +1264,11 @@
                     }
                 }
 
-                populateClientFilter();
+                // لم نعد بحاجة populateClientFilter لأننا نستخدم الاقتراحات
 
             } catch (error) {
                 console.error('❌ خطأ في تحميل البيانات:', error);
             }
-        }
-
-        function populateClientFilter() {
-            var select = document.getElementById('searchClient');
-            var currentVal = select.value;
-            select.innerHTML = '<option value="">جميع العملاء</option>';
-            var names = {};
-            allClients.forEach(function(c) {
-                if (c.name && !names[c.name]) {
-                    names[c.name] = true;
-                    var opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = c.name + (c.code ? ' (' + c.code + ')' : '');
-                    select.appendChild(opt);
-                }
-            });
-            if (currentVal) select.value = currentVal;
         }
 
         // ============================================================
@@ -1103,13 +1284,17 @@
 
         document.getElementById('btnClearSearch').addEventListener('click', function() {
             document.getElementById('searchInvoiceNo').value = '';
-            document.getElementById('searchClient').value = '';
+            document.getElementById('clientNameInput').value = '';
+            document.getElementById('clientIdHidden').value = '';
+            document.getElementById('clientSuggestions').classList.remove('show');
+            selectedClientId = null;
+            selectedSuggestionIndex = -1;
             clearInvoiceDisplay();
         });
 
         async function searchInvoice() {
             var invoiceNo = document.getElementById('searchInvoiceNo').value.trim();
-            var clientId = document.getElementById('searchClient').value;
+            var clientId = document.getElementById('clientIdHidden').value;
 
             if (!invoiceNo && !clientId) {
                 showToast('⚠️ تنبيه', 'يرجى إدخال رقم الفاتورة أو اختيار عميل', 'warning');
@@ -1193,9 +1378,12 @@
             currentInvoice = invoice;
             var items = invoice.sales_invoice_items || [];
 
+            // عرض اسم العميل في معلومات الفاتورة
+            var clientName = invoice.client_name || 'غير محدد';
+            document.getElementById('infoClientName').textContent = clientName;
+
             document.getElementById('invoiceInfo').classList.add('show');
             document.getElementById('infoInvoiceNo').textContent = invoice.invoice_no;
-            document.getElementById('infoClientName').textContent = invoice.client_name || 'غير محدد';
             document.getElementById('infoDate').textContent = formatDateShort(invoice.invoice_date);
             document.getElementById('infoRep').textContent = invoice.rep_name || '—';
             document.getElementById('infoTotal').textContent = formatNum(invoice.total_amount || 0);
@@ -1441,7 +1629,6 @@
             var prefix = 'RET-' + year + '-';
 
             try {
-                // استخدام getTable مع شرط like
                 var supabaseClient = getSupabaseClient();
                 if (!supabaseClient) throw new Error('Supabase Client not available');
 
@@ -1509,7 +1696,6 @@
                 var supabaseClient = getSupabaseClient();
                 if (!supabaseClient) throw new Error('Supabase Client not available');
 
-                // ✅ إنشاء فاتورة المرتجع باستخدام Supabase Client
                 var { data: returnInvoice, error: returnError } = await supabaseClient
                     .from('return_invoices')
                     .insert({
@@ -1532,13 +1718,11 @@
 
                 var returnInvoiceId = returnInvoice.id;
 
-                // ✅ إنشاء بنود المرتجع وحركات المخزون
                 for (var i = 0; i < returnItemsToProcess.length; i++) {
                     var item = returnItemsToProcess[i];
                     var returnQty = item.return_qty;
                     var returnValue = returnQty * item.unit_price;
 
-                    // حركة مخزون (وارد)
                     var { error: mvError } = await supabaseClient
                         .from('finished_goods_movements')
                         .insert({
@@ -1557,7 +1741,6 @@
 
                     if (mvError) throw new Error('فشل إنشاء حركة المخزون: ' + mvError.message);
 
-                    // بند المرتجع
                     var { error: itemError } = await supabaseClient
                         .from('return_invoice_items')
                         .insert({
@@ -1578,7 +1761,6 @@
                     if (itemError) throw new Error('فشل إنشاء بند المرتجع: ' + itemError.message);
                 }
 
-                // ✅ تحديث رصيد العميل
                 var client = allClients.find(function(c) { return c.id == currentInvoice.client_id; });
                 if (client) {
                     var { error: clientError } = await supabaseClient
@@ -1591,7 +1773,6 @@
                     if (clientError) console.warn('⚠️ فشل تحديث رصيد العميل:', clientError.message);
                 }
 
-                // ✅ تحديث حالة الفاتورة الأصلية
                 var { error: updateError } = await supabaseClient
                     .from('sales_invoices')
                     .update({ return_status: 'مرتجع جزئي' })
@@ -1599,7 +1780,6 @@
 
                 if (updateError) console.warn('⚠️ فشل تحديث حالة الفاتورة:', updateError.message);
 
-                // تحديث رقم فاتورة المرتجع في الواجهة
                 var returnInvoiceNoEl = document.getElementById('returnInvoiceNo');
                 if (returnInvoiceNoEl) {
                     returnInvoiceNoEl.textContent = returnInvoiceNo;
@@ -1770,11 +1950,9 @@
         (async function init() {
             console.log('🔄 صفحة مرتجعات المبيعات - QuickData ProSoft (باستخدام supabase-client.js)');
 
-            // التحقق من الجلسة باستخدام الدالة من supabase-client.js
             var sessionOk = await checkSessionAndRedirect();
             if (!sessionOk) return;
 
-            // بدء مراقبة الجلسة
             startSessionMonitor();
 
             await loadData();
