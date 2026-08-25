@@ -604,7 +604,10 @@
                     '<td>' + (isDeliveryOnly ? '🚚 ناولون' : 'ملغي') + '</td>' +
                     '</tr>';
                     
-                if (isDeliveryOnly) deliveryCount++;
+                if (isDeliveryOnly) {
+                    deliveryCount++;
+                    totalSum += (parseFloat(inv.delivery_fee) || 0);
+                }
                 
                 lastVisibleRows.push({
                     '#': rowCounter,
@@ -690,6 +693,57 @@
                     'الحالة': isFree ? 'مجاني' : 'بيع'
                 });
             });
+
+            // ✅ إضافة سطر منفصل لعرض الناولون إذا كانت الفاتورة تحتوي على أصناف *و* ناولون معًا
+            if (inv.delivery_fee > 0 && !hideDelivery) {
+                rowCounter++;
+                deliveryCount++;
+                totalSum += (parseFloat(inv.delivery_fee) || 0);
+
+                var deliveryRowClass = 'delivery-row' + altClass;
+
+                html += '<tr class="' + deliveryRowClass + '">' +
+                    '<td class="num">' + rowCounter + '</td>' +
+                    '<td class="invno">' + (inv.original_invoice_no || inv.invoice_no || '-') + '</td>' +
+                    '<td>' + formatDateShort(inv.invoice_date) + '</td>' +
+                    '<td>' + (inv.rep_name || '') + '</td>' +
+                    '<td class="num">' + (clientCode || '') + '</td>' +
+                    '<td class="client">' + (inv.client_name || '') + '</td>' +
+                    '<td></td>' +
+                    '<td><span class="delivery-badge">🚚 ناولون</span></td>' +
+                    '<td class="num"></td>' +
+                    '<td></td>' +
+                    '<td class="num"></td>' +
+                    '<td class="num"></td>' +
+                    '<td class="num total">' + formatNum(inv.delivery_fee) + '</td>' +
+                    '<td class="num"></td>' +
+                    '<td></td>' +
+                    '<td></td>' +
+                    '<td>' + (inv.location || '') + '</td>' +
+                    '<td>🚚 ناولون</td>' +
+                    '</tr>';
+
+                lastVisibleRows.push({
+                    '#': rowCounter,
+                    'رقم الفاتورة الدفتري': inv.original_invoice_no || inv.invoice_no || '-',
+                    'التاريخ': formatDateShort(inv.invoice_date),
+                    'المندوب': inv.rep_name || '',
+                    'كود العميل': clientCode || '',
+                    'اسم العميل': inv.client_name || '',
+                    'الكود': '',
+                    'المنتج': 'ناولون',
+                    'الوزن': '',
+                    'العبوة': '',
+                    'العدد': '',
+                    'سعر البيع': '',
+                    'الإجمالي': inv.delivery_fee || 0,
+                    'الوزن الكلي': '',
+                    'اللون': '',
+                    'نوع الحصوة': '',
+                    'الموقع': inv.location || '',
+                    'الحالة': 'ناولون'
+                });
+            }
         });
 
         if (rowCounter === 0) {
