@@ -8,10 +8,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- ✅ استخدام supabase-client.js بدلاً من الكود المخصص -->
+    <script src="supabase-client.js"></script>
 
     <style>
-        /* === نفس الاستايلات السابقة === */
+        /* ===== جميع الاستايلات كما هي (نفس الكود السابق) ===== */
         :root {
             --ink: #121821;
             --ink-soft: #2c3644;
@@ -917,11 +919,11 @@
 
     <script>
         // ============================================================
-        // SUPABASE CONFIGURATION
+        // استخدام الدوال من supabase-client.js
         // ============================================================
-        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
-        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
-        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // SUPABASE_URL و SUPABASE_ANON_KEY موجودة في supabase-client.js
+        // دوال getToken, getCompanyId, getCurrentUserProfile, logout موجودة بالفعل
 
         // ============================================================
         // STATE
@@ -932,132 +934,7 @@
         var allClients = [];
 
         // ============================================================
-        // AUTH HELPERS
-        // ============================================================
-        function getToken() {
-            try {
-                var storedSession = localStorage.getItem('rollex_session');
-                if (storedSession) {
-                    var parsed = JSON.parse(storedSession);
-                    if (parsed && parsed.access_token) return parsed.access_token;
-                }
-                var storedSession2 = sessionStorage.getItem('rollex_session');
-                if (storedSession2) {
-                    var parsed2 = JSON.parse(storedSession2);
-                    if (parsed2 && parsed2.access_token) return parsed2.access_token;
-                }
-                return null;
-            } catch (e) { return null; }
-        }
-
-        async function getValidToken() {
-            try {
-                var { data: { session } } = await supabaseClient.auth.getSession();
-                if (session && session.access_token) {
-                    localStorage.setItem('rollex_session', JSON.stringify({
-                        access_token: session.access_token,
-                        refresh_token: session.refresh_token,
-                        expires_at: session.expires_at
-                    }));
-                    return session.access_token;
-                }
-                var storedSession = localStorage.getItem('rollex_session');
-                if (storedSession) {
-                    var parsed = JSON.parse(storedSession);
-                    if (parsed && parsed.access_token) {
-                        var checkResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                            headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + parsed.access_token }
-                        });
-                        if (checkResponse.ok) return parsed.access_token;
-                        if ((checkResponse.status === 401 || checkResponse.status === 403) && parsed.refresh_token) {
-                            var refreshResponse = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
-                                method: 'POST',
-                                headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ refresh_token: parsed.refresh_token })
-                            });
-                            if (refreshResponse.ok) {
-                                var refreshData = await refreshResponse.json();
-                                if (refreshData.access_token) {
-                                    localStorage.setItem('rollex_session', JSON.stringify({
-                                        access_token: refreshData.access_token,
-                                        refresh_token: refreshData.refresh_token || parsed.refresh_token,
-                                        expires_at: Date.now() + ((refreshData.expires_in || 3600) * 1000)
-                                    }));
-                                    return refreshData.access_token;
-                                }
-                            }
-                        }
-                    }
-                }
-                return null;
-            } catch (e) {
-                console.error('❌ خطأ في getValidToken:', e);
-                return null;
-            }
-        }
-
-        async function verifySessionOrRedirect() {
-            var token = getToken();
-            if (!token) { window.location.href = 'login.html'; return false; }
-            try {
-                var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                    headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token }
-                });
-                if (response.ok) return true;
-                window.location.href = 'login.html';
-                return false;
-            } catch (e) {
-                return true;
-            }
-        }
-
-        async function getCurrentUserProfile() {
-            try {
-                var token = await getValidToken();
-                if (!token) return null;
-                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=id,name,email,role&limit=1', {
-                    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
-                });
-                if (!response.ok) return null;
-                var data = await response.json();
-                return data && data.length > 0 ? data[0] : null;
-            } catch (error) {
-                console.error('❌ خطأ في جلب البروفايل:', error);
-                return null;
-            }
-        }
-
-        async function getCompanyId() {
-            try {
-                var token = await getValidToken();
-                if (!token) return null;
-                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=company_id&limit=1', {
-                    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
-                });
-                if (!response.ok) return null;
-                var data = await response.json();
-                return data && data.length > 0 && data[0].company_id ? data[0].company_id : null;
-            } catch (error) {
-                console.error('❌ خطأ في جلب company_id:', error);
-                return null;
-            }
-        }
-
-        async function logout() {
-            try {
-                await supabaseClient.auth.signOut();
-                localStorage.removeItem('rollex_session');
-                sessionStorage.removeItem('rollex_session');
-                window.location.href = 'login.html';
-            } catch (error) {
-                console.error('❌ خطأ في تسجيل الخروج:', error);
-                window.location.href = 'login.html';
-            }
-        }
-        window.logout = logout;
-
-        // ============================================================
-        // TOAST
+        // TOAST (نسخة بسيطة)
         // ============================================================
         function showToast(title, message, type) {
             var container = document.getElementById('toastContainer');
@@ -1106,8 +983,11 @@
             });
         }
 
+        // جعل showToast متاحة عالمياً
+        window.showToast = showToast;
+
         // ============================================================
-        // FETCH HELPERS
+        // FETCH HELPERS (باستخدام الدوال من supabase-client.js)
         // ============================================================
         async function fetchAllRows(baseUrl, token) {
             var pageSize = 1000,
@@ -1116,10 +996,10 @@
             while (true) {
                 var response = await fetch(baseUrl, {
                     headers: {
-                        apikey: SUPABASE_ANON_KEY,
-                        Authorization: 'Bearer ' + token,
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
                         'Range-Unit': 'items',
-                        Range: from + '-' + (from + pageSize - 1)
+                        'Range': from + '-' + (from + pageSize - 1)
                     }
                 });
                 if (!response.ok) throw new Error('فشل جلب البيانات: ' + response.status);
@@ -1148,18 +1028,37 @@
         }
 
         // ============================================================
-        // LOAD DATA
+        // LOAD DATA (باستخدام getTable من supabase-client.js)
         // ============================================================
         async function loadData() {
             try {
-                var token = await getValidToken();
+                var token = getToken();
                 if (!token) {
                     showToast('⚠️ تنبيه', 'جلسة غير صالحة', 'error');
                     return;
                 }
 
-                allClients = await fetchAllRows(SUPABASE_URL +
-                    '/rest/v1/clients?select=id,name,code,phone&order=name', token);
+                // استخدام getTable من supabase-client.js
+                allClients = await getTable('clients');
+                
+                // إذا فشل getTable، نستخدم الطريقة المباشرة
+                if (!allClients || allClients.length === 0) {
+                    var companyId = await getCompanyId();
+                    if (companyId) {
+                        var response = await fetch(
+                            SUPABASE_URL + '/rest/v1/clients?select=id,name,code,phone&company_id=eq.' + companyId + '&order=name',
+                            {
+                                headers: {
+                                    'apikey': SUPABASE_ANON_KEY,
+                                    'Authorization': 'Bearer ' + token
+                                }
+                            }
+                        );
+                        if (response.ok) {
+                            allClients = await response.json();
+                        }
+                    }
+                }
 
                 populateClientFilter();
 
@@ -1186,7 +1085,7 @@
         }
 
         // ============================================================
-        // SEARCH INVOICE
+        // SEARCH INVOICE (باستخدام التوكن من supabase-client.js)
         // ============================================================
         document.getElementById('btnSearchInvoice').addEventListener('click', function() {
             searchInvoice();
@@ -1211,14 +1110,21 @@
                 return;
             }
 
-            var token = await getValidToken();
+            var token = getToken();
             if (!token) {
                 showToast('⚠️ تنبيه', 'جلسة غير صالحة', 'error');
                 return;
             }
 
+            var companyId = await getCompanyId();
+            if (!companyId) {
+                showToast('⚠️ تنبيه', 'لم يتم العثور على company_id', 'error');
+                return;
+            }
+
             var query = SUPABASE_URL +
-                '/rest/v1/sales_invoices?select=*,sales_invoice_items(*),clients(id,name,code,phone)&status=eq.مرحلة';
+                '/rest/v1/sales_invoices?select=*,sales_invoice_items(*),clients(id,name,code,phone)&status=eq.مرحلة&company_id=eq.' +
+                companyId;
 
             if (invoiceNo) {
                 query += '&invoice_no=eq.' + encodeURIComponent(invoiceNo);
@@ -1313,7 +1219,7 @@
         }
 
         // ============================================================
-        // RENDER ITEMS
+        // RENDER ITEMS (نفس الكود السابق)
         // ============================================================
         function renderItems(items) {
             var tbody = document.getElementById('itemsBody');
@@ -1365,7 +1271,7 @@
         }
 
         // ============================================================
-        // RETURN QUANTITY MANAGEMENT
+        // RETURN QUANTITY MANAGEMENT (نفس الكود السابق)
         // ============================================================
         function resetReturnItems() {
             returnItems = currentItems.map(function(item, index) {
@@ -1444,7 +1350,7 @@
         }
 
         // ============================================================
-        // UPDATE SUMMARY - المعدل (مع التحقق من وجود العناصر)
+        // UPDATE SUMMARY
         // ============================================================
         function updateSummary() {
             var totalReturnQty = 0;
@@ -1480,16 +1386,12 @@
                     returnInvoiceNoEl.textContent = 'جاري التجهيز...';
                     returnInvoiceNoEl.style.color = 'var(--ink-mute)';
                 } else {
-                    var tempNo = 'RET-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 99999) + 1).padStart(5, '0');
-                    returnInvoiceNoEl.textContent = tempNo + ' (سيتغير عند الحفظ)';
+                    returnInvoiceNoEl.textContent = 'جاري التجهيز...';
                     returnInvoiceNoEl.style.color = 'var(--accent-ink)';
                 }
             }
         }
 
-        // ============================================================
-        // RESET SUMMARY - المعدل (مع التحقق من وجود العناصر)
-        // ============================================================
         function resetSummary() {
             var totalReturnQtyEl = document.getElementById('totalReturnQty');
             var totalReturnValueEl = document.getElementById('totalReturnValue');
@@ -1525,30 +1427,29 @@
         });
 
         // ============================================================
-        // GENERATE RETURN INVOICE NUMBER
+        // GENERATE RETURN INVOICE NUMBER (باستخدام Supabase Client)
         // ============================================================
-        async function generateReturnInvoiceNo(companyId, token) {
+        async function generateReturnInvoiceNo(companyId) {
             var now = new Date();
             var year = now.getFullYear();
             var prefix = 'RET-' + year + '-';
 
             try {
-                var response = await fetch(
-                    SUPABASE_URL + '/rest/v1/return_invoices?select=return_invoice_no&company_id=eq.' + companyId +
-                    '&return_invoice_no=like.' + prefix + '%&order=return_invoice_no.desc&limit=1',
-                    {
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token
-                        }
-                    }
-                );
+                // استخدام getTable مع شرط like
+                var supabaseClient = getSupabaseClient();
+                if (!supabaseClient) throw new Error('Supabase Client not available');
 
-                if (!response.ok) throw new Error('فشل جلب آخر رقم');
+                var { data, error } = await supabaseClient
+                    .from('return_invoices')
+                    .select('return_invoice_no')
+                    .eq('company_id', companyId)
+                    .like('return_invoice_no', prefix + '%')
+                    .order('return_invoice_no', { ascending: false })
+                    .limit(1);
 
-                var data = await response.json();
+                if (error) throw new Error(error.message);
+
                 var nextSeq = 1;
-
                 if (data && data.length > 0 && data[0].return_invoice_no) {
                     var match = data[0].return_invoice_no.match(/(\d+)$/);
                     if (match) {
@@ -1565,7 +1466,7 @@
         }
 
         // ============================================================
-        // PROCESS RETURN
+        // PROCESS RETURN (باستخدام Supabase Client)
         // ============================================================
         document.getElementById('btnProcessReturn').addEventListener('click', async function() {
             if (!currentInvoice) {
@@ -1584,7 +1485,7 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التنفيذ...';
 
             try {
-                var token = await getValidToken();
+                var token = getToken();
                 if (!token) throw new Error('جلسة غير صالحة');
 
                 var companyId = await getCompanyId();
@@ -1596,18 +1497,16 @@
                     return sum + (item.return_qty * item.unit_price);
                 }, 0);
 
-                var returnInvoiceNo = await generateReturnInvoiceNo(companyId, token);
+                var returnInvoiceNo = await generateReturnInvoiceNo(companyId);
                 console.log('📄 رقم فاتورة المرتجع:', returnInvoiceNo);
 
-                var returnInvResponse = await fetch(SUPABASE_URL + '/rest/v1/return_invoices', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify({
+                var supabaseClient = getSupabaseClient();
+                if (!supabaseClient) throw new Error('Supabase Client not available');
+
+                // ✅ إنشاء فاتورة المرتجع باستخدام Supabase Client
+                var { data: returnInvoice, error: returnError } = await supabaseClient
+                    .from('return_invoices')
+                    .insert({
                         company_id: companyId,
                         return_invoice_no: returnInvoiceNo,
                         original_invoice_id: currentInvoice.id,
@@ -1620,30 +1519,23 @@
                         notes: 'مرتجع عن فاتورة ' + currentInvoice.invoice_no + ' (' + returnItemsToProcess.length + ' منتج)',
                         created_by: user?.id || null
                     })
-                });
+                    .select()
+                    .single();
 
-                if (!returnInvResponse.ok) {
-                    var errorText = await returnInvResponse.text();
-                    throw new Error('فشل إنشاء فاتورة المرتجع: ' + errorText);
-                }
+                if (returnError) throw new Error(returnError.message);
 
-                var returnInvData = await returnInvResponse.json();
-                var returnInvoiceId = returnInvData[0]?.id || returnInvData.id;
+                var returnInvoiceId = returnInvoice.id;
 
+                // ✅ إنشاء بنود المرتجع وحركات المخزون
                 for (var i = 0; i < returnItemsToProcess.length; i++) {
                     var item = returnItemsToProcess[i];
                     var returnQty = item.return_qty;
                     var returnValue = returnQty * item.unit_price;
 
-                    var mvResponse = await fetch(SUPABASE_URL + '/rest/v1/finished_goods_movements', {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'return=representation'
-                        },
-                        body: JSON.stringify({
+                    // حركة مخزون (وارد)
+                    var { error: mvError } = await supabaseClient
+                        .from('finished_goods_movements')
+                        .insert({
                             company_id: companyId,
                             user_id: user?.id || null,
                             product_id: item.product_id,
@@ -1655,26 +1547,14 @@
                             reference: returnInvoiceNo,
                             notes: 'مرتجع - فاتورة ' + returnInvoiceNo + ' عن ' + currentInvoice.invoice_no,
                             movement_date: new Date().toISOString().slice(0, 10)
-                        })
-                    });
+                        });
 
-                    if (!mvResponse.ok) {
-                        var mvError = await mvResponse.text();
-                        throw new Error('فشل إنشاء حركة المخزون: ' + mvError);
-                    }
+                    if (mvError) throw new Error('فشل إنشاء حركة المخزون: ' + mvError.message);
 
-                    var mvData = await mvResponse.json();
-                    var movementId = mvData[0]?.id || mvData.id;
-
-                    var itemResponse = await fetch(SUPABASE_URL + '/rest/v1/return_invoice_items', {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'return=representation'
-                        },
-                        body: JSON.stringify({
+                    // بند المرتجع
+                    var { error: itemError } = await supabaseClient
+                        .from('return_invoice_items')
+                        .insert({
                             return_invoice_id: returnInvoiceId,
                             product_id: item.product_id,
                             product_name: item.product_name,
@@ -1686,43 +1566,32 @@
                             unit_weight: item.unit_weight || null,
                             total_weight: item.total_weight || null,
                             color: item.color || null,
-                            aggregate_type: item.aggregate_type || null,
-                            movement_id: movementId
-                        })
-                    });
+                            aggregate_type: item.aggregate_type || null
+                        });
 
-                    if (!itemResponse.ok) {
-                        var itemError = await itemResponse.text();
-                        throw new Error('فشل إنشاء بند المرتجع: ' + itemError);
-                    }
+                    if (itemError) throw new Error('فشل إنشاء بند المرتجع: ' + itemError.message);
                 }
 
+                // ✅ تحديث رصيد العميل
                 var client = allClients.find(function(c) { return c.id == currentInvoice.client_id; });
                 if (client) {
-                    await fetch(SUPABASE_URL + '/rest/v1/clients?id=eq.' + currentInvoice.client_id, {
-                        method: 'PATCH',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
+                    var { error: clientError } = await supabaseClient
+                        .from('clients')
+                        .update({
                             due_balance: Math.max(0, (parseFloat(client.due_balance) || 0) - totalReturn)
                         })
-                    });
+                        .eq('id', currentInvoice.client_id);
+
+                    if (clientError) console.warn('⚠️ فشل تحديث رصيد العميل:', clientError.message);
                 }
 
-                await fetch(SUPABASE_URL + '/rest/v1/sales_invoices?id=eq.' + currentInvoice.id, {
-                    method: 'PATCH',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        return_status: 'مرتجع جزئي'
-                    })
-                });
+                // ✅ تحديث حالة الفاتورة الأصلية
+                var { error: updateError } = await supabaseClient
+                    .from('sales_invoices')
+                    .update({ return_status: 'مرتجع جزئي' })
+                    .eq('id', currentInvoice.id);
+
+                if (updateError) console.warn('⚠️ فشل تحديث حالة الفاتورة:', updateError.message);
 
                 showToast('✅ تم تنفيذ المرتجع',
                     'فاتورة مرتجع رقم: ' + returnInvoiceNo + ' بقيمة ' + formatNum(totalReturn),
@@ -1886,10 +1755,14 @@
         // INIT
         // ============================================================
         (async function init() {
-            console.log('🔄 صفحة مرتجعات المبيعات - QuickData ProSoft (دفتر مستقل)');
+            console.log('🔄 صفحة مرتجعات المبيعات - QuickData ProSoft (باستخدام supabase-client.js)');
 
-            var sessionOk = await verifySessionOrRedirect();
+            // التحقق من الجلسة باستخدام الدالة من supabase-client.js
+            var sessionOk = await checkSessionAndRedirect();
             if (!sessionOk) return;
+
+            // بدء مراقبة الجلسة
+            startSessionMonitor();
 
             await loadData();
         })();
