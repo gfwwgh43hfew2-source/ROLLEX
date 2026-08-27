@@ -8,9 +8,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    
+    <!-- ✅ تحميل مكتبة Supabase بشكل صحيح -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- ===== إضافة الملف المركزي ===== -->
+    <!-- ✅ تحميل الملف المركزي (يحتوي على التعريفات والدوال) -->
     <script src="supabase-client.js"></script>
+    
     <style>
         /* ============================================================
            CSS VARIABLES
@@ -1366,6 +1369,13 @@
     JAVASCRIPT - بعد التعديل لاستخدام supabase-client.js
     ============================================================ -->
     <script>
+        /**
+         * ============================================================
+         * 🏛️ إدخال حركة الخزينة - باستخدام supabase-client.js
+         * ============================================================
+         * تم إزالة التعريفات المكررة والاعتماد الكامل على الملف المركزي
+         */
+
         // ============================================================
         // SIDEBAR TOGGLE
         // ============================================================
@@ -1374,25 +1384,25 @@
         var openSidebarBtn = document.getElementById('openSidebar');
         var closeSidebarBtn = document.getElementById('closeSidebar');
 
-        function openSidebar() {
+        function openSidebarFn() {
             sidebar.classList.add('open');
             sidebarOverlay.classList.add('active');
             document.body.style.overflow = 'hidden';
         }
 
-        function closeSidebar() {
+        function closeSidebarFn() {
             sidebar.classList.remove('open');
             sidebarOverlay.classList.remove('active');
             document.body.style.overflow = '';
         }
 
-        openSidebarBtn.addEventListener('click', openSidebar);
-        closeSidebarBtn.addEventListener('click', closeSidebar);
-        sidebarOverlay.addEventListener('click', closeSidebar);
+        openSidebarBtn.addEventListener('click', openSidebarFn);
+        closeSidebarBtn.addEventListener('click', closeSidebarFn);
+        sidebarOverlay.addEventListener('click', closeSidebarFn);
 
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                closeSidebar();
+                closeSidebarFn();
             }
         });
 
@@ -1414,14 +1424,7 @@
         var resetBtn = document.getElementById('resetBtn');
         var descCounter = document.getElementById('descCounter');
         var notesCounter = document.getElementById('notesCounter');
-
-        // ============================================================
-        // CONFIGURATION (مأخوذة من supabase-client.js)
-        // ============================================================
-        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
-        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
-        var TABLE_NAME = 'treasury';
-        var STORAGE_KEY = 'rollex_treasury_entries';
+        var suggestionsList = document.getElementById('suggestionsList');
 
         // ============================================================
         // TOAST SYSTEM
@@ -1472,7 +1475,7 @@
         }
 
         // ============================================================
-        // LOAD GENERAL TABS - باستخدام getTable من الملف المركزي
+        // LOAD GENERAL TABS - باستخدام getTable من supabase-client.js
         // ============================================================
         async function loadGeneralTabs() {
             try {
@@ -1530,124 +1533,160 @@
         }
 
         // ============================================================
-        // LOAD LINKED TABLE DATA - باستخدام getTable من الملف المركزي
-        // ============================================================
-        async function loadLinkedTableData(linkedTable) {
-            if (!linkedTable) return [];
-
-            try {
-                var data = await getTable(linkedTable);
-                return data || [];
-            } catch (error) {
-                console.error('❌ خطأ في جلب البيانات من ' + linkedTable + ':', error);
-                return [];
-            }
-        }
-
-        // ============================================================
         // UPDATE PRIVATE TAB SUGGESTIONS
         // ============================================================
         var currentLinkedTable = null;
-        var clientsList = [];
-        var suppliersList = [];
-        var employeesList = [];
-        var expenseTypesList = [];
-        var productsList = [];
-        var projectsList = [];
 
         async function updatePrivateTabSuggestions() {
             var generalTab = generalTabSelect.value;
 
             if (!generalTab) {
-                resetPrivateTabToInput();
+                // إعادة تعيين التبويب الخاص للإدخال النصي
+                if (privateTabInput.tagName === 'SELECT') {
+                    var newInput = document.createElement('input');
+                    newInput.type = 'text';
+                    newInput.id = 'entryPrivateTab';
+                    newInput.placeholder = 'أدخل القيمة...';
+                    newInput.required = true;
+                    newInput.className = 'form-control';
+                    newInput.style.width = '100%';
+                    newInput.style.padding = '10px 14px';
+                    newInput.style.borderRadius = 'var(--radius-sm)';
+                    newInput.style.border = '1.5px solid var(--gray-200)';
+                    newInput.style.fontSize = '0.85rem';
+                    newInput.style.fontFamily = 'var(--font)';
+                    newInput.style.transition = 'var(--transition)';
+                    newInput.style.background = 'var(--gray-50)';
+                    newInput.style.color = 'var(--gray-900)';
+                    newInput.style.outline = 'none';
+                    newInput.autocomplete = 'off';
+
+                    var parent = privateTabInput.parentElement;
+                    if (parent) {
+                        parent.replaceChild(newInput, privateTabInput);
+                    }
+                    privateTabInput = newInput;
+                    currentLinkedTable = null;
+                    suggestionsList.innerHTML = '';
+                    suggestionsList.classList.remove('show');
+                } else {
+                    privateTabInput.value = '';
+                    privateTabInput.placeholder = 'أدخل القيمة...';
+                    currentLinkedTable = null;
+                    suggestionsList.innerHTML = '';
+                    suggestionsList.classList.remove('show');
+                }
                 return;
             }
 
             var selectedOption = generalTabSelect.options[generalTabSelect.selectedIndex];
             var linkedTable = selectedOption ? selectedOption.dataset.linkedTable : '';
 
-            currentLinkedTable = linkedTable;
-
             if (!linkedTable) {
-                resetPrivateTabToInput();
+                // لا يوجد جدول مرتبط، استخدم إدخال نصي
+                if (privateTabInput.tagName === 'SELECT') {
+                    var newInput = document.createElement('input');
+                    newInput.type = 'text';
+                    newInput.id = 'entryPrivateTab';
+                    newInput.placeholder = 'أدخل القيمة...';
+                    newInput.required = true;
+                    newInput.className = 'form-control';
+                    newInput.style.width = '100%';
+                    newInput.style.padding = '10px 14px';
+                    newInput.style.borderRadius = 'var(--radius-sm)';
+                    newInput.style.border = '1.5px solid var(--gray-200)';
+                    newInput.style.fontSize = '0.85rem';
+                    newInput.style.fontFamily = 'var(--font)';
+                    newInput.style.transition = 'var(--transition)';
+                    newInput.style.background = 'var(--gray-50)';
+                    newInput.style.color = 'var(--gray-900)';
+                    newInput.style.outline = 'none';
+                    newInput.autocomplete = 'off';
+
+                    var parent = privateTabInput.parentElement;
+                    if (parent) {
+                        parent.replaceChild(newInput, privateTabInput);
+                    }
+                    privateTabInput = newInput;
+                    currentLinkedTable = null;
+                    suggestionsList.innerHTML = '';
+                    suggestionsList.classList.remove('show');
+                }
                 return;
             }
 
-            var data = await loadLinkedTableData(linkedTable);
+            currentLinkedTable = linkedTable;
 
-            switch (linkedTable) {
-                case 'clients':
-                    clientsList = data;
-                    break;
-                case 'suppliers':
-                    suppliersList = data;
-                    break;
-                case 'employees':
-                    employeesList = data;
-                    break;
-                case 'expense_types':
-                    expenseTypesList = data;
-                    break;
-                case 'products':
-                    productsList = data;
-                    break;
-                case 'projects':
-                    projectsList = data;
-                    break;
-                default:
-                    data = [];
-            }
-
-            if (data && data.length > 0) {
-                privateTabInput.placeholder = 'ابحث عن ' + getTableLabel(linkedTable) + '...';
-                privateTabInput.value = '';
-            } else {
-                resetPrivateTabToInput();
-            }
-        }
-
-        function getTableLabel(linkedTable) {
-            var labels = {
-                'clients': 'عميل',
-                'suppliers': 'مورد',
-                'employees': 'موظف',
-                'expense_types': 'نوع مصروف',
-                'products': 'منتج',
-                'projects': 'مشروع'
-            };
-            return labels[linkedTable] || linkedTable;
-        }
-
-        function resetPrivateTabToInput() {
-            if (privateTabInput.tagName === 'SELECT') {
-                var newInput = document.createElement('input');
-                newInput.type = 'text';
-                newInput.id = 'entryPrivateTab';
-                newInput.placeholder = 'أدخل القيمة...';
-                newInput.required = true;
-                newInput.className = 'form-control';
-                newInput.style.width = '100%';
-                newInput.style.padding = '10px 14px';
-                newInput.style.borderRadius = 'var(--radius-sm)';
-                newInput.style.border = '1.5px solid var(--gray-200)';
-                newInput.style.fontSize = '0.85rem';
-                newInput.style.fontFamily = 'var(--font)';
-                newInput.style.transition = 'var(--transition)';
-                newInput.style.background = 'var(--gray-50)';
-                newInput.style.color = 'var(--gray-900)';
-                newInput.style.outline = 'none';
+            // تغيير الإدخال إلى حقل بحث إذا لم يكن كذلك
+            if (privateTabInput.tagName !== 'SELECT') {
+                var newSelect = document.createElement('select');
+                newSelect.id = 'entryPrivateTab';
+                newSelect.required = true;
+                newSelect.className = 'form-control';
+                newSelect.style.width = '100%';
+                newSelect.style.padding = '10px 14px';
+                newSelect.style.borderRadius = 'var(--radius-sm)';
+                newSelect.style.border = '1.5px solid var(--gray-200)';
+                newSelect.style.fontSize = '0.85rem';
+                newSelect.style.fontFamily = 'var(--font)';
+                newSelect.style.transition = 'var(--transition)';
+                newSelect.style.background = 'var(--gray-50)';
+                newSelect.style.color = 'var(--gray-900)';
+                newSelect.style.outline = 'none';
+                newSelect.style.appearance = 'none';
+                newSelect.style.webkitAppearance = 'none';
+                newSelect.style.backgroundImage = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238a96a8\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")';
+                newSelect.style.backgroundRepeat = 'no-repeat';
+                newSelect.style.backgroundPosition = 'left 12px center';
+                newSelect.style.backgroundSize = '14px';
+                newSelect.style.cursor = 'pointer';
+                newSelect.style.paddingLeft = '36px';
 
                 var parent = privateTabInput.parentElement;
                 if (parent) {
-                    parent.replaceChild(newInput, privateTabInput);
+                    parent.replaceChild(newSelect, privateTabInput);
                 }
-                privateTabInput = newInput;
-                currentLinkedTable = null;
-            } else {
-                privateTabInput.value = '';
-                privateTabInput.placeholder = 'أدخل القيمة...';
-                currentLinkedTable = null;
+                privateTabInput = newSelect;
             }
+
+            // تحميل البيانات
+            privateTabInput.innerHTML = '<option value="">جاري التحميل...</option>';
+            privateTabInput.disabled = true;
+
+            try {
+                var data = await getTable(linkedTable);
+                privateTabInput.innerHTML = '<option value="">اختر...</option>';
+
+                if (!data || data.length === 0) {
+                    var emptyOpt = document.createElement('option');
+                    emptyOpt.value = '';
+                    emptyOpt.textContent = '⚠️ لا توجد بيانات';
+                    emptyOpt.disabled = true;
+                    privateTabInput.appendChild(emptyOpt);
+                } else {
+                    var nameField = 'name';
+                    if (linkedTable === 'clients') nameField = 'name';
+                    else if (linkedTable === 'suppliers') nameField = 'name';
+                    else if (linkedTable === 'employees') nameField = 'name';
+                    else if (linkedTable === 'expense_types') nameField = 'name';
+                    else if (linkedTable === 'products') nameField = 'name';
+                    else if (linkedTable === 'projects') nameField = 'name';
+
+                    data.forEach(function(item) {
+                        var opt = document.createElement('option');
+                        opt.value = item[nameField] || item.id || '';
+                        var label = item[nameField] || item.id || '';
+                        if (item.code) label = item.code + ' - ' + label;
+                        opt.textContent = label;
+                        privateTabInput.appendChild(opt);
+                    });
+                }
+            } catch (error) {
+                console.error('❌ خطأ في تحميل بيانات ' + linkedTable + ':', error);
+                privateTabInput.innerHTML = '<option value="">⚠️ فشل التحميل</option>';
+            }
+
+            privateTabInput.disabled = false;
         }
 
         // ============================================================
@@ -1658,7 +1697,7 @@
         });
 
         // ============================================================
-        // SAVE TO SUPABASE - باستخدام insertRow من الملف المركزي
+        // SAVE TO SUPABASE - باستخدام insertRow من supabase-client.js
         // ============================================================
         async function saveToSupabase(entry) {
             var token = getToken();
@@ -1686,7 +1725,7 @@
 
             console.log('📤 محاولة الحفظ في Supabase:', JSON.stringify(payload, null, 2));
 
-            return await insertRow(TABLE_NAME, payload);
+            return await insertRow('treasury', payload);
         }
 
         // ============================================================
@@ -1824,20 +1863,11 @@
                 var result = await saveToSupabase(entry);
                 console.log('✅ تم الحفظ في Supabase:', result);
 
-                var entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-                entries.push(entry);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-
                 showToast('✅ تم الحفظ', 'تم حفظ الحركة رقم ' + number + ' بنجاح', 'success');
                 clearForm();
 
             } catch (error) {
                 console.error('❌ خطأ في الحفظ:', error);
-
-                var entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-                entries.push(entry);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-
                 var errorMsg = error.message || 'خطأ غير معروف';
                 showToast('❌ فشل الحفظ', errorMsg, 'error');
             }
@@ -1910,7 +1940,7 @@
                     event.preventDefault();
                     var editIndex = parseInt(editIndexInput.value);
                     if (editIndex >= 0) {
-                        if (!confirm('هل أنت متأكد من إلغاء التعديل？')) {
+                        if (!confirm('هل أنت متأكد من إلغاء التعديل؟')) {
                             return;
                         }
                     }
@@ -1952,7 +1982,7 @@
         // AUTO-GENERATE VOUCHER NUMBER
         // ============================================================
         function generateVoucherNumber() {
-            var entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            var entries = JSON.parse(localStorage.getItem('rollex_treasury_entries') || '[]');
             var today = new Date().toISOString().split('T')[0];
             var todayEntries = entries.filter(function(entry) {
                 return entry.date === today;
@@ -1981,9 +2011,6 @@
         // ============================================================
         (async function init() {
             console.log('🏛️ تطبيق إدخال الخزينة الرئيسية - شركة رولكس');
-            console.log('🔗 Supabase URL:', SUPABASE_URL);
-            console.log('📊 جدول البيانات:', TABLE_NAME);
-            console.log('💾 مفتاح التخزين المحلي:', STORAGE_KEY);
 
             var token = getToken();
             if (!token) {
