@@ -1888,6 +1888,7 @@
          * ============================================================
          * تم إزالة التعريفات المكررة والاعتماد الكامل على الملف المركزي
          * تم إضافة دعم تحميل الفاتورة للتعديل عبر invoice_id في الرابط
+         * تم تحسين سرعة التحميل بتحميل الفاتورة مباشرة دون انتظار كل البيانات
          */
 
         // ============================================================
@@ -2224,7 +2225,7 @@
 
 
         // ============================================================
-        // FETCH ALL ROWS
+        // FETCH ALL ROWS (للاستخدام العام)
         // ============================================================
         async function fetchAllRows(baseUrl, token) {
             var pageSize = 1000;
@@ -2326,6 +2327,23 @@
             } catch (error) {
                 console.error('❌ خطأ في جلب حركات المخزون:', error);
                 allFinishedMovements = [];
+            }
+        }
+
+
+        // ============================================================
+        // LOAD DATA IN BACKGROUND - تحميل البيانات في الخلفية
+        // ============================================================
+        async function loadDataInBackground() {
+            try {
+                console.log('🔄 تحميل البيانات في الخلفية...');
+                await loadClients();
+                await loadProducts();
+                await loadFinishedMovements();
+                rebuildLookupIndexes();
+                console.log('✅ تم تحميل البيانات في الخلفية');
+            } catch (error) {
+                console.warn('⚠️ فشل تحميل البيانات في الخلفية:', error);
             }
         }
 
@@ -2934,7 +2952,7 @@
 
 
         // ============================================================
-        // LOAD INVOICE FOR EDIT
+        // LOAD INVOICE FOR EDIT - محسّن للسرعة (تحميل مباشر)
         // ============================================================
         async function loadInvoiceForEdit(invoiceId) {
             try {
@@ -2952,31 +2970,89 @@
                     return false;
                 }
 
-                // 1. جلب رأس الفاتورة
-                var invoices = await getTable('sales_invoices');
-                var invoice = invoices.find(function(inv) {
-                    return inv.id == invoiceId && inv.company_id == companyId;
-                });
+                var supabase = getSupabaseClient();
+                if (!supabase) {
+                    console.error('❌ supabaseClient غير متاح');
+                    return false;
+                }
 
-                if (!invoice) {
-                    showToast('❌ خطأ', 'لم يتم العثور على الفاتورة', 'error');
+                // ✅ 1. تحميل الفاتورة مباشرة باستخدام معرفها
+                var { data: invoice, error: invoiceError } = await supabase
+                    .from('sales_invoices')
+                    .select('*')
+                    .eq('id', invoiceId)
+                    .eq('company_id', companyId)
+                    .single();
+
+                if (invoiceError || !invoice) {
+                    showToast('❌ خطأ', 'لم يتم العثور على الفاتورة: ' + (invoiceError?.message || ''), 'error');
                     return false;
                 }
 
                 console.log('✅ تم جلب الفاتورة:', invoice);
 
-                // 2. جلب بنود الفاتورة
-                var itemsData = await getTable('sales_invoice_items');
-                var invoiceItems = itemsData.filter(function(item) {
-                    return item.invoice_id == invoiceId;
-                });
+                // ✅ 2. تحميل بنود الفاتورة مباشرة
+                var { data: invoiceItems, error: itemsError } = await supabase
+                    .from('sales_invoice_items')
+                    .select('*')
+                    .eq('invoice_id', invoiceId);
 
-                console.log('📦 عدد البنود:', invoiceItems.length);
+                if (itemsError) {
+                    console.warn('⚠️ فشل جلب البنود:', itemsError.message);
+                    invoiceItems = [];
+                }
 
-                // 3. ملء النموذج بالبيانات
-                fillInvoiceForm(invoice, invoiceItems);
+                console.log('📦 عدد البنود:', invoiceItems?.length || 0);
 
-                // 4. تغيير وضع الصفحة إلى "تعديل"
+                // ✅ 3. تحميل بيانات العميل إذا كان موجوداً
+                if (invoice.client_id) {
+                    var { data: clientData, error: clientError } = await supabase
+                        .from('clients')
+                        .select('id,name,phone,code')
+                        .eq('id', invoice.client_id)
+                        .single();
+
+                    if (!clientError && clientData) {
+                        var existingClient = allClients.find(function(c) { return c.id == clientData.id; });
+                        if (!existingClient) {
+                            allClients.push(clientData);
+                            rebuildLookupIndexes();
+                        }
+                    }
+                }
+
+                // ✅ 4. تحميل بيانات المنتجات المستخدمة في الفاتورة
+                if (invoiceItems && invoiceItems.length > 0) {
+                    var productIds = invoiceItems.map(function(item) { return item.product_id; }).filter(Boolean);
+                    if (productIds.length > 0) {
+                        var { data: productsData, error: productsError } = await supabase
+                            .from('products')
+                            .select('id,product_name,product_code,product_unit,sell_price,product_weight')
+                            .in('id', productIds);
+
+                        if (!productsError && productsData) {
+                            productsData.forEach(function(p) {
+                                var existingProduct = allProducts.find(function(pr) { return pr.id == p.id; });
+                                if (!existingProduct) {
+                                    allProducts.push({
+                                        id: p.id,
+                                        name: p.product_name || 'بدون اسم',
+                                        code: p.product_code || '',
+                                        unit: p.product_unit || '',
+                                        sell_price: p.sell_price || 0,
+                                        weight: p.product_weight || null
+                                    });
+                                }
+                            });
+                            rebuildLookupIndexes();
+                        }
+                    }
+                }
+
+                // ✅ 5. ملء النموذج بالبيانات
+                fillInvoiceForm(invoice, invoiceItems || []);
+
+                // ✅ 6. تغيير وضع الصفحة إلى "تعديل"
                 document.getElementById('formMode').value = 'edit';
                 document.getElementById('invoiceIdHidden').value = invoiceId;
                 btnSaveInvoice.innerHTML = '<i class="fas fa-edit"></i> تحديث الفاتورة';
@@ -2989,6 +3065,11 @@
                 }
 
                 showToast('✅ تم التحميل', 'تم تحميل الفاتورة للتعديل', 'success');
+
+                // ✅ 7. تحميل باقي البيانات في الخلفية (غير محظور)
+                setTimeout(function() {
+                    loadDataInBackground();
+                }, 500);
 
                 return true;
 
@@ -3306,14 +3387,29 @@
 
 
         // ============================================================
-        // LOAD DATA
+        // LOAD DATA - تحميل جميع البيانات (للفاتورة الجديدة)
         // ============================================================
         async function loadData() {
             console.log('🚀 بدء تحميل البيانات...');
+
+            // عرض حالة التحميل
+            itemsBody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="loading-state">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>جاري تحميل البيانات...</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+
             await loadClients();
             await loadProducts();
             await loadFinishedMovements();
             rebuildLookupIndexes();
+            renderItems();
+            calculateTotals();
             console.log('✅ تم تحميل البيانات');
         }
 
@@ -5034,7 +5130,7 @@
 
 
         // ============================================================
-        // INIT - نقطة الدخول الرئيسية مع دعم تحميل الفاتورة للتعديل
+        // INIT - نقطة الدخول الرئيسية مع دعم تحميل الفاتورة بسرعة
         // ============================================================
         (async function init() {
             console.log('🏭 فاتورة مبيعات جديدة - QuickData ProSoft');
@@ -5049,12 +5145,35 @@
 
             setDefaultDate();
             await generateInvoiceNumber();
-            await loadData();
 
-            // ✅ التحقق من وجود invoice_id في الرابط لتحميل الفاتورة للتعديل
+            // ✅ التحقق من وجود invoice_id في الرابط
             var invoiceId = getInvoiceIdFromUrl();
+
             if (invoiceId) {
+                // ✅ إذا كانت هناك فاتورة محددة، نحمّلها مباشرة دون انتظار البيانات الأخرى
+                // نعرض حالة التحميل
+                itemsBody.innerHTML = `
+                        <tr>
+                            <td colspan="6">
+                                <div class="loading-state">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <p>جاري تحميل الفاتورة...</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+
+                // ✅ تحميل الفاتورة أولاً (سريع)
                 await loadInvoiceForEdit(invoiceId);
+
+                // ✅ ثم تحميل باقي البيانات في الخلفية
+                setTimeout(function() {
+                    loadDataInBackground();
+                }, 500);
+
+            } else {
+                // ✅ إذا لم توجد فاتورة محددة، نحمّل البيانات كاملة
+                await loadData();
             }
 
             if (btnSavePdfDirect) {
