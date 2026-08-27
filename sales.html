@@ -242,10 +242,13 @@
         .logo-text h1 { font-size: 0.95rem; font-weight: 800; color: var(--ink); line-height: 1.25; letter-spacing: -0.2px; }
         .logo-text span { font-size: 0.62rem; color: var(--ink-mute); display: block; font-weight: 600; }
 
-        nav { display: flex; align-items: center; gap: 22px; }
+        nav { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
         nav a {
             color: var(--ink-mute); font-weight: 700; font-size: 0.76rem;
             transition: 0.2s; position: relative; padding: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
         nav a::after {
             content: ''; position: absolute; bottom: -2px; right: 0;
@@ -603,6 +606,7 @@
                 <a href="#" class="active">المبيعات</a>
                 <a href="finished-goods-stock.html">مخزن المنتج التام</a>
                 <a href="reports.html">التقارير</a>
+                <a href="discounts.html"><i class="fas fa-percent"></i> الخصومات والتسويات</a>
             </nav>
             <div class="header-actions">
                 <button onclick="loadData()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
@@ -1007,7 +1011,7 @@
         var entriesBody = document.getElementById('entriesBody');
         var totalCount = document.getElementById('totalCount');
         var totalSalesSum = document.getElementById('totalSalesSum');
-        var lastVisibleInvoices = []; // آخر مجموعة فواتير ظاهرة فعليًا على الشاشة (بعد الفلاتر) - تُستخدم للتصدير
+        var lastVisibleInvoices = [];
         var filterClient = document.getElementById('filterClient');
         var filterInvoiceNo = document.getElementById('filterInvoiceNo');
 
@@ -1023,12 +1027,10 @@
                 '<tr><td colspan="7"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
 
             try {
-                // جلب الفواتير
                 var invoicesData = await fetchTable('sales_invoices', '*', 'created_at.desc');
                 allInvoices = invoicesData || [];
                 console.log('📄 عدد الفواتير:', allInvoices.length);
 
-                // جلب بنود الفواتير
                 var itemsData = await fetchTable('sales_invoice_items', '*', 'created_at.desc');
                 allInvoiceItems = itemsData || [];
                 console.log('📦 عدد البنود:', allInvoiceItems.length);
@@ -1062,10 +1064,6 @@
                 return;
             }
 
-            // ترتيب الفواتير المستوردة حسب "رقم الفاتورة الدفتري" (original_invoice_no)
-            // تصاعديًا بترتيب طبيعي (numeric) يتعامل صح مع أرقام زي "م51" أو بادئات
-            // نصية. لو فيه فاتورتين بنفس الرقم الدفتري (نادر) نرجع لترتيب وقت
-            // الإنشاء الفعلي (created_at) كفاصل تعادل فقط.
             function invoiceSortKey(inv) {
                 var raw = inv.original_invoice_no;
                 var hasOriginal = raw != null && String(raw).trim() !== '';
@@ -1074,25 +1072,19 @@
 
             var sorted = filtered.slice().sort(function(a, b) {
                 var ka = invoiceSortKey(a), kb = invoiceSortKey(b);
-
-                // الفواتير المستوردة من إكسيل تتصدر مرتبة برقمها الدفتري تصاعديًا
                 if (ka.hasOriginal && !kb.hasOriginal) return -1;
                 if (!ka.hasOriginal && kb.hasOriginal) return 1;
-
                 if (ka.hasOriginal && kb.hasOriginal) {
                     var cmp = ka.raw.localeCompare(kb.raw, 'ar', { numeric: true, sensitivity: 'base' });
                     if (cmp !== 0) return cmp;
                     return new Date(a.created_at) - new Date(b.created_at);
                 }
-
-                // فواتير مش مستوردة (اتضافت يدوي) -> رتّبها بالتاريخ الأحدث أولاً
                 return new Date(b.invoice_date) - new Date(a.invoice_date);
             });
 
             var html = '';
             sorted.forEach(function(inv, index) {
                 var itemsCount = allInvoiceItems.filter(function(it) { return it.invoice_id == inv.id; }).length;
-
                 var deliveryFeeVal = parseFloat(inv.delivery_fee) || 0;
                 var grandTotal = (parseFloat(inv.total_amount) || 0) + deliveryFeeVal;
                 var deliveryBadge = deliveryFeeVal > 0 ?
@@ -1253,7 +1245,6 @@
             var token = await getValidToken();
             if (!token) throw new Error('جلسة منتهية');
 
-            // 1. حذف البنود المرتبطة
             var itemsUrl = SUPABASE_URL + '/rest/v1/sales_invoice_items?invoice_id=eq.' + id;
             var itemsResponse = await fetch(itemsUrl, {
                 method: 'DELETE',
@@ -1268,7 +1259,6 @@
                 console.error('❌ فشل حذف البنود:', errorText);
             }
 
-            // 2. حذف الفاتورة نفسها
             var invoiceUrl = SUPABASE_URL + '/rest/v1/sales_invoices?id=eq.' + id;
             var invoiceResponse = await fetch(invoiceUrl, {
                 method: 'DELETE',
