@@ -1507,7 +1507,7 @@
                 <div class="logo">
                     <div class="logo-mark"><span></span><span></span><span></span><span></span></div>
                     <div class="logo-text">
-                        <h1>فاتورة مبيعات جديدة</h1>
+                        <h1 id="pageTitle">فاتورة مبيعات جديدة</h1>
                         <span>QuickData ProSoft</span>
                     </div>
                 </div>
@@ -1882,6 +1882,7 @@
          * 🧾 فاتورة مبيعات جديدة - باستخدام supabase-client.js
          * ============================================================
          * تم إزالة التعريفات المكررة والاعتماد الكامل على الملف المركزي
+         * تم إضافة دعم تحميل الفاتورة للتعديل عبر invoice_id في الرابط
          */
 
         // ============================================================
@@ -1943,6 +1944,15 @@
                 console.error('❌ خطأ في getValidToken:', error);
                 return null;
             }
+        }
+
+
+        // ============================================================
+        // GET INVOICE ID FROM URL
+        // ============================================================
+        function getInvoiceIdFromUrl() {
+            var params = new URLSearchParams(window.location.search);
+            return params.get('invoice_id');
         }
 
 
@@ -2080,6 +2090,7 @@
         var displayPaid = document.getElementById('displayPaid');
         var displayRemaining = document.getElementById('displayRemaining');
         var itemsCount = document.getElementById('itemsCount');
+        var pageTitle = document.getElementById('pageTitle');
 
 
         // ============================================================
@@ -2089,6 +2100,8 @@
         var allClients = [];
         var allProducts = [];
         var allFinishedMovements = [];
+        var editMode = false;
+        var currentInvoiceId = null;
 
 
         // ============================================================
@@ -2845,7 +2858,7 @@
 
 
         // ============================================================
-        // RESET FORM
+        // RESET FORM - مع دعم إعادة تعيين وضع التعديل
         // ============================================================
         async function resetForm() {
             items = [];
@@ -2863,6 +2876,19 @@
             invoiceLocation.value = '';
             setDefaultDate();
             await generateInvoiceNumber();
+
+            // ✅ إعادة تعيين وضع التعديل
+            document.getElementById('formMode').value = 'add';
+            document.getElementById('invoiceIdHidden').value = '';
+            btnSaveInvoice.innerHTML = '<i class="fas fa-save"></i> حفظ الفاتورة';
+            btnSaveInvoice.dataset.mode = 'add';
+            editMode = false;
+            currentInvoiceId = null;
+
+            if (pageTitle) {
+                pageTitle.textContent = 'فاتورة مبيعات جديدة';
+            }
+
             showToast('🔄 جديد', 'تم تجهيز فاتورة جديدة', 'warning');
         }
         window.resetForm = resetForm;
@@ -2903,9 +2929,246 @@
 
 
         // ============================================================
-        // SAVE INVOICE - باستخدام insertRow و patchRow من supabase-client.js
+        // LOAD INVOICE FOR EDIT
+        // ============================================================
+        async function loadInvoiceForEdit(invoiceId) {
+            try {
+                console.log('📄 جاري تحميل الفاتورة للمعاينة:', invoiceId);
+
+                var token = getToken();
+                if (!token) {
+                    console.warn('⚠️ لا يوجد توكن صالح');
+                    return false;
+                }
+
+                var companyId = await getCompanyId();
+                if (!companyId) {
+                    console.warn('⚠️ لم يتم العثور على company_id');
+                    return false;
+                }
+
+                // 1. جلب رأس الفاتورة
+                var invoices = await getTable('sales_invoices');
+                var invoice = invoices.find(function(inv) {
+                    return inv.id == invoiceId && inv.company_id == companyId;
+                });
+
+                if (!invoice) {
+                    showToast('❌ خطأ', 'لم يتم العثور على الفاتورة', 'error');
+                    return false;
+                }
+
+                console.log('✅ تم جلب الفاتورة:', invoice);
+
+                // 2. جلب بنود الفاتورة
+                var itemsData = await getTable('sales_invoice_items');
+                var invoiceItems = itemsData.filter(function(item) {
+                    return item.invoice_id == invoiceId;
+                });
+
+                console.log('📦 عدد البنود:', invoiceItems.length);
+
+                // 3. ملء النموذج بالبيانات
+                fillInvoiceForm(invoice, invoiceItems);
+
+                // 4. تغيير وضع الصفحة إلى "تعديل"
+                document.getElementById('formMode').value = 'edit';
+                document.getElementById('invoiceIdHidden').value = invoiceId;
+                btnSaveInvoice.innerHTML = '<i class="fas fa-edit"></i> تحديث الفاتورة';
+                btnSaveInvoice.dataset.mode = 'edit';
+                editMode = true;
+                currentInvoiceId = invoiceId;
+
+                if (pageTitle) {
+                    pageTitle.textContent = 'تعديل فاتورة مبيعات';
+                }
+
+                showToast('✅ تم التحميل', 'تم تحميل الفاتورة للتعديل', 'success');
+
+                return true;
+
+            } catch (error) {
+                console.error('❌ خطأ في تحميل الفاتورة:', error);
+                showToast('❌ خطأ', 'فشل تحميل الفاتورة: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+
+        // ============================================================
+        // FILL INVOICE FORM
+        // ============================================================
+        function fillInvoiceForm(invoice, invoiceItems) {
+            // رقم الفاتورة (غير قابل للتعديل)
+            document.getElementById('invoiceNumber').value = invoice.invoice_no || '';
+
+            // التاريخ
+            if (invoice.invoice_date) {
+                var dateParts = invoice.invoice_date.split('-');
+                if (dateParts.length === 3) {
+                    var dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+                    if (!isNaN(dateObj.getTime())) {
+                        var year = dateObj.getFullYear();
+                        var month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                        var day = String(dateObj.getDate()).padStart(2, '0');
+                        fpInvoiceDate.setDate(year + '-' + month + '-' + day, true);
+                    }
+                }
+            }
+
+            // العميل
+            if (invoice.client_id) {
+                var client = allClients.find(function(c) { return c.id == invoice.client_id; });
+                if (client) {
+                    document.getElementById('clientNameInput').value = client.name || '';
+                    document.getElementById('clientIdHidden').value = client.id;
+                    selectedClientId = client.id;
+                    if (client.phone) {
+                        document.getElementById('clientPhone').value = client.phone;
+                    }
+                } else {
+                    document.getElementById('clientNameInput').value = invoice.client_name || '';
+                }
+            }
+
+            // رقم الفاتورة الدفتري
+            if (invoice.original_invoice_no) {
+                document.getElementById('originalInvoiceNo').value = invoice.original_invoice_no;
+            }
+
+            // الناولون
+            if (invoice.delivery_fee !== undefined && invoice.delivery_fee !== null) {
+                document.getElementById('deliveryFee').value = invoice.delivery_fee;
+            }
+
+            // المندوب
+            if (invoice.rep_name) {
+                document.getElementById('repName').value = invoice.rep_name;
+            }
+
+            // الموقع
+            if (invoice.location) {
+                document.getElementById('invoiceLocation').value = invoice.location;
+            }
+
+            // ✅ عرض البنود في الجدول
+            if (invoiceItems && invoiceItems.length > 0) {
+                items = invoiceItems.map(function(item) {
+                    return {
+                        product_id: item.product_id,
+                        product_name: item.product_name || 'منتج غير معروف',
+                        quantity: parseFloat(item.quantity) || 0,
+                        unit_price: parseFloat(item.unit_price) || 0,
+                        unit: item.unit || '',
+                        total: parseFloat(item.line_total) || 0,
+                        unit_weight: item.unit_weight != null ? parseFloat(item.unit_weight) : null,
+                        total_weight: item.total_weight != null ? parseFloat(item.total_weight) : null,
+                        color: item.color || null,
+                        aggregate_type: item.aggregate_type || null,
+                        isFree: item.is_free === true || parseFloat(item.unit_price) === 0
+                    };
+                });
+
+                renderItems();
+                calculateTotals();
+
+                var allFree = items.every(function(item) { return item.isFree; });
+                if (allFree && items.length > 0) {
+                    showToast('🎁 فاتورة مجانية', 'جميع المنتجات في هذه الفاتورة مجانية', 'warning');
+                }
+            }
+        }
+
+
+        // ============================================================
+        // UPDATE INVOICE
+        // ============================================================
+        async function updateInvoice(invoiceId, invoiceData) {
+            try {
+                var token = getToken();
+                if (!token) throw new Error('جلسة منتهية');
+
+                // 1. تحديث رأس الفاتورة
+                await patchRow('sales_invoices', invoiceId, {
+                    client_id: invoiceData.client_id,
+                    client_name: invoiceData.client_name,
+                    invoice_date: invoiceData.invoice_date,
+                    total_amount: invoiceData.total_amount,
+                    delivery_fee: invoiceData.delivery_fee || 0,
+                    original_invoice_no: invoiceData.original_invoice_no || null,
+                    rep_name: invoiceData.rep_name || null,
+                    location: invoiceData.location || null,
+                    notes: invoiceData.notes || null,
+                    updated_at: new Date().toISOString()
+                });
+
+                // 2. حذف البنود القديمة
+                await deleteRows('sales_invoice_items', 'invoice_id', invoiceId);
+
+                // 3. إعادة إنشاء البنود الجديدة
+                for (var i = 0; i < items.length; i++) {
+                    var item = items[i];
+                    var isFree = (item.isFree || item.unit_price === 0);
+
+                    var movementData = {
+                        company_id: invoiceData.company_id,
+                        user_id: invoiceData.user_id || null,
+                        product_id: item.product_id,
+                        product_name: item.product_name,
+                        type: 'منصرف',
+                        quantity: item.quantity,
+                        unit_cost: item.unit_price,
+                        total_value: item.total,
+                        reference: invoiceData.invoice_no,
+                        notes: isFree ? 'منصرف مجاني - فاتورة ' + invoiceData.invoice_no : 'بيع - فاتورة ' + invoiceData.invoice_no,
+                        movement_date: invoiceData.invoice_date
+                    };
+
+                    var movement = await insertRow('finished_goods_movements', movementData);
+                    var movementId = movement.id;
+
+                    var itemData = {
+                        company_id: invoiceData.company_id,
+                        invoice_id: invoiceId,
+                        product_id: item.product_id,
+                        product_name: item.product_name,
+                        quantity: item.quantity,
+                        unit_price: item.unit_price,
+                        unit: item.unit || '',
+                        line_total: item.total,
+                        finished_movement_id: movementId,
+                        unit_weight: item.unit_weight != null ? item.unit_weight : null,
+                        total_weight: item.total_weight != null ? item.total_weight : null,
+                        color: item.color || null,
+                        aggregate_type: item.aggregate_type || null,
+                        is_free: isFree
+                    };
+
+                    await insertRow('sales_invoice_items', itemData);
+                }
+
+                showToast('✅ تم التحديث', 'تم تحديث الفاتورة ' + invoiceData.invoice_no + ' بنجاح', 'success');
+                resetForm();
+                await loadFinishedMovements();
+
+                // العودة إلى صفحة المبيعات بعد 2 ثانية
+                setTimeout(function() {
+                    window.location.href = 'sales.html';
+                }, 2000);
+
+            } catch (error) {
+                console.error('❌ خطأ في تحديث الفاتورة:', error);
+                showToast('❌ خطأ', error.message || 'فشل تحديث الفاتورة', 'error');
+            }
+        }
+
+
+        // ============================================================
+        // SAVE OR UPDATE INVOICE - دعم وضعي الإضافة والتحديث
         // ============================================================
         btnSaveInvoice.addEventListener('click', async function() {
+            var mode = this.dataset.mode || 'add';
+            var invoiceId = document.getElementById('invoiceIdHidden').value;
             var clientId = clientIdHidden.value;
             var clientName = clientNameInput.value.trim();
             var clientPhoneVal = clientPhone.value.trim();
@@ -2931,8 +3194,8 @@
             var totalAmountVal = parseFloat(totalAmount.textContent) || 0;
             var grandTotal = totalAmountVal + fee;
 
-            btnSaveInvoice.disabled = true;
-            btnSaveInvoice.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
             try {
                 var token = getToken();
@@ -2943,7 +3206,6 @@
 
                 if (!companyId) throw new Error('لم يتم العثور على company_id');
 
-                // 1. إنشاء رأس الفاتورة
                 var invoiceData = {
                     company_id: companyId,
                     user_id: user?.id || null,
@@ -2960,77 +3222,81 @@
                     location: invoiceLocation.value.trim() || null
                 };
 
-                var invoice = await insertRow('sales_invoices', invoiceData);
-                var invoiceId = invoice.id;
+                if (mode === 'edit' && invoiceId) {
+                    // ✅ وضع التحديث
+                    await updateInvoice(invoiceId, invoiceData);
+                } else {
+                    // ✅ وضع الإضافة
+                    var invoice = await insertRow('sales_invoices', invoiceData);
+                    var newInvoiceId = invoice.id;
 
-                if (!invoiceId) throw new Error('لم يتم الحصول على معرف الفاتورة');
+                    if (!newInvoiceId) throw new Error('لم يتم الحصول على معرف الفاتورة');
 
-                // 2. إنشاء حركات المخزون وبنود الفاتورة
-                for (var i = 0; i < items.length; i++) {
-                    var item = items[i];
-                    var isFree = (item.isFree || item.unit_price === 0);
+                    for (var i = 0; i < items.length; i++) {
+                        var item = items[i];
+                        var isFree = (item.isFree || item.unit_price === 0);
 
-                    // حركة المخزون
-                    var movementData = {
-                        company_id: companyId,
-                        user_id: user?.id || null,
-                        product_id: item.product_id,
-                        product_name: item.product_name,
-                        type: 'منصرف',
-                        quantity: item.quantity,
-                        unit_cost: item.unit_price,
-                        total_value: item.total,
-                        reference: invNo,
-                        notes: isFree ? 'منصرف مجاني - فاتورة ' + invNo : 'بيع - فاتورة ' + invNo,
-                        movement_date: date
-                    };
+                        var movementData = {
+                            company_id: companyId,
+                            user_id: user?.id || null,
+                            product_id: item.product_id,
+                            product_name: item.product_name,
+                            type: 'منصرف',
+                            quantity: item.quantity,
+                            unit_cost: item.unit_price,
+                            total_value: item.total,
+                            reference: invNo,
+                            notes: isFree ? 'منصرف مجاني - فاتورة ' + invNo : 'بيع - فاتورة ' + invNo,
+                            movement_date: date
+                        };
 
-                    var movement = await insertRow('finished_goods_movements', movementData);
-                    var movementId = movement.id;
+                        var movement = await insertRow('finished_goods_movements', movementData);
+                        var movementId = movement.id;
 
-                    // بند الفاتورة
-                    var itemData = {
-                        company_id: companyId,
-                        invoice_id: invoiceId,
-                        product_id: item.product_id,
-                        product_name: item.product_name,
-                        quantity: item.quantity,
-                        unit_price: item.unit_price,
-                        unit: item.unit || '',
-                        line_total: item.total,
-                        finished_movement_id: movementId,
-                        unit_weight: item.unit_weight != null ? item.unit_weight : null,
-                        total_weight: item.total_weight != null ? item.total_weight : null,
-                        color: item.color || null,
-                        aggregate_type: item.aggregate_type || null,
-                        is_free: isFree
-                    };
+                        var itemData = {
+                            company_id: companyId,
+                            invoice_id: newInvoiceId,
+                            product_id: item.product_id,
+                            product_name: item.product_name,
+                            quantity: item.quantity,
+                            unit_price: item.unit_price,
+                            unit: item.unit || '',
+                            line_total: item.total,
+                            finished_movement_id: movementId,
+                            unit_weight: item.unit_weight != null ? item.unit_weight : null,
+                            total_weight: item.total_weight != null ? item.total_weight : null,
+                            color: item.color || null,
+                            aggregate_type: item.aggregate_type || null,
+                            is_free: isFree
+                        };
 
-                    await insertRow('sales_invoice_items', itemData);
+                        await insertRow('sales_invoice_items', itemData);
+                    }
+
+                    // تحديث رصيد العميل
+                    var client = allClients.find(function(c) { return c.id == clientId; });
+                    if (client) {
+                        await patchRow('clients', clientId, {
+                            total_sales: (parseFloat(client.total_sales) || 0) + grandTotal,
+                            due_balance: (parseFloat(client.due_balance) || 0) + grandTotal
+                        });
+                        client.total_sales = (parseFloat(client.total_sales) || 0) + grandTotal;
+                        client.due_balance = (parseFloat(client.due_balance) || 0) + grandTotal;
+                    }
+
+                    showToast('✅ تم الحفظ', 'تم حفظ الفاتورة ' + invNo + ' بنجاح', 'success');
+                    resetForm();
+                    await loadFinishedMovements();
                 }
-
-                // 3. تحديث رصيد العميل
-                var client = allClients.find(function(c) { return c.id == clientId; });
-                if (client) {
-                    await patchRow('clients', clientId, {
-                        total_sales: (parseFloat(client.total_sales) || 0) + grandTotal,
-                        due_balance: (parseFloat(client.due_balance) || 0) + grandTotal
-                    });
-                    client.total_sales = (parseFloat(client.total_sales) || 0) + grandTotal;
-                    client.due_balance = (parseFloat(client.due_balance) || 0) + grandTotal;
-                }
-
-                showToast('✅ تم الحفظ', 'تم حفظ الفاتورة ' + invNo + ' بنجاح', 'success');
-                resetForm();
-                await loadFinishedMovements();
 
             } catch (error) {
                 console.error('❌ خطأ:', error);
                 showToast('❌ خطأ', error.message || 'فشل حفظ الفاتورة', 'error');
             }
 
-            btnSaveInvoice.disabled = false;
-            btnSaveInvoice.innerHTML = '<i class="fas fa-save"></i> حفظ الفاتورة';
+            this.disabled = false;
+            this.innerHTML = mode === 'edit' ? '<i class="fas fa-edit"></i> تحديث الفاتورة' :
+                '<i class="fas fa-save"></i> حفظ الفاتورة';
         });
 
 
@@ -3708,7 +3974,6 @@
 
             showToast('⏳ جاري التحميل', 'جاري إنشاء ملف PDF...', 'warning');
 
-            // استخدام html2pdf
             var opt = {
                 margin: [12, 12, 12, 12],
                 filename: (clientNameValue || 'فاتورة') + ' - ' + invoiceNum + '.pdf',
@@ -4764,7 +5029,7 @@
 
 
         // ============================================================
-        // INIT - نقطة الدخول الرئيسية
+        // INIT - نقطة الدخول الرئيسية مع دعم تحميل الفاتورة للتعديل
         // ============================================================
         (async function init() {
             console.log('🏭 فاتورة مبيعات جديدة - QuickData ProSoft');
@@ -4780,6 +5045,12 @@
             setDefaultDate();
             await generateInvoiceNumber();
             await loadData();
+
+            // ✅ التحقق من وجود invoice_id في الرابط لتحميل الفاتورة للتعديل
+            var invoiceId = getInvoiceIdFromUrl();
+            if (invoiceId) {
+                await loadInvoiceForEdit(invoiceId);
+            }
 
             if (btnSavePdfDirect) {
                 btnSavePdfDirect.addEventListener('click', saveInvoicePDFDirect);
