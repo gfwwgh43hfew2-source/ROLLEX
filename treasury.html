@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- ===== إضافة الملف المركزي ===== -->
+    <!-- ===== الملف المركزي ===== -->
     <script src="supabase-client.js"></script>
     <style>
         /* ============================================================
@@ -1322,11 +1322,13 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
-        // ============================================================
-        // CONFIGURATION (مأخوذة من supabase-client.js)
-        // ============================================================
-        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
-        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
+        /**
+         * ============================================================
+         * CONFIGURATION - مستخدم من supabase-client.js
+         * ============================================================
+         * SUPABASE_URL و SUPABASE_ANON_KEY موجودة بالفعل في supabase-client.js
+         * نستخدم الدوال الموجودة بدلاً من إعادة التعريف
+         */
 
         var currentTreasuryId = null;
         var allTreasuries = [];
@@ -2202,7 +2204,48 @@
         }
 
         // ============================================================
-        // CLOSE MODALS
+        // FORMAT DATE
+        // ============================================================
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            try {
+                var d = new Date(dateStr);
+                if (isNaN(d.getTime())) return dateStr;
+                return d.toLocaleDateString('ar-EG');
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        // ============================================================
+        // TOAST
+        // ============================================================
+        function showToast(title, message, type) {
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + (type || '');
+
+            var icon = 'fa-info-circle';
+            if (type === 'success') icon = 'fa-check-circle';
+            else if (type === 'error') icon = 'fa-exclamation-circle';
+
+            toast.innerHTML = `
+                <div class="icon ${type || ''}"><i class="fas ${icon}"></i></div>
+                <div class="content">
+                    <div class="title">${title}</div>
+                    <div class="message">${message}</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(function() {
+                if (toast.parentElement) toast.remove();
+            }, 4000);
+        }
+
+        // ============================================================
+        // CLOSE MODALS ON ESCAPE
         // ============================================================
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
