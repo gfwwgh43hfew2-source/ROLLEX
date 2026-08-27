@@ -11,6 +11,7 @@
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="supabase-client.js"></script>
     
     <style>
         /* ============================================================ */
@@ -324,6 +325,14 @@
         .btn-action.danger { background: var(--rust-soft); color: var(--rust); border-color: var(--rust-soft); }
         .btn-action.danger:hover { background: var(--rust); color: #fff; }
 
+        /* زر التعديل في الجدول */
+        .btn-action.edit {
+            background: var(--teal-soft);
+            color: var(--teal);
+            border-color: var(--teal-soft);
+        }
+        .btn-action.edit:hover { background: var(--teal); color: #fff; }
+
         .filters-section {
             display: flex;
             flex-wrap: wrap;
@@ -452,6 +461,17 @@
             font-size: 0.7rem;
         }
         tr:hover td { background: var(--surface-muted); }
+
+        /* جعل صف الجدول قابلاً للنقر */
+        .clickable-row {
+            cursor: pointer;
+        }
+        .clickable-row td:first-child {
+            position: relative;
+        }
+        .clickable-row:hover td {
+            background: var(--accent-soft);
+        }
 
         .empty-state {
             text-align: center;
@@ -686,11 +706,9 @@
     <!-- ============================================================ -->
     <script>
         // ============================================================
-        // SUPABASE CONFIGURATION - المفتاح الصحيح من Dashboard
+        // SUPABASE CONFIGURATION - مستخدم من supabase-client.js
         // ============================================================
-        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
-        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
-        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // تم إزالة التعريفات المكررة والاعتماد على supabase-client.js
 
         // ============================================================
         // HELPER FUNCTIONS
@@ -727,20 +745,20 @@
         // ============================================================
         // GET VALID TOKEN - مع تجديد تلقائي
         // ============================================================
+        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
+        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
+        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         async function getValidToken() {
             try {
-                // 1. محاولة جلب الجلسة من Supabase أولاً (أحدث توكن)
                 var { data: { session }, error } = await supabaseClient.auth.getSession();
 
                 if (error) {
                     console.error('❌ خطأ في جلب الجلسة من Supabase:', error.message);
-                    // نكمل للمحاولة من localStorage
                 }
 
-                // 2. إذا كان هناك جلسة نشطة من Supabase
                 if (session && session.access_token) {
                     console.log('✅ تم جلب التوكن من Supabase بنجاح');
-                    // تحديث localStorage بالتوكن الجديد
                     var sessionData = {
                         access_token: session.access_token,
                         refresh_token: session.refresh_token,
@@ -750,13 +768,11 @@
                     return session.access_token;
                 }
 
-                // 3. محاولة من localStorage مع التحقق من الصلاحية
                 var storedSession = localStorage.getItem('rollex_session');
                 if (storedSession) {
                     try {
                         var parsed = JSON.parse(storedSession);
                         if (parsed && parsed.access_token) {
-                            // التحقق من صلاحية التوكن
                             var checkResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
                                 headers: {
                                     'apikey': SUPABASE_ANON_KEY,
@@ -769,7 +785,6 @@
                                 return parsed.access_token;
                             }
 
-                            // إذا كان التوكن منتهياً، نحاول تجديده
                             if (checkResponse.status === 401 || checkResponse.status === 403) {
                                 console.log('🔄 التوكن منتهي، محاولة التجديد...');
                                 if (parsed.refresh_token) {
@@ -803,7 +818,6 @@
                     }
                 }
 
-                // 4. محاولة من sessionStorage
                 var storedSession2 = sessionStorage.getItem('rollex_session');
                 if (storedSession2) {
                     try {
@@ -1047,6 +1061,14 @@
         window.loadData = loadData;
 
         // ============================================================
+        // OPEN INVOICE FOR EDIT
+        // ============================================================
+        function editInvoice(id) {
+            window.location.href = 'add-invoice.html?invoice_id=' + id;
+        }
+        window.editInvoice = editInvoice;
+
+        // ============================================================
         // DISPLAY INVOICES
         // ============================================================
         function displayInvoices() {
@@ -1090,7 +1112,7 @@
                 var deliveryBadge = deliveryFeeVal > 0 ?
                     ' <span title="يشمل ناولون ' + formatNumber(deliveryFeeVal) + ' ج.م" style="font-size:0.55rem;background:#e8f4fd;color:var(--blue);padding:1px 6px;border-radius:10px;font-weight:700;">🚚</span>' : '';
 
-                html += '<tr>' +
+                html += '<tr class="clickable-row" onclick="editInvoice(\'' + inv.id + '\')">' +
                     '<td>' + (index + 1) + '</td>' +
                     '<td style="color:var(--accent-ink);font-weight:700;">' + (inv.invoice_no || '-') + '</td>' +
                     '<td style="font-weight:700;">' + (inv.client_name || '-') + '</td>' +
@@ -1099,8 +1121,12 @@
                     '<td style="text-align:center;font-weight:700;color:var(--teal);">' + formatNumber(grandTotal) + deliveryBadge +
                     '</td>' +
                     '<td style="text-align:center;">' +
-                    '<button class="btn-action" onclick="viewInvoice(\'' + inv.id + '\')" style="padding:4px 8px;font-size:0.6rem;background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent-soft);"><i class="fas fa-eye"></i></button> ' +
-                    '<button class="btn-action danger" onclick="deleteInvoiceConfirm(\'' + inv.id + '\')" style="padding:4px 8px;font-size:0.6rem;"><i class="fas fa-trash"></i></button>' +
+                    '<button class="btn-action edit" onclick="event.stopPropagation();editInvoice(\'' + inv.id + '\')" style="padding:4px 8px;font-size:0.6rem;">' +
+                    '<i class="fas fa-edit"></i> تعديل' +
+                    '</button> ' +
+                    '<button class="btn-action danger" onclick="event.stopPropagation();deleteInvoiceConfirm(\'' + inv.id + '\')" style="padding:4px 8px;font-size:0.6rem;">' +
+                    '<i class="fas fa-trash"></i>' +
+                    '</button>' +
                     '</td>' +
                     '</tr>';
             });
@@ -1177,48 +1203,11 @@
         window.resetFilters = resetFilters;
 
         // ============================================================
-        // VIEW INVOICE
+        // VIEW INVOICE (للاطلاع فقط - يحتفظ به للتوافق)
         // ============================================================
         function viewInvoice(id) {
-            var invoice = allInvoices.find(function(inv) { return inv.id == id; });
-            if (!invoice) {
-                showToast('❌ خطأ', 'الفاتورة غير موجودة', 'error');
-                return;
-            }
-
-            var items = allInvoiceItems
-                .filter(function(it) { return it.invoice_id == id; })
-                .slice()
-                .sort(function(a, b) { return new Date(a.created_at) - new Date(b.created_at); });
-
-            var deliveryFeeVal = parseFloat(invoice.delivery_fee) || 0;
-            var grandTotal = (parseFloat(invoice.total_amount) || 0) + deliveryFeeVal;
-
-            var msg = '📄 تفاصيل الفاتورة\n';
-            msg += '═══════════════════════════\n';
-            msg += 'رقم الفاتورة: ' + (invoice.invoice_no || '-') + '\n';
-            msg += 'العميل: ' + (invoice.client_name || '-') + '\n';
-            msg += 'التاريخ: ' + formatDate(invoice.invoice_date) + '\n';
-            msg += 'إجمالي الأصناف: ' + formatNumber(invoice.total_amount) + ' ج.م\n';
-            if (deliveryFeeVal > 0) {
-                msg += '🚚 الناولون: ' + formatNumber(deliveryFeeVal) + ' ج.م\n';
-            }
-            msg += 'الإجمالي الكلي: ' + formatNumber(grandTotal) + ' ج.م\n';
-            msg += '═══════════════════════════\n';
-            msg += '📦 الأصناف:\n';
-
-            if (items.length === 0) {
-                msg += '  (لا توجد أصناف)\n';
-            } else {
-                items.forEach(function(it, idx) {
-                    msg += (idx + 1) + '. ' + (it.product_name || '-') +
-                        ' | ' + formatNumber(it.quantity) + ' ' + (it.unit || '') +
-                        ' | ' + formatNumber(it.unit_price) +
-                        ' | ' + formatNumber(it.line_total) + '\n';
-                });
-            }
-
-            alert(msg);
+            // توجيه المستخدم مباشرة للتعديل
+            editInvoice(id);
         }
         window.viewInvoice = viewInvoice;
 
