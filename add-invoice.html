@@ -1877,19 +1877,33 @@
     </div>
 
     <script>
-        // ============================================================
-        // SUPABASE CONFIGURATION
-        // ============================================================
-        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
-        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
-        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        /**
+         * ============================================================
+         * 🧾 فاتورة مبيعات جديدة - باستخدام supabase-client.js
+         * ============================================================
+         * تم إزالة التعريفات المكررة والاعتماد الكامل على الملف المركزي
+         */
 
         // ============================================================
-        // HELPER FUNCTIONS - باستخدام Supabase Client
+        // SUPABASE CONFIGURATION - مستخدم من supabase-client.js
+        // ============================================================
+        // ✅ SUPABASE_URL و SUPABASE_ANON_KEY و supabaseClient
+        // كلها موجودة في supabase-client.js، نستخدمها مباشرة
+
+
+        // ============================================================
+        // HELPER FUNCTIONS - باستخدام getSupabaseClient() من supabase-client.js
         // ============================================================
         async function getValidToken() {
             try {
-                var { data: { session }, error } = await supabaseClient.auth.getSession();
+                // ✅ استخدام getSupabaseClient() من supabase-client.js
+                var client = getSupabaseClient();
+                if (!client) {
+                    console.error('❌ supabaseClient غير متاح');
+                    return null;
+                }
+
+                var { data: { session }, error } = await client.auth.getSession();
 
                 if (error) {
                     console.error('❌ خطأ في جلب الجلسة:', error);
@@ -1931,1063 +1945,9 @@
             }
         }
 
-        function getToken() {
-            try {
-                var storedSession = localStorage.getItem('rollex_session');
-                if (storedSession) {
-                    try {
-                        var parsed = JSON.parse(storedSession);
-                        if (parsed && parsed.access_token) {
-                            return parsed.access_token;
-                        }
-                    } catch (e) {}
-                }
-
-                var storedSession2 = sessionStorage.getItem('rollex_session');
-                if (storedSession2) {
-                    try {
-                        var parsed2 = JSON.parse(storedSession2);
-                        if (parsed2 && parsed2.access_token) {
-                            return parsed2.access_token;
-                        }
-                    } catch (e) {}
-                }
-
-                return null;
-            } catch (error) {
-                console.error('❌ خطأ في getToken:', error);
-                return null;
-            }
-        }
-
-        async function getCompanyId() {
-            try {
-                var token = await getValidToken();
-                if (!token) return null;
-
-                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=company_id&limit=1', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!response.ok) return null;
-                var data = await response.json();
-                if (data && data.length > 0 && data[0].company_id) {
-                    return data[0].company_id;
-                }
-                return null;
-            } catch (error) {
-                console.error('❌ خطأ في جلب company_id:', error);
-                return null;
-            }
-        }
-
-        async function getCurrentUserProfile() {
-            try {
-                var token = await getValidToken();
-                if (!token) return null;
-
-                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=id,name,email&limit=1', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!response.ok) return null;
-                var data = await response.json();
-                if (data && data.length > 0) {
-                    return data[0];
-                }
-                return null;
-            } catch (error) {
-                console.error('❌ خطأ في جلب البروفايل:', error);
-                return null;
-            }
-        }
 
         // ============================================================
-        // SESSION VALIDATION
-        // ============================================================
-        var sessionRedirectInProgress = false;
-
-        function goToLogin() {
-            if (sessionRedirectInProgress) return;
-            sessionRedirectInProgress = true;
-
-            console.warn('⚠️ الجلسة منتهية، جاري التوجيه إلى صفحة تسجيل الدخول');
-            try {
-                localStorage.removeItem('rollex_session');
-                sessionStorage.removeItem('rollex_session');
-            } catch (e) {}
-
-            showToast('⚠️ انتهت الجلسة', 'يرجى تسجيل الدخول مرة أخرى', 'warning');
-            setTimeout(function() {
-                window.location.href = 'login.html';
-            }, 1200);
-        }
-
-        async function tryRefreshSession() {
-            try {
-                var raw = localStorage.getItem('rollex_session') || sessionStorage.getItem('rollex_session');
-                if (!raw) return false;
-                var parsed = JSON.parse(raw);
-                if (!parsed || !parsed.refresh_token) return false;
-
-                var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ refresh_token: parsed.refresh_token })
-                });
-
-                if (!response.ok) return false;
-                var data = await response.json();
-                if (!data.access_token) return false;
-
-                var newSession = Object.assign({}, parsed, {
-                    access_token: data.access_token,
-                    refresh_token: data.refresh_token || parsed.refresh_token,
-                    expires_at: Date.now() + ((data.expires_in || 3600) * 1000)
-                });
-
-                if (localStorage.getItem('rollex_session')) {
-                    localStorage.setItem('rollex_session', JSON.stringify(newSession));
-                } else {
-                    sessionStorage.setItem('rollex_session', JSON.stringify(newSession));
-                }
-                console.log('✅ تم تجديد الجلسة بنجاح');
-                return true;
-            } catch (error) {
-                console.error('❌ خطأ في تجديد الجلسة:', error);
-                return false;
-            }
-        }
-
-        async function verifySessionOrRedirect() {
-            var token = getToken();
-            if (!token) {
-                goToLogin();
-                return false;
-            }
-
-            try {
-                var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (response.ok) return true;
-
-                if (response.status === 401 || response.status === 403) {
-                    var refreshed = await tryRefreshSession();
-                    if (refreshed) return true;
-                }
-
-                goToLogin();
-                return false;
-
-            } catch (error) {
-                console.warn('⚠️ تعذر التحقق من الجلسة (مشكلة اتصال):', error.message);
-                return true;
-            }
-        }
-
-        function startSessionMonitor() {
-            console.log('📡 بدء مراقبة الجلسة');
-            setInterval(async function() {
-                await verifySessionOrRedirect();
-            }, 30000);
-        }
-
-        // ============================================================
-        // GENERATE PDF FROM ELEMENT
-        // ============================================================
-        function generatePDFFromElement(element, clientNameValue, invoiceNum, onDone) {
-            if (!element) {
-                showToast('❌ خطأ', 'لم يتم العثور على محتوى الفاتورة', 'error');
-                if (onDone) onDone(false);
-                return;
-            }
-
-            var rawClientName = (clientNameValue || '').trim() || 'فاتورة';
-            var safeClientName = rawClientName.replace(/[\\\/:*?"<>|]/g, '').trim() || 'فاتورة';
-            var fileName = safeClientName + ' - ' + (invoiceNum || 'invoice') + '.pdf';
-
-            window.scrollTo(0, 0);
-
-            var opt = {
-                margin: [12, 12, 12, 12],
-                filename: fileName,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff',
-                    width: element.scrollWidth,
-                    height: element.scrollHeight,
-                    windowWidth: element.scrollWidth,
-                    windowHeight: element.scrollHeight
-                },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-            };
-
-            function actuallyCapture() {
-                html2pdf()
-                    .set(opt)
-                    .from(element)
-                    .save()
-                    .then(function() {
-                        showToast('✅ تم الحفظ', 'تم حفظ ملف PDF على جهازك باسم: ' + fileName, 'success');
-                        if (onDone) onDone(true);
-                    })
-                    .catch(function(error) {
-                        console.error('❌ خطأ في حفظ PDF:', error);
-                        showToast('❌ خطأ', 'فشل في حفظ PDF: ' + error.message, 'error');
-                        if (onDone) onDone(false);
-                    });
-            }
-
-            var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
-            fontsReady.then(function() {
-                requestAnimationFrame(function() {
-                    requestAnimationFrame(actuallyCapture);
-                });
-            }).catch(actuallyCapture);
-        }
-
-        // ============================================================
-        // GENERATE PDF FROM PREVIEW
-        // ============================================================
-        function generatePDFFromPreview() {
-            var element = document.getElementById('printPreviewContent');
-            var clientNameValue = document.getElementById('clientNameInput').value.trim();
-            var invoiceNum = document.getElementById('invoiceNumber').value.trim() || 'invoice';
-
-            showToast('⏳ جاري التحميل', 'جاري إنشاء ملف PDF...', 'warning');
-
-            generatePDFFromElement(element, clientNameValue, invoiceNum, function(success) {
-                if (success) {
-                    setTimeout(function() {
-                        closePrintPreview();
-                    }, 1500);
-                }
-            });
-        }
-
-        // ============================================================
-        // BUILD INVOICE HTML
-        // ============================================================
-        function getArabicDayName(dateStr) {
-            if (!dateStr) return '';
-            var d = new Date(dateStr);
-            if (isNaN(d.getTime())) return '';
-            return d.toLocaleDateString('ar-EG', { weekday: 'long' });
-        }
-
-        function buildInvoiceHTML(client, phone, invNum, date, total, deliveryFee, qrContainerId, companyName, companyAddress,
-            companyPhone) {
-            companyName = companyName || 'QuickData ProSoft';
-            companyAddress = companyAddress || 'الرياض - المملكة العربية السعودية';
-            companyPhone = companyPhone || '0500000000';
-            var footer = 'شكراً لثقتكم بنا';
-
-            var statusBadgeHtml = ' <span class="status-badge due"><i class="fas fa-exclamation-circle"></i> مستحق الدفع</span>';
-
-            var dateFormatted = date ? new Date(date).toLocaleDateString('ar-EG') : '----';
-            var deliveryFeeVal = parseFloat(deliveryFee) || 0;
-            var totalVal = parseFloat(total) || 0;
-            var grandTotal = totalVal + deliveryFeeVal;
-            var hasItems = items && items.length > 0;
-
-            var html = `
-                <div class="invoice-header">
-                    <div class="logo-section">
-                        <div class="logo-box">
-                            <span>ق</span>
-                        </div>
-                        <div class="company-details">
-                            <span class="eyebrow">فاتورة ضريبية</span>
-                            <h2>${companyName}</h2>
-                            <div class="header-rule"></div>
-                            <p>
-                                <i class="fas fa-map-marker-alt"></i> ${companyAddress}<br/>
-                                <i class="fas fa-phone-alt"></i> ${companyPhone}
-                            </p>
-                        </div>
-                    </div>
-                    <div class="invoice-title">
-                        <span class="invoice-title-label">رقم الفاتورة</span>
-                        <span class="invoice-title-number">${invNum}</span>
-                        <div class="qr-code" id="${qrContainerId}"></div>
-                        <span class="qr-label">امسح للتحقق من الفاتورة</span>
-                    </div>
-                </div>
-
-                <div class="info-grid">
-                    <div class="item"><span class="label">تاريخ الإصدار</span><div class="value">${dateFormatted}</div></div>
-                    <div class="item highlight"><span class="label">اسم العميل</span><div class="value">${client}</div></div>
-                    <div class="item"><span class="label">رقم الجوال</span><div class="value">${phone}</div></div>
-                    <div class="item"><span class="label">حالة الفاتورة</span><div class="value">${statusBadgeHtml}</div></div>
-                </div>
-            `;
-
-            if (hasItems) {
-                html += `
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width:30px;">#</th>
-                                <th style="text-align:right;">المنتج / الخدمة</th>
-                                <th>الكمية</th>
-                                <th>سعر الوحدة</th>
-                                <th>الإجمالي</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                `;
-
-                items.forEach(function(item, index) {
-                    var isFree = (item.isFree || item.unit_price === 0);
-                    var freeLabel = isFree ? ' <span style="color:var(--teal);font-weight:700;">(مجاني)</span>' : '';
-                    var rowClass = isFree ? 'row-free' : 'row-total';
-                    html += `
-                        <tr class="data-row">
-                            <td>${index + 1}</td>
-                            <td style="text-align:right;font-weight:600;color:var(--ink);">${item.product_name}${freeLabel}</td>
-                            <td>${item.quantity} ${item.unit || ''}</td>
-                            <td>${item.unit_price.toFixed(2)}</td>
-                            <td class="${rowClass}">${item.total.toFixed(2)} ر.س</td>
-                        </tr>
-                    `;
-                });
-
-                html += `
-                        </tbody>
-                    </table>
-                `;
-            } else {
-                html += `
-                    <div style="text-align:center;padding:20px;background:var(--accent-soft);border-radius:8px;margin:10px 0;">
-                        <p style="font-weight:700;color:var(--accent-ink);font-size:0.9rem;">
-                            <i class="fas fa-truck"></i> هذه الفاتورة مخصصة لمصاريف الناولون فقط
-                        </p>
-                        <p style="color:var(--ink-mute);font-size:0.8rem;">لا توجد منتجات مضافة في هذه الفاتورة</p>
-                    </div>
-                `;
-            }
-
-            html += `
-                <div class="invoice-summary">
-                    <div class="summary-box">
-                        <div class="summary-row"><span>إجمالي الأصناف</span><span>${totalVal.toFixed(2)} ر.س</span></div>
-                        <div class="summary-row delivery"><span>الناولون</span><span>${deliveryFeeVal.toFixed(2)} ر.س</span></div>
-                        <div class="summary-row discount"><span>الخصم</span><span>0.00 ر.س</span></div>
-                        <div class="summary-row"><span>المدفوع</span><span>0.00 ر.س</span></div>
-                        <div class="summary-row net"><span>المتبقي المستحق</span><span>${grandTotal.toFixed(2)} ر.س</span></div>
-                    </div>
-                </div>
-
-                <div class="notes-section">
-                    <div class="notes-title">
-                        <i class="fas fa-sticky-note"></i> شروط وملاحظات
-                    </div>
-                    <div class="notes-content">
-                        <p>هذه الفاتورة صادرة عن نظام QuickData ProSoft</p>
-                        <p>يرجى التأكد من صحة البيانات قبل الدفع</p>
-                        <p>شكراً لتعاملكم معنا</p>
-                    </div>
-                </div>
-
-                <div class="bottom-signature">
-                    <p class="thanks">"${footer}"</p>
-                    <div class="signature">
-                        <p class="sig-label">توقيع واستلام العميل</p>
-                        <div class="line"></div>
-                        <p class="sig-caption">الاسم والتوقيع</p>
-                    </div>
-                </div>
-
-                <div class="print-brand-footer">
-                    <strong>${companyName}</strong> — تم إصدار هذه الفاتورة إلكترونياً عبر نظام إدارة المبيعات
-                </div>
-            `;
-
-            return html;
-        }
-
-        // ============================================================
-        // GENERATE QR CODE
-        // ============================================================
-        function generateQRCode(invoiceNumberVal, client, total, containerId) {
-            containerId = containerId || 'qrCodeContainer';
-            var qrContainer = document.getElementById(containerId);
-            if (!qrContainer) {
-                console.warn('⚠️ حاوية QR Code غير موجودة:', containerId);
-                return;
-            }
-
-            qrContainer.innerHTML = '';
-
-            var qrText = 'INV:' + (invoiceNumberVal || '----');
-
-            try {
-                if (typeof QRCode !== 'undefined') {
-                    new QRCode(qrContainer, {
-                        text: qrText,
-                        width: 72,
-                        height: 72,
-                        colorDark: '#121821',
-                        colorLight: '#ffffff',
-                        correctLevel: QRCode.CorrectLevel.M
-                    });
-                    console.log('✅ تم إنشاء QR Code بنجاح في', containerId);
-                    return;
-                }
-            } catch (error) {
-                console.warn('⚠️ فشل إنشاء QR Code داخلياً، استخدام API خارجي:', error.message);
-            }
-
-            var encodedText = encodeURIComponent(qrText);
-            var qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=' + encodedText +
-                '&bgcolor=ffffff&color=121821&margin=4';
-
-            var img = document.createElement('img');
-            img.src = qrImageUrl;
-            img.alt = 'QR Code';
-            img.style.width = '100%';
-            img.style.height = '100%';
-            img.style.objectFit = 'contain';
-
-            img.onerror = function() {
-                qrContainer.innerHTML = `
-                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;background:#f8f9fa;border-radius:4px;">
-                        <i class="fas fa-qrcode" style="font-size:1.5rem;color:var(--accent);"></i>
-                        <span style="font-size:0.4rem;color:var(--ink-mute);">${invoiceNumberVal || ''}</span>
-                    </div>
-                `;
-            };
-
-            qrContainer.appendChild(img);
-        }
-
-        // ============================================================
-        // PREVIEW INVOICE
-        // ============================================================
-        function previewInvoice() {
-            if (items.length === 0) {
-                var fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
-                if (fee === 0) {
-                    showToast('⚠️ تنبيه', 'لا توجد منتجات ولا ناولون للمعاينة', 'error');
-                    return;
-                }
-            }
-
-            var client = document.getElementById('clientNameInput').value.trim() || 'غير محدد';
-            var phone = document.getElementById('clientPhone').value.trim() || 'غير محدد';
-            var invNum = document.getElementById('invoiceNumber').value.trim() || '----';
-            var date = document.getElementById('invoiceDate').value || '';
-            var total = document.getElementById('totalAmount').textContent;
-            var deliveryFee = document.getElementById('deliveryFee').value || '0';
-
-            var companyName = 'QuickData ProSoft';
-            var companyAddress = 'الرياض - المملكة العربية السعودية';
-            var companyPhone = '0500000000';
-
-            var printContent = document.getElementById('printPreviewContent');
-            printContent.innerHTML = buildInvoiceHTML(client, phone, invNum, date, total, deliveryFee, 'qrCodeContainer',
-                companyName, companyAddress, companyPhone);
-
-            setTimeout(function() {
-                generateQRCode(invNum, client, total, 'qrCodeContainer');
-            }, 200);
-
-            document.getElementById('printPreviewOverlay').classList.add('show');
-        }
-        window.previewInvoice = previewInvoice;
-
-        // ============================================================
-        // CLOSE PRINT PREVIEW
-        // ============================================================
-        function closePrintPreview() {
-            document.getElementById('printPreviewOverlay').classList.remove('show');
-        }
-        window.closePrintPreview = closePrintPreview;
-
-        // ============================================================
-        // EXECUTE PRINT
-        // ============================================================
-        function executePrint() {
-            var overlay = document.getElementById('printPreviewOverlay');
-            if (!overlay.classList.contains('show')) {
-                previewInvoice();
-                setTimeout(function() {
-                    openPrintWindow();
-                }, 600);
-                return;
-            }
-            openPrintWindow();
-        }
-        window.executePrint = executePrint;
-
-        // ============================================================
-        // OPEN PRINT WINDOW
-        // ============================================================
-        function openPrintWindow() {
-            var content = document.getElementById('printPreviewContent').innerHTML;
-
-            var oldFrame = document.getElementById('printFrame');
-            if (oldFrame) oldFrame.remove();
-
-            var iframe = document.createElement('iframe');
-            iframe.id = 'printFrame';
-            iframe.style.position = 'fixed';
-            iframe.style.right = '0';
-            iframe.style.bottom = '0';
-            iframe.style.width = '0';
-            iframe.style.height = '0';
-            iframe.style.border = '0';
-            iframe.style.visibility = 'hidden';
-            document.body.appendChild(iframe);
-
-            var doc = iframe.contentWindow.document;
-            doc.open();
-            doc.write(`
-                <!DOCTYPE html>
-                <html dir="rtl">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>فاتورة ${document.getElementById('invoiceNumber').value || ''} - QuickData ProSoft</title>
-                    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Marcellus&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-                    <style>
-                        /* === نفس ستايلات الطباعة المدمجة في الصفحة === */
-                        :root {
-                            --ink: #121821;
-                            --ink-soft: #2c3644;
-                            --ink-mute: #6d7883;
-                            --line: #dde3e0;
-                            --line-strong: #c7d0cc;
-                            --accent: #dd9f2e;
-                            --accent-ink: #7a5312;
-                            --accent-soft: #faead0;
-                            --teal: #1d7b6c;
-                            --teal-soft: #e2f2ee;
-                            --rust: #bf4f30;
-                            --rust-soft: #fbe8e1;
-                            --surface-muted: #f4f6f5;
-                            --font-display: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
-                            --font-serif: 'Marcellus', 'Cairo', serif;
-                            --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-                        }
-                        * { box-sizing: border-box; }
-                        body {
-                            background: #ffffff !important;
-                            padding: 0 !important;
-                            margin: 0 !important;
-                            font-family: var(--font-display) !important;
-                            direction: rtl;
-                            color: var(--ink);
-                        }
-                        ::-webkit-scrollbar { display: none !important; }
-
-                        .print-wrapper {
-                            max-width: 210mm !important;
-                            margin: 0 auto !important;
-                            background: #ffffff !important;
-                            padding: 12mm 15mm !important;
-                            min-height: 100vh !important;
-                            box-sizing: border-box !important;
-                            border: 1px solid var(--accent);
-                            position: relative;
-                            display: flex;
-                            flex-direction: column;
-                        }
-
-                        .invoice-header {
-                            display: flex !important;
-                            align-items: flex-start !important;
-                            justify-content: space-between !important;
-                            flex-direction: row !important;
-                            padding-bottom: 18px !important;
-                            margin-bottom: 20px !important;
-                            gap: 15px !important;
-                            border-bottom: none !important;
-                            position: relative;
-                        }
-                        .invoice-header::after {
-                            content: '';
-                            position: absolute;
-                            left: 0; right: 0; bottom: 0;
-                            height: 3px;
-                            background: linear-gradient(90deg, var(--accent) 0%, var(--accent) 55%, transparent 100%);
-                        }
-                        .invoice-header .logo-section {
-                            display: flex !important;
-                            align-items: center !important;
-                            gap: 15px !important;
-                        }
-                        .invoice-header .logo-section .logo-box {
-                            width: 80px !important;
-                            height: 80px !important;
-                            min-width: 80px !important;
-                            border-radius: 16px !important;
-                            overflow: hidden !important;
-                            display: flex !important;
-                            align-items: center !important;
-                            justify-content: center !important;
-                            background: #ffffff !important;
-                            padding: 8px !important;
-                            border: 1px solid var(--line) !important;
-                            box-shadow: 0 6px 18px -8px rgba(18,24,33,0.18);
-                        }
-                        .invoice-header .logo-section .logo-box span { font-size: 2.4rem; font-weight: 900; color: #121821; }
-                        .invoice-header .company-details .eyebrow {
-                            display: inline-block;
-                            font-size: 9px !important;
-                            letter-spacing: 1.4px;
-                            color: var(--accent-ink) !important;
-                            font-weight: 800 !important;
-                            text-transform: uppercase;
-                            margin-bottom: 4px;
-                        }
-                        .invoice-header .company-details h2 {
-                            font-family: var(--font-serif) !important;
-                            font-size: 18px !important;
-                            font-weight: 700 !important;
-                            color: var(--ink) !important;
-                            margin-bottom: 7px !important;
-                        }
-                        .invoice-header .company-details .header-rule {
-                            width: 46px; height: 3px;
-                            background: var(--accent);
-                            border-radius: 3px;
-                            margin-bottom: 9px;
-                        }
-                        .invoice-header .company-details p {
-                            font-size: 10px !important;
-                            color: var(--ink-mute) !important;
-                            line-height: 1.7 !important;
-                        }
-                        .invoice-header .company-details p i { width: 13px; color: var(--accent-ink); text-align: center; }
-
-                        .invoice-title {
-                            display: flex !important;
-                            flex-direction: column !important;
-                            align-items: center !important;
-                            min-width: 140px !important;
-                            background: #ffffff !important;
-                            padding: 10px 16px !important;
-                            border-radius: 12px !important;
-                            border: 1px solid var(--accent) !important;
-                            gap: 7px !important;
-                        }
-                        .invoice-title .invoice-title-label {
-                            font-size: 9px !important;
-                            font-weight: 800 !important;
-                            color: var(--accent-ink) !important;
-                            background: var(--accent-soft) !important;
-                            padding: 3px 12px !important;
-                            border-radius: 50px !important;
-                        }
-                        .invoice-title .invoice-title-number {
-                            font-family: var(--font-mono) !important;
-                            font-size: 12px !important;
-                            font-weight: 700 !important;
-                            color: var(--ink) !important;
-                        }
-                        .invoice-title .qr-code {
-                            width: 72px !important;
-                            height: 72px !important;
-                            padding: 4px !important;
-                            border: 1px dashed var(--line-strong) !important;
-                            background: #ffffff !important;
-                            border-radius: 8px !important;
-                        }
-                        .invoice-title .qr-code canvas,
-                        .invoice-title .qr-code img { width: 100% !important; height: 100% !important; }
-                        .invoice-title .qr-label {
-                            font-size: 8px !important;
-                            color: var(--ink-mute) !important;
-                            text-align: center !important;
-                        }
-
-                        .status-badge {
-                            display: inline-flex; align-items: center; gap: 5px;
-                            padding: 3px 12px; border-radius: 50px;
-                            font-size: 9px; font-weight: 800;
-                        }
-                        .status-badge.paid { background: var(--teal-soft) !important; color: var(--teal) !important; }
-                        .status-badge.due { background: var(--rust-soft) !important; color: var(--rust) !important; }
-
-                        .info-grid {
-                            display: flex !important;
-                            flex-wrap: wrap !important;
-                            margin-bottom: 16px !important;
-                            background: #ffffff !important;
-                            border-radius: 8px !important;
-                            border: 1px solid var(--line) !important;
-                            overflow: hidden !important;
-                        }
-                        .info-grid .item {
-                            flex: 1;
-                            min-width: 95px;
-                            padding: 10px 12px !important;
-                            border-left: 1px dashed var(--line) !important;
-                        }
-                        .info-grid .item:last-child { border-left: none !important; }
-                        .info-grid .item.highlight { background: var(--accent-soft) !important; }
-                        .info-grid .item .label {
-                            font-size: 8.5px !important; color: var(--ink-mute) !important; font-weight: 700 !important;
-                            letter-spacing: 0.4px; text-transform: uppercase; display: block; margin-bottom: 4px;
-                        }
-                        .info-grid .item .value { font-size: 13px !important; font-weight: 700 !important; color: var(--ink) !important; }
-                        .info-grid .item.highlight .value { color: var(--accent-ink) !important; }
-
-                        table {
-                            width: 100% !important;
-                            border-collapse: separate !important;
-                            border-spacing: 0 !important;
-                            font-size: 12px !important;
-                            margin-bottom: 4px !important;
-                            border-radius: 8px !important;
-                            overflow: hidden !important;
-                            border: 1px solid var(--line) !important;
-                        }
-                        table th {
-                            background: var(--ink) !important;
-                            color: #ffffff !important;
-                            padding: 10px 12px !important;
-                            text-align: center !important;
-                            font-size: 10px !important;
-                            font-weight: 700 !important;
-                            border-bottom: 2px solid var(--accent) !important;
-                        }
-                        table td {
-                            padding: 9px 12px !important;
-                            border-bottom: 1px solid var(--line) !important;
-                            color: var(--ink-soft) !important;
-                            text-align: center !important;
-                            font-size: 11px !important;
-                            background: #ffffff !important;
-                        }
-                        table tbody tr.data-row:nth-of-type(4n+1) td { background: #fbfaf6 !important; }
-                        table tbody tr:last-child td { border-bottom: none !important; }
-                        table .row-total { font-weight: 800 !important; color: var(--accent-ink) !important; font-family: var(--font-mono) !important; }
-                        table .row-free { color: var(--teal) !important; font-weight: 700 !important; }
-
-                        .invoice-summary {
-                            display: flex !important;
-                            justify-content: flex-start !important;
-                            align-items: flex-start !important;
-                            flex-direction: row !important;
-                            gap: 20px !important;
-                            margin-top: 18px !important;
-                            padding-top: 14px !important;
-                            border-top: 1px dashed var(--line-strong) !important;
-                        }
-                        .bottom-signature {
-                            display: flex !important;
-                            justify-content: space-between !important;
-                            align-items: flex-end !important;
-                            flex-direction: row !important;
-                            gap: 20px !important;
-                            margin-top: 18px !important;
-                            padding-top: 14px !important;
-                            border-top: 1px dashed var(--line-strong) !important;
-                        }
-                        .summary-notes .thanks { font-family: var(--font-serif) !important; font-size: 13px !important; color: var(--ink-soft) !important; margin-bottom: 16px !important; }
-                        .bottom-signature .thanks { margin-bottom: 0 !important; }
-                        .signature .sig-label { font-size: 10px !important; color: var(--ink-mute) !important; font-weight: 700 !important; margin-bottom: 22px !important; }
-                        .signature .line { width: 130px !important; border-bottom: 1.5px solid var(--line-strong) !important; }
-                        .signature .sig-caption { font-size: 9px !important; color: var(--ink-mute) !important; margin-top: 5px !important; }
-
-                        .summary-box {
-                            flex: 0 0 240px !important;
-                            border: 1px solid var(--accent) !important;
-                            border-radius: 8px !important;
-                            overflow: hidden !important;
-                            background: #ffffff !important;
-                        }
-                        .summary-row {
-                            display: flex !important; justify-content: space-between !important; align-items: center !important;
-                            padding: 7px 14px !important; font-size: 11px !important; color: var(--ink-soft) !important;
-                            border-bottom: 1px dashed var(--line) !important;
-                        }
-                        .summary-row span:last-child { font-family: var(--font-mono) !important; font-weight: 700 !important; color: var(--ink) !important; }
-                        .summary-row.delivery span:last-child { color: var(--accent-ink) !important; }
-                        .summary-row.discount span:last-child { color: var(--rust) !important; }
-                        .summary-row.net { background: var(--ink) !important; border-bottom: none !important; padding: 11px 14px !important; }
-                        .summary-row.net span:first-child { color: rgba(255,255,255,0.75) !important; font-weight: 700 !important; font-size: 10.5px !important; }
-                        .summary-row.net span:last-child { color: var(--accent) !important; font-size: 15px !important; font-weight: 800 !important; }
-
-                        .notes-section {
-                            margin-top: 18px !important;
-                            background: var(--surface-muted) !important;
-                            border-radius: 8px !important;
-                            border-top: none !important;
-                            border-right: 4px solid var(--accent) !important;
-                            padding: 14px 16px !important;
-                            page-break-inside: avoid !important;
-                        }
-                        .notes-section .notes-title {
-                            font-size: 11px !important; font-weight: 800 !important; color: var(--ink) !important;
-                            display: flex !important; align-items: center !important; gap: 8px !important; margin-bottom: 9px !important;
-                        }
-                        .notes-section .notes-title i { color: var(--accent-ink) !important; font-size: 12px !important; }
-                        .notes-section .notes-content {
-                            font-size: 9.5px !important; color: var(--ink-soft) !important; line-height: 1.8 !important;
-                            display: grid !important; gap: 4px !important; counter-reset: note-counter;
-                        }
-                        .notes-section .notes-content p {
-                            margin-bottom: 0 !important; position: relative !important; padding-right: 20px !important;
-                            counter-increment: note-counter;
-                        }
-                        .notes-section .notes-content p::before {
-                            content: counter(note-counter);
-                            position: absolute; right: 0; top: 0;
-                            width: 14px; height: 14px; background: var(--accent) !important; color: #fff !important;
-                            border-radius: 50%; font-size: 8px; font-weight: 800;
-                            display: flex; align-items: center; justify-content: center; line-height: 1;
-                        }
-
-                        .print-brand-footer {
-                            margin-top: 16px !important;
-                            padding-top: 10px !important;
-                            border-top: 1px solid var(--line) !important;
-                            text-align: center !important;
-                            font-size: 9px !important;
-                            color: var(--ink-mute) !important;
-                        }
-                        .print-brand-footer strong { color: var(--accent-ink) !important; }
-
-                        table tbody tr { page-break-inside: avoid !important; break-inside: avoid !important; }
-                        .invoice-summary { page-break-inside: avoid !important; break-inside: avoid !important; }
-                        .bottom-signature { page-break-inside: avoid !important; break-inside: avoid !important; }
-
-                        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-
-                        @page { size: A4; margin: 0; }
-                    </style>
-                </head>
-                <body>
-                    <div class="print-wrapper">${content}</div>
-                </body>
-                </html>
-            `);
-            doc.close();
-
-            setTimeout(function() {
-                try {
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print();
-                } catch (e) {
-                    console.error('❌ خطأ أثناء تنفيذ الطباعة:', e);
-                    showToast('❌ خطأ', 'حدث خطأ أثناء تجهيز الطباعة', 'error');
-                }
-                setTimeout(function() {
-                    if (iframe && iframe.parentNode) iframe.remove();
-                }, 1000);
-            }, 600);
-
-            closePrintPreview();
-        }
-
-        // ============================================================
-        // DOWNLOAD PDF
-        // ============================================================
-        function downloadPDF() {
-            if (items.length === 0) {
-                var fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
-                if (fee === 0) {
-                    showToast('⚠️ تنبيه', 'لا توجد منتجات ولا ناولون لتحويلها إلى PDF', 'error');
-                    return;
-                }
-            }
-
-            var overlay = document.getElementById('printPreviewOverlay');
-            if (!overlay.classList.contains('show')) {
-                previewInvoice();
-                setTimeout(function() {
-                    generatePDFFromPreview();
-                }, 800);
-                return;
-            }
-
-            generatePDFFromPreview();
-        }
-        window.downloadPDF = downloadPDF;
-
-        // ============================================================
-        // SAVE INVOICE PDF DIRECT
-        // ============================================================
-        function saveInvoicePDFDirect() {
-            if (items.length === 0) {
-                var fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
-                if (fee === 0) {
-                    showToast('⚠️ تنبيه', 'لا توجد منتجات ولا ناولون لتحويلها إلى PDF', 'error');
-                    return;
-                }
-            }
-
-            var client = document.getElementById('clientNameInput').value.trim() || 'غير محدد';
-            var phone = document.getElementById('clientPhone').value.trim() || 'غير محدد';
-            var invNum = document.getElementById('invoiceNumber').value.trim() || '----';
-            var date = document.getElementById('invoiceDate').value || '';
-            var total = document.getElementById('totalAmount').textContent;
-            var deliveryFee = document.getElementById('deliveryFee').value || '0';
-
-            var companyName = 'QuickData ProSoft';
-            var companyAddress = 'الرياض - المملكة العربية السعودية';
-            var companyPhone = '0500000000';
-
-            showToast('⏳ جاري الحفظ', 'جاري تجهيز ملف PDF...', 'warning');
-
-            var pdfOverlay = document.createElement('div');
-            pdfOverlay.id = 'tempPdfOverlay';
-            pdfOverlay.style.cssText = `
-                position: fixed; inset: 0; background: #ffffff; z-index: 999999;
-                display: flex; align-items: center; justify-content: center;
-                font-family: 'Cairo', 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #121821;
-            `;
-            pdfOverlay.innerHTML = '<i class="fas fa-spinner fa-spin"></i>&nbsp; جاري تجهيز ملف PDF...';
-            document.body.appendChild(pdfOverlay);
-
-            var tempContainer = document.createElement('div');
-            tempContainer.id = 'tempPdfContainer';
-            tempContainer.style.cssText = `
-                position: fixed; top: 0; left: 0; width: 210mm;
-                padding: 12mm 15mm; background: #ffffff; z-index: 1000000;
-                opacity: 1; pointer-events: none; overflow: visible;
-                font-family: 'Cairo', 'Segoe UI', Arial, sans-serif;
-                direction: rtl; box-sizing: border-box;
-            `;
-            document.body.appendChild(tempContainer);
-
-            tempContainer.innerHTML = buildInvoiceHTML(client, phone, invNum, date, total, deliveryFee, 'tempPdfQrCode',
-                companyName, companyAddress, companyPhone);
-
-            function cleanupTempPdfNodes() {
-                if (tempContainer && tempContainer.parentNode) tempContainer.parentNode.removeChild(tempContainer);
-                if (pdfOverlay && pdfOverlay.parentNode) pdfOverlay.parentNode.removeChild(pdfOverlay);
-            }
-
-            setTimeout(function() {
-                generateQRCode(invNum, client, total, 'tempPdfQrCode');
-
-                setTimeout(function() {
-                    var wrapper = tempContainer.querySelector('.print-wrapper');
-                    if (wrapper) {
-                        wrapper.style.cssText += `
-                            background: #ffffff !important;
-                            border: none !important;
-                            box-shadow: none !important;
-                            margin: 0 auto !important;
-                            max-width: 210mm !important;
-                            padding: 10mm 12mm !important;
-                        `;
-                    }
-
-                    var images = tempContainer.querySelectorAll('img');
-                    var imagesLoaded = 0;
-                    var totalImages = images.length;
-
-                    if (totalImages === 0) {
-                        startPDFGeneration();
-                    } else {
-                        images.forEach(function(img) {
-                            if (img.complete) {
-                                imagesLoaded++;
-                                if (imagesLoaded === totalImages) startPDFGeneration();
-                            } else {
-                                img.onload = function() {
-                                    imagesLoaded++;
-                                    if (imagesLoaded === totalImages) startPDFGeneration();
-                                };
-                                img.onerror = function() {
-                                    imagesLoaded++;
-                                    if (imagesLoaded === totalImages) startPDFGeneration();
-                                };
-                            }
-                        });
-                    }
-
-                    function startPDFGeneration() {
-                        html2pdf()
-                            .set({
-                                margin: [10, 10, 10, 10],
-                                filename: (client || 'فاتورة') + ' - ' + invNum + '.pdf',
-                                image: { type: 'jpeg', quality: 0.98 },
-                                html2canvas: {
-                                    scale: 2,
-                                    useCORS: true,
-                                    logging: false,
-                                    backgroundColor: '#ffffff'
-                                },
-                                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-                            })
-                            .from(tempContainer)
-                            .save()
-                            .then(function() {
-                                showToast('✅ تم الحفظ', 'تم حفظ ملف PDF على جهازك', 'success');
-                                cleanupTempPdfNodes();
-                            })
-                            .catch(function(error) {
-                                console.error('❌ خطأ في حفظ PDF:', error);
-                                showToast('❌ خطأ', 'فشل في حفظ PDF: ' + error.message, 'error');
-                                cleanupTempPdfNodes();
-                            });
-                    }
-                }, 500);
-            }, 300);
-        }
-
-        // ============================================================
-        // MOBILE NAVIGATION
-        // ============================================================
-        var navToggle = document.getElementById('navToggle');
-        var mobileMenu = document.getElementById('mobileMenu');
-        var mobileOverlay = document.getElementById('mobileOverlay');
-        var closeMenu = document.getElementById('closeMenu');
-
-        function openMenu() {
-            mobileMenu.classList.add('open');
-            mobileOverlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeMenuFn() {
-            mobileMenu.classList.remove('open');
-            mobileOverlay.classList.remove('active');
-            document.body.style.overflow = '';
-        }
-
-        navToggle.addEventListener('click', function() {
-            if (mobileMenu.classList.contains('open')) closeMenuFn();
-            else openMenu();
-        });
-        closeMenu.addEventListener('click', closeMenuFn);
-        mobileOverlay.addEventListener('click', closeMenuFn);
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && mobileMenu.classList.contains('open')) closeMenuFn();
-        });
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 768 && mobileMenu.classList.contains('open')) closeMenuFn();
-        });
-
-        // ============================================================
-        // TOAST SYSTEM
+        // TOAST SYSTEM - نسخة محسنة مع دعم الأزرار
         // ============================================================
         function showToast(title, message, type, buttons) {
             return new Promise(function(resolve) {
@@ -3063,12 +2023,16 @@
             });
         }
 
+
         // ============================================================
-        // LOGOUT
+        // LOGOUT - باستخدام getSupabaseClient() من supabase-client.js
         // ============================================================
         async function logout() {
             try {
-                await supabaseClient.auth.signOut();
+                var client = getSupabaseClient();
+                if (client) {
+                    await client.auth.signOut();
+                }
                 localStorage.removeItem('rollex_session');
                 sessionStorage.removeItem('rollex_session');
                 window.location.href = 'login.html';
@@ -3078,6 +2042,7 @@
             }
         }
         window.logout = logout;
+
 
         // ============================================================
         // DOM REFS
@@ -3116,16 +2081,18 @@
         var displayRemaining = document.getElementById('displayRemaining');
         var itemsCount = document.getElementById('itemsCount');
 
+
         // ============================================================
         // STATE
         // ============================================================
         var items = [];
         var allClients = [];
         var allProducts = [];
+        var allFinishedMovements = [];
+
 
         // ============================================================
         // فهارس بحث سريعة (Map) للعملاء والمنتجات + كاش لقوائم الاختيار
-        // تُبنى مرة واحدة بدل البحث الخطي (.find) على كل صف عند الاستيراد
         // ============================================================
         var clientByIdMap = new Map(),
             clientByCodeMap = new Map(),
@@ -3162,11 +2129,12 @@
             _importClientOptionsCache = null;
             _importProductOptionsCache = null;
         }
-        var allFinishedMovements = [];
+
         var selectedClientId = null;
         var selectedSuggestionIndex = -1;
         var selectedProductId = null;
         var selectedProductSuggestionIndex = -1;
+
 
         // ============================================================
         // FLATPICKR
@@ -3184,8 +2152,9 @@
             onChange: function() { /* لا حاجة */ }
         }));
 
+
         // ============================================================
-        // GENERATE INVOICE NUMBER
+        // GENERATE INVOICE NUMBER - باستخدام getTable من supabase-client.js
         // ============================================================
         async function generateInvoiceNumber() {
             var today = new Date();
@@ -3196,38 +2165,33 @@
 
             var nextSeq = 1;
             try {
-                var token = await getValidToken();
+                var token = getToken();
                 var companyId = await getCompanyId();
 
                 if (token && companyId) {
-                    var response = await fetch(
-                        SUPABASE_URL + '/rest/v1/sales_invoices?select=invoice_no&company_id=eq.' + companyId + '&order=created_at.desc&limit=1', {
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + token
-                            }
-                        }
-                    );
+                    var data = await getTable('sales_invoices');
+                    var filtered = data.filter(function(inv) {
+                        return inv.company_id == companyId && inv.invoice_no;
+                    });
+                    filtered.sort(function(a, b) {
+                        return new Date(b.created_at) - new Date(a.created_at);
+                    });
 
-                    if (response.ok) {
-                        var data = await response.json();
-                        if (data && data.length > 0 && data[0].invoice_no) {
-                            var match = String(data[0].invoice_no).match(/(\d+)\s*$/);
-                            if (match) {
-                                nextSeq = parseInt(match[1], 10) + 1;
-                            }
+                    if (filtered.length > 0 && filtered[0].invoice_no) {
+                        var match = String(filtered[0].invoice_no).match(/(\d+)\s*$/);
+                        if (match) {
+                            nextSeq = parseInt(match[1], 10) + 1;
                         }
-                    } else {
-                        console.warn('⚠️ تعذر جلب آخر رقم فاتورة من قاعدة البيانات، سيتم استخدام رقم افتراضي');
                     }
                 }
             } catch (error) {
-                console.warn('⚠️ خطأ أثناء توليد رقم الفاتورة، سيتم استخدام رقم افتراضي:', error.message);
+                console.warn('⚠️ خطأ أثناء توليد رقم الفاتورة:', error.message);
             }
 
             var seqStr = String(nextSeq).padStart(5, '0');
             invoiceNumber.value = 'INV-' + dateStr + '-' + seqStr;
         }
+
 
         // ============================================================
         // SET DEFAULT DATE
@@ -3240,6 +2204,7 @@
             fpInvoiceDate.setDate(year + '-' + month + '-' + day, true);
         }
 
+
         // ============================================================
         // FETCH ALL ROWS
         // ============================================================
@@ -3250,12 +2215,10 @@
 
             while (true) {
                 var separator = baseUrl.indexOf('?') === -1 ? '?' : '&';
-                var response = await fetch(baseUrl, {
+                var response = await fetch(baseUrl + separator + 'limit=' + pageSize + '&offset=' + from, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Range-Unit': 'items',
-                        'Range': from + '-' + (from + pageSize - 1)
+                        'Authorization': 'Bearer ' + token
                     }
                 });
 
@@ -3276,21 +2239,17 @@
             return allRows;
         }
 
+
         // ============================================================
-        // LOAD CLIENTS
+        // LOAD CLIENTS - باستخدام getTable من supabase-client.js
         // ============================================================
         async function loadClients() {
             try {
-                var token = await getValidToken();
-                if (!token) {
-                    console.warn('⚠️ لا يوجد توكن صالح، تخطي جلب العملاء');
-                    return;
-                }
-
                 console.log('🔄 جلب العملاء من Supabase...');
-                allClients = await fetchAllRows(SUPABASE_URL + '/rest/v1/clients?select=id,name,phone,code,total_sales,due_balance&order=name',
-                    token);
+                var data = await getTable('clients');
+                allClients = data || [];
                 console.log('👤 تم جلب العملاء:', allClients.length);
+                rebuildLookupIndexes();
 
                 if (clientNameInput.value.trim().length > 0) {
                     showClientSuggestions(clientNameInput.value);
@@ -3302,27 +2261,16 @@
             }
         }
 
+
         // ============================================================
-        // LOAD PRODUCTS - المعدلة لتتناسب مع هيكل قاعدة البيانات الفعلي
+        // LOAD PRODUCTS - باستخدام getTable من supabase-client.js
         // ============================================================
         async function loadProducts() {
             try {
-                var token = await getValidToken();
-                if (!token) {
-                    console.warn('⚠️ لا يوجد توكن صالح، تخطي جلب المنتجات');
-                    return;
-                }
-
                 console.log('🔄 جلب المنتجات من Supabase...');
+                var data = await getTable('products');
 
-                // استخدام الأسماء الصحيحة للأعمدة من قاعدة البيانات
-                var allData = await fetchAllRows(
-                    SUPABASE_URL + '/rest/v1/products?select=id,product_code,product_name,product_unit,sell_price,cost_price,product_weight,min_stock,status',
-                    token
-                );
-
-                // تحويل البيانات إلى الشكل الذي يتوقعه الكود
-                allProducts = allData.map(function(row) {
+                allProducts = data.map(function(row) {
                     return {
                         id: row.id,
                         name: row.product_name || 'بدون اسم',
@@ -3346,20 +2294,15 @@
             }
         }
 
+
         // ============================================================
-        // LOAD FINISHED MOVEMENTS
+        // LOAD FINISHED MOVEMENTS - باستخدام getTable من supabase-client.js
         // ============================================================
         async function loadFinishedMovements() {
             try {
-                var token = await getValidToken();
-                if (!token) {
-                    console.warn('⚠️ لا يوجد توكن صالح، تخطي جلب حركات المخزون');
-                    return;
-                }
-
                 console.log('🔄 جلب حركات المخزون من Supabase...');
-                allFinishedMovements = await fetchAllRows(SUPABASE_URL +
-                    '/rest/v1/finished_goods_movements?select=product_id,type,quantity', token);
+                var data = await getTable('finished_goods_movements');
+                allFinishedMovements = data || [];
                 console.log('📊 تم جلب حركات المخزون:', allFinishedMovements.length);
 
             } catch (error) {
@@ -3367,6 +2310,7 @@
                 allFinishedMovements = [];
             }
         }
+
 
         // ============================================================
         // COMPUTE PRODUCT BALANCE
@@ -3382,6 +2326,7 @@
             });
             return balance;
         }
+
 
         // ============================================================
         // PRODUCT SUGGESTIONS
@@ -3405,8 +2350,8 @@
 
             if (results.length === 0) {
                 suggestionsList.innerHTML = `
-                    <div class="no-results">لا توجد نتائج مطابقة</div>
-                `;
+                        <div class="no-results">لا توجد نتائج مطابقة</div>
+                    `;
                 suggestionsList.classList.add('show');
                 selectedProductSuggestionIndex = -1;
                 return;
@@ -3415,11 +2360,11 @@
             var html = '';
             results.forEach(function(product, index) {
                 html += `
-                    <div class="suggestion-item" onclick="selectProduct('${product.id}', '${(product.code ? product.code + ' — ' : '') + product.name}', '${product.sell_price || 0}', '${product.unit || ''}')" data-index="${index}">
-                        <span>${product.code ? product.code + ' — ' : ''}${product.name}</span>
-                        ${product.sell_price ? `<span class="client-phone">💰 ${product.sell_price}</span>` : ''}
-                    </div>
-                `;
+                        <div class="suggestion-item" onclick="selectProduct('${product.id}', '${(product.code ? product.code + ' — ' : '') + product.name}', '${product.sell_price || 0}', '${product.unit || ''}')" data-index="${index}">
+                            <span>${product.code ? product.code + ' — ' : ''}${product.name}</span>
+                            ${product.sell_price ? `<span class="client-phone">💰 ${product.sell_price}</span>` : ''}
+                        </div>
+                    `;
             });
 
             suggestionsList.innerHTML = html;
@@ -3527,6 +2472,7 @@
             }
         });
 
+
         // ============================================================
         // CLIENT SUGGESTIONS
         // ============================================================
@@ -3550,11 +2496,11 @@
 
             if (results.length === 0) {
                 suggestionsList.innerHTML = `
-                    <div class="suggestion-item add-new" onclick="openAddClientModal('${searchTerm}')" data-index="0">
-                        <span><i class="fas fa-plus-circle"></i> إضافة عميل جديد: "${searchTerm}"</span>
-                    </div>
-                    <div class="no-results">لا توجد نتائج مطابقة</div>
-                `;
+                        <div class="suggestion-item add-new" onclick="openAddClientModal('${searchTerm}')" data-index="0">
+                            <span><i class="fas fa-plus-circle"></i> إضافة عميل جديد: "${searchTerm}"</span>
+                        </div>
+                        <div class="no-results">لا توجد نتائج مطابقة</div>
+                    `;
                 suggestionsList.classList.add('show');
                 selectedSuggestionIndex = -1;
                 return;
@@ -3563,18 +2509,18 @@
             var html = '';
             results.forEach(function(client, index) {
                 html += `
-                    <div class="suggestion-item" onclick="selectClient('${client.id}', '${client.name}', '${client.phone || ''}')" data-index="${index + 1}">
-                        <span>${client.code ? client.code + ' — ' : ''}${client.name}</span>
-                        ${client.phone ? `<span class="client-phone">📱 ${client.phone}</span>` : ''}
-                    </div>
-                `;
+                        <div class="suggestion-item" onclick="selectClient('${client.id}', '${client.name}', '${client.phone || ''}')" data-index="${index + 1}">
+                            <span>${client.code ? client.code + ' — ' : ''}${client.name}</span>
+                            ${client.phone ? `<span class="client-phone">📱 ${client.phone}</span>` : ''}
+                        </div>
+                    `;
             });
 
             html += `
-                <div class="suggestion-item add-new" onclick="openAddClientModal('${searchTerm}')" data-index="${results.length + 1}">
-                    <span><i class="fas fa-plus-circle"></i> إضافة عميل جديد</span>
-                </div>
-            `;
+                    <div class="suggestion-item add-new" onclick="openAddClientModal('${searchTerm}')" data-index="${results.length + 1}">
+                        <span><i class="fas fa-plus-circle"></i> إضافة عميل جديد</span>
+                    </div>
+                `;
 
             suggestionsList.innerHTML = html;
             suggestionsList.classList.add('show');
@@ -3630,38 +2576,24 @@
             }
 
             try {
-                var token = await getValidToken();
+                var token = getToken();
                 if (!token) throw new Error('جلسة منتهية');
 
                 var companyId = await getCompanyId();
 
-                var response = await fetch(SUPABASE_URL + '/rest/v1/clients', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify({
-                        company_id: companyId,
-                        name: name.trim(),
-                        phone: phone || '',
-                        code: code || '',
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    })
+                var newClient = await insertRow('clients', {
+                    company_id: companyId,
+                    name: name.trim(),
+                    phone: phone || '',
+                    code: code || '',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
                 });
 
-                if (!response.ok) {
-                    throw new Error('فشل في إضافة العميل');
-                }
+                allClients.push(newClient);
+                rebuildLookupIndexes();
 
-                var newClient = await response.json();
-                var clientData = newClient[0] || newClient;
-                allClients.push(clientData);
-
-                selectClient(clientData.id, clientData.name, clientData.phone || '');
+                selectClient(newClient.id, newClient.name, newClient.phone || '');
 
                 showToast('✅ تم الإضافة', 'تم إضافة العميل "' + name + '" بنجاح', 'success');
                 await loadClients();
@@ -3672,6 +2604,7 @@
                 showToast('❌ خطأ', 'فشل في إضافة العميل: ' + error.message, 'error');
             }
         }
+
 
         // ============================================================
         // CLIENT INPUT EVENTS
@@ -3738,12 +2671,14 @@
             }
         });
 
+
         // ============================================================
         // DELIVERY FEE EVENT
         // ============================================================
         deliveryFee.addEventListener('input', function() {
             calculateTotals();
         });
+
 
         // ============================================================
         // ADD PRODUCT TO ITEMS
@@ -3809,6 +2744,7 @@
             productNameInput.focus();
         });
 
+
         // ============================================================
         // CLEAR PRODUCT FIELDS
         // ============================================================
@@ -3828,22 +2764,23 @@
 
         btnClearProduct.addEventListener('click', clearProductFields);
 
+
         // ============================================================
         // RENDER ITEMS
         // ============================================================
         function renderItems() {
             if (items.length === 0) {
                 itemsBody.innerHTML = `
-                    <tr>
-                        <td colspan="6">
-                            <div class="empty-items">
-                                <i class="fas fa-box-open"></i>
-                                <p>لا توجد منتجات مضافة</p>
-                                <span>أضف منتجاً من النموذج على اليمين</span>
-                            </div>
-                        </td>
-                    </tr>
-                `;
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-items">
+                                    <i class="fas fa-box-open"></i>
+                                    <p>لا توجد منتجات مضافة</p>
+                                    <span>أضف منتجاً من النموذج على اليمين</span>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
                 itemsCount.textContent = '0 منتج';
                 return;
             }
@@ -3857,22 +2794,23 @@
                 var priceClass = isFree ? 'zero-price' : 'money';
 
                 html += `
-                    <tr>
-                        <td class="num">${index + 1}</td>
-                        <td style="text-align:right;font-weight:600;">${item.product_name} ${freeBadge}</td>
-                        <td class="num">${item.quantity} ${item.unit}</td>
-                        <td class="${priceClass}">${item.unit_price.toFixed(2)}</td>
-                        <td class="money" style="color:${isFree ? 'var(--teal)' : 'var(--teal)'};font-weight:700;">${item.total.toFixed(2)}</td>
-                        <td>
-                            <button class="btn-remove" onclick="removeItem(${index})"><i class="fas fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `;
+                        <tr>
+                            <td class="num">${index + 1}</td>
+                            <td style="text-align:right;font-weight:600;">${item.product_name} ${freeBadge}</td>
+                            <td class="num">${item.quantity} ${item.unit}</td>
+                            <td class="${priceClass}">${item.unit_price.toFixed(2)}</td>
+                            <td class="money" style="color:${isFree ? 'var(--teal)' : 'var(--teal)'};font-weight:700;">${item.total.toFixed(2)}</td>
+                            <td>
+                                <button class="btn-remove" onclick="removeItem(${index})"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
             });
 
             itemsBody.innerHTML = html;
             itemsCount.textContent = items.length + ' منتج';
         }
+
 
         // ============================================================
         // REMOVE ITEM
@@ -3884,6 +2822,7 @@
             showToast('🗑️ حذف', 'تم حذف المنتج', 'warning');
         }
         window.removeItem = removeItem;
+
 
         // ============================================================
         // CALCULATE TOTALS
@@ -3903,6 +2842,7 @@
             displayPaid.textContent = '0.00';
             displayRemaining.textContent = grandTotal.toFixed(2);
         }
+
 
         // ============================================================
         // RESET FORM
@@ -3927,6 +2867,7 @@
         }
         window.resetForm = resetForm;
 
+
         // ============================================================
         // CLEAR ALL
         // ============================================================
@@ -3942,6 +2883,7 @@
                 if (result === 'yes') resetForm();
             });
         });
+
 
         // ============================================================
         // RESET ALL
@@ -3959,8 +2901,9 @@
             });
         });
 
+
         // ============================================================
-        // SAVE INVOICE
+        // SAVE INVOICE - باستخدام insertRow و patchRow من supabase-client.js
         // ============================================================
         btnSaveInvoice.addEventListener('click', async function() {
             var clientId = clientIdHidden.value;
@@ -3992,7 +2935,7 @@
             btnSaveInvoice.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
             try {
-                var token = await getValidToken();
+                var token = getToken();
                 if (!token) throw new Error('جلسة منتهية');
 
                 var companyId = await getCompanyId();
@@ -4000,126 +2943,81 @@
 
                 if (!companyId) throw new Error('لم يتم العثور على company_id');
 
-                // 1. إنشاء رأس الفاتورة مع delivery_fee
-                var invoiceResponse = await fetch(SUPABASE_URL + '/rest/v1/sales_invoices', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify({
-                        company_id: companyId,
-                        user_id: user?.id || null,
-                        invoice_no: invNo,
-                        client_id: clientId,
-                        client_name: clientName,
-                        invoice_date: date,
-                        status: 'مرحلة',
-                        notes: items.length === 0 ? 'فاتورة مصاريف ناولون فقط' : '',
-                        total_amount: totalAmountVal,
-                        delivery_fee: fee,
-                        original_invoice_no: originalInvoiceNo.value.trim() || null,
-                        rep_name: repName.value.trim() || null,
-                        location: invoiceLocation.value.trim() || null
-                    })
-                });
+                // 1. إنشاء رأس الفاتورة
+                var invoiceData = {
+                    company_id: companyId,
+                    user_id: user?.id || null,
+                    invoice_no: invNo,
+                    client_id: clientId,
+                    client_name: clientName,
+                    invoice_date: date,
+                    status: 'مرحلة',
+                    notes: items.length === 0 ? 'فاتورة مصاريف ناولون فقط' : '',
+                    total_amount: totalAmountVal,
+                    delivery_fee: fee,
+                    original_invoice_no: originalInvoiceNo.value.trim() || null,
+                    rep_name: repName.value.trim() || null,
+                    location: invoiceLocation.value.trim() || null
+                };
 
-                if (!invoiceResponse.ok) {
-                    var errorText = await invoiceResponse.text();
-                    throw new Error('فشل إنشاء الفاتورة: ' + errorText);
-                }
-
-                var invoiceData = await invoiceResponse.json();
-                var invoiceId = invoiceData[0]?.id || invoiceData.id;
+                var invoice = await insertRow('sales_invoices', invoiceData);
+                var invoiceId = invoice.id;
 
                 if (!invoiceId) throw new Error('لم يتم الحصول على معرف الفاتورة');
 
-                // 2. إنشاء حركات المخزون وبنود الفاتورة (مع is_free)
+                // 2. إنشاء حركات المخزون وبنود الفاتورة
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
                     var isFree = (item.isFree || item.unit_price === 0);
 
-                    var movementResponse = await fetch(SUPABASE_URL + '/rest/v1/finished_goods_movements', {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'return=representation'
-                        },
-                        body: JSON.stringify({
-                            company_id: companyId,
-                            user_id: user?.id || null,
-                            product_id: item.product_id,
-                            product_name: item.product_name,
-                            type: 'منصرف',
-                            quantity: item.quantity,
-                            unit_cost: item.unit_price,
-                            total_value: item.total,
-                            reference: invNo,
-                            notes: isFree ? 'منصرف مجاني - فاتورة ' + invNo : 'بيع - فاتورة ' + invNo,
-                            movement_date: date
-                        })
-                    });
+                    // حركة المخزون
+                    var movementData = {
+                        company_id: companyId,
+                        user_id: user?.id || null,
+                        product_id: item.product_id,
+                        product_name: item.product_name,
+                        type: 'منصرف',
+                        quantity: item.quantity,
+                        unit_cost: item.unit_price,
+                        total_value: item.total,
+                        reference: invNo,
+                        notes: isFree ? 'منصرف مجاني - فاتورة ' + invNo : 'بيع - فاتورة ' + invNo,
+                        movement_date: date
+                    };
 
-                    if (!movementResponse.ok) {
-                        var mvError = await movementResponse.text();
-                        throw new Error('فشل إنشاء حركة المخزون: ' + mvError);
-                    }
+                    var movement = await insertRow('finished_goods_movements', movementData);
+                    var movementId = movement.id;
 
-                    var movementData = await movementResponse.json();
-                    var movementId = movementData[0]?.id || movementData.id;
+                    // بند الفاتورة
+                    var itemData = {
+                        company_id: companyId,
+                        invoice_id: invoiceId,
+                        product_id: item.product_id,
+                        product_name: item.product_name,
+                        quantity: item.quantity,
+                        unit_price: item.unit_price,
+                        unit: item.unit || '',
+                        line_total: item.total,
+                        finished_movement_id: movementId,
+                        unit_weight: item.unit_weight != null ? item.unit_weight : null,
+                        total_weight: item.total_weight != null ? item.total_weight : null,
+                        color: item.color || null,
+                        aggregate_type: item.aggregate_type || null,
+                        is_free: isFree
+                    };
 
-                    // ✅ إرسال is_free إلى sales_invoice_items (العمود موجود في قاعدة البيانات)
-                    var itemResponse = await fetch(SUPABASE_URL + '/rest/v1/sales_invoice_items', {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'return=representation'
-                        },
-                        body: JSON.stringify({
-                            company_id: companyId,
-                            invoice_id: invoiceId,
-                            product_id: item.product_id,
-                            product_name: item.product_name,
-                            quantity: item.quantity,
-                            unit_price: item.unit_price,
-                            unit: item.unit || '',
-                            line_total: item.total,
-                            finished_movement_id: movementId,
-                            unit_weight: item.unit_weight != null ? item.unit_weight : null,
-                            total_weight: item.total_weight != null ? item.total_weight : null,
-                            color: item.color || null,
-                            aggregate_type: item.aggregate_type || null,
-                            is_free: isFree
-                        })
-                    });
-
-                    if (!itemResponse.ok) {
-                        var itemError = await itemResponse.text();
-                        throw new Error('فشل إنشاء بند الفاتورة: ' + itemError);
-                    }
+                    await insertRow('sales_invoice_items', itemData);
                 }
 
                 // 3. تحديث رصيد العميل
                 var client = allClients.find(function(c) { return c.id == clientId; });
                 if (client) {
-                    await fetch(SUPABASE_URL + '/rest/v1/clients?id=eq.' + clientId, {
-                        method: 'PATCH',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            total_sales: (parseFloat(client.total_sales) || 0) + grandTotal,
-                            due_balance: (parseFloat(client.due_balance) || 0) + grandTotal
-                        })
+                    await patchRow('clients', clientId, {
+                        total_sales: (parseFloat(client.total_sales) || 0) + grandTotal,
+                        due_balance: (parseFloat(client.due_balance) || 0) + grandTotal
                     });
+                    client.total_sales = (parseFloat(client.total_sales) || 0) + grandTotal;
+                    client.due_balance = (parseFloat(client.due_balance) || 0) + grandTotal;
                 }
 
                 showToast('✅ تم الحفظ', 'تم حفظ الفاتورة ' + invNo + ' بنجاح', 'success');
@@ -4135,6 +3033,7 @@
             btnSaveInvoice.innerHTML = '<i class="fas fa-save"></i> حفظ الفاتورة';
         });
 
+
         // ============================================================
         // LOAD DATA
         // ============================================================
@@ -4147,8 +3046,839 @@
             console.log('✅ تم تحميل البيانات');
         }
 
+
         // ============================================================
-        // IMPORT FROM EXCEL - النسخة المحسنة بالكامل مع الكشف التلقائي عن الأعمدة
+        // GENERATE QR CODE
+        // ============================================================
+        function generateQRCode(invoiceNumberVal, client, total, containerId) {
+            containerId = containerId || 'qrCodeContainer';
+            var qrContainer = document.getElementById(containerId);
+            if (!qrContainer) {
+                console.warn('⚠️ حاوية QR Code غير موجودة:', containerId);
+                return;
+            }
+
+            qrContainer.innerHTML = '';
+
+            var qrText = 'INV:' + (invoiceNumberVal || '----');
+
+            try {
+                if (typeof QRCode !== 'undefined') {
+                    new QRCode(qrContainer, {
+                        text: qrText,
+                        width: 72,
+                        height: 72,
+                        colorDark: '#121821',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                    console.log('✅ تم إنشاء QR Code بنجاح في', containerId);
+                    return;
+                }
+            } catch (error) {
+                console.warn('⚠️ فشل إنشاء QR Code داخلياً، استخدام API خارجي:', error.message);
+            }
+
+            var encodedText = encodeURIComponent(qrText);
+            var qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=' + encodedText +
+                '&bgcolor=ffffff&color=121821&margin=4';
+
+            var img = document.createElement('img');
+            img.src = qrImageUrl;
+            img.alt = 'QR Code';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'contain';
+
+            img.onerror = function() {
+                qrContainer.innerHTML = `
+                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;background:#f8f9fa;border-radius:4px;">
+                            <i class="fas fa-qrcode" style="font-size:1.5rem;color:var(--accent);"></i>
+                            <span style="font-size:0.4rem;color:var(--ink-mute);">${invoiceNumberVal || ''}</span>
+                        </div>
+                    `;
+            };
+
+            qrContainer.appendChild(img);
+        }
+
+
+        // ============================================================
+        // BUILD INVOICE HTML
+        // ============================================================
+        function getArabicDayName(dateStr) {
+            if (!dateStr) return '';
+            var d = new Date(dateStr);
+            if (isNaN(d.getTime())) return '';
+            return d.toLocaleDateString('ar-EG', { weekday: 'long' });
+        }
+
+        function buildInvoiceHTML(client, phone, invNum, date, total, deliveryFee, qrContainerId, companyName, companyAddress,
+            companyPhone) {
+            companyName = companyName || 'QuickData ProSoft';
+            companyAddress = companyAddress || 'الرياض - المملكة العربية السعودية';
+            companyPhone = companyPhone || '0500000000';
+            var footer = 'شكراً لثقتكم بنا';
+
+            var statusBadgeHtml = ' <span class="status-badge due"><i class="fas fa-exclamation-circle"></i> مستحق الدفع</span>';
+
+            var dateFormatted = date ? new Date(date).toLocaleDateString('ar-EG') : '----';
+            var deliveryFeeVal = parseFloat(deliveryFee) || 0;
+            var totalVal = parseFloat(total) || 0;
+            var grandTotal = totalVal + deliveryFeeVal;
+            var hasItems = items && items.length > 0;
+
+            var html = `
+                    <div class="invoice-header">
+                        <div class="logo-section">
+                            <div class="logo-box">
+                                <span>ق</span>
+                            </div>
+                            <div class="company-details">
+                                <span class="eyebrow">فاتورة ضريبية</span>
+                                <h2>${companyName}</h2>
+                                <div class="header-rule"></div>
+                                <p>
+                                    <i class="fas fa-map-marker-alt"></i> ${companyAddress}<br/>
+                                    <i class="fas fa-phone-alt"></i> ${companyPhone}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="invoice-title">
+                            <span class="invoice-title-label">رقم الفاتورة</span>
+                            <span class="invoice-title-number">${invNum}</span>
+                            <div class="qr-code" id="${qrContainerId}"></div>
+                            <span class="qr-label">امسح للتحقق من الفاتورة</span>
+                        </div>
+                    </div>
+
+                    <div class="info-grid">
+                        <div class="item"><span class="label">تاريخ الإصدار</span><div class="value">${dateFormatted}</div></div>
+                        <div class="item highlight"><span class="label">اسم العميل</span><div class="value">${client}</div></div>
+                        <div class="item"><span class="label">رقم الجوال</span><div class="value">${phone}</div></div>
+                        <div class="item"><span class="label">حالة الفاتورة</span><div class="value">${statusBadgeHtml}</div></div>
+                    </div>
+                `;
+
+            if (hasItems) {
+                html += `
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width:30px;">#</th>
+                                    <th style="text-align:right;">المنتج / الخدمة</th>
+                                    <th>الكمية</th>
+                                    <th>سعر الوحدة</th>
+                                    <th>الإجمالي</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                        `;
+
+                items.forEach(function(item, index) {
+                    var isFree = (item.isFree || item.unit_price === 0);
+                    var freeLabel = isFree ? ' <span style="color:var(--teal);font-weight:700;">(مجاني)</span>' : '';
+                    var rowClass = isFree ? 'row-free' : 'row-total';
+                    html += `
+                                <tr class="data-row">
+                                    <td>${index + 1}</td>
+                                    <td style="text-align:right;font-weight:600;color:var(--ink);">${item.product_name}${freeLabel}</td>
+                                    <td>${item.quantity} ${item.unit || ''}</td>
+                                    <td>${item.unit_price.toFixed(2)}</td>
+                                    <td class="${rowClass}">${item.total.toFixed(2)} ر.س</td>
+                                </tr>
+                            `;
+                });
+
+                html += `
+                                </tbody>
+                            </table>
+                        `;
+            } else {
+                html += `
+                        <div style="text-align:center;padding:20px;background:var(--accent-soft);border-radius:8px;margin:10px 0;">
+                            <p style="font-weight:700;color:var(--accent-ink);font-size:0.9rem;">
+                                <i class="fas fa-truck"></i> هذه الفاتورة مخصصة لمصاريف الناولون فقط
+                            </p>
+                            <p style="color:var(--ink-mute);font-size:0.8rem;">لا توجد منتجات مضافة في هذه الفاتورة</p>
+                        </div>
+                    `;
+            }
+
+            html += `
+                    <div class="invoice-summary">
+                        <div class="summary-box">
+                            <div class="summary-row"><span>إجمالي الأصناف</span><span>${totalVal.toFixed(2)} ر.س</span></div>
+                            <div class="summary-row delivery"><span>الناولون</span><span>${deliveryFeeVal.toFixed(2)} ر.س</span></div>
+                            <div class="summary-row discount"><span>الخصم</span><span>0.00 ر.س</span></div>
+                            <div class="summary-row"><span>المدفوع</span><span>0.00 ر.س</span></div>
+                            <div class="summary-row net"><span>المتبقي المستحق</span><span>${grandTotal.toFixed(2)} ر.س</span></div>
+                        </div>
+                    </div>
+
+                    <div class="notes-section">
+                        <div class="notes-title">
+                            <i class="fas fa-sticky-note"></i> شروط وملاحظات
+                        </div>
+                        <div class="notes-content">
+                            <p>هذه الفاتورة صادرة عن نظام QuickData ProSoft</p>
+                            <p>يرجى التأكد من صحة البيانات قبل الدفع</p>
+                            <p>شكراً لتعاملكم معنا</p>
+                        </div>
+                    </div>
+
+                    <div class="bottom-signature">
+                        <p class="thanks">"${footer}"</p>
+                        <div class="signature">
+                            <p class="sig-label">توقيع واستلام العميل</p>
+                            <div class="line"></div>
+                            <p class="sig-caption">الاسم والتوقيع</p>
+                        </div>
+                    </div>
+
+                    <div class="print-brand-footer">
+                        <strong>${companyName}</strong> — تم إصدار هذه الفاتورة إلكترونياً عبر نظام إدارة المبيعات
+                    </div>
+                `;
+
+            return html;
+        }
+
+
+        // ============================================================
+        // PREVIEW INVOICE
+        // ============================================================
+        function previewInvoice() {
+            if (items.length === 0) {
+                var fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
+                if (fee === 0) {
+                    showToast('⚠️ تنبيه', 'لا توجد منتجات ولا ناولون للمعاينة', 'error');
+                    return;
+                }
+            }
+
+            var client = document.getElementById('clientNameInput').value.trim() || 'غير محدد';
+            var phone = document.getElementById('clientPhone').value.trim() || 'غير محدد';
+            var invNum = document.getElementById('invoiceNumber').value.trim() || '----';
+            var date = document.getElementById('invoiceDate').value || '';
+            var total = document.getElementById('totalAmount').textContent;
+            var deliveryFee = document.getElementById('deliveryFee').value || '0';
+
+            var companyName = 'QuickData ProSoft';
+            var companyAddress = 'الرياض - المملكة العربية السعودية';
+            var companyPhone = '0500000000';
+
+            var printContent = document.getElementById('printPreviewContent');
+            printContent.innerHTML = buildInvoiceHTML(client, phone, invNum, date, total, deliveryFee, 'qrCodeContainer',
+                companyName, companyAddress, companyPhone);
+
+            setTimeout(function() {
+                generateQRCode(invNum, client, total, 'qrCodeContainer');
+            }, 200);
+
+            document.getElementById('printPreviewOverlay').classList.add('show');
+        }
+        window.previewInvoice = previewInvoice;
+
+
+        // ============================================================
+        // CLOSE PRINT PREVIEW
+        // ============================================================
+        function closePrintPreview() {
+            document.getElementById('printPreviewOverlay').classList.remove('show');
+        }
+        window.closePrintPreview = closePrintPreview;
+
+
+        // ============================================================
+        // EXECUTE PRINT
+        // ============================================================
+        function executePrint() {
+            var overlay = document.getElementById('printPreviewOverlay');
+            if (!overlay.classList.contains('show')) {
+                previewInvoice();
+                setTimeout(function() {
+                    openPrintWindow();
+                }, 600);
+                return;
+            }
+            openPrintWindow();
+        }
+        window.executePrint = executePrint;
+
+
+        // ============================================================
+        // OPEN PRINT WINDOW
+        // ============================================================
+        function openPrintWindow() {
+            var content = document.getElementById('printPreviewContent').innerHTML;
+
+            var oldFrame = document.getElementById('printFrame');
+            if (oldFrame) oldFrame.remove();
+
+            var iframe = document.createElement('iframe');
+            iframe.id = 'printFrame';
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            iframe.style.visibility = 'hidden';
+            document.body.appendChild(iframe);
+
+            var doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(`
+                    <!DOCTYPE html>
+                    <html dir="rtl">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>فاتورة ${document.getElementById('invoiceNumber').value || ''} - QuickData ProSoft</title>
+                        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Marcellus&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+                        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+                        <style>
+                            /* === نفس ستايلات الطباعة المدمجة في الصفحة === */
+                            :root {
+                                --ink: #121821;
+                                --ink-soft: #2c3644;
+                                --ink-mute: #6d7883;
+                                --line: #dde3e0;
+                                --line-strong: #c7d0cc;
+                                --accent: #dd9f2e;
+                                --accent-ink: #7a5312;
+                                --accent-soft: #faead0;
+                                --teal: #1d7b6c;
+                                --teal-soft: #e2f2ee;
+                                --rust: #bf4f30;
+                                --rust-soft: #fbe8e1;
+                                --surface-muted: #f4f6f5;
+                                --font-display: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
+                                --font-serif: 'Marcellus', 'Cairo', serif;
+                                --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+                            }
+                            * { box-sizing: border-box; }
+                            body {
+                                background: #ffffff !important;
+                                padding: 0 !important;
+                                margin: 0 !important;
+                                font-family: var(--font-display) !important;
+                                direction: rtl;
+                                color: var(--ink);
+                            }
+                            ::-webkit-scrollbar { display: none !important; }
+
+                            .print-wrapper {
+                                max-width: 210mm !important;
+                                margin: 0 auto !important;
+                                background: #ffffff !important;
+                                padding: 12mm 15mm !important;
+                                min-height: 100vh !important;
+                                box-sizing: border-box !important;
+                                border: 1px solid var(--accent);
+                                position: relative;
+                                display: flex;
+                                flex-direction: column;
+                            }
+
+                            .invoice-header {
+                                display: flex !important;
+                                align-items: flex-start !important;
+                                justify-content: space-between !important;
+                                flex-direction: row !important;
+                                padding-bottom: 18px !important;
+                                margin-bottom: 20px !important;
+                                gap: 15px !important;
+                                border-bottom: none !important;
+                                position: relative;
+                            }
+                            .invoice-header::after {
+                                content: '';
+                                position: absolute;
+                                left: 0; right: 0; bottom: 0;
+                                height: 3px;
+                                background: linear-gradient(90deg, var(--accent) 0%, var(--accent) 55%, transparent 100%);
+                            }
+                            .invoice-header .logo-section {
+                                display: flex !important;
+                                align-items: center !important;
+                                gap: 15px !important;
+                            }
+                            .invoice-header .logo-section .logo-box {
+                                width: 80px !important;
+                                height: 80px !important;
+                                min-width: 80px !important;
+                                border-radius: 16px !important;
+                                overflow: hidden !important;
+                                display: flex !important;
+                                align-items: center !important;
+                                justify-content: center !important;
+                                background: #ffffff !important;
+                                padding: 8px !important;
+                                border: 1px solid var(--line) !important;
+                                box-shadow: 0 6px 18px -8px rgba(18,24,33,0.18);
+                            }
+                            .invoice-header .logo-section .logo-box span { font-size: 2.4rem; font-weight: 900; color: #121821; }
+                            .invoice-header .company-details .eyebrow {
+                                display: inline-block;
+                                font-size: 9px !important;
+                                letter-spacing: 1.4px;
+                                color: var(--accent-ink) !important;
+                                font-weight: 800 !important;
+                                text-transform: uppercase;
+                                margin-bottom: 4px;
+                            }
+                            .invoice-header .company-details h2 {
+                                font-family: var(--font-serif) !important;
+                                font-size: 18px !important;
+                                font-weight: 700 !important;
+                                color: var(--ink) !important;
+                                margin-bottom: 7px !important;
+                            }
+                            .invoice-header .company-details .header-rule {
+                                width: 46px; height: 3px;
+                                background: var(--accent);
+                                border-radius: 3px;
+                                margin-bottom: 9px;
+                            }
+                            .invoice-header .company-details p {
+                                font-size: 10px !important;
+                                color: var(--ink-mute) !important;
+                                line-height: 1.7 !important;
+                            }
+                            .invoice-header .company-details p i { width: 13px; color: var(--accent-ink); text-align: center; }
+
+                            .invoice-title {
+                                display: flex !important;
+                                flex-direction: column !important;
+                                align-items: center !important;
+                                min-width: 140px !important;
+                                background: #ffffff !important;
+                                padding: 10px 16px !important;
+                                border-radius: 12px !important;
+                                border: 1px solid var(--accent) !important;
+                                gap: 7px !important;
+                            }
+                            .invoice-title .invoice-title-label {
+                                font-size: 9px !important;
+                                font-weight: 800 !important;
+                                color: var(--accent-ink) !important;
+                                background: var(--accent-soft) !important;
+                                padding: 3px 12px !important;
+                                border-radius: 50px !important;
+                            }
+                            .invoice-title .invoice-title-number {
+                                font-family: var(--font-mono) !important;
+                                font-size: 12px !important;
+                                font-weight: 700 !important;
+                                color: var(--ink) !important;
+                            }
+                            .invoice-title .qr-code {
+                                width: 72px !important;
+                                height: 72px !important;
+                                padding: 4px !important;
+                                border: 1px dashed var(--line-strong) !important;
+                                background: #ffffff !important;
+                                border-radius: 8px !important;
+                            }
+                            .invoice-title .qr-code canvas,
+                            .invoice-title .qr-code img { width: 100% !important; height: 100% !important; }
+                            .invoice-title .qr-label {
+                                font-size: 8px !important;
+                                color: var(--ink-mute) !important;
+                                text-align: center !important;
+                            }
+
+                            .status-badge {
+                                display: inline-flex; align-items: center; gap: 5px;
+                                padding: 3px 12px; border-radius: 50px;
+                                font-size: 9px; font-weight: 800;
+                            }
+                            .status-badge.paid { background: var(--teal-soft) !important; color: var(--teal) !important; }
+                            .status-badge.due { background: var(--rust-soft) !important; color: var(--rust) !important; }
+
+                            .info-grid {
+                                display: flex !important;
+                                flex-wrap: wrap !important;
+                                margin-bottom: 16px !important;
+                                background: #ffffff !important;
+                                border-radius: 8px !important;
+                                border: 1px solid var(--line) !important;
+                                overflow: hidden !important;
+                            }
+                            .info-grid .item {
+                                flex: 1;
+                                min-width: 95px;
+                                padding: 10px 12px !important;
+                                border-left: 1px dashed var(--line) !important;
+                            }
+                            .info-grid .item:last-child { border-left: none !important; }
+                            .info-grid .item.highlight { background: var(--accent-soft) !important; }
+                            .info-grid .item .label {
+                                font-size: 8.5px !important; color: var(--ink-mute) !important; font-weight: 700 !important;
+                                letter-spacing: 0.4px; text-transform: uppercase; display: block; margin-bottom: 4px;
+                            }
+                            .info-grid .item .value { font-size: 13px !important; font-weight: 700 !important; color: var(--ink) !important; }
+                            .info-grid .item.highlight .value { color: var(--accent-ink) !important; }
+
+                            table {
+                                width: 100% !important;
+                                border-collapse: separate !important;
+                                border-spacing: 0 !important;
+                                font-size: 12px !important;
+                                margin-bottom: 4px !important;
+                                border-radius: 8px !important;
+                                overflow: hidden !important;
+                                border: 1px solid var(--line) !important;
+                            }
+                            table th {
+                                background: var(--ink) !important;
+                                color: #ffffff !important;
+                                padding: 10px 12px !important;
+                                text-align: center !important;
+                                font-size: 10px !important;
+                                font-weight: 700 !important;
+                                border-bottom: 2px solid var(--accent) !important;
+                            }
+                            table td {
+                                padding: 9px 12px !important;
+                                border-bottom: 1px solid var(--line) !important;
+                                color: var(--ink-soft) !important;
+                                text-align: center !important;
+                                font-size: 11px !important;
+                                background: #ffffff !important;
+                            }
+                            table tbody tr.data-row:nth-of-type(4n+1) td { background: #fbfaf6 !important; }
+                            table tbody tr:last-child td { border-bottom: none !important; }
+                            table .row-total { font-weight: 800 !important; color: var(--accent-ink) !important; font-family: var(--font-mono) !important; }
+                            table .row-free { color: var(--teal) !important; font-weight: 700 !important; }
+
+                            .invoice-summary {
+                                display: flex !important;
+                                justify-content: flex-start !important;
+                                align-items: flex-start !important;
+                                flex-direction: row !important;
+                                gap: 20px !important;
+                                margin-top: 18px !important;
+                                padding-top: 14px !important;
+                                border-top: 1px dashed var(--line-strong) !important;
+                            }
+                            .bottom-signature {
+                                display: flex !important;
+                                justify-content: space-between !important;
+                                align-items: flex-end !important;
+                                flex-direction: row !important;
+                                gap: 20px !important;
+                                margin-top: 18px !important;
+                                padding-top: 14px !important;
+                                border-top: 1px dashed var(--line-strong) !important;
+                            }
+                            .summary-notes .thanks { font-family: var(--font-serif) !important; font-size: 13px !important; color: var(--ink-soft) !important; margin-bottom: 16px !important; }
+                            .bottom-signature .thanks { margin-bottom: 0 !important; }
+                            .signature .sig-label { font-size: 10px !important; color: var(--ink-mute) !important; font-weight: 700 !important; margin-bottom: 22px !important; }
+                            .signature .line { width: 130px !important; border-bottom: 1.5px solid var(--line-strong) !important; }
+                            .signature .sig-caption { font-size: 9px !important; color: var(--ink-mute) !important; margin-top: 5px !important; }
+
+                            .summary-box {
+                                flex: 0 0 240px !important;
+                                border: 1px solid var(--accent) !important;
+                                border-radius: 8px !important;
+                                overflow: hidden !important;
+                                background: #ffffff !important;
+                            }
+                            .summary-row {
+                                display: flex !important; justify-content: space-between !important; align-items: center !important;
+                                padding: 7px 14px !important; font-size: 11px !important; color: var(--ink-soft) !important;
+                                border-bottom: 1px dashed var(--line) !important;
+                            }
+                            .summary-row span:last-child { font-family: var(--font-mono) !important; font-weight: 700 !important; color: var(--ink) !important; }
+                            .summary-row.delivery span:last-child { color: var(--accent-ink) !important; }
+                            .summary-row.discount span:last-child { color: var(--rust) !important; }
+                            .summary-row.net { background: var(--ink) !important; border-bottom: none !important; padding: 11px 14px !important; }
+                            .summary-row.net span:first-child { color: rgba(255,255,255,0.75) !important; font-weight: 700 !important; font-size: 10.5px !important; }
+                            .summary-row.net span:last-child { color: var(--accent) !important; font-size: 15px !important; font-weight: 800 !important; }
+
+                            .notes-section {
+                                margin-top: 18px !important;
+                                background: var(--surface-muted) !important;
+                                border-radius: 8px !important;
+                                border-top: none !important;
+                                border-right: 4px solid var(--accent) !important;
+                                padding: 14px 16px !important;
+                                page-break-inside: avoid !important;
+                            }
+                            .notes-section .notes-title {
+                                font-size: 11px !important; font-weight: 800 !important; color: var(--ink) !important;
+                                display: flex !important; align-items: center !important; gap: 8px !important; margin-bottom: 9px !important;
+                            }
+                            .notes-section .notes-title i { color: var(--accent-ink) !important; font-size: 12px !important; }
+                            .notes-section .notes-content {
+                                font-size: 9.5px !important; color: var(--ink-soft) !important; line-height: 1.8 !important;
+                                display: grid !important; gap: 4px !important; counter-reset: note-counter;
+                            }
+                            .notes-section .notes-content p {
+                                margin-bottom: 0 !important; position: relative !important; padding-right: 20px !important;
+                                counter-increment: note-counter;
+                            }
+                            .notes-section .notes-content p::before {
+                                content: counter(note-counter);
+                                position: absolute; right: 0; top: 0;
+                                width: 14px; height: 14px; background: var(--accent) !important; color: #fff !important;
+                                border-radius: 50%; font-size: 8px; font-weight: 800;
+                                display: flex; align-items: center; justify-content: center; line-height: 1;
+                            }
+
+                            .print-brand-footer {
+                                margin-top: 16px !important;
+                                padding-top: 10px !important;
+                                border-top: 1px solid var(--line) !important;
+                                text-align: center !important;
+                                font-size: 9px !important;
+                                color: var(--ink-mute) !important;
+                            }
+                            .print-brand-footer strong { color: var(--accent-ink) !important; }
+
+                            table tbody tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+                            .invoice-summary { page-break-inside: avoid !important; break-inside: avoid !important; }
+                            .bottom-signature { page-break-inside: avoid !important; break-inside: avoid !important; }
+
+                            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+                            @page { size: A4; margin: 0; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="print-wrapper">${content}</div>
+                    </body>
+                    </html>
+                `);
+            doc.close();
+
+            setTimeout(function() {
+                try {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                } catch (e) {
+                    console.error('❌ خطأ أثناء تنفيذ الطباعة:', e);
+                    showToast('❌ خطأ', 'حدث خطأ أثناء تجهيز الطباعة', 'error');
+                }
+                setTimeout(function() {
+                    if (iframe && iframe.parentNode) iframe.remove();
+                }, 1000);
+            }, 600);
+
+            closePrintPreview();
+        }
+
+
+        // ============================================================
+        // DOWNLOAD PDF
+        // ============================================================
+        function downloadPDF() {
+            if (items.length === 0) {
+                var fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
+                if (fee === 0) {
+                    showToast('⚠️ تنبيه', 'لا توجد منتجات ولا ناولون لتحويلها إلى PDF', 'error');
+                    return;
+                }
+            }
+
+            var overlay = document.getElementById('printPreviewOverlay');
+            if (!overlay.classList.contains('show')) {
+                previewInvoice();
+                setTimeout(function() {
+                    generatePDFFromPreview();
+                }, 800);
+                return;
+            }
+
+            generatePDFFromPreview();
+        }
+        window.downloadPDF = downloadPDF;
+
+
+        // ============================================================
+        // GENERATE PDF FROM PREVIEW
+        // ============================================================
+        function generatePDFFromPreview() {
+            var element = document.getElementById('printPreviewContent');
+            var clientNameValue = document.getElementById('clientNameInput').value.trim();
+            var invoiceNum = document.getElementById('invoiceNumber').value.trim() || 'invoice';
+
+            showToast('⏳ جاري التحميل', 'جاري إنشاء ملف PDF...', 'warning');
+
+            // استخدام html2pdf
+            var opt = {
+                margin: [12, 12, 12, 12],
+                filename: (clientNameValue || 'فاتورة') + ' - ' + invoiceNum + '.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    width: element.scrollWidth,
+                    height: element.scrollHeight,
+                    windowWidth: element.scrollWidth,
+                    windowHeight: element.scrollHeight
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            html2pdf()
+                .set(opt)
+                .from(element)
+                .save()
+                .then(function() {
+                    showToast('✅ تم الحفظ', 'تم حفظ ملف PDF على جهازك', 'success');
+                    closePrintPreview();
+                })
+                .catch(function(error) {
+                    console.error('❌ خطأ في حفظ PDF:', error);
+                    showToast('❌ خطأ', 'فشل في حفظ PDF: ' + error.message, 'error');
+                });
+        }
+
+
+        // ============================================================
+        // SAVE INVOICE PDF DIRECT
+        // ============================================================
+        function saveInvoicePDFDirect() {
+            if (items.length === 0) {
+                var fee = parseFloat(document.getElementById('deliveryFee').value) || 0;
+                if (fee === 0) {
+                    showToast('⚠️ تنبيه', 'لا توجد منتجات ولا ناولون لتحويلها إلى PDF', 'error');
+                    return;
+                }
+            }
+
+            var client = document.getElementById('clientNameInput').value.trim() || 'غير محدد';
+            var phone = document.getElementById('clientPhone').value.trim() || 'غير محدد';
+            var invNum = document.getElementById('invoiceNumber').value.trim() || '----';
+            var date = document.getElementById('invoiceDate').value || '';
+            var total = document.getElementById('totalAmount').textContent;
+            var deliveryFee = document.getElementById('deliveryFee').value || '0';
+
+            var companyName = 'QuickData ProSoft';
+            var companyAddress = 'الرياض - المملكة العربية السعودية';
+            var companyPhone = '0500000000';
+
+            showToast('⏳ جاري الحفظ', 'جاري تجهيز ملف PDF...', 'warning');
+
+            var tempContainer = document.createElement('div');
+            tempContainer.id = 'tempPdfContainer';
+            tempContainer.style.cssText = `
+                    position: fixed; top: 0; left: -5000px; width: 210mm;
+                    padding: 12mm 15mm; background: #ffffff; z-index: -1;
+                    opacity: 0; pointer-events: none; overflow: visible;
+                    font-family: 'Cairo', 'Segoe UI', Arial, sans-serif;
+                    direction: rtl; box-sizing: border-box;
+                `;
+            document.body.appendChild(tempContainer);
+
+            tempContainer.innerHTML = buildInvoiceHTML(client, phone, invNum, date, total, deliveryFee, 'tempPdfQrCode',
+                companyName, companyAddress, companyPhone);
+
+            setTimeout(function() {
+                generateQRCode(invNum, client, total, 'tempPdfQrCode');
+
+                setTimeout(function() {
+                    var wrapper = tempContainer.querySelector('.print-wrapper');
+                    if (wrapper) {
+                        wrapper.style.cssText += `
+                                background: #ffffff !important;
+                                border: none !important;
+                                box-shadow: none !important;
+                                margin: 0 auto !important;
+                                max-width: 210mm !important;
+                                padding: 10mm 12mm !important;
+                            `;
+                    }
+
+                    var opt = {
+                        margin: [10, 10, 10, 10],
+                        filename: (client || 'فاتورة') + ' - ' + invNum + '.pdf',
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: {
+                            scale: 2,
+                            useCORS: true,
+                            logging: false,
+                            backgroundColor: '#ffffff'
+                        },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                    };
+
+                    html2pdf()
+                        .set(opt)
+                        .from(tempContainer)
+                        .save()
+                        .then(function() {
+                            showToast('✅ تم الحفظ', 'تم حفظ ملف PDF على جهازك', 'success');
+                            if (tempContainer && tempContainer.parentNode) {
+                                tempContainer.parentNode.removeChild(tempContainer);
+                            }
+                        })
+                        .catch(function(error) {
+                            console.error('❌ خطأ في حفظ PDF:', error);
+                            showToast('❌ خطأ', 'فشل في حفظ PDF: ' + error.message, 'error');
+                            if (tempContainer && tempContainer.parentNode) {
+                                tempContainer.parentNode.removeChild(tempContainer);
+                            }
+                        });
+                }, 500);
+            }, 300);
+        }
+
+
+        // ============================================================
+        // MOBILE NAVIGATION
+        // ============================================================
+        var navToggle = document.getElementById('navToggle');
+        var mobileMenu = document.getElementById('mobileMenu');
+        var mobileOverlay = document.getElementById('mobileOverlay');
+        var closeMenu = document.getElementById('closeMenu');
+
+        function openMenu() {
+            mobileMenu.classList.add('open');
+            mobileOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMenuFn() {
+            mobileMenu.classList.remove('open');
+            mobileOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        navToggle.addEventListener('click', function() {
+            if (mobileMenu.classList.contains('open')) closeMenuFn();
+            else openMenu();
+        });
+        closeMenu.addEventListener('click', closeMenuFn);
+        mobileOverlay.addEventListener('click', closeMenuFn);
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('open')) closeMenuFn();
+        });
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768 && mobileMenu.classList.contains('open')) closeMenuFn();
+        });
+
+
+        // ============================================================
+        // EXPOSE FUNCTIONS
+        // ============================================================
+        window.loadData = loadData;
+        window.logout = logout;
+        window.resetForm = resetForm;
+        window.saveInvoicePDFDirect = saveInvoicePDFDirect;
+
+
+        // ============================================================
+        // IMPORT FROM EXCEL - باستخدام XLSX
         // ============================================================
         var importInvoices = [];
         var importStopRequested = false;
@@ -4205,87 +3935,50 @@
             });
         }
 
-        // دالة لتعيين أسماء الأعمدة تلقائياً
         function autoDetectColumns(row) {
             var map = {};
             var keys = Object.keys(row);
 
             console.log('🔍 أسماء الأعمدة في ملف الإكسيل:', keys);
 
-            // البحث عن كل عمود باستخدام عدة أنماط
             keys.forEach(function(key) {
                 var lowerKey = key.toLowerCase().trim();
 
-                // رقم الفاتورة
                 if (lowerKey.includes('رقم الفاتورة') || lowerKey.includes('invoice') || lowerKey === 'رقم الفاتورة' || lowerKey === 'invoice_no' || lowerKey === 'رقم الفاتورة الدفتري') {
                     map.invoiceNo = key;
-                }
-                // التاريخ
-                else if (lowerKey.includes('التاريخ') || lowerKey.includes('date')) {
+                } else if (lowerKey.includes('التاريخ') || lowerKey.includes('date')) {
                     map.date = key;
-                }
-                // المندوب
-                else if (lowerKey.includes('مندوب') || lowerKey.includes('rep')) {
+                } else if (lowerKey.includes('مندوب') || lowerKey.includes('rep')) {
                     map.rep = key;
-                }
-                // كود العميل
-                else if (lowerKey.includes('كود العميل') || lowerKey.includes('client_code') || lowerKey.includes('client code')) {
+                } else if (lowerKey.includes('كود العميل') || lowerKey.includes('client_code') || lowerKey.includes('client code')) {
                     map.clientCode = key;
-                }
-                // اسم العميل
-                else if (lowerKey.includes('اسم العميل') || lowerKey.includes('client_name') || lowerKey.includes('client name')) {
+                } else if (lowerKey.includes('اسم العميل') || lowerKey.includes('client_name') || lowerKey.includes('client name')) {
                     map.clientName = key;
-                }
-                // اسم الحساب
-                else if (lowerKey.includes('اسم الحساب') || lowerKey.includes('account_name') || lowerKey.includes('account name')) {
+                } else if (lowerKey.includes('اسم الحساب') || lowerKey.includes('account_name') || lowerKey.includes('account name')) {
                     map.accountName = key;
-                }
-                // الكود (كود المنتج)
-                else if (lowerKey === 'الكود' || lowerKey === 'code' || lowerKey === 'product_code') {
+                } else if (lowerKey === 'الكود' || lowerKey === 'code' || lowerKey === 'product_code') {
                     map.productCode = key;
-                }
-                // المبيعات (اسم المنتج)
-                else if (lowerKey === 'المبيعات' || lowerKey === 'product_name' || lowerKey === 'المنتج' || lowerKey === 'product') {
+                } else if (lowerKey === 'المبيعات' || lowerKey === 'product_name' || lowerKey === 'المنتج' || lowerKey === 'product') {
                     map.productName = key;
-                }
-                // الوزن
-                else if (lowerKey.includes('الوزن') || lowerKey.includes('weight')) {
+                } else if (lowerKey.includes('الوزن') || lowerKey.includes('weight')) {
                     map.weight = key;
-                }
-                // العبوة (وحدة القياس)
-                else if (lowerKey.includes('العبوة') || lowerKey.includes('unit')) {
+                } else if (lowerKey.includes('العبوة') || lowerKey.includes('unit')) {
                     map.unit = key;
-                }
-                // العدد (الكمية)
-                else if (lowerKey === 'العدد' || lowerKey.includes('quantity') || lowerKey.includes('qty')) {
+                } else if (lowerKey === 'العدد' || lowerKey.includes('quantity') || lowerKey.includes('qty')) {
                     map.quantity = key;
-                }
-                // سعر البيع
-                else if (lowerKey.includes('سعر البيع') || lowerKey.includes('sell_price') || lowerKey.includes('unit_price')) {
+                } else if (lowerKey.includes('سعر البيع') || lowerKey.includes('sell_price') || lowerKey.includes('unit_price')) {
                     map.sellPrice = key;
-                }
-                // اجمالي مبيعات
-                else if (lowerKey.includes('اجمالي مبيعات') || lowerKey.includes('total') || lowerKey.includes('line_total')) {
+                } else if (lowerKey.includes('اجمالي مبيعات') || lowerKey.includes('total') || lowerKey.includes('line_total')) {
                     map.total = key;
-                }
-                // اجمالي الوزن
-                else if (lowerKey.includes('اجمالي الوزن') || lowerKey.includes('total_weight')) {
+                } else if (lowerKey.includes('اجمالي الوزن') || lowerKey.includes('total_weight')) {
                     map.totalWeight = key;
-                }
-                // اللون
-                else if (lowerKey.includes('اللون') || lowerKey.includes('color')) {
+                } else if (lowerKey.includes('اللون') || lowerKey.includes('color')) {
                     map.color = key;
-                }
-                // نوع الحصوة
-                else if (lowerKey.includes('نوع الحصوة') || lowerKey.includes('agg_type') || lowerKey.includes('aggregate_type')) {
+                } else if (lowerKey.includes('نوع الحصوة') || lowerKey.includes('agg_type') || lowerKey.includes('aggregate_type')) {
                     map.aggType = key;
-                }
-                // ملاحظات
-                else if (lowerKey.includes('ملاحظات') || lowerKey.includes('notes')) {
+                } else if (lowerKey.includes('ملاحظات') || lowerKey.includes('notes')) {
                     map.notes = key;
-                }
-                // الموقع
-                else if (lowerKey.includes('الموقع') || lowerKey.includes('location')) {
+                } else if (lowerKey.includes('الموقع') || lowerKey.includes('location')) {
                     map.location = key;
                 }
             });
@@ -4294,20 +3987,9 @@
             return map;
         }
 
-        // دالة لتسجيل معلومات التصحيح عند اكتشاف ناولون
-        function logDeliveryDetection(row, index) {
-            console.log('🚚 تم اكتشاف ناولون في الصف رقم ' + (index + 1) + ':');
-            console.log('  - الكود:', row['الكود'] || row['code']);
-            console.log('  - المبيعات:', row['المبيعات'] || row['product_name']);
-            console.log('  - العدد:', row['العدد'] || row['quantity']);
-            console.log('  - سعر البيع:', row['سعر البيع'] || row['sell_price']);
-            console.log('  - اجمالي مبيعات:', row['اجمالي مبيعات'] || row['total']);
-        }
-
         function importBuildInvoices(rows) {
             if (rows.length === 0) return [];
 
-            // الكشف التلقائي عن أسماء الأعمدة من الصف الأول
             importColumnMap = autoDetectColumns(rows[0]);
 
             var map = {};
@@ -4315,7 +3997,6 @@
 
             rows.forEach(function(r, rowIndex) {
 
-                // دالة مساعدة للحصول على قيمة عمود باستخدام الخريطة
                 function getValue(columnType, defaultValue) {
                     var colName = importColumnMap[columnType];
                     if (colName && r[colName] !== undefined && r[colName] !== null && r[colName] !== '') {
@@ -4324,7 +4005,6 @@
                     return defaultValue || null;
                 }
 
-                // دالة مساعدة للحصول على قيمة رقمية
                 function getNumberValue(columnType, defaultValue) {
                     var colName = importColumnMap[columnType];
                     if (colName && r[colName] !== undefined && r[colName] !== null && r[colName] !== '') {
@@ -4333,17 +4013,14 @@
                     return defaultValue || 0;
                 }
 
-                // ✅ الحصول على رقم الفاتورة
                 var invNo = getValue('invoiceNo');
                 if (!invNo) {
                     console.warn('⚠️ صف رقم ' + (rowIndex + 1) + ' لا يحتوي على رقم فاتورة، سيتم تخطيه');
                     return;
                 }
 
-                // تطبيع رقم الفاتورة
                 invNo = invNo.trim().toString();
 
-                // ✅ التحقق من اسم الحساب - نستورد فقط المبيعات (نتجاهل المرتجعات)
                 var accountName = getValue('accountName', '');
                 if (accountName.toLowerCase().includes('مرتجع')) {
                     console.log('ℹ️ تخطي صف مرتجع في الفاتورة:', invNo);
@@ -4357,17 +4034,14 @@
                 var weight = getNumberValue('weight', null);
                 var price = getNumberValue('sellPrice');
 
-                // ✅ التحقق من أن هذا ناولون - محسن للتعامل مع المسافات والأحرف المختلفة
                 var isDelivery = false;
 
-                // تنظيف النصوص من المسافات الزائدة
                 var cleanProductName = (productName || '').trim();
                 var cleanProductCode = (productCode || '').trim();
 
-                // 1. التحقق من اسم المنتج
                 if (cleanProductName) {
                     var lowerName = cleanProductName.toLowerCase();
-                    if (lowerName === 'ناولون' || 
+                    if (lowerName === 'ناولون' ||
                         lowerName.includes('ناولون') ||
                         lowerName === 'ناو لون' ||
                         lowerName.includes('ناو لون') ||
@@ -4377,28 +4051,20 @@
                     }
                 }
 
-                // 2. التحقق من الكود
                 if (cleanProductCode) {
-                    if (cleanProductCode === '+' || 
+                    if (cleanProductCode === '+' ||
                         cleanProductCode === 'ناو' ||
                         cleanProductCode === 'delivery') {
                         isDelivery = true;
                     }
                 }
 
-                // 3. التحقق من الوزن والعبوة (إذا كان الوزن 0 والكمية 0 والمبلغ > 0)
                 if (!isDelivery && qty === 0 && weight === 0 && total > 0) {
                     isDelivery = true;
                 }
 
-                // 4. التحقق من اجمالي مبيعات (إذا كان المنتج فارغاً والمبلغ موجود)
                 if (!isDelivery && !cleanProductName && total > 0) {
                     isDelivery = true;
-                }
-
-                // تسجيل معلومات التصحيح عند اكتشاف ناولون
-                if (isDelivery) {
-                    logDeliveryDetection(r, rowIndex);
                 }
 
                 if (!map[invNo]) {
@@ -4423,18 +4089,14 @@
 
                 var inv = map[invNo];
 
-                // ✅ معالجة الناولون
                 if (isDelivery) {
                     inv.deliveryFee = total || 0;
                     if (inv.items.length === 0) {
                         inv.isDeliveryOnly = true;
                     }
-                    // تسجيل أن الفاتورة تحتوي على ناولون
-                    console.log('✅ تم إضافة ناولون بقيمة ' + inv.deliveryFee + ' للفاتورة رقم ' + invNo);
                     return;
                 }
 
-                // ✅ التحقق من أن هذا منتج مجاني
                 var isFree = (price === 0 || total === 0);
 
                 inv.hasItems = true;
@@ -4451,7 +4113,6 @@
                 var lineTotal = total || (qty * price);
                 var unitPrice = price;
 
-                // ✅ حساب السعر من الإجمالي إذا كان السعر 0
                 if (unitPrice === 0 && lineTotal > 0 && qty > 0) {
                     unitPrice = lineTotal / qty;
                 }
@@ -4525,12 +4186,8 @@
 
         function importInvoiceFullyMatched(inv) {
             if (!importMatchClient(inv)) return false;
-            if (inv.isDeliveryOnly) {
-                return true;
-            }
-            if (inv.items.length === 0) {
-                return true;
-            }
+            if (inv.isDeliveryOnly) return true;
+            if (inv.items.length === 0) return true;
             return inv.items.every(function(it) { return !!importMatchProduct(it); });
         }
 
@@ -4538,8 +4195,7 @@
             if (_importClientOptionsCache !== null) return _importClientOptionsCache;
             var opts = '<option value="">— اختر عميل —</option>';
             allClients.forEach(function(c) {
-                opts += '<option value="' + c.id + '">' + (c.name || '') + (c.code != null ? (' (' + c.code + ')') :
-                    '') + '</option>';
+                opts += '<option value="' + c.id + '">' + (c.name || '') + (c.code != null ? (' (' + c.code + ')') : '') + '</option>';
             });
             _importClientOptionsCache = opts;
             return opts;
@@ -4549,8 +4205,7 @@
             if (_importProductOptionsCache !== null) return _importProductOptionsCache;
             var opts = '<option value="">— اختر صنف —</option>';
             allProducts.forEach(function(p) {
-                opts += '<option value="' + p.id + '">' + (p.name || '') + (p.code != null ? (' (' + p.code + ')') :
-                    '') + '</option>';
+                opts += '<option value="' + p.id + '">' + (p.name || '') + (p.code != null ? (' (' + p.code + ')') : '') + '</option>';
             });
             _importProductOptionsCache = opts;
             return opts;
@@ -4578,8 +4233,7 @@
 
                 var clientCell = client ?
                     (client.name + ' <span class="import-badge import-badge-ok">مطابق</span>') :
-                    ('<select class="import-fix" data-idx="' + idx + '" data-kind="client">' + importClientOptionsHtml() +
-                        '</select> <span class="import-badge import-badge-bad">' + (inv.clientName || inv.clientCode || '؟') + '</span>');
+                    ('<select class="import-fix" data-idx="' + idx + '" data-kind="client">' + importClientOptionsHtml() + '</select> <span class="import-badge import-badge-bad">' + (inv.clientName || inv.clientCode || '؟') + '</span>');
 
                 var itemsHtml = matchedItems.map(function(x, itIdx) {
                     var it = x.it,
@@ -4588,16 +4242,14 @@
                     var freeBadge = isFree ? ' <span class="import-badge import-badge-free">🎁 مجاني</span>' : '';
                     if (p) return it.name + ' × ' + it.qty + freeBadge + ' <span class="import-badge import-badge-ok">✓</span>';
                     return '<div style="margin:3px 0;">' + it.name + ' × ' + it.qty + freeBadge +
-                        ' <select class="import-fix" data-idx="' + idx + '" data-item="' + itIdx +
-                        '" data-kind="product">' + importProductOptionsHtml() + '</select>' +
+                        ' <select class="import-fix" data-idx="' + idx + '" data-item="' + itIdx + '" data-kind="product">' + importProductOptionsHtml() + '</select>' +
                         ' <span class="import-badge import-badge-bad">غير مطابق</span></div>';
                 }).join('');
 
                 var statusClass = inv.isDeliveryOnly ? 'free' : (fullyOk ? '' : 'bad');
                 var statusText = inv.isDeliveryOnly ?
                     '<span class="import-badge import-badge-free">🚚 ناولون فقط</span>' :
-                    (fullyOk ? '<span class="import-badge import-badge-ok">جاهز</span>' :
-                        '<span class="import-badge import-badge-bad">يحتاج مطابقة</span>');
+                    (fullyOk ? '<span class="import-badge import-badge-ok">جاهز</span>' : '<span class="import-badge import-badge-bad">يحتاج مطابقة</span>');
 
                 rowsHtml.push(
                     '<tr class="' + statusClass + '">' +
@@ -4669,10 +4321,8 @@
                         '<div class="stat"><b>' + importInvoices.length + '</b><span>فاتورة</span></div>' +
                         '<div class="stat"><b>' + totalItems + '</b><span>بند صنف</span></div>' +
                         '<div class="stat ok"><b>' + fullyOk + '</b><span>جاهز مباشرة</span></div>' +
-                        '<div class="stat warn"><b>' + (importInvoices.length - fullyOk) +
-                        '</b><span>يحتاج مطابقة</span></div>' +
-                        '<div class="stat" style="background:var(--accent-soft);"><b>' + deliveryOnly +
-                        '</b><span>ناولون فقط</span></div>';
+                        '<div class="stat warn"><b>' + (importInvoices.length - fullyOk) + '</b><span>يحتاج مطابقة</span></div>' +
+                        '<div class="stat" style="background:var(--accent-soft);"><b>' + deliveryOnly + '</b><span>ناولون فقط</span></div>';
 
                     document.getElementById('importStep2').style.display = 'block';
                     importRenderPreview();
@@ -4698,14 +4348,12 @@
 
         async function importGenerateNextInvoiceNo(companyId, token) {
             var today = new Date();
-            var dateStr = today.getFullYear() + String(today.getMonth() + 1).padStart(2, '0') + String(today.getDate())
-                .padStart(2, '0');
+            var dateStr = today.getFullYear() + String(today.getMonth() + 1).padStart(2, '0') + String(today.getDate()).padStart(2, '0');
             var nextSeq = 1;
             try {
-                var res = await fetch(SUPABASE_URL + '/rest/v1/sales_invoices?select=invoice_no&company_id=eq.' + companyId +
-                    '&order=created_at.desc&limit=1', {
-                        headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token }
-                    });
+                var res = await fetch(SUPABASE_URL + '/rest/v1/sales_invoices?select=invoice_no&company_id=eq.' + companyId + '&order=created_at.desc&limit=1', {
+                    headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token }
+                });
                 if (res.ok) {
                     var data = await res.json();
                     if (data && data.length && data[0].invoice_no) {
@@ -4729,8 +4377,7 @@
                 showToast('⚠️ تنبيه', 'لا توجد فواتير جاهزة للاستيراد بعد المطابقة', 'error');
                 return;
             }
-            if (!confirm('سيتم استيراد ' + toRun.length +
-                    ' فاتورة فعليًا (خصم مخزون + تحديث أرصدة عملاء). متابعة؟')) return;
+            if (!confirm('سيتم استيراد ' + toRun.length + ' فاتورة فعليًا (خصم مخزون + تحديث أرصدة عملاء). متابعة؟')) return;
 
             var btn = this;
             btn.disabled = true;
@@ -4749,9 +4396,7 @@
 
             var existingSet = {};
             try {
-                var existingRows = await fetchAllRows(SUPABASE_URL +
-                    '/rest/v1/sales_invoices?select=original_invoice_no&company_id=eq.' + companyId +
-                    '&original_invoice_no=not.is.null', token);
+                var existingRows = await fetchAllRows(SUPABASE_URL + '/rest/v1/sales_invoices?select=original_invoice_no&company_id=eq.' + companyId + '&original_invoice_no=not.is.null', token);
                 existingRows.forEach(function(r) { if (r.original_invoice_no) existingSet[r.original_invoice_no] = true; });
             } catch (e) {
                 importLog('⚠️ تعذر التحقق من الفواتير المستوردة سابقًا: ' + e.message);
@@ -4841,7 +4486,6 @@
                 var deliveryFee = inv.deliveryFee || 0;
 
                 try {
-                    // ✅ بناء كائن البيانات مع delivery_fee (العمود موجود في قاعدة البيانات)
                     var invoiceData = {
                         company_id: companyId,
                         invoice_no: newInvNo,
@@ -4852,24 +4496,15 @@
                         delivery_fee: deliveryFee
                     };
 
-                    // إضافة الحقول الاختيارية فقط إذا كانت موجودة
                     if (user && user.id) invoiceData.user_id = user.id;
                     if (inv.rep) invoiceData.rep_name = inv.rep;
                     if (locs.length) invoiceData.location = locs.join('، ');
                     if (inv.originalNo) invoiceData.original_invoice_no = inv.originalNo;
 
-                    // بناء الملاحظات
                     var notesParts = [];
-                    if (isDeliveryOnly) {
-                        notesParts.push('مستوردة - ناولون فقط');
-                    } else if (validItems.length > 0) {
-                        notesParts.push('مستوردة من إكسيل');
-                    }
-                    if (notesParts.length > 0) {
-                        invoiceData.notes = notesParts.join(' | ');
-                    }
-
-                    console.log('📤 محاولة حفظ الفاتورة:', JSON.stringify(invoiceData, null, 2));
+                    if (isDeliveryOnly) notesParts.push('مستوردة - ناولون فقط');
+                    else if (validItems.length > 0) notesParts.push('مستوردة من إكسيل');
+                    if (notesParts.length > 0) invoiceData.notes = notesParts.join(' | ');
 
                     var invRes = await fetch(SUPABASE_URL + '/rest/v1/sales_invoices', {
                         method: 'POST',
@@ -4884,7 +4519,6 @@
 
                     if (!invRes.ok) {
                         var errorText = await invRes.text();
-                        console.error('❌ خطأ في حفظ الفاتورة:', invRes.status, errorText);
                         throw new Error('فشل حفظ الفاتورة: ' + errorText);
                     }
 
@@ -4907,8 +4541,7 @@
                                 unit_cost: it.price,
                                 total_value: it.total,
                                 reference: newInvNo,
-                                notes: isFree ? 'منصرف مجاني - رقم دفتري ' + inv.originalNo :
-                                    'استيراد بيانات سابقة - رقم دفتري ' + inv.originalNo,
+                                notes: isFree ? 'منصرف مجاني - رقم دفتري ' + inv.originalNo : 'استيراد بيانات سابقة - رقم دفتري ' + inv.originalNo,
                                 movement_date: dateISO
                             };
                         });
@@ -4925,7 +4558,6 @@
                         if (!mvRes.ok) throw new Error(await mvRes.text());
                         var mvData = await mvRes.json();
 
-                        // ✅ بناء بنود الفاتورة مع is_free (العمود موجود في قاعدة البيانات)
                         var itemsBody = validItems.map(function(x, j) {
                             var it = x.item,
                                 product = x.product;
@@ -4964,8 +4596,7 @@
                     clientDelta[client.id] = (clientDelta[client.id] || 0) + totalAmount + deliveryFee;
                     okCount++;
                     var invoiceType = isDeliveryOnly ? ' (ناولون فقط)' : '';
-                    importLogFast('✓ تم استيراد رقم أصلي ' + inv.originalNo + ' (' + newInvNo + ')' + invoiceType +
-                        ' — ' + client.name + ' — ' + (totalAmount + deliveryFee).toLocaleString('ar-EG'));
+                    importLogFast('✓ تم استيراد رقم أصلي ' + inv.originalNo + ' (' + newInvNo + ')' + invoiceType + ' — ' + client.name + ' — ' + (totalAmount + deliveryFee).toLocaleString('ar-EG'));
                 } catch (err) {
                     failCount++;
                     importLogFast('✗ خطأ في رقم أصلي ' + inv.originalNo + ': ' + err.message);
@@ -5032,16 +4663,108 @@
 
         document.getElementById('btnStopImport').addEventListener('click', function() { importStopRequested = true; });
 
-        // ============================================================
-        // EXPOSE FUNCTIONS
-        // ============================================================
-        window.loadData = loadData;
-        window.logout = logout;
-        window.resetForm = resetForm;
-        window.saveInvoicePDFDirect = saveInvoicePDFDirect;
 
         // ============================================================
-        // INIT
+        // SESSION VALIDATION & INIT
+        // ============================================================
+        var sessionRedirectInProgress = false;
+
+        function goToLogin() {
+            if (sessionRedirectInProgress) return;
+            sessionRedirectInProgress = true;
+
+            console.warn('⚠️ الجلسة منتهية، جاري التوجيه إلى صفحة تسجيل الدخول');
+            try {
+                localStorage.removeItem('rollex_session');
+                sessionStorage.removeItem('rollex_session');
+            } catch (e) {}
+
+            showToast('⚠️ انتهت الجلسة', 'يرجى تسجيل الدخول مرة أخرى', 'warning');
+            setTimeout(function() {
+                window.location.href = 'login.html';
+            }, 1200);
+        }
+
+        async function tryRefreshSession() {
+            try {
+                var raw = localStorage.getItem('rollex_session') || sessionStorage.getItem('rollex_session');
+                if (!raw) return false;
+                var parsed = JSON.parse(raw);
+                if (!parsed || !parsed.refresh_token) return false;
+
+                var response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ refresh_token: parsed.refresh_token })
+                });
+
+                if (!response.ok) return false;
+                var data = await response.json();
+                if (!data.access_token) return false;
+
+                var newSession = Object.assign({}, parsed, {
+                    access_token: data.access_token,
+                    refresh_token: data.refresh_token || parsed.refresh_token,
+                    expires_at: Date.now() + ((data.expires_in || 3600) * 1000)
+                });
+
+                if (localStorage.getItem('rollex_session')) {
+                    localStorage.setItem('rollex_session', JSON.stringify(newSession));
+                } else {
+                    sessionStorage.setItem('rollex_session', JSON.stringify(newSession));
+                }
+                console.log('✅ تم تجديد الجلسة بنجاح');
+                return true;
+            } catch (error) {
+                console.error('❌ خطأ في تجديد الجلسة:', error);
+                return false;
+            }
+        }
+
+        async function verifySessionOrRedirect() {
+            var token = getToken();
+            if (!token) {
+                goToLogin();
+                return false;
+            }
+
+            try {
+                var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (response.ok) return true;
+
+                if (response.status === 401 || response.status === 403) {
+                    var refreshed = await tryRefreshSession();
+                    if (refreshed) return true;
+                }
+
+                goToLogin();
+                return false;
+
+            } catch (error) {
+                console.warn('⚠️ تعذر التحقق من الجلسة (مشكلة اتصال):', error.message);
+                return true;
+            }
+        }
+
+        function startSessionMonitor() {
+            console.log('📡 بدء مراقبة الجلسة');
+            setInterval(async function() {
+                await verifySessionOrRedirect();
+            }, 30000);
+        }
+
+
+        // ============================================================
+        // INIT - نقطة الدخول الرئيسية
         // ============================================================
         (async function init() {
             console.log('🏭 فاتورة مبيعات جديدة - QuickData ProSoft');
