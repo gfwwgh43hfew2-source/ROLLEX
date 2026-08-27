@@ -64,7 +64,7 @@
         }
 
         /* ==========================================================
-           SIDEBAR
+           SIDEBAR - مغلقة افتراضياً
            ========================================================== */
         .sidebar-overlay {
             display: none;
@@ -77,6 +77,7 @@
             transition: opacity 0.3s ease;
             pointer-events: none;
         }
+
         .sidebar-overlay.active {
             opacity: 1;
             pointer-events: auto;
@@ -86,6 +87,7 @@
             position: fixed;
             top: 0;
             right: calc(-1 * var(--sidebar-width));
+            /* ✅ مغلقة افتراضياً */
             width: var(--sidebar-width);
             height: 100vh;
             background: var(--bg-card);
@@ -100,6 +102,7 @@
 
         .sidebar.open {
             right: 0;
+            /* ✅ تفتح عند الضغط على الهامبرغر */;
         }
 
         .sidebar .brand {
@@ -266,13 +269,13 @@
         }
 
         /* ==========================================================
-           MAIN CONTENT
+           MAIN WRAPPER - يتحرك مع القائمة
            ========================================================== */
         .main-wrapper {
             flex: 1;
-            margin-right: 0;
             min-height: 100vh;
             transition: margin-right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-right: 0;
         }
 
         /* ==========================================================
@@ -281,7 +284,7 @@
         .top-nav {
             background: var(--bg-card);
             border-bottom: 1px solid var(--border-color);
-            padding: 0 20px;
+            padding: 0 16px;
             height: var(--header-height);
             display: flex;
             align-items: center;
@@ -299,9 +302,8 @@
         }
 
         .top-nav .hamburger {
-            display: none;
-            width: 32px;
-            height: 32px;
+            width: 34px;
+            height: 34px;
             border-radius: var(--radius-sm);
             border: 1px solid var(--border-color);
             background: var(--bg-card);
@@ -312,6 +314,7 @@
             align-items: center;
             justify-content: center;
             font-size: 0.85rem;
+            flex-shrink: 0;
         }
 
         .top-nav .hamburger:hover {
@@ -947,10 +950,6 @@
                 display: block;
             }
 
-            .top-nav .hamburger {
-                display: flex !important;
-            }
-
             .top-nav .logo-area h1 {
                 font-size: 0.8rem;
             }
@@ -1048,31 +1047,44 @@
             }
         }
 
+        /* ==========================================================
+           DESKTOP - القائمة مغلقة لكن تظهر فوق المحتوى
+           ========================================================== */
         @media (min-width: 769px) {
-            .top-nav .hamburger {
-                display: none !important;
-            }
             .sidebar {
-                position: sticky;
+                position: fixed;
                 top: 0;
-                right: 0;
+                right: calc(-1 * var(--sidebar-width));
+                /* مغلقة افتراضياً */
                 height: 100vh;
-                width: var(--sidebar-width);
                 border-left: 1px solid var(--border-color);
                 border-right: none;
                 flex-shrink: 0;
-                box-shadow: none;
-                transition: none;
+                box-shadow: var(--shadow-lg);
+                transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             }
+
+            .sidebar.open {
+                right: 0;
+            }
+
             .sidebar .close-btn {
-                display: none;
+                display: flex;
             }
+
             .sidebar-overlay {
                 display: none !important;
             }
+
             .main-wrapper {
                 margin-right: 0;
+                transition: margin-right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             }
+
+            .top-nav .hamburger {
+                display: flex !important;
+            }
+
             body {
                 flex-direction: row;
             }
@@ -1082,12 +1094,12 @@
 <body>
 
     <!-- ==========================================================
-    SIDEBAR OVERLAY
+    SIDEBAR OVERLAY (للموبايل فقط)
     ========================================================== -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <!-- ==========================================================
-    SIDEBAR
+    SIDEBAR - مغلقة افتراضياً
     ========================================================== -->
     <nav class="sidebar" id="sidebar">
         <div class="brand">
@@ -1265,7 +1277,7 @@
     <script>
         /**
          * ============================================================
-         * SIDEBAR TOGGLE
+         * SIDEBAR TOGGLE - مغلقة افتراضياً
          * ============================================================
          */
         var sidebar = document.getElementById('sidebar');
@@ -1273,19 +1285,31 @@
         var hamburger = document.getElementById('hamburger');
         var closeSidebarBtn = document.getElementById('closeSidebar');
 
-        function openSidebar() {
-            sidebar.classList.add('open');
-            overlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
+        // حالة القائمة - مغلقة افتراضياً
+        var isSidebarOpen = false;
+
+        function toggleSidebar() {
+            if (isSidebarOpen) {
+                sidebar.classList.remove('open');
+                if (overlay) overlay.classList.remove('active');
+                document.body.style.overflow = '';
+                isSidebarOpen = false;
+            } else {
+                sidebar.classList.add('open');
+                if (overlay) overlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                isSidebarOpen = true;
+            }
         }
 
         function closeSidebarFn() {
             sidebar.classList.remove('open');
-            overlay.classList.remove('active');
+            if (overlay) overlay.classList.remove('active');
             document.body.style.overflow = '';
+            isSidebarOpen = false;
         }
 
-        if (hamburger) hamburger.addEventListener('click', openSidebar);
+        if (hamburger) hamburger.addEventListener('click', toggleSidebar);
         if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeSidebarFn);
         if (overlay) overlay.addEventListener('click', closeSidebarFn);
 
@@ -1293,8 +1317,9 @@
             if (e.key === 'Escape') closeSidebarFn();
         });
 
+        // إغلاق القائمة عند تغيير حجم الشاشة من موبايل إلى ديسكتوب
         window.addEventListener('resize', function() {
-            if (window.innerWidth > 768 && sidebar.classList.contains('open')) {
+            if (window.innerWidth > 768 && isSidebarOpen) {
                 closeSidebarFn();
             }
         });
@@ -1628,7 +1653,7 @@
          * ============================================================
          */
         (async function init() {
-            console.log('🏛️ الخزائن - QuickData ProSoft');
+            console.log('🏛️ الخزائن - QuickData ProSoft (قائمة جانبية مغلقة)');
 
             var token = getToken();
             if (!token) {
