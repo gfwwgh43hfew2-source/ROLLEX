@@ -787,6 +787,99 @@
         }
 
         /* ============================================================ */
+        /* IMPORT MODAL */
+        /* ============================================================ */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: var(--surface);
+            border-radius: var(--radius);
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+        }
+        .modal-box .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--line);
+        }
+        .modal-box .modal-header h3 {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-box .modal-header h3 i { color: var(--accent); }
+        .modal-box .close-modal {
+            background: none;
+            border: none;
+            color: var(--ink-mute);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+        }
+        .modal-box .close-modal:hover { background: var(--surface-muted); color: var(--ink); }
+
+        .import-hint {
+            font-size: 0.8rem;
+            color: var(--ink-mute);
+            line-height: 1.6;
+        }
+        .import-flex {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .import-progress-outer {
+            background: var(--surface-muted);
+            border-radius: 20px;
+            height: 12px;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            margin-top: 10px;
+        }
+        .import-progress-inner {
+            background: var(--accent);
+            height: 100%;
+            width: 0%;
+            transition: .2s;
+        }
+        .import-log {
+            background: var(--ink);
+            color: #dfe6e2;
+            font-family: monospace;
+            font-size: .74rem;
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            max-height: 200px;
+            overflow: auto;
+            white-space: pre-wrap;
+            margin-top: 10px;
+        }
+
+        /* ============================================================ */
         /* RESPONSIVE */
         /* ============================================================ */
         @media (max-width: 992px) {
@@ -883,6 +976,42 @@
 
     <!-- TOAST -->
     <div class="toast-container" id="toastContainer"></div>
+
+    <!-- IMPORT MODAL -->
+    <div class="modal-overlay" id="importModalOverlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-import"></i> استيراد خصومات وتسويات من إكسيل</h3>
+                <button class="close-modal" onclick="closeImportModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="importStep1">
+                <p class="import-hint">
+                    الأعمدة المتوقعة: <strong>اسم العميل</strong>، <strong>النوع</strong> (خصم/تسوية/بونص)،
+                    <strong>المبلغ</strong>، <strong>التاريخ</strong> (اختياري)، <strong>ملاحظات</strong> (اختياري).
+                </p>
+                <div class="import-flex">
+                    <input type="file" id="importFileInput" accept=".xlsx,.xls" />
+                    <div style="margin-top:10px;width:100%;">
+                        <div style="font-size:0.75rem;color:var(--ink-mute);margin-bottom:4px;">
+                            <span id="importProgressText">جاري تحليل الملف...</span>
+                        </div>
+                        <div class="import-progress-outer">
+                            <div class="import-progress-inner" id="importProgressBar" style="width:0%;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="importPreviewContainer" style="display:none;margin-top:14px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                        <span id="importStats" style="font-size:0.8rem;color:var(--ink-mute);"></span>
+                        <button class="btn-save" id="btnRunImport" style="padding:6px 18px;font-size:0.75rem;">
+                            <i class="fas fa-play"></i> بدء الاستيراد
+                        </button>
+                    </div>
+                    <div class="import-log" id="importLogBox"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- MAIN CONTENT -->
     <div class="main-content">
@@ -1011,51 +1140,12 @@
 
     </div>
 
-    <!-- ============================================================ -->
-    <!-- IMPORT MODAL -->
-    <!-- ============================================================ -->
-    <div class="modal-overlay" id="importModalOverlay">
-        <div class="modal-box" style="max-width:600px;">
-            <div class="modal-header">
-                <h3><i class="fas fa-file-import"></i> استيراد خصومات وتسويات من إكسيل</h3>
-                <button class="close-modal" onclick="closeImportModal()"><i class="fas fa-times"></i></button>
-            </div>
-            <div id="importStep1">
-                <p class="import-hint" style="font-size:0.8rem;color:var(--ink-mute);line-height:1.6;">
-                    الأعمدة المتوقعة: <strong>اسم العميل</strong>، <strong>النوع</strong> (خصم/تسوية/بونص)،
-                    <strong>المبلغ</strong>، <strong>التاريخ</strong> (اختياري)، <strong>ملاحظات</strong> (اختياري).
-                </p>
-                <div class="import-flex" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;">
-                    <input type="file" id="importFileInput" accept=".xlsx,.xls" />
-                    <div style="margin-top:10px;width:100%;">
-                        <div style="font-size:0.75rem;color:var(--ink-mute);margin-bottom:4px;">
-                            <span id="importProgressText">جاري تحليل الملف...</span>
-                        </div>
-                        <div class="import-progress-outer" style="background:var(--surface-muted);border-radius:20px;height:12px;overflow:hidden;border:1px solid var(--line);">
-                            <div class="import-progress-inner" id="importProgressBar" style="background:var(--accent);height:100%;width:0%;transition:.2s;"></div>
-                        </div>
-                    </div>
-                </div>
-                <div id="importPreviewContainer" style="display:none;margin-top:14px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-                        <span id="importStats" style="font-size:0.8rem;color:var(--ink-mute);"></span>
-                        <button class="btn-save" id="btnRunImport" style="padding:6px 18px;font-size:0.75rem;">
-                            <i class="fas fa-play"></i> بدء الاستيراد
-                        </button>
-                    </div>
-                    <div class="import-log" id="importLogBox" style="background:var(--ink);color:#dfe6e2;font-family:monospace;font-size:.74rem;padding:10px;border-radius:var(--radius-sm);max-height:200px;overflow:auto;white-space:pre-wrap;margin-top:10px;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
         // ============================================================
-        // SUPABASE CONFIG
+        // SUPABASE CONFIG - مستخدم من supabase-client.js
         // ============================================================
-        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
-        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
-        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // SUPABASE_URL و SUPABASE_ANON_KEY موجودة بالفعل في supabase-client.js
+        // نستخدم الدوال الموجودة بدلاً من إعادة التعريف
 
         // ============================================================
         // STATE
@@ -1114,116 +1204,6 @@
                 }, 300);
             });
         }
-
-        // ============================================================
-        // AUTH HELPERS
-        // ============================================================
-        function getToken() {
-            try {
-                var storedSession = localStorage.getItem('rollex_session');
-                if (storedSession) {
-                    var parsed = JSON.parse(storedSession);
-                    if (parsed && parsed.access_token) return parsed.access_token;
-                }
-                var storedSession2 = sessionStorage.getItem('rollex_session');
-                if (storedSession2) {
-                    var parsed2 = JSON.parse(storedSession2);
-                    if (parsed2 && parsed2.access_token) return parsed2.access_token;
-                }
-                return null;
-            } catch (e) { return null; }
-        }
-
-        async function getValidToken() {
-            try {
-                var { data: { session } } = await supabaseClient.auth.getSession();
-                if (session && session.access_token) {
-                    localStorage.setItem('rollex_session', JSON.stringify({
-                        access_token: session.access_token,
-                        refresh_token: session.refresh_token,
-                        expires_at: session.expires_at
-                    }));
-                    return session.access_token;
-                }
-                var storedSession = localStorage.getItem('rollex_session');
-                if (storedSession) {
-                    var parsed = JSON.parse(storedSession);
-                    if (parsed && parsed.access_token) {
-                        var checkResponse = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                            headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + parsed.access_token }
-                        });
-                        if (checkResponse.ok) return parsed.access_token;
-                        if ((checkResponse.status === 401 || checkResponse.status === 403) && parsed.refresh_token) {
-                            var refreshResponse = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
-                                method: 'POST',
-                                headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ refresh_token: parsed.refresh_token })
-                            });
-                            if (refreshResponse.ok) {
-                                var refreshData = await refreshResponse.json();
-                                if (refreshData.access_token) {
-                                    localStorage.setItem('rollex_session', JSON.stringify({
-                                        access_token: refreshData.access_token,
-                                        refresh_token: refreshData.refresh_token || parsed.refresh_token,
-                                        expires_at: Date.now() + ((refreshData.expires_in || 3600) * 1000)
-                                    }));
-                                    return refreshData.access_token;
-                                }
-                            }
-                        }
-                    }
-                }
-                return null;
-            } catch (e) {
-                console.error('❌ خطأ في getValidToken:', e);
-                return null;
-            }
-        }
-
-        async function getCompanyId() {
-            try {
-                var token = await getValidToken();
-                if (!token) return null;
-                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=company_id&limit=1', {
-                    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
-                });
-                if (!response.ok) return null;
-                var data = await response.json();
-                return data && data.length > 0 && data[0].company_id ? data[0].company_id : null;
-            } catch (error) {
-                console.error('❌ خطأ في جلب company_id:', error);
-                return null;
-            }
-        }
-
-        async function getCurrentUserProfile() {
-            try {
-                var token = await getValidToken();
-                if (!token) return null;
-                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=id,name,email,role&limit=1', {
-                    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
-                });
-                if (!response.ok) return null;
-                var data = await response.json();
-                return data && data.length > 0 ? data[0] : null;
-            } catch (error) {
-                console.error('❌ خطأ في جلب البروفايل:', error);
-                return null;
-            }
-        }
-
-        async function logout() {
-            try {
-                await supabaseClient.auth.signOut();
-                localStorage.removeItem('rollex_session');
-                sessionStorage.removeItem('rollex_session');
-                window.location.href = 'login.html';
-            } catch (error) {
-                console.error('❌ خطأ في تسجيل الخروج:', error);
-                window.location.href = 'login.html';
-            }
-        }
-        window.logout = logout;
 
         // ============================================================
         // CLIENT SUGGESTIONS
@@ -1293,9 +1273,6 @@
             setTimeout(function() {
                 document.getElementById('clientNameInput').style.borderColor = '';
             }, 2000);
-
-            // تحديث رصيد العميل المعروض
-            updateClientBalance(id);
         }
         window.selectClient = selectClient;
 
@@ -1377,14 +1354,7 @@
         }
 
         // ============================================================
-        // UPDATE CLIENT BALANCE DISPLAY
-        // ============================================================
-        function updateClientBalance(clientId) {
-            // يمكن عرض رصيد العميل هنا إذا أردت
-        }
-
-        // ============================================================
-        // LOAD DATA
+        // LOAD DATA - باستخدام دوال supabase-client.js
         // ============================================================
         async function loadData() {
             try {
@@ -1400,38 +1370,11 @@
                     return;
                 }
 
-                // جلب العملاء
-                var clientsResponse = await fetch(
-                    SUPABASE_URL + '/rest/v1/clients?select=id,name,code,phone,due_balance&company_id=eq.' + companyId +
-                    '&order=name', {
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token
-                        }
-                    }
-                );
+                // جلب العملاء باستخدام getTable من supabase-client.js
+                allClients = await getTable('clients');
 
-                if (clientsResponse.ok) {
-                    allClients = await clientsResponse.json();
-                }
-
-                // جلب سجل الخصومات والتسويات
-                var transactionsResponse = await fetch(
-                    SUPABASE_URL + '/rest/v1/client_transactions?select=*&company_id=eq.' + companyId +
-                    '&order=created_at.desc', {
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token
-                        }
-                    }
-                );
-
-                if (transactionsResponse.ok) {
-                    allTransactions = await transactionsResponse.json();
-                } else {
-                    // إذا لم يكن الجدول موجوداً، نستخدم بيانات وهمية أو فارغة
-                    allTransactions = [];
-                }
+                // جلب سجل الخصومات والتسويات باستخدام getTable
+                allTransactions = await getTable('client_transactions');
 
                 populateClientFilter();
                 renderHistory();
@@ -1483,7 +1426,6 @@
         function renderHistory() {
             var tbody = document.getElementById('historyBody');
 
-            // تطبيق الفلترة
             var filtered = filterTransactions();
 
             if (filtered.length === 0) {
@@ -1578,7 +1520,7 @@
         }
 
         // ============================================================
-        // SAVE TRANSACTION
+        // SAVE TRANSACTION - باستخدام دوال supabase-client.js
         // ============================================================
         document.getElementById('btnSave').addEventListener('click', async function() {
             var clientId = document.getElementById('clientIdHidden').value;
@@ -1589,7 +1531,6 @@
             var notes = document.getElementById('notesInput').value.trim();
             var transactionNo = document.getElementById('transactionNumber').value;
 
-            // التحقق
             if (!clientId) {
                 showToast('⚠️ تنبيه', 'يرجى اختيار العميل من القائمة', 'error');
                 document.getElementById('clientNameInput').focus();
@@ -1610,77 +1551,47 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
             try {
-                var token = await getValidToken();
+                var token = getToken();
                 if (!token) throw new Error('جلسة غير صالحة');
 
                 var companyId = await getCompanyId();
                 var user = await getCurrentUserProfile();
                 if (!companyId) throw new Error('لم يتم العثور على company_id');
 
-                // حساب التأثير على رصيد العميل
                 var isNegative = (type === 'discount' || type === 'bonus');
                 var effectAmount = isNegative ? -amount : amount;
 
-                // إنشاء العملية في قاعدة البيانات
-                var response = await fetch(SUPABASE_URL + '/rest/v1/client_transactions', {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify({
-                        company_id: companyId,
-                        user_id: user?.id || null,
-                        client_id: clientId,
-                        client_name: clientName,
-                        type: type,
-                        amount: amount,
-                        effect_amount: effectAmount,
-                        transaction_no: transactionNo,
-                        transaction_date: date,
-                        notes: notes || null
-                    })
+                // استخدام insertRow من supabase-client.js
+                var transaction = await insertRow('client_transactions', {
+                    company_id: companyId,
+                    user_id: user?.id || null,
+                    client_id: clientId,
+                    client_name: clientName,
+                    type: type,
+                    amount: amount,
+                    effect_amount: effectAmount,
+                    transaction_no: transactionNo,
+                    transaction_date: date,
+                    notes: notes || null
                 });
 
-                if (!response.ok) {
-                    var errorText = await response.text();
-                    throw new Error('فشل حفظ العملية: ' + errorText);
-                }
-
-                var result = await response.json();
-                var transaction = result[0] || result;
-
-                // تحديث رصيد العميل
+                // تحديث رصيد العميل باستخدام patchRow
                 var client = allClients.find(function(c) { return c.id === clientId; });
                 if (client) {
                     var newBalance = (parseFloat(client.due_balance) || 0) + effectAmount;
-                    await fetch(SUPABASE_URL + '/rest/v1/clients?id=eq.' + clientId, {
-                        method: 'PATCH',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            due_balance: Math.max(0, newBalance)
-                        })
+                    await patchRow('clients', clientId, {
+                        due_balance: Math.max(0, newBalance)
                     });
                     client.due_balance = Math.max(0, newBalance);
                 }
 
-                // إضافة العملية إلى القائمة المحلية
                 allTransactions.unshift(transaction);
 
                 showToast('✅ تم الحفظ',
                     'تم حفظ العملية رقم ' + transactionNo + ' بنجاح',
                     'success');
 
-                // إعادة تعيين النموذج
                 resetForm();
-
-                // إعادة تحميل البيانات
                 await loadData();
 
             } catch (error) {
@@ -1806,52 +1717,32 @@
         }
 
         // ============================================================
-        // DELETE TRANSACTION
+        // DELETE TRANSACTION - باستخدام دوال supabase-client.js
         // ============================================================
         async function deleteTransaction(transactionId) {
             if (!confirm('⚠️ هل أنت متأكد من حذف هذه العملية؟\n\nهذا الإجراء لا يمكن التراجع عنه.')) return;
 
             try {
-                var token = await getValidToken();
+                var token = getToken();
                 if (!token) throw new Error('جلسة غير صالحة');
 
-                // جلب العملية قبل الحذف
                 var transaction = allTransactions.find(function(t) { return t.id === transactionId; });
                 if (!transaction) throw new Error('العملية غير موجودة');
 
-                var response = await fetch(SUPABASE_URL + '/rest/v1/client_transactions?id=eq.' + transactionId, {
-                    method: 'DELETE',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!response.ok) {
-                    var errorText = await response.text();
-                    throw new Error('فشل حذف العملية: ' + errorText);
-                }
+                // استخدام deleteRows من supabase-client.js
+                await deleteRows('client_transactions', 'id', transactionId);
 
                 // استعادة رصيد العميل
                 var client = allClients.find(function(c) { return c.id === transaction.client_id; });
                 if (client) {
                     var effectAmount = parseFloat(transaction.effect_amount) || 0;
                     var newBalance = (parseFloat(client.due_balance) || 0) - effectAmount;
-                    await fetch(SUPABASE_URL + '/rest/v1/clients?id=eq.' + transaction.client_id, {
-                        method: 'PATCH',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            due_balance: Math.max(0, newBalance)
-                        })
+                    await patchRow('clients', transaction.client_id, {
+                        due_balance: Math.max(0, newBalance)
                     });
                     client.due_balance = Math.max(0, newBalance);
                 }
 
-                // إزالة من القائمة المحلية
                 allTransactions = allTransactions.filter(function(t) { return t.id !== transactionId; });
 
                 showToast('✅ تم الحذف', 'تم حذف العملية بنجاح', 'success');
@@ -1902,7 +1793,6 @@
                         document.getElementById('importProgressBar').style.width = '50%';
                         document.getElementById('importProgressText').textContent = 'جاري تحليل البيانات...';
 
-                        // تحليل البيانات
                         importData = rows.map(function(row, index) {
                             var clientName = (row['اسم العميل'] || row['client_name'] || row['العميل'] || '')
                                 .trim();
@@ -1949,7 +1839,6 @@
                         document.getElementById('importProgressBar').style.width = '100%';
                         document.getElementById('importProgressText').textContent = '✅ جاهز للاستيراد!';
 
-                        // عرض سجل الأخطاء
                         var logBox = document.getElementById('importLogBox');
                         var invalidRows = importData.filter(function(d) { return !d.valid; });
                         if (invalidRows.length > 0) {
@@ -1998,7 +1887,7 @@
             logBox.textContent = 'جاري استيراد ' + validData.length + ' عملية...\n';
 
             try {
-                var token = await getValidToken();
+                var token = getToken();
                 if (!token) throw new Error('جلسة غير صالحة');
 
                 var companyId = await getCompanyId();
@@ -2012,7 +1901,6 @@
                 for (var i = 0; i < validData.length; i++) {
                     var data = validData[i];
 
-                    // البحث عن العميل
                     var client = allClients.find(function(c) {
                         return c.name && c.name.trim().toLowerCase() === data.clientName.trim().toLowerCase();
                     });
@@ -2031,47 +1919,22 @@
                         var isNegative = (data.type === 'discount' || data.type === 'bonus');
                         var effectAmount = isNegative ? -data.amount : data.amount;
 
-                        var response = await fetch(SUPABASE_URL + '/rest/v1/client_transactions', {
-                            method: 'POST',
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + token,
-                                'Content-Type': 'application/json',
-                                'Prefer': 'return=representation'
-                            },
-                            body: JSON.stringify({
-                                company_id: companyId,
-                                user_id: user?.id || null,
-                                client_id: client.id,
-                                client_name: client.name,
-                                type: data.type,
-                                amount: data.amount,
-                                effect_amount: effectAmount,
-                                transaction_no: transactionNo,
-                                transaction_date: data.date || new Date().toISOString().slice(0, 10),
-                                notes: data.notes || 'استيراد من إكسيل'
-                            })
+                        var transaction = await insertRow('client_transactions', {
+                            company_id: companyId,
+                            user_id: user?.id || null,
+                            client_id: client.id,
+                            client_name: client.name,
+                            type: data.type,
+                            amount: data.amount,
+                            effect_amount: effectAmount,
+                            transaction_no: transactionNo,
+                            transaction_date: data.date || new Date().toISOString().slice(0, 10),
+                            notes: data.notes || 'استيراد من إكسيل'
                         });
 
-                        if (!response.ok) {
-                            throw new Error(await response.text());
-                        }
-
-                        var result = await response.json();
-                        var transaction = result[0] || result;
-
-                        // تحديث رصيد العميل
                         var newBalance = (parseFloat(client.due_balance) || 0) + effectAmount;
-                        await fetch(SUPABASE_URL + '/rest/v1/clients?id=eq.' + client.id, {
-                            method: 'PATCH',
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + token,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                due_balance: Math.max(0, newBalance)
-                            })
+                        await patchRow('clients', client.id, {
+                            due_balance: Math.max(0, newBalance)
                         });
                         client.due_balance = Math.max(0, newBalance);
 
@@ -2085,7 +1948,6 @@
                         logBox.textContent += '✗ صف ' + data.rowIndex + ': ' + e.message + '\n';
                     }
 
-                    // تحديث التقدم
                     var progress = Math.round(((i + 1) / validData.length) * 100);
                     document.getElementById('importProgressBar').style.width = progress + '%';
                 }
@@ -2155,6 +2017,9 @@
                 window.location.href = 'login.html';
                 return;
             }
+
+            // بدء مراقبة الجلسة
+            startSessionMonitor();
 
             await loadData();
 
