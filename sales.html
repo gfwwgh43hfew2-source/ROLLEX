@@ -714,18 +714,25 @@
          */
 
         // ============================================================
-        // HELPER FUNCTIONS
+        // HELPER FUNCTIONS - مستوردة من supabase-client.js
         // ============================================================
-        // ✅ getToken, SUPABASE_URL, SUPABASE_ANON_KEY, supabaseClient
+        // ✅ getToken, SUPABASE_URL, SUPABASE_ANON_KEY, getSupabaseClient
         // كلها مستوردة من supabase-client.js
 
         // ============================================================
-        // GET VALID TOKEN - باستخدام supabaseClient من الملف المركزي
+        // GET VALID TOKEN - باستخدام getSupabaseClient() من الملف المركزي
         // ============================================================
         async function getValidToken() {
             try {
-                // ✅ استخدام supabaseClient من supabase-client.js
-                var { data: { session }, error } = await supabaseClient.auth.getSession();
+                // ✅ الحصول على supabaseClient من خلال الدالة الموجودة في supabase-client.js
+                var client = getSupabaseClient();
+                
+                if (!client) {
+                    console.error('❌ supabaseClient غير متاح');
+                    return null;
+                }
+
+                var { data: { session }, error } = await client.auth.getSession();
 
                 if (error) {
                     console.error('❌ خطأ في جلب الجلسة من Supabase:', error.message);
@@ -978,11 +985,14 @@
         }
 
         // ============================================================
-        // LOGOUT - باستخدام supabaseClient من الملف المركزي
+        // LOGOUT - باستخدام getSupabaseClient() من الملف المركزي
         // ============================================================
         async function logout() {
             try {
-                await supabaseClient.auth.signOut();
+                var client = getSupabaseClient();
+                if (client) {
+                    await client.auth.signOut();
+                }
                 localStorage.removeItem('rollex_session');
                 sessionStorage.removeItem('rollex_session');
                 window.location.href = 'login.html';
