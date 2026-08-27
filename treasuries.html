@@ -10,7 +10,7 @@
     <script src="supabase-client.js"></script>
     <style>
         /* ==========================================================
-           RESET & BASE - LIGHT THEME (مصغر)
+           RESET & BASE
            ========================================================== */
         * {
             margin: 0;
@@ -45,6 +45,8 @@
             --radius: 12px;
             --radius-sm: 8px;
             --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --sidebar-width: 240px;
+            --header-height: 56px;
         }
 
         html { scroll-behavior: smooth; }
@@ -58,16 +60,229 @@
             padding: 0;
             margin: 0;
             font-size: 13px;
+            display: flex;
         }
 
         /* ==========================================================
-           TOP NAVIGATION (مصغر)
+           SIDEBAR
+           ========================================================== */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .sidebar-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: calc(-1 * var(--sidebar-width));
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--bg-card);
+            border-left: 1px solid var(--border-color);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-lg);
+            overflow-y: auto;
+        }
+
+        .sidebar.open {
+            right: 0;
+        }
+
+        .sidebar .brand {
+            padding: 16px 18px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .sidebar .brand .mark {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            background: var(--gold-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 900;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .sidebar .brand .text {
+            font-weight: 800;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .sidebar .brand .text span {
+            display: block;
+            font-size: 0.5rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .sidebar .close-btn {
+            margin-right: auto;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: 0.2s;
+        }
+
+        .sidebar .close-btn:hover {
+            background: var(--bg-field);
+            color: var(--text-primary);
+        }
+
+        .sidebar .menu {
+            flex: 1;
+            padding: 10px 12px;
+            overflow-y: auto;
+        }
+
+        .sidebar .menu .label {
+            font-size: 0.5rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            padding: 10px 8px 4px;
+            font-weight: 700;
+        }
+
+        .sidebar .menu .label:first-child {
+            padding-top: 2px;
+        }
+
+        .sidebar .menu .item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 12px;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.75rem;
+            transition: 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            border-right: 3px solid transparent;
+        }
+
+        .sidebar .menu .item:hover {
+            background: var(--bg-field);
+            color: var(--text-primary);
+        }
+
+        .sidebar .menu .item.active {
+            background: var(--gold-bg);
+            color: var(--gold-deep);
+            border-right-color: var(--gold);
+        }
+
+        .sidebar .menu .item i {
+            width: 16px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .sidebar .menu .item.active i {
+            color: var(--gold);
+        }
+
+        .sidebar .footer {
+            padding: 10px 16px 14px;
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .sidebar .footer .user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar .footer .user .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--gold-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.65rem;
+            color: #fff;
+        }
+
+        .sidebar .footer .user .info .name {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .sidebar .footer .user .info .role {
+            font-size: 0.5rem;
+            color: var(--text-muted);
+        }
+
+        .sidebar .footer .logout-btn {
+            margin-right: auto;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: 0.2s;
+        }
+
+        .sidebar .footer .logout-btn:hover {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        /* ==========================================================
+           MAIN CONTENT
+           ========================================================== */
+        .main-wrapper {
+            flex: 1;
+            margin-right: 0;
+            min-height: 100vh;
+            transition: margin-right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ==========================================================
+           TOP NAVIGATION
            ========================================================== */
         .top-nav {
             background: var(--bg-card);
             border-bottom: 1px solid var(--border-color);
             padding: 0 20px;
-            height: 56px;
+            height: var(--header-height);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -75,6 +290,33 @@
             top: 0;
             z-index: 100;
             box-shadow: var(--shadow-sm);
+        }
+
+        .top-nav .left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .top-nav .hamburger {
+            display: none;
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+        }
+
+        .top-nav .hamburger:hover {
+            background: var(--bg-field);
+            border-color: var(--border-hover);
         }
 
         .top-nav .logo-area {
@@ -182,12 +424,16 @@
         }
 
         /* ==========================================================
-           PAGE HEADER (مصغر)
+           PAGE CONTENT
            ========================================================== */
-        .page-header {
-            padding: 20px 24px 12px;
+        .page-content {
+            padding: 20px 24px 32px;
             max-width: 1200px;
             margin: 0 auto;
+        }
+
+        .page-header {
+            margin-bottom: 16px;
         }
 
         .page-header .breadcrumb {
@@ -196,7 +442,9 @@
             margin-bottom: 4px;
         }
 
-        .page-header .breadcrumb span { color: var(--gold); }
+        .page-header .breadcrumb span {
+            color: var(--gold);
+        }
 
         .page-header .title-section {
             display: flex;
@@ -270,15 +518,13 @@
         }
 
         /* ==========================================================
-           STATS ROW (مصغر)
+           STATS ROW
            ========================================================== */
         .stats-row {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 12px;
-            padding: 0 24px 16px;
-            max-width: 1200px;
-            margin: 0 auto;
+            margin-bottom: 16px;
         }
 
         .stat-card {
@@ -323,9 +569,15 @@
             margin-top: 2px;
         }
 
-        .stat-card .stat-value.gold { color: var(--gold); }
-        .stat-card .stat-value.green { color: var(--success); }
-        .stat-card .stat-value.red { color: var(--danger); }
+        .stat-card .stat-value.gold {
+            color: var(--gold);
+        }
+        .stat-card .stat-value.green {
+            color: var(--success);
+        }
+        .stat-card .stat-value.red {
+            color: var(--danger);
+        }
 
         .stat-card .stat-icon {
             position: absolute;
@@ -338,14 +590,12 @@
         }
 
         /* ==========================================================
-           FILTER BAR (مصغر)
+           FILTER BAR
            ========================================================== */
         .filter-bar {
             display: flex;
             gap: 10px;
-            padding: 0 24px 14px;
-            max-width: 1200px;
-            margin: 0 auto;
+            margin-bottom: 14px;
             flex-wrap: wrap;
             align-items: center;
         }
@@ -412,15 +662,12 @@
         }
 
         /* ==========================================================
-           TREASURY GRID (كروت مصغرة)
+           TREASURY GRID
            ========================================================== */
         .treasury-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
             gap: 14px;
-            padding: 0 24px 32px;
-            max-width: 1200px;
-            margin: 0 auto;
         }
 
         .treasury-card {
@@ -654,158 +901,360 @@
             border: 1px solid var(--border-color);
         }
 
-        .toast.success { border-right-color: var(--success); }
-        .toast.error { border-right-color: var(--danger); }
+        .toast.success {
+            border-right-color: var(--success);
+        }
+        .toast.error {
+            border-right-color: var(--danger);
+        }
 
-        .toast .icon { font-size: 0.9rem; }
-        .toast .icon.success { color: var(--success); }
-        .toast .icon.error { color: var(--danger); }
+        .toast .icon {
+            font-size: 0.9rem;
+        }
+        .toast .icon.success {
+            color: var(--success);
+        }
+        .toast .icon.error {
+            color: var(--danger);
+        }
 
-        .toast .content .title { font-size: 0.7rem; font-weight: 700; color: var(--text-primary); }
-        .toast .content .message { font-size: 0.6rem; color: var(--text-muted); }
+        .toast .content .title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .toast .content .message {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+        }
 
         @keyframes slideIn {
-            from { opacity: 0; transform: translateX(20px); }
-            to { opacity: 1; transform: translateX(0); }
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
 
         /* ==========================================================
            RESPONSIVE
            ========================================================== */
         @media (max-width: 768px) {
-            .top-nav { padding: 0 12px; height: 48px; }
-            .top-nav .logo-area h1 { font-size: 0.8rem; }
-            .top-nav .nav-actions .user-badge .user-info { display: none; }
+            .sidebar-overlay {
+                display: block;
+            }
 
-            .page-header { padding: 14px 16px 10px; }
-            .page-header .title-section h2 { font-size: 1.1rem; }
+            .top-nav .hamburger {
+                display: flex !important;
+            }
 
-            .stats-row { padding: 0 16px 12px; gap: 8px; grid-template-columns: repeat(2, 1fr); }
-            .stat-card { padding: 10px 14px; }
-            .stat-card .stat-value { font-size: 1rem; }
+            .top-nav .logo-area h1 {
+                font-size: 0.8rem;
+            }
 
-            .filter-bar { padding: 0 16px 10px; flex-direction: column; }
-            .filter-bar .search-box { width: 100%; min-width: unset; }
-            .filter-bar .filter-group { width: 100%; }
-            .filter-bar .filter-group select { flex: 1; min-width: 0; }
+            .top-nav .nav-actions .user-badge .user-info {
+                display: none;
+            }
 
-            .treasury-grid { padding: 0 16px 24px; gap: 10px; grid-template-columns: 1fr; }
-            .treasury-card { padding: 14px 16px; }
+            .page-content {
+                padding: 12px 16px 24px;
+            }
+
+            .page-header .title-section h2 {
+                font-size: 1.1rem;
+            }
+
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+
+            .stat-card {
+                padding: 10px 14px;
+            }
+            .stat-card .stat-value {
+                font-size: 1rem;
+            }
+
+            .filter-bar {
+                flex-direction: column;
+            }
+            .filter-bar .search-box {
+                width: 100%;
+                min-width: unset;
+            }
+            .filter-bar .filter-group {
+                width: 100%;
+            }
+            .filter-bar .filter-group select {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .treasury-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .treasury-card {
+                padding: 14px 16px;
+            }
         }
 
         @media (max-width: 480px) {
-            .stats-row { grid-template-columns: 1fr; }
-            .page-header .title-section { flex-direction: column; align-items: stretch; }
-            .page-header .title-section .actions { flex-direction: column; }
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .page-header .title-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .page-header .title-section .actions {
+                flex-direction: column;
+            }
+
             .page-header .title-section .actions .btn-primary,
-            .page-header .title-section .actions .btn-secondary { width: 100%; justify-content: center; font-size: 0.65rem; padding: 5px 12px; }
+            .page-header .title-section .actions .btn-secondary {
+                width: 100%;
+                justify-content: center;
+                font-size: 0.65rem;
+                padding: 5px 12px;
+            }
 
-            .treasury-card .card-footer { flex-direction: column; }
-            .treasury-card .card-footer .btn-sm { flex: none; font-size: 0.5rem; padding: 4px 10px; }
+            .treasury-card .card-footer {
+                flex-direction: column;
+            }
 
-            .toast-container { top: 60px; right: 12px; }
-            .toast { min-width: unset; width: 100%; padding: 8px 12px; }
+            .treasury-card .card-footer .btn-sm {
+                flex: none;
+                font-size: 0.5rem;
+                padding: 4px 10px;
+            }
+
+            .toast-container {
+                top: 60px;
+                right: 12px;
+            }
+
+            .toast {
+                min-width: unset;
+                width: 100%;
+                padding: 8px 12px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .top-nav .hamburger {
+                display: none !important;
+            }
+            .sidebar {
+                position: sticky;
+                top: 0;
+                right: 0;
+                height: 100vh;
+                width: var(--sidebar-width);
+                border-left: 1px solid var(--border-color);
+                border-right: none;
+                flex-shrink: 0;
+                box-shadow: none;
+                transition: none;
+            }
+            .sidebar .close-btn {
+                display: none;
+            }
+            .sidebar-overlay {
+                display: none !important;
+            }
+            .main-wrapper {
+                margin-right: 0;
+            }
+            body {
+                flex-direction: row;
+            }
         }
     </style>
 </head>
 <body>
 
     <!-- ==========================================================
-    TOP NAVIGATION
+    SIDEBAR OVERLAY
     ========================================================== -->
-    <nav class="top-nav">
-        <div class="logo-area">
-            <div class="logo-icon">Q</div>
-            <h1>Quick<span>Data</span></h1>
-        </div>
-        <div class="nav-actions">
-            <div class="user-badge">
-                <div class="avatar" id="userAvatar">أ</div>
-                <div class="user-info">
-                    <span class="name" id="userName">مرحباً</span>
-                    <span class="role" id="userRole">مدير النظام</span>
-                </div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ==========================================================
+    SIDEBAR
+    ========================================================== -->
+    <nav class="sidebar" id="sidebar">
+        <div class="brand">
+            <div class="mark">ق</div>
+            <div class="text">
+                نظام المصنع
+                <span>شركة رولكس للدهانات</span>
             </div>
-            <button class="btn-icon gold" onclick="window.location.href='treasury-add.html'" title="خزينة جديدة">
-                <i class="fas fa-plus"></i>
-            </button>
-            <button class="btn-icon" onclick="window.location.href='index.html'" title="الرئيسية">
-                <i class="fas fa-home"></i>
-            </button>
-            <button class="btn-icon" onclick="logout()" title="تسجيل الخروج">
-                <i class="fas fa-sign-out-alt"></i>
-            </button>
+            <button class="close-btn" id="closeSidebar"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="menu">
+            <div class="label">القائمة الرئيسية</div>
+            <a href="index.html" class="item"><i class="fas fa-house"></i> الرئيسية</a>
+            <a href="treasuries.html" class="item active"><i class="fas fa-university"></i> الخزائن</a>
+            <a href="entry.html" class="item"><i class="fas fa-pen"></i> إدخال حركة</a>
+
+            <div class="label">المبيعات والمشتريات</div>
+            <a href="sales.html" class="item"><i class="fas fa-chart-line"></i> المبيعات</a>
+            <a href="purchases.html" class="item"><i class="fas fa-shopping-cart"></i> المشتريات</a>
+            <a href="discounts.html" class="item"><i class="fas fa-percent"></i> الخصومات والتسويات</a>
+
+            <div class="label">العملاء والموردين</div>
+            <a href="clients.html" class="item"><i class="fas fa-users"></i> العملاء</a>
+            <a href="suppliers.html" class="item"><i class="fas fa-truck"></i> الموردين</a>
+
+            <div class="label">المخزون</div>
+            <a href="materials.html" class="item"><i class="fas fa-boxes"></i> الخامات</a>
+            <a href="products.html" class="item"><i class="fas fa-cubes"></i> المنتجات</a>
+            <a href="raw-material-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المواد الخام</a>
+            <a href="finished-goods-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المنتج التام</a>
+
+            <div class="label">الإنتاج</div>
+            <a href="formulations.html" class="item"><i class="fas fa-flask"></i> التركيبات</a>
+            <a href="production-orders.html" class="item"><i class="fas fa-industry"></i> أوامر الإنتاج</a>
+            <a href="costs.html" class="item"><i class="fas fa-calculator"></i> التكاليف</a>
+
+            <div class="label">التقارير</div>
+            <a href="reports.html" class="item"><i class="fas fa-file-lines"></i> التقارير</a>
+            <a href="invoices-summary.html" class="item"><i class="fas fa-file-invoice"></i> ملخص الفواتير</a>
+
+            <div class="label">الإعدادات</div>
+            <a href="tabs-settings.html" class="item"><i class="fas fa-tags"></i> التبويبات العامة</a>
+            <a href="settings.html" class="item"><i class="fas fa-gear"></i> الإعدادات</a>
+            <a href="users.html" class="item"><i class="fas fa-users"></i> المستخدمين</a>
+            <a href="help.html" class="item"><i class="fas fa-circle-question"></i> المساعدة</a>
+        </div>
+
+        <div class="footer">
+            <div class="user">
+                <div class="avatar" id="sidebarAvatar">م</div>
+                <div class="info">
+                    <div class="name" id="sidebarUserName">جاري التحميل...</div>
+                    <div class="role" id="sidebarUserRole">...</div>
+                </div>
+                <button class="logout-btn" onclick="logout()" title="تسجيل الخروج">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
         </div>
     </nav>
 
     <!-- ==========================================================
-    PAGE HEADER
+    MAIN WRAPPER
     ========================================================== -->
-    <div class="page-header">
-        <div class="breadcrumb">الرئيسية <i class="fas fa-chevron-left" style="font-size:0.4rem;margin:0 4px;"></i> <span>الخزائن</span></div>
-        <div class="title-section">
-            <h2><i class="fas fa-university"></i> الخزائن</h2>
-            <div class="actions">
-                <button class="btn-secondary" onclick="loadData()">
-                    <i class="fas fa-sync-alt"></i> تحديث
+    <div class="main-wrapper" id="mainWrapper">
+
+        <!-- ==========================================================
+        TOP NAVIGATION
+        ========================================================== -->
+        <nav class="top-nav">
+            <div class="left">
+                <button class="hamburger" id="hamburger" aria-label="فتح القائمة الجانبية">
+                    <i class="fas fa-bars"></i>
                 </button>
-                <button class="btn-primary" onclick="window.location.href='treasury-add.html'">
-                    <i class="fas fa-plus"></i> خزينة جديدة
+                <div class="logo-area">
+                    <div class="logo-icon">Q</div>
+                    <h1>Quick<span>Data</span></h1>
+                </div>
+            </div>
+            <div class="nav-actions">
+                <div class="user-badge">
+                    <div class="avatar" id="userAvatar">أ</div>
+                    <div class="user-info">
+                        <span class="name" id="userName">مرحباً</span>
+                        <span class="role" id="userRole">مدير النظام</span>
+                    </div>
+                </div>
+                <button class="btn-icon gold" onclick="window.location.href='treasury-add.html'" title="خزينة جديدة">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="btn-icon" onclick="window.location.href='index.html'" title="الرئيسية">
+                    <i class="fas fa-home"></i>
+                </button>
+                <button class="btn-icon" onclick="logout()" title="تسجيل الخروج">
+                    <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
-        </div>
-    </div>
+        </nav>
 
-    <!-- ==========================================================
-    STATS ROW
-    ========================================================== -->
-    <div class="stats-row">
-        <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-university"></i></div>
-            <div class="stat-label">إجمالي الخزائن</div>
-            <div class="stat-value gold" id="totalTreasuries">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-wallet"></i></div>
-            <div class="stat-label">إجمالي الرصيد</div>
-            <div class="stat-value green" id="totalBalance">0 ج.م</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
-            <div class="stat-label">الخزائن النشطة</div>
-            <div class="stat-value" id="activeTreasuries">0</div>
-        </div>
-    </div>
+        <!-- ==========================================================
+        PAGE CONTENT
+        ========================================================== -->
+        <div class="page-content">
 
-    <!-- ==========================================================
-    FILTER BAR
-    ========================================================== -->
-    <div class="filter-bar">
-        <div class="search-box">
-            <span class="search-icon"><i class="fas fa-search"></i></span>
-            <input type="text" id="searchInput" placeholder="ابحث عن خزينة..." onkeyup="filterTreasuries()" />
-        </div>
-        <div class="filter-group">
-            <select id="typeFilter" onchange="filterTreasuries()">
-                <option value="">جميع الأنواع</option>
-                <option value="main">رئيسية</option>
-                <option value="accountant">محاسب</option>
-                <option value="driver">سائق</option>
-                <option value="custom">مخصصة</option>
-            </select>
-            <select id="statusFilter" onchange="filterTreasuries()">
-                <option value="">جميع الحالات</option>
-                <option value="true">نشطة</option>
-                <option value="false">غير نشطة</option>
-            </select>
-        </div>
-    </div>
+            <div class="page-header">
+                <div class="breadcrumb">الرئيسية <i class="fas fa-chevron-left" style="font-size:0.4rem;margin:0 4px;"></i> <span>الخزائن</span></div>
+                <div class="title-section">
+                    <h2><i class="fas fa-university"></i> الخزائن</h2>
+                    <div class="actions">
+                        <button class="btn-secondary" onclick="loadData()">
+                            <i class="fas fa-sync-alt"></i> تحديث
+                        </button>
+                        <button class="btn-primary" onclick="window.location.href='treasury-add.html'">
+                            <i class="fas fa-plus"></i> خزينة جديدة
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-    <!-- ==========================================================
-    TREASURY GRID
-    ========================================================== -->
-    <div class="treasury-grid" id="treasuryGrid">
-        <!-- يتم التحميل عبر JavaScript -->
+            <!-- ===== STATS ROW ===== -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-university"></i></div>
+                    <div class="stat-label">إجمالي الخزائن</div>
+                    <div class="stat-value gold" id="totalTreasuries">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-wallet"></i></div>
+                    <div class="stat-label">إجمالي الرصيد</div>
+                    <div class="stat-value green" id="totalBalance">0 ج.م</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-label">الخزائن النشطة</div>
+                    <div class="stat-value" id="activeTreasuries">0</div>
+                </div>
+            </div>
+
+            <!-- ===== FILTER BAR ===== -->
+            <div class="filter-bar">
+                <div class="search-box">
+                    <span class="search-icon"><i class="fas fa-search"></i></span>
+                    <input type="text" id="searchInput" placeholder="ابحث عن خزينة..." onkeyup="filterTreasuries()" />
+                </div>
+                <div class="filter-group">
+                    <select id="typeFilter" onchange="filterTreasuries()">
+                        <option value="">جميع الأنواع</option>
+                        <option value="main">رئيسية</option>
+                        <option value="accountant">محاسب</option>
+                        <option value="driver">سائق</option>
+                        <option value="custom">مخصصة</option>
+                    </select>
+                    <select id="statusFilter" onchange="filterTreasuries()">
+                        <option value="">جميع الحالات</option>
+                        <option value="true">نشطة</option>
+                        <option value="false">غير نشطة</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- ===== TREASURY GRID ===== -->
+            <div class="treasury-grid" id="treasuryGrid">
+                <!-- يتم التحميل عبر JavaScript -->
+            </div>
+
+        </div>
     </div>
 
     <!-- ==========================================================
@@ -816,15 +1265,43 @@
     <script>
         /**
          * ============================================================
-         * CONFIGURATION - مستخدم من supabase-client.js
+         * SIDEBAR TOGGLE
          * ============================================================
-         * SUPABASE_URL و SUPABASE_ANON_KEY موجودة بالفعل في supabase-client.js
-         * نستخدم الدوال الموجودة بدلاً من إعادة التعريف
          */
+        var sidebar = document.getElementById('sidebar');
+        var overlay = document.getElementById('sidebarOverlay');
+        var hamburger = document.getElementById('hamburger');
+        var closeSidebarBtn = document.getElementById('closeSidebar');
+
+        function openSidebar() {
+            sidebar.classList.add('open');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebarFn() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        if (hamburger) hamburger.addEventListener('click', openSidebar);
+        if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeSidebarFn);
+        if (overlay) overlay.addEventListener('click', closeSidebarFn);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeSidebarFn();
+        });
+
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768 && sidebar.classList.contains('open')) {
+                closeSidebarFn();
+            }
+        });
 
         /**
          * ============================================================
-         * DEBUG MODE
+         * CONFIGURATION
          * ============================================================
          */
         var DEBUG_MODE = false;
@@ -833,12 +1310,26 @@
             if (!DEBUG_MODE) return;
             var prefix = '🔍 [DEBUG]';
             var icon = '📌';
-            switch(type) {
-                case 'success': prefix = '✅ [SUCCESS]'; icon = '✅'; break;
-                case 'error': prefix = '❌ [ERROR]'; icon = '❌'; break;
-                case 'warning': prefix = '⚠️ [WARNING]'; icon = '⚠️'; break;
-                case 'info': prefix = 'ℹ️ [INFO]'; icon = 'ℹ️'; break;
-                default: prefix = '🔍 [DEBUG]'; icon = '🔍';
+            switch (type) {
+                case 'success':
+                    prefix = '✅ [SUCCESS]';
+                    icon = '✅';
+                    break;
+                case 'error':
+                    prefix = '❌ [ERROR]';
+                    icon = '❌';
+                    break;
+                case 'warning':
+                    prefix = '⚠️ [WARNING]';
+                    icon = '⚠️';
+                    break;
+                case 'info':
+                    prefix = 'ℹ️ [INFO]';
+                    icon = 'ℹ️';
+                    break;
+                default:
+                    prefix = '🔍 [DEBUG]';
+                    icon = '🔍';
             }
             if (data) {
                 console.log(icon + ' ' + prefix + ' - ' + message, data);
@@ -849,7 +1340,7 @@
 
         /**
          * ============================================================
-         * GET COMPANY TREASURIES - باستخدام getTable من الملف المركزي
+         * GET COMPANY TREASURIES
          * ============================================================
          */
         async function getTreasuries(companyId) {
@@ -864,7 +1355,7 @@
 
         /**
          * ============================================================
-         * DELETE TREASURY - باستخدام deleteRows من الملف المركزي
+         * DELETE TREASURY
          * ============================================================
          */
         async function deleteTreasury(id) {
@@ -1050,7 +1541,7 @@
 
         /**
          * ============================================================
-         * LOAD DATA - باستخدام دوال الملف المركزي
+         * LOAD DATA
          * ============================================================
          */
         async function loadData() {
@@ -1069,8 +1560,16 @@
                 return;
             }
 
+            // تحديث sidebar
+            document.getElementById('sidebarUserName').textContent = profile.name || 'مستخدم';
+            document.getElementById('sidebarUserRole').textContent = profile.role === 'admin' ? 'مدير النظام' : (profile.role ===
+                'accountant' ? 'محاسب' : 'موظف');
+            document.getElementById('sidebarAvatar').textContent = (profile.name || 'م').charAt(0);
+
+            // تحديث top nav
             document.getElementById('userName').textContent = profile.name || 'مرحباً';
-            document.getElementById('userRole').textContent = profile.role === 'admin' ? 'مدير النظام' : (profile.role === 'accountant' ? 'محاسب' : 'موظف');
+            document.getElementById('userRole').textContent = profile.role === 'admin' ? 'مدير النظام' : (profile.role ===
+                'accountant' ? 'محاسب' : 'موظف');
             document.getElementById('userAvatar').textContent = (profile.name || 'أ').charAt(0);
 
             var treasuries = await getTreasuries(profile.company_id);
@@ -1129,8 +1628,7 @@
          * ============================================================
          */
         (async function init() {
-            console.log('🏛️ الخزائن - QuickData ProSoft (مصغر)');
-            console.log('🔗 Supabase URL:', SUPABASE_URL);
+            console.log('🏛️ الخزائن - QuickData ProSoft');
 
             var token = getToken();
             if (!token) {
@@ -1139,6 +1637,7 @@
             }
 
             await loadData();
+
             setTimeout(function() {
                 startSessionMonitor();
             }, 3000);
