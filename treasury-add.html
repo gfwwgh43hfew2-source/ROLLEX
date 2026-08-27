@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    <title>إضافة خزينة جديدة - QuickData ProSoft</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    
+    <style>
+        /* ==========================================================
+           RESET & BASE
+           ========================================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --gold: #c9a84c;
+            --gold-light: #dbb95c;
+            --gold-deep: #b8942a;
+            --gold-gradient: linear-gradient(135deg, #dbb95c, #c9a84c, #b8942a);
+            --bg-body: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-field: #f0f2f5;
+            --border-color: #e8ecf1;
+            --border-hover: #d0d5dd;
+            --text-primary: #1a2332;
+            --text-secondary: #4a5a6e;
+            --text-muted: #8a96a8;
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 12px 48px rgba(0, 0, 0, 0.08);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --danger: #dc3545;
+            --success: #28a745;
+        }
+
+        body {
+            font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
+            direction: rtl;
+            min-height: 100vh;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ==========================================================
+           TOP NAVIGATION
+           ========================================================== */
+        .top-nav {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            z-index: 100;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 24px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .top-nav .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .top-nav .logo-area .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gold-gradient);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #fff;
+            font-weight: 900;
+        }
+
+        .top-nav .logo-area h1 {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .top-nav .logo-area h1 span {
+            color: var(--gold);
+        }
+
+        .top-nav .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .top-nav .nav-actions .btn-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .top-nav .nav-actions .btn-icon:hover {
+            background: var(--bg-field);
+            border-color: var(--border-hover);
+            transform: translateY(-1px);
+        }
+
+        .top-nav .nav-actions .btn-icon.gold {
+            background: var(--gold-gradient);
+            color: #fff;
+            border: none;
+        }
+
+        .top-nav .nav-actions .btn-icon.gold:hover {
+            box-shadow: 0 4px 16px rgba(201, 168, 76, 0.35);
+            transform: translateY(-2px);
+        }
+
+        /* ==========================================================
+           FORM CONTAINER
+           ========================================================== */
+        .form-container {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 48px 40px 40px;
+            max-width: 520px;
+            width: 100%;
+            margin-top: 90px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+        }
+
+        .form-container .form-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .form-container .form-header .icon-wrapper {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--gold-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: #fff;
+            margin: 0 auto 12px;
+            box-shadow: 0 8px 24px rgba(201, 168, 76, 0.3);
+        }
+
+        .form-container .form-header h2 {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--text-primary);
+        }
+
+        .form-container .form-header p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ==========================================================
+           FORM ELEMENTS
+           ========================================================== */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .form-group label .required {
+            color: var(--danger);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 11px 14px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-color);
+            background: var(--bg-field);
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--gold);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.12);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 70px;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+
+        .form-group .hint {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ==========================================================
+           BUTTONS
+           ========================================================== */
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-primary {
+            flex: 1;
+            padding: 12px 24px;
+            background: var(--gold-gradient);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 16px rgba(201, 168, 76, 0.25);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(201, 168, 76, 0.35);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            padding: 12px 24px;
+            background: var(--bg-field);
+            color: var(--text-secondary);
+            border: 1.5px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+        }
+
+        /* ==========================================================
+           TOAST
+           ========================================================== */
+        .toast-container {
+            position: fixed;
+            top: 90px;
+            right: 24px;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            padding: 14px 20px;
+            border-radius: var(--radius-sm);
+            border-right: 4px solid var(--gold);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 280px;
+            animation: slideIn 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .toast.success { border-right-color: var(--success); }
+        .toast.error { border-right-color: var(--danger); }
+
+        .toast .icon { font-size: 1.1rem; }
+        .toast .icon.success { color: var(--success); }
+        .toast .icon.error { color: var(--danger); }
+
+        .toast .content .title { font-size: 0.8rem; font-weight: 700; color: var(--text-primary); }
+        .toast .content .message { font-size: 0.7rem; color: var(--text-muted); }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ==========================================================
+           RESPONSIVE
+           ========================================================== */
+        @media (max-width: 768px) {
+            .top-nav { padding: 0 16px; height: 60px; }
+            .top-nav .logo-area h1 { font-size: 1rem; }
+            .form-container { padding: 32px 20px 24px; margin: 80px 16px 20px; }
+            .form-actions { flex-direction: column; }
+            .toast-container { top: 70px; right: 16px; }
+            .toast { min-width: unset; width: 100%; }
+        }
+
+        @media (max-width: 480px) {
+            .form-container .form-header h2 { font-size: 1.2rem; }
+            .form-container .form-header .icon-wrapper { width: 50px; height: 50px; font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==========================================================
+    TOP NAVIGATION
+    ========================================================== -->
+    <nav class="top-nav">
+        <div class="logo-area">
+            <div class="logo-icon">Q</div>
+            <h1>Quick<span>Data</span></h1>
+        </div>
+        <div class="nav-actions">
+            <button class="btn-icon" onclick="window.location.href='treasuries.html'" title="الخزائن">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <button class="btn-icon" onclick="window.location.href='index.html'" title="الرئيسية">
+                <i class="fas fa-home"></i>
+            </button>
+            <button class="btn-icon" onclick="logout()" title="تسجيل الخروج">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ==========================================================
+    TOAST CONTAINER
+    ========================================================== -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ==========================================================
+    FORM
+    ========================================================== -->
+    <div class="form-container">
+        <div class="form-header">
+            <div class="icon-wrapper"><i class="fas fa-plus"></i></div>
+            <h2>خزينة جديدة</h2>
+            <p>أدخل بيانات الخزينة الجديدة</p>
+        </div>
+
+        <form id="treasuryForm" onsubmit="return false;">
+            <!-- اسم الخزينة -->
+            <div class="form-group">
+                <label>اسم الخزينة <span class="required">*</span></label>
+                <input type="text" id="treasuryName" placeholder="مثال: الخزينة الرئيسية" required />
+            </div>
+
+            <!-- نوع الخزينة -->
+            <div class="form-group">
+                <label>النوع <span class="required">*</span></label>
+                <select id="treasuryType">
+                    <option value="main">رئيسية</option>
+                    <option value="accountant">محاسب</option>
+                    <option value="driver">سائق</option>
+                    <option value="custom">مخصصة</option>
+                </select>
+            </div>
+
+            <!-- الوصف -->
+            <div class="form-group">
+                <label>الوصف</label>
+                <textarea id="treasuryDesc" placeholder="وصف الخزينة (اختياري)"></textarea>
+            </div>
+
+            <!-- الرصيد الافتتاحي -->
+            <div class="form-group">
+                <label>الرصيد الافتتاحي</label>
+                <input type="number" id="treasuryBalance" placeholder="0" value="0" step="0.01" min="0" />
+                <div class="hint">يمكنك تعديل الرصيد لاحقاً من خلال حركات الخزينة</div>
+            </div>
+
+            <!-- الأزرار -->
+            <div class="form-actions">
+                <button type="button" class="btn-primary" id="btnSave">
+                    <i class="fas fa-save"></i> حفظ
+                </button>
+                <button type="button" class="btn-secondary" onclick="window.location.href='treasuries.html'">
+                    <i class="fas fa-times"></i> إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- ==========================================================
+    SCRIPTS
+    ========================================================== -->
+    <script>
+        /**
+         * ============================================================
+         * TOAST
+         * ============================================================
+         */
+        function showToast(title, message, type) {
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + (type || '');
+
+            var icon = 'fa-info-circle';
+            if (type === 'success') icon = 'fa-check-circle';
+            else if (type === 'error') icon = 'fa-exclamation-circle';
+
+            toast.innerHTML = `
+                <div class="icon ${type || ''}"><i class="fas ${icon}"></i></div>
+                <div class="content">
+                    <div class="title">${title}</div>
+                    <div class="message">${message}</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(function() {
+                if (toast.parentElement) toast.remove();
+            }, 4000);
+        }
+
+        /**
+         * ============================================================
+         * LOGOUT
+         * ============================================================
+         */
+        async function logout() {
+            try {
+                await supabaseClient.auth.signOut();
+                localStorage.removeItem('rollex_session');
+                sessionStorage.removeItem('rollex_session');
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('❌ خطأ في تسجيل الخروج:', error);
+                window.location.href = 'login.html';
+            }
+        }
+
+        /**
+         * ============================================================
+         * SAVE TREASURY
+         * ============================================================
+         */
+        document.getElementById('btnSave').addEventListener('click', async function() {
+            var name = document.getElementById('treasuryName').value.trim();
+            var type = document.getElementById('treasuryType').value;
+            var description = document.getElementById('treasuryDesc').value.trim();
+            var balance = parseFloat(document.getElementById('treasuryBalance').value) || 0;
+
+            // التحقق من صحة الإدخال
+            if (!name) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال اسم الخزينة', 'error');
+                document.getElementById('treasuryName').focus();
+                return;
+            }
+
+            if (balance < 0) {
+                showToast('⚠️ تنبيه', 'الرصيد لا يمكن أن يكون سالباً', 'error');
+                document.getElementById('treasuryBalance').focus();
+                return;
+            }
+
+            var btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+
+            try {
+                var token = getToken();
+                if (!token) {
+                    showToast('⚠️ تنبيه', 'يرجى تسجيل الدخول أولاً', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+                    return;
+                }
+
+                var companyId = await getCompanyId();
+                if (!companyId) {
+                    showToast('❌ خطأ', 'لم يتم العثور على company_id', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+                    return;
+                }
+
+                var user = await getCurrentUserProfile();
+
+                // إدراج الخزينة باستخدام insertRow من supabase-client.js
+                var result = await insertRow('treasuries', {
+                    company_id: companyId,
+                    user_id: user?.id || null,
+                    name: name,
+                    type: type,
+                    description: description || null,
+                    balance: balance,
+                    is_active: true
+                });
+
+                console.log('✅ تم إضافة الخزينة:', result);
+
+                showToast('✅ تم الحفظ', 'تم إضافة الخزينة "' + name + '" بنجاح', 'success');
+
+                // التوجيه بعد ثانية
+                setTimeout(function() {
+                    window.location.href = 'treasuries.html';
+                }, 1500);
+
+            } catch (error) {
+                console.error('❌ خطأ في حفظ الخزينة:', error);
+                showToast('❌ خطأ', error.message || 'فشل حفظ الخزينة', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+            }
+        });
+
+        /**
+         * ============================================================
+         * ENTER KEY SUPPORT
+         * ============================================================
+         */
+        document.getElementById('treasuryForm').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('btnSave').click();
+            }
+        });
+
+        /**
+         * ============================================================
+         * INIT
+         * ============================================================
+         */
+        (async function init() {
+            console.log('➕ إضافة خزينة جديدة - QuickData ProSoft');
+
+            var token = getToken();
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // التحقق من الجلسة
+            var sessionOk = await checkSessionAndRedirect();
+            if (!sessionOk) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // تعيين التاريخ الافتراضي
+            var nameInput = document.getElementById('treasuryName');
+            if (nameInput) {
+                setTimeout(function() {
+                    nameInput.focus();
+                }, 300);
+            }
+
+            // بدء مراقبة الجلسة
+            startSessionMonitor();
+        })();
+    </script>
+
+</body>
+</html>
