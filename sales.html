@@ -1241,24 +1241,41 @@
         }
 
         // ============================================================
-        // INIT
+        // INIT - التحقق من الجلسة بشكل صحيح
         // ============================================================
         (async function init() {
             console.log('🏭 صفحة المبيعات - QuickData ProSoft');
             console.log('🔗 Supabase URL:', SUPABASE_URL);
 
+            // ✅ الخطوة 1: التحقق من وجود توكن في localStorage
+            var localToken = getToken();
+            console.log('🔑 التوكن في localStorage:', localToken ? '✅ موجود' : '❌ غير موجود');
+
+            if (!localToken) {
+                // لا يوجد توكن نهائياً → التوجيه لتسجيل الدخول
+                entriesBody.innerHTML =
+                    '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول للوصول إلى هذه الصفحة</p></div></td></tr>';
+                setTimeout(function() {
+                    window.location.href = 'login.html?return_to=' + encodeURIComponent(window.location.pathname);
+                }, 1500);
+                return;
+            }
+
+            // ✅ الخطوة 2: التحقق من صلاحية التوكن
             var token = await getValidToken();
             console.log('🔑 التوكن صالح؟', token ? '✅ نعم' : '❌ لا');
 
             if (!token) {
+                // التوكن منتهي أو غير صالح → التوجيه لتسجيل الدخول
                 entriesBody.innerHTML =
-                    '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول للوصول إلى هذه الصفحة</p></div></td></tr>';
+                    '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>جلسة منتهية، يرجى تسجيل الدخول مرة أخرى</p></div></td></tr>';
                 setTimeout(function() {
-                    window.location.href = 'login.html';
-                }, 2000);
+                    window.location.href = 'login.html?return_to=' + encodeURIComponent(window.location.pathname);
+                }, 1500);
                 return;
             }
 
+            // ✅ الخطوة 3: التوكن صالح، تحميل البيانات
             await loadData();
 
             setTimeout(function() {
