@@ -6,9 +6,10 @@
     <title>تحصيلات العملاء - QuickData ProSoft</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/supabase-js@2"></script>
+    <!-- ===== تحميل المكتبات أولاً ===== -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- ===== إضافة الملف المركزي ===== -->
+    <!-- ===== ثم الملف المركزي ===== -->
     <script src="supabase-client.js"></script>
     <style>
         /* ============================================================
@@ -68,17 +69,11 @@
             padding: 0 16px;
         }
 
-        /* ============================================================
-           SCROLLBAR
-           ============================================================ */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: var(--bg-page); }
         ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--gold-dark); }
 
-        /* ============================================================
-           HEADER
-           ============================================================ */
         .header {
             display: flex;
             justify-content: space-between;
@@ -134,9 +129,6 @@
             box-shadow: var(--shadow-md);
         }
 
-        /* ============================================================
-           FILTERS
-           ============================================================ */
         .filters-section {
             background: var(--bg-card);
             border-radius: var(--radius-xl);
@@ -221,9 +213,6 @@
             border-color: var(--success);
         }
 
-        /* ============================================================
-           SUMMARY CARDS
-           ============================================================ */
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -271,9 +260,6 @@
             letter-spacing: 0.3px;
         }
 
-        /* ============================================================
-           TABLE
-           ============================================================ */
         .table-wrapper {
             background: var(--bg-card);
             border-radius: var(--radius-xl);
@@ -383,9 +369,6 @@
             font-size: 0.85rem;
         }
 
-        /* ============================================================
-           TOAST
-           ============================================================ */
         .toast-container {
             position: fixed;
             top: 20px;
@@ -424,32 +407,6 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
-        /* ============================================================
-           RESPONSIVE
-           ============================================================ */
-        @media (max-width: 768px) {
-            body { padding: 12px; }
-            .container { padding: 0 6px; }
-            .filters-row { grid-template-columns: 1fr; }
-            .summary-grid { grid-template-columns: 1fr 1fr; }
-            .header { flex-direction: column; gap: 12px; align-items: flex-start; }
-            .header h1 { font-size: 1.2rem; }
-            .header h1 i { width: 36px; height: 36px; font-size: 0.85rem; }
-            table { font-size: 0.65rem; min-width: 700px; }
-            thead th, tbody td { padding: 8px 10px; }
-        }
-
-        @media (max-width: 480px) {
-            .summary-grid { grid-template-columns: 1fr; }
-            .header h1 { font-size: 1rem; }
-            .header h1 i { width: 32px; height: 32px; font-size: 0.75rem; }
-            table { font-size: 0.58rem; min-width: 600px; }
-            thead th, tbody td { padding: 6px 8px; }
-        }
-
-        /* ============================================================
-           PROGRESS
-           ============================================================ */
         #loadingOverlay {
             display: none;
             position: fixed;
@@ -487,6 +444,26 @@
         @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            .container { padding: 0 6px; }
+            .filters-row { grid-template-columns: 1fr; }
+            .summary-grid { grid-template-columns: 1fr 1fr; }
+            .header { flex-direction: column; gap: 12px; align-items: flex-start; }
+            .header h1 { font-size: 1.2rem; }
+            .header h1 i { width: 36px; height: 36px; font-size: 0.85rem; }
+            table { font-size: 0.65rem; min-width: 700px; }
+            thead th, tbody td { padding: 8px 10px; }
+        }
+
+        @media (max-width: 480px) {
+            .summary-grid { grid-template-columns: 1fr; }
+            .header h1 { font-size: 1rem; }
+            .header h1 i { width: 32px; height: 32px; font-size: 0.75rem; }
+            table { font-size: 0.58rem; min-width: 600px; }
+            thead th, tbody td { padding: 6px 8px; }
         }
     </style>
 </head>
@@ -585,15 +562,61 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
-        // ============================================================
-        // DOM REFS
-        // ============================================================
+        /**
+         * ============================================================
+         * TOAST FUNCTION - تعريف دالة التنبيهات (قبل استخدامها)
+         * ============================================================
+         */
+        function showToast(title, message, type) {
+            var container = document.getElementById('toastContainer');
+            if (!container) {
+                console.warn('⚠️ Toast container not found');
+                return;
+            }
+
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + (type || '');
+
+            var icon = 'fa-info-circle';
+            if (type === 'success') icon = 'fa-check-circle';
+            else if (type === 'error') icon = 'fa-exclamation-circle';
+
+            toast.innerHTML = `
+                <div class="icon ${type || ''}"><i class="fas ${icon}"></i></div>
+                <div class="content">
+                    <div class="title">${title}</div>
+                    <div class="message">${message}</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(function() {
+                if (toast.parentElement) toast.remove();
+            }, 4000);
+        }
+
+        /**
+         * ============================================================
+         * REDIRECT TO LOGIN
+         * ============================================================
+         */
+        function redirectToLogin() {
+            if (window.location.pathname.includes('login.html')) return;
+            window.location.href = 'login.html';
+        }
+
+        /**
+         * ============================================================
+         * DOM REFS
+         * ============================================================
+         */
         var allTransactions = [];
         var allTreasuries = [];
         var filteredData = [];
 
         // ============================================================
-        // GET TREASURIES
+        // GET TREASURIES - باستخدام getTable من supabase-client.js
         // ============================================================
         async function getTreasuries() {
             try {
@@ -606,11 +629,13 @@
         }
 
         // ============================================================
-        // GET ALL TRANSACTIONS FROM SUPABASE
+        // GET ALL TRANSACTIONS FROM SUPABASE - باستخدام getTable
         // ============================================================
         async function getAllTransactions() {
             try {
+                // ✅ استخدام getTable من supabase-client.js
                 var data = await getTable('client_payments');
+                console.log('📊 تم جلب ' + (data ? data.length : 0) + ' تحصيل من client_payments');
                 return data || [];
             } catch (error) {
                 console.error('❌ خطأ في جلب التحصيلات:', error);
@@ -627,6 +652,7 @@
             for (var i = 0; i < transactions.length; i++) {
                 var item = transactions[i];
 
+                // إذا كان هناك فلترة بالخزينة
                 if (treasuryId && item.treasury_id !== treasuryId) continue;
 
                 var itemDate = new Date(item.payment_date || item.created_at);
@@ -637,6 +663,20 @@
             }
 
             return filtered;
+        }
+
+        // ============================================================
+        // FORMAT DATE
+        // ============================================================
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            try {
+                var d = new Date(dateStr);
+                if (isNaN(d.getTime())) return dateStr;
+                return d.toLocaleDateString('ar-EG');
+            } catch (e) {
+                return dateStr;
+            }
         }
 
         // ============================================================
@@ -690,7 +730,6 @@
 
             clientArray.forEach(function(client) {
                 counter++;
-                var firstItem = client.transactions[0];
                 rows += `
                     <tr style="background:var(--gold-glow);font-weight:700;">
                         <td>${counter}</td>
@@ -742,12 +781,14 @@
         function populateTreasuryFilter(treasuries) {
             var select = document.getElementById('filterTreasury');
             select.innerHTML = '<option value="">جميع الخزائن</option>';
-            treasuries.forEach(function(t) {
-                var option = document.createElement('option');
-                option.value = t.id;
-                option.textContent = t.name;
-                select.appendChild(option);
-            });
+            if (treasuries && treasuries.length > 0) {
+                treasuries.forEach(function(t) {
+                    var option = document.createElement('option');
+                    option.value = t.id;
+                    option.textContent = t.name + (t.balance ? ' (رصيد: ' + t.balance.toLocaleString() + ')' : '');
+                    select.appendChild(option);
+                });
+            }
         }
 
         // ============================================================
@@ -755,10 +796,10 @@
         // ============================================================
         function setDefaultDates() {
             var now = new Date();
-            var firstDayOfYear = new Date(now.getFullYear(), 0, 1);
+            var firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-            document.getElementById('filterDateFrom').value = firstDayOfYear.toISOString().split('T')[0];
+            document.getElementById('filterDateFrom').value = firstDayOfMonth.toISOString().split('T')[0];
             document.getElementById('filterDateTo').value = today.toISOString().split('T')[0];
         }
 
@@ -828,6 +869,7 @@
             overlay.classList.add('active');
 
             try {
+                // ✅ التحقق من التوكن
                 var token = getToken();
                 if (!token) {
                     var refreshed = await refreshSession();
@@ -837,10 +879,13 @@
                     }
                 }
 
+                // ✅ جلب الخزائن
                 allTreasuries = await getTreasuries();
                 populateTreasuryFilter(allTreasuries);
 
+                // ✅ جلب التحصيلات
                 allTransactions = await getAllTransactions();
+                console.log('📊 تم جلب ' + allTransactions.length + ' تحصيل');
 
                 var dateFrom = document.getElementById('filterDateFrom').value;
                 var dateTo = document.getElementById('filterDateTo').value;
@@ -858,10 +903,33 @@
 
             } catch (error) {
                 console.error('❌ خطأ:', error);
-                showToast('❌ خطأ', error.message, 'error');
+                showToast('❌ خطأ', error.message || 'حدث خطأ في تحميل البيانات', 'error');
             }
 
             overlay.classList.remove('active');
+        }
+
+        // ============================================================
+        // START SESSION MONITOR
+        // ============================================================
+        function startSessionMonitor() {
+            console.log('📡 بدء مراقبة الجلسة');
+            setInterval(async function() {
+                var token = getToken();
+                if (!token) {
+                    console.warn('⚠️ انتهت الجلسة، جاري التوجيه لتسجيل الدخول');
+                    redirectToLogin();
+                    return;
+                }
+                try {
+                    var refreshed = await refreshSession();
+                    if (!refreshed) {
+                        console.warn('⚠️ فشل تجديد الجلسة');
+                    }
+                } catch (e) {
+                    console.warn('⚠️ تعذر التحقق من الجلسة:', e.message);
+                }
+            }, 30000);
         }
 
         // ============================================================
