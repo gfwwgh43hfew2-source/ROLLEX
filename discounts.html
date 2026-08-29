@@ -14,6 +14,7 @@
     <script src="supabase-client.js"></script>
 
     <style>
+        /* ============================================================ */
         :root {
             --ink: #121821;
             --ink-soft: #2c3644;
@@ -1342,15 +1343,79 @@
         });
 
         // ============================================================
-        // GENERATE TRANSACTION NUMBER
+        // GENERATE TRANSACTION NUMBER - مع التحقق من عدم التكرار
         // ============================================================
-        function generateTransactionNumber() {
+        async function generateTransactionNumber() {
             var now = new Date();
             var year = now.getFullYear();
             var month = String(now.getMonth() + 1).padStart(2, '0');
             var day = String(now.getDate()).padStart(2, '0');
-            var random = String(Math.floor(Math.random() * 9999) + 1).padStart(4, '0');
-            return 'DSC-' + year + month + day + '-' + random;
+            var dateStr = year + month + day;
+            
+            var maxAttempts = 100;
+            var attempt = 0;
+            var transactionNo = null;
+            
+            while (attempt < maxAttempts) {
+                attempt++;
+                var random = String(Math.floor(Math.random() * 99999) + 10000).padStart(5, '0');
+                var candidate = 'DSC-' + dateStr + '-' + random;
+                
+                // التحقق من وجود هذا الرقم في قاعدة البيانات
+                var exists = false;
+                try {
+                    var token = getToken();
+                    if (token) {
+                        var companyId = await getCompanyId();
+                        if (companyId) {
+                            var supabase = getSupabaseClient();
+                            if (supabase) {
+                                var { data, error } = await supabase
+                                    .from('client_transactions')
+                                    .select('transaction_no')
+                                    .eq('transaction_no', candidate)
+                                    .eq('company_id', companyId);
+                                
+                                if (!error && data && data.length > 0) {
+                                    exists = true;
+                                    console.log('⚠️ رقم العملية ' + candidate + ' موجود بالفعل، محاولة رقم آخر...');
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('⚠️ فشل التحقق من رقم العملية:', e);
+                }
+                
+                if (!exists) {
+                    transactionNo = candidate;
+                    break;
+                }
+            }
+            
+            // إذا لم نجد رقمًا فريدًا، نستخدم timestamp
+            if (!transactionNo) {
+                var timestamp = Date.now().toString(36).toUpperCase();
+                transactionNo = 'DSC-' + dateStr + '-' + timestamp;
+                console.log('⚠️ تم استخدام رقم فريد مبني على timestamp:', transactionNo);
+            }
+            
+            return transactionNo;
+        }
+
+        // ============================================================
+        // SET DEFAULT VALUES
+        // ============================================================
+        async function setDefaultValues() {
+            var now = new Date();
+            var year = now.getFullYear();
+            var month = String(now.getMonth() + 1).padStart(2, '0');
+            var day = String(now.getDate()).padStart(2, '0');
+            document.getElementById('transactionDate').value = year + '-' + month + '-' + day;
+            
+            // ✅ استخدام الدالة المعدلة لتوليد رقم فريد
+            var transactionNo = await generateTransactionNumber();
+            document.getElementById('transactionNumber').value = transactionNo;
         }
 
         // ============================================================
@@ -1379,7 +1444,7 @@
                 populateClientFilter();
                 renderHistory();
                 updateHistoryCount();
-                setDefaultValues();
+                await setDefaultValues();
 
             } catch (error) {
                 console.error('❌ خطأ في تحميل البيانات:', error);
@@ -1406,18 +1471,6 @@
                 }
             });
             if (currentVal) select.value = currentVal;
-        }
-
-        // ============================================================
-        // SET DEFAULT VALUES
-        // ============================================================
-        function setDefaultValues() {
-            var now = new Date();
-            var year = now.getFullYear();
-            var month = String(now.getMonth() + 1).padStart(2, '0');
-            var day = String(now.getDate()).padStart(2, '0');
-            document.getElementById('transactionDate').value = year + '-' + month + '-' + day;
-            document.getElementById('transactionNumber').value = generateTransactionNumber();
         }
 
         // ============================================================
@@ -1520,6 +1573,22 @@
         }
 
         // ============================================================
+        // RESET FORM
+        // ============================================================
+        async function resetForm() {
+            document.getElementById('clientNameInput').value = '';
+            document.getElementById('clientIdHidden').value = '';
+            selectedClientId = null;
+            document.getElementById('amountInput').value = '';
+            document.getElementById('notesInput').value = '';
+            document.getElementById('clientSuggestions').classList.remove('show');
+            await setDefaultValues();
+            document.getElementById('transactionType').value = 'discount';
+        }
+
+        document.getElementById('btnReset').addEventListener('click', resetForm);
+
+        // ============================================================
         // SAVE TRANSACTION - باستخدام دوال supabase-client.js
         // ============================================================
         document.getElementById('btnSave').addEventListener('click', async function() {
@@ -1560,6 +1629,18 @@
 
                 var isNegative = (type === 'discount' || type === 'bonus');
                 var effectAmount = isNegative ? -amount : amount;
+
+                // ✅ التحقق مرة أخرى من أن رقم العملية غير مكرر
+                var existingTransaction = allTransactions.find(function(t) {
+                    return t.transaction_no === transactionNo;
+                });
+
+                if (existingTransaction) {
+                    // توليد رقم جديد
+                    transactionNo = await generateTransactionNumber();
+                    document.getElementById('transactionNumber').value = transactionNo;
+                    console.log('🔄 تم تغيير رقم العملية إلى:', transactionNo);
+                }
 
                 // استخدام insertRow من supabase-client.js
                 var transaction = await insertRow('client_transactions', {
@@ -1602,22 +1683,6 @@
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-save"></i> حفظ العملية';
         });
-
-        // ============================================================
-        // RESET FORM
-        // ============================================================
-        function resetForm() {
-            document.getElementById('clientNameInput').value = '';
-            document.getElementById('clientIdHidden').value = '';
-            selectedClientId = null;
-            document.getElementById('amountInput').value = '';
-            document.getElementById('notesInput').value = '';
-            document.getElementById('clientSuggestions').classList.remove('show');
-            setDefaultValues();
-            document.getElementById('transactionType').value = 'discount';
-        }
-
-        document.getElementById('btnReset').addEventListener('click', resetForm);
 
         // ============================================================
         // FILTER EVENTS
@@ -1913,8 +1978,7 @@
                     }
 
                     try {
-                        var transactionNo = 'DSC-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' +
-                            String(Math.floor(Math.random() * 9999) + 1).padStart(4, '0');
+                        var transactionNo = await generateTransactionNumber();
 
                         var isNegative = (data.type === 'discount' || data.type === 'bonus');
                         var effectAmount = isNegative ? -data.amount : data.amount;
