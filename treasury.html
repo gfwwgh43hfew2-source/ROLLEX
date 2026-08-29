@@ -1134,7 +1134,7 @@
 
     </div>
 
-    <!-- ===== OPENING BALANCE MODAL ===== -->
+    <!-- ===== OPENING BALANCE MODAL - مع إضافة حقل التاريخ ===== -->
     <div class="modal-overlay" id="openingModal">
         <div class="modal-box">
             <div class="modal-header">
@@ -1142,6 +1142,10 @@
                 <button class="close-modal" onclick="closeOpeningModal()"><i class="fas fa-times"></i></button>
             </div>
             <form id="openingForm">
+                <div class="form-group">
+                    <label>التاريخ <span class="required">*</span></label>
+                    <input type="date" id="openingDate" required />
+                </div>
                 <div class="form-group">
                     <label>المبلغ <span class="required">*</span></label>
                     <input type="number" id="openingAmount" placeholder="0.00" min="0.01" step="0.01" required />
@@ -1327,8 +1331,6 @@
                         var orderField = parts[0] || 'created_at';
                         var orderDirection = parts[1] === 'desc' ? 'desc' : 'asc';
                         
-                        // ✅ التحقق من وجود العمود في الجدول
-                        // لجدول treasury_transactions، نستخدم 'date' بدلاً من 'transaction_date'
                         if (tableName === 'treasury_transactions' && orderField === 'transaction_date') {
                             orderField = 'date';
                         }
@@ -1407,9 +1409,9 @@
         }
 
         // ============================================================
-        // ADD OPENING BALANCE
+        // ADD OPENING BALANCE - مع دعم التاريخ
         // ============================================================
-        async function addOpeningBalance(treasuryId, amount, description) {
+        async function addOpeningBalance(treasuryId, amount, description, openingDate) {
             var token = getToken();
             if (!token) return null;
 
@@ -1423,7 +1425,7 @@
                 description: description || 'رصيد افتتاحي',
                 general_tab: 'رأس مال',
                 private_tab: 'رصيد افتتاحي',
-                date: new Date().toISOString(),
+                date: openingDate || new Date().toISOString(),
                 company_id: companyId,
                 user_id: user ? user.id : null
             };
@@ -1550,10 +1552,18 @@
         }
 
         // ============================================================
-        // OPEN / CLOSE OPENING MODAL
+        // OPEN / CLOSE OPENING MODAL - مع تعيين التاريخ الحالي
         // ============================================================
         function openOpeningModal() {
             document.getElementById('openingModal').classList.add('active');
+            
+            // تعيين التاريخ الحالي كقيمة افتراضية
+            var today = new Date();
+            var year = today.getFullYear();
+            var month = String(today.getMonth() + 1).padStart(2, '0');
+            var day = String(today.getDate()).padStart(2, '0');
+            document.getElementById('openingDate').value = year + '-' + month + '-' + day;
+            
             document.getElementById('openingAmount').value = '';
             document.getElementById('openingDesc').value = '';
             document.getElementById('openingAmount').focus();
@@ -1564,13 +1574,19 @@
         }
 
         // ============================================================
-        // OPENING FORM SUBMIT
+        // OPENING FORM SUBMIT - مع إرسال التاريخ
         // ============================================================
         document.getElementById('openingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            var openingDate = document.getElementById('openingDate').value;
             var amount = parseFloat(document.getElementById('openingAmount').value);
             var description = document.getElementById('openingDesc').value.trim();
+
+            if (!openingDate) {
+                showToast('⚠️ تنبيه', 'يرجى تحديد التاريخ', 'error');
+                return;
+            }
 
             if (!amount || amount <= 0) {
                 showToast('⚠️ تنبيه', 'يرجى إدخال مبلغ صحيح', 'error');
@@ -1582,9 +1598,12 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
 
             try {
-                await addOpeningBalance(currentTreasuryId, amount, description);
+                // تحويل التاريخ إلى صيغة ISO
+                var dateISO = openingDate + 'T00:00:00';
+                
+                await addOpeningBalance(currentTreasuryId, amount, description, dateISO);
                 await updateTreasuryBalance(currentTreasuryId);
-                showToast('✅ تم الإضافة', 'تم إضافة الرصيد الافتتاحي بنجاح', 'success');
+                showToast('✅ تم الإضافة', 'تم إضافة الرصيد الافتتاحي بنجاح بتاريخ ' + openingDate, 'success');
                 closeOpeningModal();
                 loadData();
             } catch (error) {
@@ -2337,7 +2356,7 @@
         // INIT
         // ============================================================
         (async function init() {
-            console.log('🏛️ الخزينة - QuickData ProSoft (نسخة محسنة مع دعم الترحيل)');
+            console.log('🏛️ الخزينة - QuickData ProSoft (نسخة محسنة مع دعم الترحيل والتاريخ)');
 
             var token = getToken();
             if (!token) {
