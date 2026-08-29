@@ -257,11 +257,44 @@
             letter-spacing: 0.3px;
         }
 
+        /* ===== خيارات الترتيب ===== */
+        .sort-options {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .sort-options label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        .sort-options label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--gold);
+        }
+        .sort-options .sort-hint {
+            font-size: 0.6rem;
+            color: var(--text-light);
+            margin-right: auto;
+        }
+
         .actions-row {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
         .actions-row .btn-action {
             padding: 9px 18px;
@@ -514,6 +547,22 @@
         }
         tbody tr:last-child td {
             border-bottom: none;
+        }
+
+        /* ===== تمييز الصفوف المستوردة ===== */
+        tbody tr.imported-row {
+            border-right: 3px solid var(--gold);
+        }
+        tbody tr.imported-row td:first-child::before {
+            content: '📥';
+            margin-left: 4px;
+            font-size: 0.7rem;
+        }
+        tbody tr.imported-row td {
+            background: rgba(184, 148, 42, 0.03);
+        }
+        tbody tr.imported-row:hover td {
+            background: rgba(184, 148, 42, 0.08);
         }
 
         .badge-type {
@@ -958,6 +1007,13 @@
                 width: 100%;
                 justify-content: center;
             }
+            .sort-options {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .sort-options .sort-hint {
+                margin-right: 0;
+            }
             .modal-box {
                 padding: 20px;
                 margin: 10px;
@@ -1061,6 +1117,21 @@
             </div>
         </div>
 
+        <!-- ===== SORT OPTIONS ===== -->
+        <div class="sort-options">
+            <label>
+                <input type="checkbox" id="sortByImportOrder" checked onchange="toggleSortOrder()" />
+                <i class="fas fa-sort"></i> عرض حسب ترتيب الاستيراد
+            </label>
+            <label>
+                <input type="checkbox" id="showImportedOnly" onchange="toggleSortOrder()" />
+                <i class="fas fa-file-import"></i> إظهار المستورد فقط
+            </label>
+            <span class="sort-hint">
+                <i class="fas fa-info-circle"></i> عند التفعيل، تظهر البيانات بنفس ترتيب ملف Excel
+            </span>
+        </div>
+
         <!-- ===== ACTIONS ROW ===== -->
         <div class="actions-row">
             <button class="btn-action primary" onclick="openOpeningModal()">
@@ -1134,7 +1205,7 @@
 
     </div>
 
-    <!-- ===== OPENING BALANCE MODAL - مع إضافة حقل التاريخ ===== -->
+    <!-- ===== OPENING BALANCE MODAL ===== -->
     <div class="modal-overlay" id="openingModal">
         <div class="modal-box">
             <div class="modal-header">
@@ -1276,6 +1347,12 @@
         var allTreasuries = [];
         var allTransactions = [];
         var supabaseClient = null;
+        
+        // ===== متغيرات للتحكم في ترتيب العرض =====
+        var importedRowIds = {}; // لتخزين معرفات الصفوف المستوردة
+        var importOrder = []; // ترتيب الاستيراد
+        var sortByImportOrder = true;
+        var showImportedOnly = false;
 
         // ============================================================
         // GET SUPABASE CLIENT
@@ -1295,7 +1372,16 @@
         }
 
         // ============================================================
-        // FETCH ALL ROWS WITH PAGINATION - دالة عامة للجلب مع الترحيل
+        // TOGGLE SORT ORDER
+        // ============================================================
+        function toggleSortOrder() {
+            sortByImportOrder = document.getElementById('sortByImportOrder').checked;
+            showImportedOnly = document.getElementById('showImportedOnly').checked;
+            renderTransactions(allTransactions);
+        }
+
+        // ============================================================
+        // FETCH ALL ROWS WITH PAGINATION
         // ============================================================
         async function fetchAllRowsWithPagination(tableName, filterField, filterValue, orderBy) {
             try {
@@ -1364,7 +1450,7 @@
         }
 
         // ============================================================
-        // GET TRANSACTIONS WITH PAGINATION - جلب حركات الخزينة مع الترحيل
+        // GET TRANSACTIONS WITH PAGINATION
         // ============================================================
         async function getTransactionsWithPagination(treasuryId) {
             try {
@@ -1409,7 +1495,7 @@
         }
 
         // ============================================================
-        // ADD OPENING BALANCE - مع دعم التاريخ
+        // ADD OPENING BALANCE
         // ============================================================
         async function addOpeningBalance(treasuryId, amount, description, openingDate) {
             var token = getToken();
@@ -1427,7 +1513,9 @@
                 private_tab: 'رصيد افتتاحي',
                 date: openingDate || new Date().toISOString(),
                 company_id: companyId,
-                user_id: user ? user.id : null
+                user_id: user ? user.id : null,
+                is_imported: false,
+                import_order: null
             };
 
             return await insertRow('treasury_transactions', payload);
@@ -1516,7 +1604,9 @@
                     private_tab: 'تحويل بين الخزائن',
                     date: new Date().toISOString(),
                     company_id: companyId,
-                    user_id: user ? user.id : null
+                    user_id: user ? user.id : null,
+                    is_imported: false,
+                    import_order: null
                 });
 
                 await insertRow('treasury_transactions', {
@@ -1528,7 +1618,9 @@
                     private_tab: 'تحويل بين الخزائن',
                     date: new Date().toISOString(),
                     company_id: companyId,
-                    user_id: user ? user.id : null
+                    user_id: user ? user.id : null,
+                    is_imported: false,
+                    import_order: null
                 });
 
                 await updateTreasuryBalance(fromId);
@@ -1552,12 +1644,11 @@
         }
 
         // ============================================================
-        // OPEN / CLOSE OPENING MODAL - مع تعيين التاريخ الحالي
+        // OPEN / CLOSE OPENING MODAL
         // ============================================================
         function openOpeningModal() {
             document.getElementById('openingModal').classList.add('active');
             
-            // تعيين التاريخ الحالي كقيمة افتراضية
             var today = new Date();
             var year = today.getFullYear();
             var month = String(today.getMonth() + 1).padStart(2, '0');
@@ -1574,7 +1665,7 @@
         }
 
         // ============================================================
-        // OPENING FORM SUBMIT - مع إرسال التاريخ
+        // OPENING FORM SUBMIT
         // ============================================================
         document.getElementById('openingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1598,7 +1689,6 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
 
             try {
-                // تحويل التاريخ إلى صيغة ISO
                 var dateISO = openingDate + 'T00:00:00';
                 
                 await addOpeningBalance(currentTreasuryId, amount, description, dateISO);
@@ -1769,7 +1859,7 @@
         }
 
         // ============================================================
-        // IMPORT FORM SUBMIT
+        // IMPORT FORM SUBMIT - مع حفظ ترتيب الاستيراد
         // ============================================================
         document.getElementById('importForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1791,6 +1881,10 @@
             var progressBar = document.getElementById('importProgressBar');
             var progressCount = document.getElementById('importProgressCount');
             var totalCount = document.getElementById('importTotalCount');
+
+            // إعادة تعيين ترتيب الاستيراد
+            importOrder = [];
+            importedRowIds = {};
 
             try {
                 var data = await file.arrayBuffer();
@@ -1921,7 +2015,10 @@
                         var companyId = await getCompanyId();
                         var user = await getCurrentUserProfile();
 
-                        await insertRow('treasury_transactions', {
+                        // ✅ حفظ ترتيب الاستيراد
+                        var importOrderIndex = i + 1;
+
+                        var inserted = await insertRow('treasury_transactions', {
                             treasury_id: currentTreasuryId,
                             amount: amount,
                             type: type,
@@ -1930,8 +2027,16 @@
                             private_tab: privateTab || 'خاص',
                             date: transactionDate,
                             company_id: companyId,
-                            user_id: user ? user.id : null
+                            user_id: user ? user.id : null,
+                            is_imported: true, // ✅ علامة تشير إلى أن هذه الحركة مستوردة
+                            import_order: importOrderIndex // ✅ ترتيب الصف في ملف Excel
                         });
+
+                        // ✅ تخزين معرف الحركة وترتيبها للمقارنة
+                        if (inserted && inserted.id) {
+                            importedRowIds[inserted.id] = importOrderIndex;
+                            importOrder.push(inserted.id);
+                        }
 
                         successCount++;
 
@@ -1949,7 +2054,7 @@
                     if (errorCount > 0) {
                         message += '، وفشل ' + errorCount + ' حركة';
                     }
-                    showToast('✅ تم الاستيراد', message, 'success');
+                    showToast('✅ تم الاستيراد', message + ' (تم حفظ ترتيب الصفوف)', 'success');
                     closeImportModal();
                     loadData();
                 } else {
@@ -1967,6 +2072,7 @@
                 console.log('  ✅ نجاح: ' + successCount + ' صف');
                 console.log('  ❌ فشل: ' + errorCount + ' صف');
                 console.log('  📄 إجمالي: ' + totalRows + ' صف');
+                console.log('  📋 ترتيب الاستيراد محفوظ');
 
             } catch (error) {
                 console.error('❌ خطأ:', error);
@@ -1979,34 +2085,10 @@
         });
 
         // ============================================================
-        // DISPLAY DATA
+        // RENDER TRANSACTIONS - مع دعم ترتيب الاستيراد
         // ============================================================
-        function displayData(transactions, treasury) {
+        function renderTransactions(transactions) {
             var tbody = document.getElementById('transactionsBody');
-
-            if (treasury) {
-                document.getElementById('treasuryName').textContent = treasury.name;
-            }
-
-            var totalIn = 0;
-            var totalOut = 0;
-
-            if (transactions && transactions.length > 0) {
-                transactions.forEach(function(item) {
-                    if (item.amount > 0) {
-                        totalIn += item.amount;
-                    } else {
-                        totalOut += Math.abs(item.amount);
-                    }
-                });
-            }
-
-            document.getElementById('totalIncoming').textContent = totalIn.toLocaleString() + ' ج.م';
-            document.getElementById('totalOutgoing').textContent = totalOut.toLocaleString() + ' ج.م';
-            document.getElementById('totalTransactions').textContent = transactions ? transactions.length : 0;
-
-            var currentBalance = totalIn - totalOut;
-            document.getElementById('treasuryBalance').textContent = currentBalance.toLocaleString() + ' ج.م';
 
             if (!transactions || transactions.length === 0) {
                 tbody.innerHTML =
@@ -2014,12 +2096,41 @@
                 return;
             }
 
+            // تصفية المستورد فقط إذا كان الخيار مفعلاً
+            var filteredTransactions = transactions;
+            if (showImportedOnly) {
+                filteredTransactions = transactions.filter(function(t) {
+                    return t.is_imported === true;
+                });
+            }
+
+            if (filteredTransactions.length === 0) {
+                tbody.innerHTML =
+                    '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-file-import"></i>لا توجد حركات مستوردة</div></td></tr>';
+                return;
+            }
+
+            // ترتيب حسب ترتيب الاستيراد إذا كان الخيار مفعلاً
+            var sortedTransactions = filteredTransactions.slice();
+            if (sortByImportOrder) {
+                sortedTransactions.sort(function(a, b) {
+                    var orderA = importedRowIds[a.id] || 999999;
+                    var orderB = importedRowIds[b.id] || 999999;
+                    return orderA - orderB;
+                });
+            } else {
+                // ترتيب حسب التاريخ (الأحدث أولاً)
+                sortedTransactions.sort(function(a, b) {
+                    var dateA = new Date(a.date || a.created_at);
+                    var dateB = new Date(b.date || b.created_at);
+                    return dateB - dateA;
+                });
+            }
+
             var runningBalance = 0;
-            var rowsData = [];
+            var rowsHtml = '';
 
-            var sortedTransactions = transactions.slice().reverse();
-
-            sortedTransactions.forEach(function(item) {
+            sortedTransactions.forEach(function(item, displayIndex) {
                 var badgeClass = 'badge-type';
                 var typeName = item.type || 'other';
                 var typeLabels = {
@@ -2049,39 +2160,41 @@
                 var incoming = isIncoming ? displayAmount.toLocaleString() : '-';
                 var outgoing = !isIncoming ? displayAmount.toLocaleString() : '-';
 
-                rowsData.push({
-                    id: item.id,
-                    html: `
-                        <tr>
-                            <td>__INDEX__</td>
-                            <td>${date}</td>
-                            <td style="text-align:right;">${item.description || '-'}</td>
-                            <td><span class="${badgeClass}">${displayType}</span></td>
-                            <td class="amount-in">${incoming}</td>
-                            <td class="amount-out">${outgoing}</td>
-                            <td>${item.general_tab || '-'}</td>
-                            <td>${item.private_tab || '-'}</td>
-                            <td class="balance-cell">${runningBalance.toLocaleString()}</td>
-                            <td>
-                                <button class="action-btn edit" onclick="editTransaction('${item.id}')" title="تعديل">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="action-btn delete" onclick="deleteTransactionConfirm('${item.id}')" title="حذف">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `
-                });
+                // ✅ تحديد إذا كانت الحركة مستوردة
+                var isImported = item.is_imported === true;
+                var importedClass = isImported ? 'imported-row' : '';
+                var importBadge = isImported ? ' 📥' : '';
+
+                // ✅ عرض رقم الصف في Excel إذا كان مستورداً
+                var orderDisplay = '';
+                if (isImported && importedRowIds[item.id]) {
+                    orderDisplay = ' (صف ' + importedRowIds[item.id] + ')';
+                }
+
+                rowsHtml += `
+                    <tr class="${importedClass}">
+                        <td>${displayIndex + 1}${importBadge}${orderDisplay}</td>
+                        <td>${date}</td>
+                        <td style="text-align:right;">${item.description || '-'}</td>
+                        <td><span class="${badgeClass}">${displayType}</span></td>
+                        <td class="amount-in">${incoming}</td>
+                        <td class="amount-out">${outgoing}</td>
+                        <td>${item.general_tab || '-'}</td>
+                        <td>${item.private_tab || '-'}</td>
+                        <td class="balance-cell">${runningBalance.toLocaleString()}</td>
+                        <td>
+                            <button class="action-btn edit" onclick="editTransaction('${item.id}')" title="تعديل">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn delete" onclick="deleteTransactionConfirm('${item.id}')" title="حذف">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
             });
 
-            rowsData.reverse();
-
-            var rows = rowsData.map(function(rowData, displayIndex) {
-                return rowData.html.replace('__INDEX__', displayIndex + 1);
-            }).join('');
-
-            tbody.innerHTML = rows;
+            tbody.innerHTML = rowsHtml;
         }
 
         // ============================================================
@@ -2244,19 +2357,68 @@
                 var transactions = await getTransactionsWithPagination(currentTreasuryId);
                 allTransactions = transactions;
 
+                // ✅ تحديث بيانات المستوردين
+                transactions.forEach(function(t) {
+                    if (t.is_imported && t.import_order) {
+                        importedRowIds[t.id] = t.import_order;
+                        if (!importOrder.includes(t.id)) {
+                            importOrder.push(t.id);
+                        }
+                    }
+                });
+
                 var treasuries = await getCompanyTreasuries(treasury.company_id);
                 allTreasuries = treasuries;
 
                 populateTreasurySelects(treasuries, currentTreasuryId, treasury.name);
 
-                displayData(transactions, treasury);
+                // ✅ عرض البيانات مع ترتيب الاستيراد
+                renderTransactions(transactions);
+                updateStats(transactions);
 
                 console.log('✅ تم تحميل ' + transactions.length + ' حركة للخزينة: ' + treasury.name);
+                console.log('📋 عدد الحركات المستوردة: ' + Object.keys(importedRowIds).length);
 
             } catch (error) {
                 console.error('❌ خطأ في تحميل البيانات:', error);
                 showToast('❌ خطأ', 'حدث خطأ في تحميل البيانات', 'error');
             }
+        }
+
+        // ============================================================
+        // UPDATE STATS
+        // ============================================================
+        function updateStats(transactions) {
+            var totalIn = 0;
+            var totalOut = 0;
+
+            if (transactions && transactions.length > 0) {
+                transactions.forEach(function(item) {
+                    if (item.amount > 0) {
+                        totalIn += item.amount;
+                    } else {
+                        totalOut += Math.abs(item.amount);
+                    }
+                });
+            }
+
+            document.getElementById('totalIncoming').textContent = totalIn.toLocaleString() + ' ج.م';
+            document.getElementById('totalOutgoing').textContent = totalOut.toLocaleString() + ' ج.م';
+            document.getElementById('totalTransactions').textContent = transactions ? transactions.length : 0;
+
+            var currentBalance = totalIn - totalOut;
+            document.getElementById('treasuryBalance').textContent = currentBalance.toLocaleString() + ' ج.م';
+        }
+
+        // ============================================================
+        // DISPLAY DATA - متوافقة مع الوظائف القديمة
+        // ============================================================
+        function displayData(transactions, treasury) {
+            if (treasury) {
+                document.getElementById('treasuryName').textContent = treasury.name;
+            }
+            renderTransactions(transactions);
+            updateStats(transactions);
         }
 
         // ============================================================
@@ -2356,7 +2518,7 @@
         // INIT
         // ============================================================
         (async function init() {
-            console.log('🏛️ الخزينة - QuickData ProSoft (نسخة محسنة مع دعم الترحيل والتاريخ)');
+            console.log('🏛️ الخزينة - QuickData ProSoft (نسخة محسنة مع ترتيب الاستيراد)');
 
             var token = getToken();
             if (!token) {
