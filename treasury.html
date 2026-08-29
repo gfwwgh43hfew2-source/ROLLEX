@@ -1332,6 +1332,17 @@
 
         var currentTreasuryId = null;
         var allTreasuries = [];
+        var allTransactions = [];
+        var supabaseClient = null;
+
+        // ============================================================
+        // GET SUPABASE CLIENT
+        // ============================================================
+        function getSupabaseClientInstance() {
+            if (supabaseClient) return supabaseClient;
+            supabaseClient = getSupabaseClient();
+            return supabaseClient;
+        }
 
         // ============================================================
         // GET TREASURY ID FROM URL
@@ -1342,12 +1353,94 @@
         }
 
         // ============================================================
-        // GET TREASURY DETAILS - باستخدام getTable من الملف المركزي
+        // FETCH ALL ROWS WITH PAGINATION - دالة عامة للجلب مع الترحيل
+        // ============================================================
+        async function fetchAllRowsWithPagination(tableName, filterField, filterValue, orderBy) {
+            try {
+                var token = getToken();
+                if (!token) {
+                    console.warn('⚠️ لا يوجد توكن صالح');
+                    return [];
+                }
+
+                var client = getSupabaseClientInstance();
+                if (!client) {
+                    console.error('❌ Supabase Client not available');
+                    return [];
+                }
+
+                var allData = [];
+                var pageSize = 1000;
+                var from = 0;
+                var hasMore = true;
+
+                while (hasMore) {
+                    var query = client
+                        .from(tableName)
+                        .select('*')
+                        .range(from, from + pageSize - 1);
+
+                    if (filterField && filterValue) {
+                        query = query.eq(filterField, filterValue);
+                    }
+
+                    if (orderBy) {
+                        var parts = orderBy.split('.');
+                        var orderField = parts[0] || 'created_at';
+                        var orderDirection = parts[1] === 'desc' ? 'desc' : 'asc';
+                        query = query.order(orderField, { ascending: orderDirection === 'asc' });
+                    }
+
+                    var { data, error } = await query;
+
+                    if (error) {
+                        console.error('❌ فشل جلب ' + tableName + ':', error.message);
+                        return allData;
+                    }
+
+                    if (!data || data.length === 0) {
+                        hasMore = false;
+                    } else {
+                        allData = allData.concat(data);
+                        from += pageSize;
+                        console.log('📦 تم جلب ' + data.length + ' سجل من ' + tableName + ' (إجمالي ' + allData.length + ')');
+                    }
+                }
+
+                console.log('✅ تم جلب ' + allData.length + ' سجل من ' + tableName);
+                return allData;
+
+            } catch (error) {
+                console.error('❌ خطأ في جلب ' + tableName + ':', error);
+                return [];
+            }
+        }
+
+        // ============================================================
+        // GET TRANSACTIONS WITH PAGINATION - جلب حركات الخزينة مع الترحيل
+        // ============================================================
+        async function getTransactionsWithPagination(treasuryId) {
+            try {
+                var transactions = await fetchAllRowsWithPagination(
+                    'treasury_transactions',
+                    'treasury_id',
+                    treasuryId,
+                    'transaction_date.desc'
+                );
+                return transactions || [];
+            } catch (error) {
+                console.error('❌ خطأ في جلب الحركات:', error);
+                return [];
+            }
+        }
+
+        // ============================================================
+        // GET TREASURY DETAILS - باستخدام fetchAllRowsWithPagination
         // ============================================================
         async function getTreasuryDetails(treasuryId) {
             try {
-                var data = await getTable('treasuries');
-                var treasury = data.find(function(t) { return t.id == treasuryId; });
+                var treasuries = await fetchAllRowsWithPagination('treasuries', null, null, null);
+                var treasury = treasuries.find(function(t) { return t.id == treasuryId; });
                 return treasury || null;
             } catch (error) {
                 console.error('❌ خطأ:', error);
@@ -1356,27 +1449,14 @@
         }
 
         // ============================================================
-        // GET COMPANY TREASURIES - باستخدام getTable من الملف المركزي
+        // GET COMPANY TREASURIES - باستخدام fetchAllRowsWithPagination
         // ============================================================
         async function getCompanyTreasuries(companyId) {
             try {
-                var data = await getTable('treasuries');
-                return data.filter(function(t) { return t.company_id == companyId && t.is_active !== false; }) || [];
+                var treasuries = await fetchAllRowsWithPagination('treasuries', null, null, null);
+                return treasuries.filter(function(t) { return t.company_id == companyId && t.is_active !== false; }) || [];
             } catch (error) {
                 console.error('❌ خطأ في جلب الخزائن:', error);
-                return [];
-            }
-        }
-
-        // ============================================================
-        // GET TRANSACTIONS - باستخدام getTable من الملف المركزي
-        // ============================================================
-        async function getTransactions(treasuryId) {
-            try {
-                var data = await getTable('treasury_transactions');
-                return data.filter(function(t) { return t.treasury_id == treasuryId; }) || [];
-            } catch (error) {
-                console.error('❌ خطأ في جلب الحركات:', error);
                 return [];
             }
         }
@@ -1410,13 +1490,14 @@
         // UPDATE TREASURY BALANCE - باستخدام patchRow من الملف المركزي
         // ============================================================
         async function updateTreasuryBalance(treasuryId) {
-            var transactions = await getTransactions(treasuryId);
+            var transactions = await getTransactionsWithPagination(treasuryId);
             var totalBalance = 0;
             transactions.forEach(function(t) {
                 totalBalance += t.amount || 0;
             });
 
             await patchRow('treasuries', treasuryId, { balance: totalBalance });
+            return totalBalance;
         }
 
         // ============================================================
@@ -1610,7 +1691,7 @@
                 var token = getToken();
                 if (!token) return;
 
-                var transactions = await getTransactions(currentTreasuryId);
+                var transactions = await getTransactionsWithPagination(currentTreasuryId);
                 if (!transactions || transactions.length === 0) {
                     showToast('⚠️ تنبيه', 'لا توجد حركات لتصديرها', 'warning');
                     return;
@@ -1818,7 +1899,7 @@
 
                         if (!transactionDate) {
                             transactionDate = new Date().toISOString();
-                            console.warn(`⚠️ صف ${rowNum}: لم يتم العثور على تاريخ، تم استخدام التاريخ الحالي`);
+                            console.warn('⚠️ صف ' + rowNum + ': لم يتم العثور على تاريخ، تم استخدام التاريخ الحالي');
                         }
 
                         var incoming = 0;
@@ -1923,9 +2004,9 @@
                 }
 
                 console.log('📊 ملخص الاستيراد:');
-                console.log(`  ✅ نجاح: ${successCount} صف`);
-                console.log(`  ❌ فشل: ${errorCount} صف`);
-                console.log(`  📄 إجمالي: ${totalRows} صف`);
+                console.log('  ✅ نجاح: ' + successCount + ' صف');
+                console.log('  ❌ فشل: ' + errorCount + ' صف');
+                console.log('  📄 إجمالي: ' + totalRows + ' صف');
 
             } catch (error) {
                 console.error('❌ خطأ:', error);
@@ -1969,14 +2050,17 @@
 
             if (!transactions || transactions.length === 0) {
                 tbody.innerHTML =
-                    `<tr><td colspan="10"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>`;
+                    '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-inbox"></i>لا توجد حركات</div></td></tr>';
                 return;
             }
 
             var runningBalance = 0;
             var rowsData = [];
 
-            transactions.forEach(function(item) {
+            // عرض الحركات من الأقدم إلى الأحدث لحساب الرصيد التراكمي
+            var sortedTransactions = transactions.slice().reverse();
+
+            sortedTransactions.forEach(function(item) {
                 var badgeClass = 'badge-type';
                 var typeName = item.type || 'other';
                 var typeLabels = {
@@ -2006,33 +2090,37 @@
                 var incoming = isIncoming ? displayAmount.toLocaleString() : '-';
                 var outgoing = !isIncoming ? displayAmount.toLocaleString() : '-';
 
-                rowsData.push(`
-                    <tr>
-                        <td>__INDEX__</td>
-                        <td>${date}</td>
-                        <td style="text-align:right;">${item.description || '-'}</td>
-                        <td><span class="${badgeClass}">${displayType}</span></td>
-                        <td class="amount-in">${incoming}</td>
-                        <td class="amount-out">${outgoing}</td>
-                        <td>${item.general_tab || '-'}</td>
-                        <td>${item.private_tab || '-'}</td>
-                        <td class="balance-cell">${runningBalance.toLocaleString()}</td>
-                        <td>
-                            <button class="action-btn edit" onclick="editTransaction('${item.id}')" title="تعديل">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="action-btn delete" onclick="deleteTransactionConfirm('${item.id}')" title="حذف">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `);
+                rowsData.push({
+                    id: item.id,
+                    html: `
+                        <tr>
+                            <td>__INDEX__</td>
+                            <td>${date}</td>
+                            <td style="text-align:right;">${item.description || '-'}</td>
+                            <td><span class="${badgeClass}">${displayType}</span></td>
+                            <td class="amount-in">${incoming}</td>
+                            <td class="amount-out">${outgoing}</td>
+                            <td>${item.general_tab || '-'}</td>
+                            <td>${item.private_tab || '-'}</td>
+                            <td class="balance-cell">${runningBalance.toLocaleString()}</td>
+                            <td>
+                                <button class="action-btn edit" onclick="editTransaction('${item.id}')" title="تعديل">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-btn delete" onclick="deleteTransactionConfirm('${item.id}')" title="حذف">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `
+                });
             });
 
+            // عرض الحركات من الأحدث إلى الأقدم في الجدول
             rowsData.reverse();
 
-            var rows = rowsData.map(function(rowHtml, displayIndex) {
-                return rowHtml.replace('__INDEX__', displayIndex + 1);
+            var rows = rowsData.map(function(rowData, displayIndex) {
+                return rowData.html.replace('__INDEX__', displayIndex + 1);
             }).join('');
 
             tbody.innerHTML = rows;
@@ -2076,7 +2164,7 @@
 
         async function fetchTransactionData(transactionId) {
             try {
-                var transactions = await getTransactions(currentTreasuryId);
+                var transactions = await getTransactionsWithPagination(currentTreasuryId);
                 var transaction = transactions.find(function(t) { return t.id == transactionId; });
 
                 if (!transaction) {
@@ -2179,28 +2267,43 @@
                 return;
             }
 
-            var treasury = await getTreasuryDetails(currentTreasuryId);
+            try {
+                // جلب تفاصيل الخزينة
+                var treasury = await getTreasuryDetails(currentTreasuryId);
 
-            if (!treasury) {
-                document.getElementById('treasuryName').textContent = '⚠️ الخزينة غير موجودة';
-                document.querySelector('.table-wrapper').innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <p>الخزينة غير موجودة أو تم حذفها</p>
-                        <br />
-                        <a href="treasuries.html"><i class="fas fa-arrow-right"></i> العودة للخزائن</a>
-                    </div>
-                `;
-                return;
+                if (!treasury) {
+                    document.getElementById('treasuryName').textContent = '⚠️ الخزينة غير موجودة';
+                    document.querySelector('.table-wrapper').innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>الخزينة غير موجودة أو تم حذفها</p>
+                            <br />
+                            <a href="treasuries.html"><i class="fas fa-arrow-right"></i> العودة للخزائن</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // جلب جميع حركات الخزينة مع الترحيل
+                var transactions = await getTransactionsWithPagination(currentTreasuryId);
+                allTransactions = transactions;
+
+                // جلب جميع الخزائن للتحويلات
+                var treasuries = await getCompanyTreasuries(treasury.company_id);
+                allTreasuries = treasuries;
+
+                // تعبئة قائمة الخزائن للتحويل
+                populateTreasurySelects(treasuries, currentTreasuryId, treasury.name);
+
+                // عرض البيانات
+                displayData(transactions, treasury);
+
+                console.log('✅ تم تحميل ' + transactions.length + ' حركة للخزينة: ' + treasury.name);
+
+            } catch (error) {
+                console.error('❌ خطأ في تحميل البيانات:', error);
+                showToast('❌ خطأ', 'حدث خطأ في تحميل البيانات', 'error');
             }
-
-            var transactions = await getTransactions(currentTreasuryId);
-
-            var treasuries = await getCompanyTreasuries(treasury.company_id);
-
-            populateTreasurySelects(treasuries, currentTreasuryId, treasury.name);
-
-            displayData(transactions, treasury);
         }
 
         // ============================================================
@@ -2266,10 +2369,41 @@
         });
 
         // ============================================================
+        // SESSION MONITOR
+        // ============================================================
+        function startSessionMonitor() {
+            console.log('📡 بدء مراقبة الجلسة');
+            setInterval(async function() {
+                var token = getToken();
+                if (!token) {
+                    console.warn('⚠️ انتهت الجلسة، جاري التوجيه لتسجيل الدخول');
+                    redirectToLogin();
+                    return;
+                }
+                try {
+                    var refreshed = await refreshSession();
+                    if (!refreshed) {
+                        console.warn('⚠️ فشل تجديد الجلسة');
+                    }
+                } catch (e) {
+                    console.warn('⚠️ تعذر التحقق من الجلسة:', e.message);
+                }
+            }, 30000);
+        }
+
+        // ============================================================
+        // REDIRECT TO LOGIN
+        // ============================================================
+        function redirectToLogin() {
+            if (window.location.pathname.includes('login.html')) return;
+            window.location.href = 'login.html';
+        }
+
+        // ============================================================
         // INIT
         // ============================================================
         (async function init() {
-            console.log('🏛️ الخزينة - QuickData ProSoft');
+            console.log('🏛️ الخزينة - QuickData ProSoft (نسخة محسنة مع دعم الترحيل)');
 
             var token = getToken();
             if (!token) {
@@ -2285,11 +2419,13 @@
 
             try {
                 await loadData();
+                console.log('✅ تم تحميل البيانات بنجاح');
             } catch (e) {
                 console.error('❌ خطأ في تحميل البيانات:', e);
                 showToast('❌ خطأ', 'حدث خطأ في تحميل البيانات', 'error');
             }
 
+            // بدء مراقبة الجلسة بعد 3 ثواني
             setTimeout(function() {
                 startSessionMonitor();
             }, 3000);
