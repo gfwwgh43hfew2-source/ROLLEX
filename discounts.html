@@ -456,7 +456,7 @@
         .btn-import i { color: var(--teal); }
 
         /* ============================================================ */
-        /* CLIENT SUGGESTIONS - محسّن مع إضافة عميل جديد */
+        /* CLIENT SUGGESTIONS - للفلترة والاختيار */
         /* ============================================================ */
         .client-suggestions {
             position: relative;
@@ -506,6 +506,63 @@
             border-right: calc(3px * var(--scale-factor)) solid var(--accent);
         }
         .client-suggestions .suggestions-list .no-results {
+            padding: calc(12px * var(--scale-factor)) calc(14px * var(--scale-factor));
+            text-align: center;
+            color: var(--ink-mute);
+            font-size: calc(0.75rem * var(--scale-factor));
+        }
+
+        /* ============================================================ */
+        /* FILTER SUGGESTIONS - للفلترة */
+        /* ============================================================ */
+        .filter-suggestions {
+            position: relative;
+            width: 100%;
+        }
+        .filter-suggestions .suggestions-list {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            left: 0;
+            background: #ffffff;
+            border: 1px solid var(--line);
+            border-radius: calc(var(--radius-sm) * var(--scale-factor));
+            max-height: calc(200px * var(--scale-factor));
+            overflow-y: auto;
+            z-index: 999;
+            display: none;
+            box-shadow: var(--shadow);
+            margin-top: calc(2px * var(--scale-factor));
+        }
+        .filter-suggestions .suggestions-list.show { display: block; }
+        .filter-suggestions .suggestions-list .suggestion-item {
+            padding: calc(8px * var(--scale-factor)) calc(14px * var(--scale-factor));
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--line);
+            font-size: calc(0.8rem * var(--scale-factor));
+        }
+        .filter-suggestions .suggestions-list .suggestion-item:last-child { border-bottom: none; }
+        .filter-suggestions .suggestions-list .suggestion-item:hover { background: var(--accent-soft); }
+        .filter-suggestions .suggestions-list .suggestion-item .client-phone {
+            font-size: calc(0.65rem * var(--scale-factor));
+            color: var(--ink-mute);
+        }
+        .filter-suggestions .suggestions-list .suggestion-item.selected {
+            background: var(--accent-soft);
+            border-right: calc(3px * var(--scale-factor)) solid var(--accent);
+        }
+        .filter-suggestions .suggestions-list .suggestion-item.clear-all {
+            color: var(--rust);
+            font-weight: 700;
+        }
+        .filter-suggestions .suggestions-list .suggestion-item.clear-all i {
+            margin-left: calc(6px * var(--scale-factor));
+        }
+        .filter-suggestions .suggestions-list .no-results {
             padding: calc(12px * var(--scale-factor)) calc(14px * var(--scale-factor));
             text-align: center;
             color: var(--ink-mute);
@@ -588,6 +645,26 @@
             background: #ffffff;
             box-shadow: 0 0 0 calc(3px * var(--scale-factor)) rgba(221,159,46,0.15);
         }
+
+        /* حقل الفلترة مع الاقتراحات */
+        .filter-row .filter-suggestions input {
+            padding: calc(6px * var(--scale-factor)) calc(10px * var(--scale-factor));
+            border-radius: calc(var(--radius-sm) * var(--scale-factor));
+            border: 1.5px solid var(--line);
+            background: var(--surface-muted);
+            color: var(--ink);
+            font-size: calc(0.75rem * var(--scale-factor));
+            font-family: var(--font-display);
+            outline: none;
+            height: calc(36px * var(--scale-factor));
+            width: 100%;
+        }
+        .filter-row .filter-suggestions input:focus {
+            border-color: var(--accent);
+            background: #ffffff;
+            box-shadow: 0 0 0 calc(3px * var(--scale-factor)) rgba(221,159,46,0.15);
+        }
+
         .filter-row .btn-filter {
             padding: calc(6px * var(--scale-factor)) calc(18px * var(--scale-factor));
             border-radius: calc(var(--radius-sm) * var(--scale-factor));
@@ -1094,14 +1171,18 @@
                 <span class="badge" id="historyCount">0 عملية</span>
             </div>
 
-            <!-- الفلترة -->
+            <!-- الفلترة - مع حقل عميل ذكي -->
             <div class="filter-row">
                 <div class="form-group">
-                    <label>العميل</label>
-                    <select id="filterClient"><option value="">جميع العملاء</option></select>
+                    <label><i class="fas fa-user"></i> العميل</label>
+                    <div class="filter-suggestions" id="filterSuggestionsContainer">
+                        <input type="text" id="filterClientInput" placeholder="ابحث عن عميل..." autocomplete="off" />
+                        <div class="suggestions-list" id="filterClientSuggestions"></div>
+                        <input type="hidden" id="filterClientId" value="" />
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label>نوع العملية</label>
+                    <label><i class="fas fa-tag"></i> نوع العملية</label>
                     <select id="filterType">
                         <option value="">الكل</option>
                         <option value="discount">خصم</option>
@@ -1110,11 +1191,11 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>من تاريخ</label>
+                    <label><i class="fas fa-calendar"></i> من تاريخ</label>
                     <input type="date" id="filterDateFrom" />
                 </div>
                 <div class="form-group">
-                    <label>إلى تاريخ</label>
+                    <label><i class="fas fa-calendar"></i> إلى تاريخ</label>
                     <input type="date" id="filterDateTo" />
                 </div>
                 <div class="form-group" style="flex:0 0 auto;min-width:unset;">
@@ -1152,8 +1233,6 @@
         // ============================================================
         // SUPABASE CONFIG - مستخدم من supabase-client.js
         // ============================================================
-        // SUPABASE_URL و SUPABASE_ANON_KEY موجودة بالفعل في supabase-client.js
-        // نستخدم الدوال الموجودة بدلاً من إعادة التعريف
 
         // ============================================================
         // STATE
@@ -1162,6 +1241,8 @@
         var allTransactions = [];
         var selectedClientId = null;
         var selectedSuggestionIndex = -1;
+        var filterSelectedClientId = null;
+        var filterSuggestionIndex = -1;
 
         // ============================================================
         // TOAST
@@ -1214,7 +1295,7 @@
         }
 
         // ============================================================
-        // CLIENT SUGGESTIONS - نسخة محسنة مع دعم إضافة عميل جديد
+        // CLIENT SUGGESTIONS - للنموذج الرئيسي
         // ============================================================
         function showClientSuggestions(input) {
             var searchTerm = input.trim().toLowerCase();
@@ -1340,7 +1421,7 @@
         }
 
         // ============================================================
-        // CLIENT INPUT EVENTS - محسّنة
+        // CLIENT INPUT EVENTS - للنموذج الرئيسي
         // ============================================================
         document.getElementById('clientNameInput').addEventListener('input', function() {
             var value = this.value.trim();
@@ -1405,7 +1486,167 @@
         });
 
         // ============================================================
-        // GENERATE TRANSACTION NUMBER - مع التحقق من عدم التكرار
+        // FILTER CLIENT SUGGESTIONS - للفلترة
+        // ============================================================
+        function showFilterClientSuggestions(input) {
+            var searchTerm = input.trim().toLowerCase();
+            var suggestionsList = document.getElementById('filterClientSuggestions');
+            var container = document.getElementById('filterSuggestionsContainer');
+
+            if (!searchTerm || searchTerm.length < 1) {
+                suggestionsList.classList.remove('show');
+                filterSuggestionIndex = -1;
+                return;
+            }
+
+            var filtered = allClients.filter(function(client) {
+                return client.name.toLowerCase().includes(searchTerm) ||
+                    (client.phone && client.phone.includes(searchTerm)) ||
+                    (client.code && client.code.toLowerCase().includes(searchTerm));
+            });
+
+            var results = filtered.slice(0, 10);
+
+            if (results.length === 0) {
+                suggestionsList.innerHTML = `
+                        <div class="no-results">لا توجد نتائج مطابقة</div>
+                    `;
+                suggestionsList.classList.add('show');
+                filterSuggestionIndex = -1;
+                return;
+            }
+
+            var html = '';
+            html += `
+                    <div class="suggestion-item clear-all" onclick="clearFilterClient()" data-index="0">
+                        <span><i class="fas fa-times-circle"></i> إلغاء التحديد (عرض الكل)</span>
+                    </div>
+                `;
+
+            results.forEach(function(client, index) {
+                html += `
+                        <div class="suggestion-item" onclick="selectFilterClient('${client.id}', '${client.name}', '${client.phone || ''}')" data-index="${index + 1}">
+                            <span>${client.code ? client.code + ' — ' : ''}${client.name}</span>
+                            ${client.phone ? `<span class="client-phone">📱 ${client.phone}</span>` : ''}
+                        </div>
+                    `;
+            });
+
+            suggestionsList.innerHTML = html;
+            suggestionsList.classList.add('show');
+            filterSuggestionIndex = -1;
+            updateFilterSuggestionHighlight();
+        }
+
+        function updateFilterSuggestionHighlight() {
+            var items = document.querySelectorAll('#filterClientSuggestions .suggestion-item');
+            items.forEach(function(item, index) {
+                item.classList.remove('selected');
+                if (index === filterSuggestionIndex) {
+                    item.classList.add('selected');
+                    item.scrollIntoView({ block: 'nearest' });
+                }
+            });
+        }
+
+        function selectFilterClient(id, name, phone) {
+            document.getElementById('filterClientInput').value = name;
+            document.getElementById('filterClientId').value = id;
+            filterSelectedClientId = id;
+            document.getElementById('filterClientSuggestions').classList.remove('show');
+            filterSuggestionIndex = -1;
+
+            document.getElementById('filterClientInput').style.borderColor = 'var(--teal)';
+            setTimeout(function() {
+                document.getElementById('filterClientInput').style.borderColor = '';
+            }, 2000);
+
+            // تطبيق الفلترة تلقائياً
+            renderHistory();
+        }
+        window.selectFilterClient = selectFilterClient;
+
+        function clearFilterClient() {
+            document.getElementById('filterClientInput').value = '';
+            document.getElementById('filterClientId').value = '';
+            filterSelectedClientId = null;
+            document.getElementById('filterClientSuggestions').classList.remove('show');
+            filterSuggestionIndex = -1;
+
+            // تطبيق الفلترة تلقائياً
+            renderHistory();
+        }
+        window.clearFilterClient = clearFilterClient;
+
+        // ============================================================
+        // FILTER CLIENT INPUT EVENTS
+        // ============================================================
+        document.getElementById('filterClientInput').addEventListener('input', function() {
+            var value = this.value.trim();
+            if (value.length >= 1) {
+                showFilterClientSuggestions(value);
+            } else {
+                document.getElementById('filterClientSuggestions').classList.remove('show');
+                document.getElementById('filterClientId').value = '';
+                filterSelectedClientId = null;
+                filterSuggestionIndex = -1;
+                // إعادة تعيين الفلترة تلقائياً
+                renderHistory();
+            }
+        });
+
+        document.getElementById('filterClientInput').addEventListener('keydown', function(e) {
+            var items = document.querySelectorAll('#filterClientSuggestions .suggestion-item');
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    filterSuggestionIndex = Math.min(filterSuggestionIndex + 1, items.length - 1);
+                    updateFilterSuggestionHighlight();
+                }
+            }
+
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    filterSuggestionIndex = Math.max(filterSuggestionIndex - 1, 0);
+                    updateFilterSuggestionHighlight();
+                }
+            }
+
+            if (e.key === 'Enter' && filterSuggestionIndex >= 0) {
+                e.preventDefault();
+                var selectedItem = items[filterSuggestionIndex];
+                if (selectedItem) {
+                    selectedItem.click();
+                }
+            }
+
+            if (e.key === 'Escape') {
+                document.getElementById('filterClientSuggestions').classList.remove('show');
+                filterSuggestionIndex = -1;
+            }
+        });
+
+        document.getElementById('filterClientInput').addEventListener('blur', function() {
+            setTimeout(function() {
+                if (!document.activeElement || !document.activeElement.closest('.filter-suggestions')) {
+                    document.getElementById('filterClientSuggestions').classList.remove('show');
+                    filterSuggestionIndex = -1;
+                }
+            }, 200);
+        });
+
+        document.addEventListener('click', function(e) {
+            var container = document.querySelector('.filter-suggestions');
+            if (container && !container.contains(e.target)) {
+                document.getElementById('filterClientSuggestions').classList.remove('show');
+                filterSuggestionIndex = -1;
+            }
+        });
+
+        // ============================================================
+        // GENERATE TRANSACTION NUMBER
         // ============================================================
         async function generateTransactionNumber() {
             var now = new Date();
@@ -1478,7 +1719,7 @@
         }
 
         // ============================================================
-        // LOAD DATA - باستخدام دوال supabase-client.js
+        // LOAD DATA
         // ============================================================
         async function loadData() {
             try {
@@ -1497,7 +1738,6 @@
                 allClients = await getTable('clients');
                 allTransactions = await getTable('client_transactions');
 
-                populateClientFilter();
                 renderHistory();
                 updateHistoryCount();
                 await setDefaultValues();
@@ -1506,27 +1746,6 @@
                 console.error('❌ خطأ في تحميل البيانات:', error);
                 showToast('❌ خطأ', 'فشل تحميل البيانات: ' + error.message, 'error');
             }
-        }
-
-        // ============================================================
-        // POPULATE CLIENT FILTER
-        // ============================================================
-        function populateClientFilter() {
-            var select = document.getElementById('filterClient');
-            var currentVal = select.value;
-            select.innerHTML = '<option value="">جميع العملاء</option>';
-            var names = {};
-            allClients.forEach(function(c) {
-                if (c.name && !names[c.name]) {
-                    names[c.name] = true;
-                    var opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = c.name + (c.code ? ' (' + c.code + ')' : '') +
-                        (c.due_balance ? ' - رصيد: ' + parseFloat(c.due_balance).toFixed(2) : '');
-                    select.appendChild(opt);
-                }
-            });
-            if (currentVal) select.value = currentVal;
         }
 
         // ============================================================
@@ -1587,7 +1806,7 @@
         // FILTER TRANSACTIONS
         // ============================================================
         function filterTransactions() {
-            var clientId = document.getElementById('filterClient').value;
+            var clientId = document.getElementById('filterClientId').value;
             var type = document.getElementById('filterType').value;
             var dateFrom = document.getElementById('filterDateFrom').value;
             var dateTo = document.getElementById('filterDateTo').value;
@@ -1621,13 +1840,6 @@
             } catch (e) { return dateStr; }
         }
 
-        function formatNum(val) {
-            if (val === null || val === undefined || val === '') return '0.00';
-            var n = parseFloat(val);
-            if (isNaN(n)) return '0.00';
-            return n.toLocaleString('ar-EG', { maximumFractionDigits: 2 });
-        }
-
         // ============================================================
         // RESET FORM
         // ============================================================
@@ -1645,7 +1857,7 @@
         document.getElementById('btnReset').addEventListener('click', resetForm);
 
         // ============================================================
-        // SAVE TRANSACTION - باستخدام دوال supabase-client.js
+        // SAVE TRANSACTION
         // ============================================================
         document.getElementById('btnSave').addEventListener('click', async function() {
             var clientId = document.getElementById('clientIdHidden').value;
@@ -1744,15 +1956,19 @@
         });
 
         document.getElementById('btnResetFilter').addEventListener('click', function() {
-            document.getElementById('filterClient').value = '';
+            document.getElementById('filterClientInput').value = '';
+            document.getElementById('filterClientId').value = '';
+            filterSelectedClientId = null;
+            document.getElementById('filterClientSuggestions').classList.remove('show');
             document.getElementById('filterType').value = '';
             document.getElementById('filterDateFrom').value = '';
             document.getElementById('filterDateTo').value = '';
             renderHistory();
         });
 
-        document.getElementById('filterClient').addEventListener('change', renderHistory);
         document.getElementById('filterType').addEventListener('change', renderHistory);
+        document.getElementById('filterDateFrom').addEventListener('change', renderHistory);
+        document.getElementById('filterDateTo').addEventListener('change', renderHistory);
 
         // ============================================================
         // PRINT RECEIPT
@@ -1834,7 +2050,7 @@
         }
 
         // ============================================================
-        // DELETE TRANSACTION - باستخدام دوال supabase-client.js
+        // DELETE TRANSACTION
         // ============================================================
         async function deleteTransaction(transactionId) {
             if (!confirm('⚠️ هل أنت متأكد من حذف هذه العملية؟\n\nهذا الإجراء لا يمكن التراجع عنه.')) return;
