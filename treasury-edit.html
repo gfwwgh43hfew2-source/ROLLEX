@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    <title>تعديل الخزينة - QuickData ProSoft</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <style>
+        /* ==========================================================
+           RESET & BASE
+           ========================================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --gold: #c9a84c;
+            --gold-light: #dbb95c;
+            --gold-deep: #b8942a;
+            --gold-bg: rgba(201, 168, 76, 0.08);
+            --gold-gradient: linear-gradient(135deg, #dbb95c, #c9a84c, #b8942a);
+            --bg-body: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-card-hover: #fafbfc;
+            --bg-field: #f0f2f5;
+            --border-color: #e8ecf1;
+            --border-hover: #d0d5dd;
+            --text-primary: #1a2332;
+            --text-secondary: #4a5a6e;
+            --text-muted: #8a96a8;
+            --text-faint: #b0b8c4;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08);
+            --shadow-xl: 0 16px 40px rgba(0, 0, 0, 0.10);
+            --danger: #dc3545;
+            --success: #28a745;
+            --danger-bg: rgba(220, 53, 69, 0.06);
+            --success-bg: rgba(40, 167, 69, 0.06);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --sidebar-width: 240px;
+            --header-height: 56px;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
+            direction: rtl;
+            min-height: 100vh;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            padding: 0;
+            margin: 0;
+            font-size: 13px;
+            display: flex;
+        }
+
+        /* ==========================================================
+           SIDEBAR - مغلقة افتراضياً
+           ========================================================== */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: calc(-1 * var(--sidebar-width));
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--bg-card);
+            border-left: 1px solid var(--border-color);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-lg);
+            overflow-y: auto;
+        }
+
+        .sidebar.open {
+            right: 0;
+        }
+
+        .sidebar .brand {
+            padding: 16px 18px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .sidebar .brand .mark {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            background: var(--gold-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 900;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .sidebar .brand .text {
+            font-weight: 800;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .sidebar .brand .text span {
+            display: block;
+            font-size: 0.5rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .sidebar .close-btn {
+            margin-right: auto;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: 0.2s;
+        }
+
+        .sidebar .close-btn:hover {
+            background: var(--bg-field);
+            color: var(--text-primary);
+        }
+
+        .sidebar .menu {
+            flex: 1;
+            padding: 10px 12px;
+            overflow-y: auto;
+        }
+
+        .sidebar .menu .label {
+            font-size: 0.5rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            padding: 10px 8px 4px;
+            font-weight: 700;
+        }
+
+        .sidebar .menu .label:first-child {
+            padding-top: 2px;
+        }
+
+        .sidebar .menu .item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 12px;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.75rem;
+            transition: 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            border-right: 3px solid transparent;
+        }
+
+        .sidebar .menu .item:hover {
+            background: var(--bg-field);
+            color: var(--text-primary);
+        }
+
+        .sidebar .menu .item.active {
+            background: var(--gold-bg);
+            color: var(--gold-deep);
+            border-right-color: var(--gold);
+        }
+
+        .sidebar .menu .item i {
+            width: 16px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .sidebar .menu .item.active i {
+            color: var(--gold);
+        }
+
+        .sidebar .footer {
+            padding: 10px 16px 14px;
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .sidebar .footer .user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar .footer .user .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--gold-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.65rem;
+            color: #fff;
+        }
+
+        .sidebar .footer .user .info .name {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .sidebar .footer .user .info .role {
+            font-size: 0.5rem;
+            color: var(--text-muted);
+        }
+
+        .sidebar .footer .logout-btn {
+            margin-right: auto;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: 0.2s;
+        }
+
+        .sidebar .footer .logout-btn:hover {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        /* ==========================================================
+           MAIN WRAPPER
+           ========================================================== */
+        .main-wrapper {
+            flex: 1;
+            min-height: 100vh;
+            transition: margin-right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-right: 0;
+        }
+
+        /* ==========================================================
+           TOP NAVIGATION
+           ========================================================== */
+        .top-nav {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 16px;
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .top-nav .left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .top-nav .hamburger {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .top-nav .hamburger:hover {
+            background: var(--bg-field);
+            border-color: var(--border-hover);
+        }
+
+        .top-nav .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .top-nav .logo-area .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--gold-gradient);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: #fff;
+            font-weight: 900;
+        }
+
+        .top-nav .logo-area h1 {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .top-nav .logo-area h1 span {
+            color: var(--gold);
+        }
+
+        .top-nav .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .top-nav .nav-actions .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px 4px 4px;
+            background: var(--bg-field);
+            border-radius: 50px;
+            border: 1px solid var(--border-color);
+        }
+
+        .top-nav .nav-actions .user-badge .avatar {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--gold-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.6rem;
+        }
+
+        .top-nav .nav-actions .user-badge .user-info .name {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .top-nav .nav-actions .user-badge .user-info .role {
+            font-size: 0.5rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .top-nav .nav-actions .btn-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+
+        .top-nav .nav-actions .btn-icon:hover {
+            background: var(--bg-field);
+            border-color: var(--border-hover);
+            transform: translateY(-1px);
+        }
+
+        /* ==========================================================
+           PAGE CONTENT
+           ========================================================== */
+        .page-content {
+            padding: 20px 24px 32px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            margin-bottom: 20px;
+        }
+
+        .page-header .breadcrumb {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .page-header .breadcrumb span {
+            color: var(--gold);
+        }
+
+        .page-header .title-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .page-header .title-section h2 {
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: var(--text-primary);
+        }
+
+        .page-header .title-section h2 i {
+            color: var(--gold);
+            margin-left: 8px;
+        }
+
+        /* ==========================================================
+           FORM CARD
+           ========================================================== */
+        .form-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 24px 28px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+        }
+
+        .form-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .form-card .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-card .form-group label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .form-card .form-group label .required {
+            color: var(--danger);
+        }
+
+        .form-card .form-group .helper-text {
+            font-size: 0.55rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .form-card .form-group input,
+        .form-card .form-group textarea,
+        .form-card .form-group select {
+            width: 100%;
+            padding: 9px 14px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-color);
+            background: var(--bg-field);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            font-family: inherit;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .form-card .form-group input:focus,
+        .form-card .form-group textarea:focus,
+        .form-card .form-group select:focus {
+            border-color: var(--gold);
+            background: var(--bg-card);
+            box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.1);
+        }
+
+        .form-card .form-group textarea {
+            min-height: 70px;
+            resize: vertical;
+        }
+
+        .form-card .form-group input[type="number"] {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .form-card .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-card .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+            padding-top: 18px;
+            border-top: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .form-card .form-actions .btn-save {
+            padding: 9px 28px;
+            background: var(--gold-gradient);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(201, 168, 76, 0.2);
+        }
+
+        .form-card .form-actions .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(201, 168, 76, 0.3);
+        }
+
+        .form-card .form-actions .btn-save:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .form-card .form-actions .btn-cancel {
+            padding: 9px 24px;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-card .form-actions .btn-cancel:hover {
+            background: var(--bg-field);
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+        }
+
+        .form-card .form-actions .btn-danger {
+            padding: 9px 24px;
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid rgba(220, 53, 69, 0.15);
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-right: auto;
+        }
+
+        .form-card .form-actions .btn-danger:hover {
+            background: rgba(220, 53, 69, 0.12);
+            transform: translateY(-2px);
+        }
+
+        /* ==========================================================
+           LOADING STATE
+           ========================================================== */
+        .loading-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .loading-state .spinner {
+            font-size: 2rem;
+            color: var(--gold);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-state p {
+            margin-top: 12px;
+            font-size: 0.85rem;
+        }
+
+        /* ==========================================================
+           TOAST
+           ========================================================== */
+        .toast-container {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            border-right: 3px solid var(--gold);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 240px;
+            animation: slideIn 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .toast.success {
+            border-right-color: var(--success);
+        }
+        .toast.error {
+            border-right-color: var(--danger);
+        }
+
+        .toast .icon {
+            font-size: 0.9rem;
+        }
+        .toast .icon.success {
+            color: var(--success);
+        }
+        .toast .icon.error {
+            color: var(--danger);
+        }
+
+        .toast .content .title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .toast .content .message {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* ==========================================================
+           RESPONSIVE
+           ========================================================== */
+        @media (max-width: 768px) {
+            .sidebar-overlay {
+                display: block;
+            }
+
+            .top-nav .logo-area h1 {
+                font-size: 0.8rem;
+            }
+
+            .top-nav .nav-actions .user-badge .user-info {
+                display: none;
+            }
+
+            .page-content {
+                padding: 12px 16px 24px;
+            }
+
+            .page-header .title-section h2 {
+                font-size: 1.1rem;
+            }
+
+            .form-card {
+                padding: 16px 18px;
+            }
+
+            .form-card .form-row {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+
+            .form-card .form-actions {
+                flex-direction: column;
+            }
+
+            .form-card .form-actions .btn-save,
+            .form-card .form-actions .btn-cancel,
+            .form-card .form-actions .btn-danger {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .form-card .form-actions .btn-danger {
+                margin-right: 0;
+            }
+
+            .toast-container {
+                top: 60px;
+                right: 12px;
+            }
+
+            .toast {
+                min-width: unset;
+                width: 100%;
+                padding: 8px 12px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                right: calc(-1 * var(--sidebar-width));
+                height: 100vh;
+                border-left: 1px solid var(--border-color);
+                border-right: none;
+                flex-shrink: 0;
+                box-shadow: var(--shadow-lg);
+                transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .sidebar.open {
+                right: 0;
+            }
+
+            .sidebar .close-btn {
+                display: flex;
+            }
+
+            .sidebar-overlay {
+                display: none !important;
+            }
+
+            .main-wrapper {
+                margin-right: 0;
+                transition: margin-right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .top-nav .hamburger {
+                display: flex !important;
+            }
+
+            body {
+                flex-direction: row;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .page-header .title-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .form-card .form-group input,
+            .form-card .form-group textarea,
+            .form-card .form-group select {
+                font-size: 0.75rem;
+                padding: 7px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==========================================================
+    SIDEBAR OVERLAY
+    ========================================================== -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ==========================================================
+    SIDEBAR - مغلقة افتراضياً
+    ========================================================== -->
+    <nav class="sidebar" id="sidebar">
+        <div class="brand">
+            <div class="mark">ق</div>
+            <div class="text">
+                نظام المصنع
+                <span>شركة رولكس للدهانات</span>
+            </div>
+            <button class="close-btn" id="closeSidebar"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="menu">
+            <div class="label">القائمة الرئيسية</div>
+            <a href="index.html" class="item"><i class="fas fa-house"></i> الرئيسية</a>
+            <a href="treasuries.html" class="item active"><i class="fas fa-university"></i> الخزائن</a>
+            <a href="entry.html" class="item"><i class="fas fa-pen"></i> إدخال حركة</a>
+
+            <div class="label">المبيعات والمشتريات</div>
+            <a href="sales.html" class="item"><i class="fas fa-chart-line"></i> المبيعات</a>
+            <a href="purchases.html" class="item"><i class="fas fa-shopping-cart"></i> المشتريات</a>
+            <a href="discounts.html" class="item"><i class="fas fa-percent"></i> الخصومات والتسويات</a>
+
+            <div class="label">العملاء والموردين</div>
+            <a href="clients.html" class="item"><i class="fas fa-users"></i> العملاء</a>
+            <a href="suppliers.html" class="item"><i class="fas fa-truck"></i> الموردين</a>
+
+            <div class="label">المخزون</div>
+            <a href="materials.html" class="item"><i class="fas fa-boxes"></i> الخامات</a>
+            <a href="products.html" class="item"><i class="fas fa-cubes"></i> المنتجات</a>
+            <a href="raw-material-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المواد الخام</a>
+            <a href="finished-goods-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المنتج التام</a>
+
+            <div class="label">الإنتاج</div>
+            <a href="formulations.html" class="item"><i class="fas fa-flask"></i> التركيبات</a>
+            <a href="production-orders.html" class="item"><i class="fas fa-industry"></i> أوامر الإنتاج</a>
+            <a href="costs.html" class="item"><i class="fas fa-calculator"></i> التكاليف</a>
+
+            <div class="label">التقارير</div>
+            <a href="reports.html" class="item"><i class="fas fa-file-lines"></i> التقارير</a>
+            <a href="invoices-summary.html" class="item"><i class="fas fa-file-invoice"></i> ملخص الفواتير</a>
+
+            <div class="label">الإعدادات</div>
+            <a href="tabs-settings.html" class="item"><i class="fas fa-tags"></i> التبويبات العامة</a>
+            <a href="settings.html" class="item"><i class="fas fa-gear"></i> الإعدادات</a>
+            <a href="users.html" class="item"><i class="fas fa-users"></i> المستخدمين</a>
+            <a href="help.html" class="item"><i class="fas fa-circle-question"></i> المساعدة</a>
+        </div>
+
+        <div class="footer">
+            <div class="user">
+                <div class="avatar" id="sidebarAvatar">م</div>
+                <div class="info">
+                    <div class="name" id="sidebarUserName">جاري التحميل...</div>
+                    <div class="role" id="sidebarUserRole">...</div>
+                </div>
+                <button class="logout-btn" onclick="logout()" title="تسجيل الخروج">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ==========================================================
+    MAIN WRAPPER
+    ========================================================== -->
+    <div class="main-wrapper" id="mainWrapper">
+
+        <!-- ==========================================================
+        TOP NAVIGATION
+        ========================================================== -->
+        <nav class="top-nav">
+            <div class="left">
+                <button class="hamburger" id="hamburger" aria-label="فتح القائمة الجانبية">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="logo-area">
+                    <div class="logo-icon">Q</div>
+                    <h1>Quick<span>Data</span></h1>
+                </div>
+            </div>
+            <div class="nav-actions">
+                <div class="user-badge">
+                    <div class="avatar" id="userAvatar">أ</div>
+                    <div class="user-info">
+                        <span class="name" id="userName">مرحباً</span>
+                        <span class="role" id="userRole">مدير النظام</span>
+                    </div>
+                </div>
+                <button class="btn-icon" onclick="window.location.href='treasuries.html'" title="الخزائن">
+                    <i class="fas fa-university"></i>
+                </button>
+                <button class="btn-icon" onclick="logout()" title="تسجيل الخروج">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </nav>
+
+        <!-- ==========================================================
+        PAGE CONTENT
+        ========================================================== -->
+        <div class="page-content">
+
+            <div class="page-header">
+                <div class="breadcrumb">
+                    <a href="treasuries.html" style="color:var(--text-muted);text-decoration:none;">الخزائن</a>
+                    <i class="fas fa-chevron-left" style="font-size:0.4rem;margin:0 4px;"></i>
+                    <span>تعديل الخزينة</span>
+                </div>
+                <div class="title-section">
+                    <h2><i class="fas fa-edit"></i> تعديل الخزينة</h2>
+                </div>
+            </div>
+
+            <!-- ===== FORM CARD ===== -->
+            <div class="form-card" id="formCard">
+                <!-- Loading State -->
+                <div class="loading-state" id="loadingState">
+                    <div class="spinner"><i class="fas fa-spinner"></i></div>
+                    <p>جاري تحميل بيانات الخزينة...</p>
+                </div>
+
+                <!-- Form (hidden initially) -->
+                <form id="treasuryForm" style="display:none;" onsubmit="saveTreasury(event)">
+                    <div class="form-group">
+                        <label>اسم الخزينة <span class="required">*</span></label>
+                        <input type="text" id="treasuryName" placeholder="مثال: خزينة الرئيسية" required />
+                        <div class="helper-text">أدخل اسماً مميزاً للخزينة</div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>نوع الخزينة <span class="required">*</span></label>
+                            <select id="treasuryType" required>
+                                <option value="main">رئيسية</option>
+                                <option value="accountant">محاسب</option>
+                                <option value="driver">سائق</option>
+                                <option value="custom">مخصصة</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>الحالة</label>
+                            <select id="treasuryStatus">
+                                <option value="true">نشطة</option>
+                                <option value="false">غير نشطة</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>الوصف</label>
+                        <textarea id="treasuryDescription" placeholder="وصف الخزينة (اختياري)"></textarea>
+                        <div class="helper-text">أضف وصفاً إضافياً للخزينة إن أردت</div>
+                    </div>
+
+                    <div class="form-group" style="background:var(--bg-field);padding:12px 16px;border-radius:var(--radius-sm);">
+                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                            <span style="font-size:0.7rem;font-weight:700;color:var(--text-muted);">
+                                <i class="fas fa-wallet"></i> الرصيد الحالي
+                            </span>
+                            <span style="font-size:1.1rem;font-weight:900;color:var(--gold);" id="currentBalance">0 ج.م</span>
+                        </div>
+                        <div class="helper-text" style="margin-top:4px;">
+                            <i class="fas fa-info-circle"></i> لا يمكن تعديل الرصيد من هنا، يمكنك تعديله عبر إدخال حركات
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-save" id="saveBtn">
+                            <i class="fas fa-save"></i> حفظ التغييرات
+                        </button>
+                        <button type="button" class="btn-cancel" onclick="window.location.href='treasuries.html'">
+                            <i class="fas fa-times"></i> إلغاء
+                        </button>
+                        <button type="button" class="btn-danger" onclick="deleteTreasuryConfirm()">
+                            <i class="fas fa-trash-alt"></i> حذف الخزينة
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ==========================================================
+    TOAST
+    ========================================================== -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        /**
+         * ============================================================
+         * SIDEBAR TOGGLE
+         * ============================================================
+         */
+        var sidebar = document.getElementById('sidebar');
+        var overlay = document.getElementById('sidebarOverlay');
+        var hamburger = document.getElementById('hamburger');
+        var closeSidebarBtn = document.getElementById('closeSidebar');
+
+        var isSidebarOpen = false;
+
+        function toggleSidebar() {
+            if (isSidebarOpen) {
+                sidebar.classList.remove('open');
+                if (overlay) overlay.classList.remove('active');
+                document.body.style.overflow = '';
+                isSidebarOpen = false;
+            } else {
+                sidebar.classList.add('open');
+                if (overlay) overlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                isSidebarOpen = true;
+            }
+        }
+
+        function closeSidebarFn() {
+            sidebar.classList.remove('open');
+            if (overlay) overlay.classList.remove('active');
+            document.body.style.overflow = '';
+            isSidebarOpen = false;
+        }
+
+        if (hamburger) hamburger.addEventListener('click', toggleSidebar);
+        if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeSidebarFn);
+        if (overlay) overlay.addEventListener('click', closeSidebarFn);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeSidebarFn();
+        });
+
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768 && isSidebarOpen) {
+                closeSidebarFn();
+            }
+        });
+
+        /**
+         * ============================================================
+         * GET TREASURY ID FROM URL
+         * ============================================================
+         */
+        function getTreasuryIdFromUrl() {
+            var params = new URLSearchParams(window.location.search);
+            return params.get('treasury_id');
+        }
+
+        /**
+         * ============================================================
+         * GET TREASURY DETAILS
+         * ============================================================
+         */
+        async function getTreasuryDetails(treasuryId) {
+            try {
+                var data = await getTable('treasuries');
+                var treasury = data.find(function(t) { return t.id == treasuryId; });
+                return treasury || null;
+            } catch (error) {
+                console.error('❌ خطأ في جلب تفاصيل الخزينة:', error);
+                return null;
+            }
+        }
+
+        /**
+         * ============================================================
+         * UPDATE TREASURY
+         * ============================================================
+         */
+        async function updateTreasury(id, data) {
+            await patchRow('treasuries', id, data);
+            return true;
+        }
+
+        /**
+         * ============================================================
+         * DELETE TREASURY
+         * ============================================================
+         */
+        async function deleteTreasury(id) {
+            await deleteRows('treasuries', 'id', id);
+            return true;
+        }
+
+        /**
+         * ============================================================
+         * LOAD TREASURY DATA
+         * ============================================================
+         */
+        var currentTreasuryId = null;
+        var currentTreasuryData = null;
+
+        async function loadTreasuryData() {
+            currentTreasuryId = getTreasuryIdFromUrl();
+
+            if (!currentTreasuryId) {
+                showToast('⚠️ تنبيه', 'لم يتم تحديد الخزينة', 'error');
+                setTimeout(function() {
+                    window.location.href = 'treasuries.html';
+                }, 1500);
+                return;
+            }
+
+            try {
+                var treasury = await getTreasuryDetails(currentTreasuryId);
+
+                if (!treasury) {
+                    showToast('❌ خطأ', 'الخزينة غير موجودة', 'error');
+                    setTimeout(function() {
+                        window.location.href = 'treasuries.html';
+                    }, 1500);
+                    return;
+                }
+
+                currentTreasuryData = treasury;
+
+                // تعبئة النموذج
+                document.getElementById('treasuryName').value = treasury.name || '';
+                document.getElementById('treasuryType').value = treasury.type || 'main';
+                document.getElementById('treasuryStatus').value = treasury.is_active !== false ? 'true' : 'false';
+                document.getElementById('treasuryDescription').value = treasury.description || '';
+                document.getElementById('currentBalance').textContent = (treasury.balance || 0).toLocaleString() + ' ج.م';
+
+                // إخفاء التحميل وإظهار النموذج
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('treasuryForm').style.display = 'block';
+
+                console.log('✅ تم تحميل بيانات الخزينة:', treasury.name);
+
+            } catch (error) {
+                console.error('❌ خطأ في تحميل البيانات:', error);
+                showToast('❌ خطأ', 'فشل تحميل بيانات الخزينة', 'error');
+                document.getElementById('loadingState').innerHTML = `
+                    <div style="color:var(--danger);">
+                        <i class="fas fa-exclamation-circle" style="font-size:2rem;"></i>
+                        <p>فشل تحميل البيانات</p>
+                        <button onclick="loadTreasuryData()" style="margin-top:12px;padding:6px 20px;background:var(--gold);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;font-weight:700;">
+                            <i class="fas fa-sync-alt"></i> إعادة المحاولة
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * ============================================================
+         * SAVE TREASURY
+         * ============================================================
+         */
+        async function saveTreasury(event) {
+            event.preventDefault();
+
+            var name = document.getElementById('treasuryName').value.trim();
+            var type = document.getElementById('treasuryType').value;
+            var isActive = document.getElementById('treasuryStatus').value === 'true';
+            var description = document.getElementById('treasuryDescription').value.trim();
+
+            if (!name) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال اسم الخزينة', 'error');
+                document.getElementById('treasuryName').focus();
+                return;
+            }
+
+            var btn = document.getElementById('saveBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+
+            try {
+                var updateData = {
+                    name: name,
+                    type: type,
+                    is_active: isActive,
+                    description: description || null,
+                    updated_at: new Date().toISOString()
+                };
+
+                await updateTreasury(currentTreasuryId, updateData);
+
+                showToast('✅ تم التحديث', 'تم تحديث بيانات الخزينة بنجاح', 'success');
+
+                setTimeout(function() {
+                    window.location.href = 'treasuries.html';
+                }, 1500);
+
+            } catch (error) {
+                console.error('❌ خطأ في حفظ البيانات:', error);
+                showToast('❌ خطأ', error.message || 'فشل حفظ البيانات', 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> حفظ التغييرات';
+        }
+
+        /**
+         * ============================================================
+         * DELETE TREASURY CONFIRM
+         * ============================================================
+         */
+        async function deleteTreasuryConfirm() {
+            if (!currentTreasuryId) return;
+
+            var name = currentTreasuryData ? currentTreasuryData.name : 'هذه الخزينة';
+            var balance = currentTreasuryData ? (currentTreasuryData.balance || 0) : 0;
+
+            if (balance > 0) {
+                var confirmMsg = '⚠️ تحذير!\n\nالخزينة "' + name + '" بها رصيد ' + balance.toLocaleString() + ' ج.م.\n\n';
+                confirmMsg += 'حذف الخزينة سيؤدي إلى فقدان جميع الحركات المرتبطة بها.\n';
+                confirmMsg += 'هل أنت متأكد من المتابعة؟';
+
+                if (!confirm(confirmMsg)) return;
+            } else {
+                if (!confirm('هل أنت متأكد من حذف الخزينة "' + name + '"؟\nهذا الإجراء لا يمكن التراجع عنه!')) return;
+            }
+
+            try {
+                await deleteTreasury(currentTreasuryId);
+                showToast('✅ تم الحذف', 'تم حذف الخزينة بنجاح', 'success');
+                setTimeout(function() {
+                    window.location.href = 'treasuries.html';
+                }, 1500);
+            } catch (error) {
+                console.error('❌ خطأ في الحذف:', error);
+                showToast('❌ خطأ', error.message || 'فشل حذف الخزينة', 'error');
+            }
+        }
+
+        /**
+         * ============================================================
+         * TOAST
+         * ============================================================
+         */
+        function showToast(title, message, type) {
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + (type || '');
+
+            var icon = 'fa-info-circle';
+            if (type === 'success') icon = 'fa-check-circle';
+            else if (type === 'error') icon = 'fa-exclamation-circle';
+
+            toast.innerHTML = `
+                <div class="icon ${type || ''}"><i class="fas ${icon}"></i></div>
+                <div class="content">
+                    <div class="title">${title}</div>
+                    <div class="message">${message}</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(function() {
+                if (toast.parentElement) toast.remove();
+            }, 4000);
+        }
+
+        /**
+         * ============================================================
+         * LOGOUT
+         * ============================================================
+         */
+        async function logout() {
+            try {
+                var client = getSupabaseClient();
+                if (client) {
+                    await client.auth.signOut();
+                }
+                localStorage.removeItem('rollex_session');
+                sessionStorage.removeItem('rollex_session');
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('❌ خطأ في تسجيل الخروج:', error);
+                window.location.href = 'login.html';
+            }
+        }
+
+        /**
+         * ============================================================
+         * INIT
+         * ============================================================
+         */
+        (async function init() {
+            console.log('✏️ تعديل الخزينة - QuickData ProSoft');
+
+            var token = getToken();
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // تحميل بيانات المستخدم في الـ Sidebar
+            var profile = await getCurrentUserProfile();
+            if (profile) {
+                document.getElementById('sidebarUserName').textContent = profile.name || 'مستخدم';
+                document.getElementById('sidebarUserRole').textContent = profile.role === 'admin' ? 'مدير النظام' : (profile
+                    .role === 'accountant' ? 'محاسب' : 'موظف');
+                document.getElementById('sidebarAvatar').textContent = (profile.name || 'م').charAt(0);
+                document.getElementById('userName').textContent = profile.name || 'مرحباً';
+                document.getElementById('userRole').textContent = profile.role === 'admin' ? 'مدير النظام' : (profile
+                    .role === 'accountant' ? 'محاسب' : 'موظف');
+                document.getElementById('userAvatar').textContent = (profile.name || 'أ').charAt(0);
+            }
+
+            await loadTreasuryData();
+
+            setTimeout(function() {
+                startSessionMonitor();
+            }, 3000);
+        })();
+    </script>
+
+</body>
+</html>
