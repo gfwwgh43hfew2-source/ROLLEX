@@ -456,7 +456,7 @@
         .btn-import i { color: var(--teal); }
 
         /* ============================================================ */
-        /* CLIENT SUGGESTIONS */
+        /* CLIENT SUGGESTIONS - محسّن مع إضافة عميل جديد */
         /* ============================================================ */
         .client-suggestions {
             position: relative;
@@ -493,6 +493,13 @@
         .client-suggestions .suggestions-list .suggestion-item .client-phone {
             font-size: calc(0.65rem * var(--scale-factor));
             color: var(--ink-mute);
+        }
+        .client-suggestions .suggestions-list .suggestion-item.add-new {
+            color: var(--teal);
+            font-weight: 700;
+        }
+        .client-suggestions .suggestions-list .suggestion-item.add-new i {
+            margin-left: calc(6px * var(--scale-factor));
         }
         .client-suggestions .suggestions-list .suggestion-item.selected {
             background: var(--accent-soft);
@@ -1030,7 +1037,7 @@
             </div>
 
             <div class="form-grid">
-                <!-- العميل مع اقتراحات -->
+                <!-- العميل مع اقتراحات ذكية -->
                 <div class="form-group client-suggestions">
                     <label><i class="fas fa-user"></i> العميل <span class="required">*</span></label>
                     <input type="text" id="clientNameInput" placeholder="ابحث عن عميل..." autocomplete="off" />
@@ -1207,7 +1214,7 @@
         }
 
         // ============================================================
-        // CLIENT SUGGESTIONS
+        // CLIENT SUGGESTIONS - نسخة محسنة مع دعم إضافة عميل جديد
         // ============================================================
         function showClientSuggestions(input) {
             var searchTerm = input.trim().toLowerCase();
@@ -1229,8 +1236,11 @@
 
             if (results.length === 0) {
                 suggestionsList.innerHTML = `
-                    <div class="no-results">لا توجد نتائج مطابقة</div>
-                `;
+                        <div class="suggestion-item add-new" onclick="openAddClientModal('${searchTerm}')" data-index="0">
+                            <span><i class="fas fa-plus-circle"></i> إضافة عميل جديد: "${searchTerm}"</span>
+                        </div>
+                        <div class="no-results">لا توجد نتائج مطابقة</div>
+                    `;
                 suggestionsList.classList.add('show');
                 selectedSuggestionIndex = -1;
                 return;
@@ -1239,12 +1249,18 @@
             var html = '';
             results.forEach(function(client, index) {
                 html += `
-                    <div class="suggestion-item" onclick="selectClient('${client.id}', '${client.name}', '${client.phone || ''}')" data-index="${index}">
-                        <span>${client.code ? client.code + ' — ' : ''}${client.name}</span>
-                        ${client.phone ? `<span class="client-phone">📱 ${client.phone}</span>` : ''}
+                        <div class="suggestion-item" onclick="selectClient('${client.id}', '${client.name}', '${client.phone || ''}')" data-index="${index + 1}">
+                            <span>${client.code ? client.code + ' — ' : ''}${client.name}</span>
+                            ${client.phone ? `<span class="client-phone">📱 ${client.phone}</span>` : ''}
+                        </div>
+                    `;
+            });
+
+            html += `
+                    <div class="suggestion-item add-new" onclick="openAddClientModal('${searchTerm}')" data-index="${results.length + 1}">
+                        <span><i class="fas fa-plus-circle"></i> إضافة عميل جديد</span>
                     </div>
                 `;
-            });
 
             suggestionsList.innerHTML = html;
             suggestionsList.classList.add('show');
@@ -1277,8 +1293,54 @@
         }
         window.selectClient = selectClient;
 
+        function openAddClientModal(initialName) {
+            var name = initialName || '';
+            var newName = prompt('أدخل اسم العميل الجديد:', name || '');
+            if (!newName) return;
+
+            var newPhone = prompt('أدخل رقم الجوال (اختياري):', '');
+            var newCode = prompt('أدخل كود العميل (اختياري):', '');
+
+            addNewClient(newName, newPhone, newCode);
+        }
+        window.openAddClientModal = openAddClientModal;
+
+        async function addNewClient(name, phone, code) {
+            if (!name || name.trim() === '') {
+                showToast('⚠️ تنبيه', 'يرجى إدخال اسم العميل', 'warning');
+                return;
+            }
+
+            try {
+                var token = getToken();
+                if (!token) throw new Error('جلسة منتهية');
+
+                var companyId = await getCompanyId();
+
+                var newClient = await insertRow('clients', {
+                    company_id: companyId,
+                    name: name.trim(),
+                    phone: phone || '',
+                    code: code || '',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                });
+
+                allClients.push(newClient);
+
+                selectClient(newClient.id, newClient.name, newClient.phone || '');
+
+                showToast('✅ تم الإضافة', 'تم إضافة العميل "' + name + '" بنجاح', 'success');
+                await loadData();
+
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                showToast('❌ خطأ', 'فشل في إضافة العميل: ' + error.message, 'error');
+            }
+        }
+
         // ============================================================
-        // CLIENT INPUT EVENTS
+        // CLIENT INPUT EVENTS - محسّنة
         // ============================================================
         document.getElementById('clientNameInput').addEventListener('input', function() {
             var value = this.value.trim();
@@ -1351,17 +1413,16 @@
             var month = String(now.getMonth() + 1).padStart(2, '0');
             var day = String(now.getDate()).padStart(2, '0');
             var dateStr = year + month + day;
-            
+
             var maxAttempts = 100;
             var attempt = 0;
             var transactionNo = null;
-            
+
             while (attempt < maxAttempts) {
                 attempt++;
                 var random = String(Math.floor(Math.random() * 99999) + 10000).padStart(5, '0');
                 var candidate = 'DSC-' + dateStr + '-' + random;
-                
-                // التحقق من وجود هذا الرقم في قاعدة البيانات
+
                 var exists = false;
                 try {
                     var token = getToken();
@@ -1375,7 +1436,7 @@
                                     .select('transaction_no')
                                     .eq('transaction_no', candidate)
                                     .eq('company_id', companyId);
-                                
+
                                 if (!error && data && data.length > 0) {
                                     exists = true;
                                     console.log('⚠️ رقم العملية ' + candidate + ' موجود بالفعل، محاولة رقم آخر...');
@@ -1386,20 +1447,19 @@
                 } catch (e) {
                     console.warn('⚠️ فشل التحقق من رقم العملية:', e);
                 }
-                
+
                 if (!exists) {
                     transactionNo = candidate;
                     break;
                 }
             }
-            
-            // إذا لم نجد رقمًا فريدًا، نستخدم timestamp
+
             if (!transactionNo) {
                 var timestamp = Date.now().toString(36).toUpperCase();
                 transactionNo = 'DSC-' + dateStr + '-' + timestamp;
                 console.log('⚠️ تم استخدام رقم فريد مبني على timestamp:', transactionNo);
             }
-            
+
             return transactionNo;
         }
 
@@ -1412,8 +1472,7 @@
             var month = String(now.getMonth() + 1).padStart(2, '0');
             var day = String(now.getDate()).padStart(2, '0');
             document.getElementById('transactionDate').value = year + '-' + month + '-' + day;
-            
-            // ✅ استخدام الدالة المعدلة لتوليد رقم فريد
+
             var transactionNo = await generateTransactionNumber();
             document.getElementById('transactionNumber').value = transactionNo;
         }
@@ -1435,10 +1494,7 @@
                     return;
                 }
 
-                // جلب العملاء باستخدام getTable من supabase-client.js
                 allClients = await getTable('clients');
-
-                // جلب سجل الخصومات والتسويات باستخدام getTable
                 allTransactions = await getTable('client_transactions');
 
                 populateClientFilter();
@@ -1503,24 +1559,24 @@
                 var clientName = client ? client.name : transaction.client_name || 'غير محدد';
 
                 html += `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td style="font-weight:700;font-family:var(--font-mono);font-size:0.65rem;color:var(--accent-ink);">${transaction.transaction_no || transaction.id}</td>
-                        <td class="client-name">${clientName}</td>
-                        <td><span class="type-badge ${type.class}"><i class="fas ${type.icon}"></i> ${type.label}</span></td>
-                        <td class="num ${amountClass}">${amountSign}${parseFloat(transaction.amount).toFixed(2)}</td>
-                        <td>${formatDateShort(transaction.transaction_date)}</td>
-                        <td style="text-align:right;font-size:0.65rem;color:var(--ink-mute);">${transaction.notes || '-'}</td>
-                        <td>
-                            <button class="btn-action" onclick="printReceipt('${transaction.id}')" title="طباعة" style="background:none;border:none;color:var(--ink-mute);cursor:pointer;padding:4px 8px;border-radius:4px;transition:0.2s;">
-                                <i class="fas fa-print"></i>
-                            </button>
-                            <button class="btn-action" onclick="deleteTransaction('${transaction.id}')" title="حذف" style="background:none;border:none;color:var(--ink-mute);cursor:pointer;padding:4px 8px;border-radius:4px;transition:0.2s;">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td style="font-weight:700;font-family:var(--font-mono);font-size:0.65rem;color:var(--accent-ink);">${transaction.transaction_no || transaction.id}</td>
+                            <td class="client-name">${clientName}</td>
+                            <td><span class="type-badge ${type.class}"><i class="fas ${type.icon}"></i> ${type.label}</span></td>
+                            <td class="num ${amountClass}">${amountSign}${parseFloat(transaction.amount).toFixed(2)}</td>
+                            <td>${formatDateShort(transaction.transaction_date)}</td>
+                            <td style="text-align:right;font-size:0.65rem;color:var(--ink-mute);">${transaction.notes || '-'}</td>
+                            <td>
+                                <button class="btn-action" onclick="printReceipt('${transaction.id}')" title="طباعة" style="background:none;border:none;color:var(--ink-mute);cursor:pointer;padding:4px 8px;border-radius:4px;transition:0.2s;">
+                                    <i class="fas fa-print"></i>
+                                </button>
+                                <button class="btn-action" onclick="deleteTransaction('${transaction.id}')" title="حذف" style="background:none;border:none;color:var(--ink-mute);cursor:pointer;padding:4px 8px;border-radius:4px;transition:0.2s;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
             });
 
             tbody.innerHTML = html;
@@ -1630,19 +1686,16 @@
                 var isNegative = (type === 'discount' || type === 'bonus');
                 var effectAmount = isNegative ? -amount : amount;
 
-                // ✅ التحقق مرة أخرى من أن رقم العملية غير مكرر
                 var existingTransaction = allTransactions.find(function(t) {
                     return t.transaction_no === transactionNo;
                 });
 
                 if (existingTransaction) {
-                    // توليد رقم جديد
                     transactionNo = await generateTransactionNumber();
                     document.getElementById('transactionNumber').value = transactionNo;
                     console.log('🔄 تم تغيير رقم العملية إلى:', transactionNo);
                 }
 
-                // استخدام insertRow من supabase-client.js
                 var transaction = await insertRow('client_transactions', {
                     company_id: companyId,
                     user_id: user?.id || null,
@@ -1656,7 +1709,6 @@
                     notes: notes || null
                 });
 
-                // تحديث رصيد العميل باستخدام patchRow
                 var client = allClients.find(function(c) { return c.id === clientId; });
                 if (client) {
                     var newBalance = (parseFloat(client.due_balance) || 0) + effectAmount;
@@ -1726,58 +1778,58 @@
             var amountSign = isNegative ? '-' : '+';
 
             var content = `
-                <div class="print-receipt">
-                    <div class="header">
-                        <h2>إيصال ${type.label}</h2>
-                        <p>QuickData ProSoft</p>
+                    <div class="print-receipt">
+                        <div class="header">
+                            <h2>إيصال ${type.label}</h2>
+                            <p>QuickData ProSoft</p>
+                        </div>
+                        <div class="details">
+                            <p><strong>رقم العملية:</strong> ${transaction.transaction_no || transaction.id}</p>
+                            <p><strong>العميل:</strong> ${clientName}</p>
+                            <p><strong>النوع:</strong> ${type.label}</p>
+                            <p><strong>المبلغ:</strong> <span style="color:${type.color};font-weight:700;">${amountSign} ${parseFloat(transaction.amount).toFixed(2)}</span></p>
+                            <p><strong>التاريخ:</strong> ${formatDateShort(transaction.transaction_date)}</p>
+                            ${transaction.notes ? `<p><strong>ملاحظات:</strong> ${transaction.notes}</p>` : ''}
+                        </div>
+                        <div class="footer">
+                            <p>شكراً لثقتكم بنا</p>
+                            <p style="margin-top:4px;">تم الإصدار بواسطة نظام QuickData ProSoft</p>
+                        </div>
                     </div>
-                    <div class="details">
-                        <p><strong>رقم العملية:</strong> ${transaction.transaction_no || transaction.id}</p>
-                        <p><strong>العميل:</strong> ${clientName}</p>
-                        <p><strong>النوع:</strong> ${type.label}</p>
-                        <p><strong>المبلغ:</strong> <span style="color:${type.color};font-weight:700;">${amountSign} ${parseFloat(transaction.amount).toFixed(2)}</span></p>
-                        <p><strong>التاريخ:</strong> ${formatDateShort(transaction.transaction_date)}</p>
-                        ${transaction.notes ? `<p><strong>ملاحظات:</strong> ${transaction.notes}</p>` : ''}
-                    </div>
-                    <div class="footer">
-                        <p>شكراً لثقتكم بنا</p>
-                        <p style="margin-top:4px;">تم الإصدار بواسطة نظام QuickData ProSoft</p>
-                    </div>
-                </div>
-            `;
+                `;
 
             var printWindow = window.open('', '_blank', 'width=400,height=600');
             printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>إيصال ${type.label} - ${transaction.transaction_no}</title>
-                    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
-                    <style>
-                        body { margin: 0; padding: 0; font-family: 'Cairo', Arial, sans-serif; direction: rtl; }
-                        @media print { body { margin: 10px; } }
-                        .print-receipt { max-width: 300px; margin: 0 auto; padding: 20px; }
-                        .print-receipt .header { text-align: center; border-bottom: 2px solid #dd9f2e; padding-bottom: 12px; margin-bottom: 14px; }
-                        .print-receipt .header h2 { font-size: 16px; font-weight: 800; color: #121821; }
-                        .print-receipt .header p { font-size: 11px; color: #6d7883; }
-                        .print-receipt .details { font-size: 12px; margin-bottom: 12px; }
-                        .print-receipt .details p { margin: 3px 0; }
-                        .print-receipt .details strong { color: #121821; }
-                        .print-receipt .footer { border-top: 2px solid #dd9f2e; padding-top: 12px; margin-top: 12px; text-align: center; font-size: 10px; color: #6d7883; }
-                    </style>
-                </head>
-                <body>
-                    ${content}
-                    <script>
-                        window.onload = function() {
-                            window.print();
-                            setTimeout(function() { window.close(); }, 1000);
-                        }
-                    <\/script>
-                </body>
-                </html>
-            `);
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>إيصال ${type.label} - ${transaction.transaction_no}</title>
+                        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
+                        <style>
+                            body { margin: 0; padding: 0; font-family: 'Cairo', Arial, sans-serif; direction: rtl; }
+                            @media print { body { margin: 10px; } }
+                            .print-receipt { max-width: 300px; margin: 0 auto; padding: 20px; }
+                            .print-receipt .header { text-align: center; border-bottom: 2px solid #dd9f2e; padding-bottom: 12px; margin-bottom: 14px; }
+                            .print-receipt .header h2 { font-size: 16px; font-weight: 800; color: #121821; }
+                            .print-receipt .header p { font-size: 11px; color: #6d7883; }
+                            .print-receipt .details { font-size: 12px; margin-bottom: 12px; }
+                            .print-receipt .details p { margin: 3px 0; }
+                            .print-receipt .details strong { color: #121821; }
+                            .print-receipt .footer { border-top: 2px solid #dd9f2e; padding-top: 12px; margin-top: 12px; text-align: center; font-size: 10px; color: #6d7883; }
+                        </style>
+                    </head>
+                    <body>
+                        ${content}
+                        <script>
+                            window.onload = function() {
+                                window.print();
+                                setTimeout(function() { window.close(); }, 1000);
+                            }
+                        <\/script>
+                    </body>
+                    </html>
+                `);
             printWindow.document.close();
         }
 
@@ -1794,10 +1846,8 @@
                 var transaction = allTransactions.find(function(t) { return t.id === transactionId; });
                 if (!transaction) throw new Error('العملية غير موجودة');
 
-                // استخدام deleteRows من supabase-client.js
                 await deleteRows('client_transactions', 'id', transactionId);
 
-                // استعادة رصيد العميل
                 var client = allClients.find(function(c) { return c.id === transaction.client_id; });
                 if (client) {
                     var effectAmount = parseFloat(transaction.effect_amount) || 0;
@@ -2082,12 +2132,10 @@
                 return;
             }
 
-            // بدء مراقبة الجلسة
             startSessionMonitor();
 
             await loadData();
 
-            // تحديث تلقائي كل 60 ثانية
             setInterval(function() {
                 loadData();
             }, 60000);
