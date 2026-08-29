@@ -962,6 +962,50 @@
             font-weight: 700;
         }
 
+        /* ===== Client Suggestions Styles ===== */
+        .client-suggestions {
+            position: relative;
+            width: 100%;
+        }
+        .client-suggestions .suggestions-list {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            left: 0;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 999;
+            display: none;
+            box-shadow: var(--shadow);
+            margin-top: 2px;
+        }
+        .client-suggestions .suggestions-list.show {
+            display: block;
+        }
+        .client-suggestions .suggestions-list .suggestion-item {
+            padding: 8px 14px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.8rem;
+        }
+        .client-suggestions .suggestions-list .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        .client-suggestions .suggestions-list .suggestion-item:hover {
+            background: var(--gold-glow);
+        }
+        .client-suggestions .suggestions-list .suggestion-item .client-phone {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
         @media (max-width: 768px) {
             body {
                 padding: 12px;
@@ -1137,7 +1181,7 @@
             <button class="btn-action primary" onclick="openOpeningModal()">
                 <i class="fas fa-plus-circle"></i> رصيد افتتاحي
             </button>
-            <button class="btn-action secondary" onclick="window.location.href='entry.html?treasury_id=' + currentTreasuryId">
+            <button class="btn-action secondary" onclick="openAddModal()">
                 <i class="fas fa-plus"></i> إضافة حركة
             </button>
             <button class="btn-action export" onclick="exportToExcel()">
@@ -1230,6 +1274,91 @@
                         <i class="fas fa-save"></i> إضافة الرصيد
                     </button>
                     <button type="button" class="btn-cancel" onclick="closeOpeningModal()">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== ADD TRANSACTION MODAL ===== -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus"></i> إضافة حركة جديدة</h3>
+                <button class="close-modal" onclick="closeAddModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="addForm" onsubmit="saveTransaction(event)">
+                <div class="form-group">
+                    <label>التاريخ <span class="required">*</span></label>
+                    <input type="date" id="addDate" required />
+                </div>
+                <div class="form-group">
+                    <label>الاتجاه <span class="required">*</span></label>
+                    <select id="addDirection" required>
+                        <option value="incoming">وارد (+) </option>
+                        <option value="outgoing">صادر (-) </option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>المبلغ <span class="required">*</span></label>
+                    <input type="number" id="addAmount" placeholder="0.00" min="0.01" step="0.01" required />
+                </div>
+                <div class="form-group">
+                    <label>النوع <span class="required">*</span></label>
+                    <select id="addType" required>
+                        <option value="incoming">إيداع</option>
+                        <option value="outgoing">سحب</option>
+                        <option value="transfer_in">تحويل وارد</option>
+                        <option value="transfer_out">تحويل صادر</option>
+                        <option value="opening">رصيد افتتاحي</option>
+                        <option value="salary">راتب</option>
+                        <option value="expense">مصروف</option>
+                        <option value="revenue">إيراد</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>البيان</label>
+                    <input type="text" id="addDescription" placeholder="وصف الحركة" />
+                </div>
+                
+                <!-- ===== حقل التبويب العام مع اقتراحات ===== -->
+                <div class="form-group">
+                    <label>التبويب العام</label>
+                    <input type="text" id="addGeneralTab" placeholder="مثال: تحصيلات_العملاء" list="generalTabsList" />
+                    <datalist id="generalTabsList">
+                        <option value="تحصيلات_العملاء">
+                        <option value="مبيعات">
+                        <option value="مشتريات">
+                        <option value="مصاريف">
+                        <option value="رواتب">
+                        <option value="تحويلات">
+                    </datalist>
+                    <div class="helper-text" style="font-size:0.6rem;color:var(--text-muted);">
+                        <i class="fas fa-info-circle"></i> إذا اخترت "تحصيلات_العملاء"، سيتم ترحيل البيانات تلقائياً لجدول تحصيلات العملاء
+                    </div>
+                </div>
+                
+                <!-- ===== حقل اختيار العميل (يظهر فقط عند اختيار تحصيلات_العملاء) ===== -->
+                <div class="form-group" id="clientSelectionGroup" style="display:none;">
+                    <label>اختر العميل <span class="required">*</span></label>
+                    <div class="client-suggestions">
+                        <input type="text" id="addClientSearch" placeholder="ابحث عن عميل..." autocomplete="off" />
+                        <div class="suggestions-list" id="addClientSuggestions"></div>
+                        <input type="hidden" id="addClientId" value="" />
+                    </div>
+                    <div class="helper-text" style="font-size:0.6rem;color:var(--text-muted);">
+                        <i class="fas fa-info-circle"></i> سيتم تسجيل هذه الحركة كتحصيل للعميل المحدد في جدول تحصيلات العملاء
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>التبويب الخاص</label>
+                    <input type="text" id="addPrivateTab" placeholder="التبويب الخاص (اختياري)" />
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-save" id="addSubmitBtn">
+                        <i class="fas fa-save"></i> إضافة الحركة
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="closeAddModal()">إلغاء</button>
                 </div>
             </form>
         </div>
@@ -1347,12 +1476,14 @@
         var allTreasuries = [];
         var allTransactions = [];
         var supabaseClient = null;
+        var allClientsForAdd = [];
         
         // ===== متغيرات للتحكم في ترتيب العرض =====
-        var importedRowIds = {}; // لتخزين معرفات الصفوف المستوردة
-        var importOrder = []; // ترتيب الاستيراد
+        var importedRowIds = {};
+        var importOrder = [];
         var sortByImportOrder = true;
         var showImportedOnly = false;
+        var addSelectedSuggestionIndex = -1;
 
         // ============================================================
         // GET SUPABASE CLIENT
@@ -1491,6 +1622,52 @@
             } catch (error) {
                 console.error('❌ خطأ في جلب الخزائن:', error);
                 return [];
+            }
+        }
+
+        // ============================================================
+        // LOAD CLIENTS FOR ADD MODAL
+        // ============================================================
+        async function loadClientsForAdd() {
+            try {
+                var data = await getTable('clients');
+                allClientsForAdd = data || [];
+                console.log('👤 تم جلب ' + allClientsForAdd.length + ' عميل للتحصيلات');
+            } catch (error) {
+                console.error('❌ خطأ في جلب العملاء:', error);
+                allClientsForAdd = [];
+            }
+        }
+
+        // ============================================================
+        // ADD CLIENT PAYMENT - إضافة دفعة عميل إلى جدول client_payments
+        // ============================================================
+        async function addClientPayment(clientId, clientName, amount, paymentDate, method, reference, notes) {
+            var token = getToken();
+            if (!token) return null;
+
+            var companyId = await getCompanyId();
+            var user = await getCurrentUserProfile();
+
+            var payload = {
+                company_id: companyId,
+                user_id: user ? user.id : null,
+                client_id: clientId || null,
+                client_name: clientName || 'غير محدد',
+                amount: amount,
+                method: method || 'نقدي',
+                payment_date: paymentDate || new Date().toISOString().split('T')[0],
+                reference: reference || null,
+                notes: notes || 'تحصيل من العميل ' + clientName
+            };
+
+            try {
+                var result = await insertRow('client_payments', payload);
+                console.log('✅ تم إضافة دفعة العميل:', result);
+                return result;
+            } catch (error) {
+                console.error('❌ فشل إضافة دفعة العميل:', error);
+                throw error;
             }
         }
 
@@ -1705,6 +1882,235 @@
         });
 
         // ============================================================
+        // OPEN / CLOSE ADD MODAL
+        // ============================================================
+        function openAddModal() {
+            document.getElementById('addModal').classList.add('active');
+            
+            var today = new Date();
+            var year = today.getFullYear();
+            var month = String(today.getMonth() + 1).padStart(2, '0');
+            var day = String(today.getDate()).padStart(2, '0');
+            document.getElementById('addDate').value = year + '-' + month + '-' + day;
+            
+            document.getElementById('addAmount').value = '';
+            document.getElementById('addDescription').value = '';
+            document.getElementById('addGeneralTab').value = '';
+            document.getElementById('addPrivateTab').value = '';
+            document.getElementById('addClientSearch').value = '';
+            document.getElementById('addClientId').value = '';
+            document.getElementById('clientSelectionGroup').style.display = 'none';
+            document.getElementById('addDirection').value = 'incoming';
+            document.getElementById('addType').value = 'incoming';
+            document.getElementById('addAmount').focus();
+            
+            // إخفاء اقتراحات العملاء
+            document.getElementById('addClientSuggestions').classList.remove('show');
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').classList.remove('active');
+        }
+
+        // ============================================================
+        // SHOW/HIDE CLIENT SELECTION BASED ON GENERAL TAB
+        // ============================================================
+        document.getElementById('addGeneralTab').addEventListener('input', function() {
+            var val = this.value.trim();
+            var clientGroup = document.getElementById('clientSelectionGroup');
+            if (val === 'تحصيلات_العملاء') {
+                clientGroup.style.display = 'block';
+                document.getElementById('addClientSearch').focus();
+            } else {
+                clientGroup.style.display = 'none';
+                document.getElementById('addClientId').value = '';
+                document.getElementById('addClientSearch').value = '';
+                document.getElementById('addClientSuggestions').classList.remove('show');
+            }
+        });
+
+        // ============================================================
+        // CLIENT SUGGESTIONS FOR ADD MODAL
+        // ============================================================
+        function showAddClientSuggestions(input) {
+            var searchTerm = input.trim().toLowerCase();
+            var suggestionsList = document.getElementById('addClientSuggestions');
+
+            if (!searchTerm || searchTerm.length < 1) {
+                suggestionsList.classList.remove('show');
+                addSelectedSuggestionIndex = -1;
+                return;
+            }
+
+            var filtered = allClientsForAdd.filter(function(client) {
+                return client.name.toLowerCase().includes(searchTerm) ||
+                    (client.phone && client.phone.includes(searchTerm)) ||
+                    (client.code && client.code.toLowerCase().includes(searchTerm));
+            });
+
+            var results = filtered.slice(0, 10);
+
+            if (results.length === 0) {
+                suggestionsList.innerHTML = `
+                    <div class="suggestion-item" style="padding:10px 14px;color:var(--text-muted);">
+                        لا توجد نتائج مطابقة
+                    </div>
+                `;
+                suggestionsList.classList.add('show');
+                addSelectedSuggestionIndex = -1;
+                return;
+            }
+
+            var html = '';
+            results.forEach(function(client) {
+                html += `
+                    <div class="suggestion-item" onclick="selectAddClient('${client.id}', '${client.name}')">
+                        <span>${client.code ? client.code + ' — ' : ''}${client.name}</span>
+                        ${client.phone ? `<span class="client-phone">📱 ${client.phone}</span>` : ''}
+                    </div>
+                `;
+            });
+
+            suggestionsList.innerHTML = html;
+            suggestionsList.classList.add('show');
+            addSelectedSuggestionIndex = -1;
+        }
+
+        function selectAddClient(id, name) {
+            document.getElementById('addClientId').value = id;
+            document.getElementById('addClientSearch').value = name;
+            document.getElementById('addClientSuggestions').classList.remove('show');
+            addSelectedSuggestionIndex = -1;
+        }
+
+        // ============================================================
+        // ADD CLIENT INPUT EVENTS
+        // ============================================================
+        document.getElementById('addClientSearch').addEventListener('input', function() {
+            var value = this.value.trim();
+            if (value.length >= 1) {
+                showAddClientSuggestions(value);
+            } else {
+                document.getElementById('addClientSuggestions').classList.remove('show');
+                document.getElementById('addClientId').value = '';
+                addSelectedSuggestionIndex = -1;
+            }
+        });
+
+        document.getElementById('addClientSearch').addEventListener('blur', function() {
+            setTimeout(function() {
+                if (!document.activeElement || !document.activeElement.closest('.client-suggestions')) {
+                    document.getElementById('addClientSuggestions').classList.remove('show');
+                    addSelectedSuggestionIndex = -1;
+                }
+            }, 200);
+        });
+
+        document.addEventListener('click', function(e) {
+            var container = document.querySelector('.client-suggestions');
+            if (container && !container.contains(e.target)) {
+                document.getElementById('addClientSuggestions').classList.remove('show');
+                addSelectedSuggestionIndex = -1;
+            }
+        });
+
+        // ============================================================
+        // SAVE TRANSACTION - مع دعم ترحيل التحصيلات
+        // ============================================================
+        async function saveTransaction(event) {
+            event.preventDefault();
+
+            var date = document.getElementById('addDate').value;
+            var direction = document.getElementById('addDirection').value;
+            var amount = parseFloat(document.getElementById('addAmount').value);
+            var type = document.getElementById('addType').value;
+            var description = document.getElementById('addDescription').value.trim();
+            var generalTab = document.getElementById('addGeneralTab').value.trim();
+            var privateTab = document.getElementById('addPrivateTab').value.trim();
+            var clientId = document.getElementById('addClientId').value;
+            var clientName = document.getElementById('addClientSearch').value.trim();
+
+            if (!date) {
+                showToast('⚠️ تنبيه', 'يرجى تحديد التاريخ', 'error');
+                return;
+            }
+
+            if (!amount || amount <= 0) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال مبلغ صحيح', 'error');
+                return;
+            }
+
+            // ✅ التحقق: إذا كان التبويب العام = تحصيلات_العملاء، يجب اختيار عميل
+            if (generalTab === 'تحصيلات_العملاء' && !clientId) {
+                showToast('⚠️ تنبيه', 'يرجى اختيار عميل للتحصيل', 'error');
+                document.getElementById('addClientSearch').focus();
+                return;
+            }
+
+            var finalAmount = direction === 'incoming' ? amount : -amount;
+
+            var btn = document.getElementById('addSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+
+            try {
+                var token = getToken();
+                if (!token) {
+                    redirectToLogin();
+                    return;
+                }
+
+                var companyId = await getCompanyId();
+                var user = await getCurrentUserProfile();
+
+                // ✅ إضافة الحركة إلى treasury_transactions
+                var transactionData = {
+                    treasury_id: currentTreasuryId,
+                    amount: finalAmount,
+                    type: type || (direction === 'incoming' ? 'incoming' : 'outgoing'),
+                    description: description || 'حركة جديدة',
+                    general_tab: generalTab || 'عام',
+                    private_tab: privateTab || 'خاص',
+                    date: date + 'T00:00:00',
+                    company_id: companyId,
+                    user_id: user ? user.id : null,
+                    is_imported: false,
+                    import_order: null
+                };
+
+                var transaction = await insertRow('treasury_transactions', transactionData);
+
+                // ✅ إذا كان التبويب العام = تحصيلات_العملاء، أضف إلى client_payments
+                if (generalTab === 'تحصيلات_العملاء' && clientId) {
+                    await addClientPayment(
+                        clientId,
+                        clientName,
+                        amount,
+                        date,
+                        'نقدي',
+                        'TREASURY-' + Date.now(),
+                        description || 'تحصيل من العميل ' + clientName
+                    );
+                    showToast('✅ تم الحفظ والترحيل', 'تم إضافة الحركة وترحيلها لتحصيلات العميل ' + clientName, 'success');
+                } else {
+                    showToast('✅ تم الحفظ', 'تم إضافة الحركة بنجاح', 'success');
+                }
+
+                await updateTreasuryBalance(currentTreasuryId);
+
+                closeAddModal();
+                loadData();
+
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                showToast('❌ خطأ', error.message || 'فشل حفظ الحركة', 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> إضافة الحركة';
+        }
+
+        // ============================================================
         // POPULATE TREASURY SELECTS
         // ============================================================
         function populateTreasurySelects(treasuries, currentId, currentName) {
@@ -1882,7 +2288,6 @@
             var progressCount = document.getElementById('importProgressCount');
             var totalCount = document.getElementById('importTotalCount');
 
-            // إعادة تعيين ترتيب الاستيراد
             importOrder = [];
             importedRowIds = {};
 
@@ -2015,7 +2420,6 @@
                         var companyId = await getCompanyId();
                         var user = await getCurrentUserProfile();
 
-                        // ✅ حفظ ترتيب الاستيراد
                         var importOrderIndex = i + 1;
 
                         var inserted = await insertRow('treasury_transactions', {
@@ -2028,11 +2432,10 @@
                             date: transactionDate,
                             company_id: companyId,
                             user_id: user ? user.id : null,
-                            is_imported: true, // ✅ علامة تشير إلى أن هذه الحركة مستوردة
-                            import_order: importOrderIndex // ✅ ترتيب الصف في ملف Excel
+                            is_imported: true,
+                            import_order: importOrderIndex
                         });
 
-                        // ✅ تخزين معرف الحركة وترتيبها للمقارنة
                         if (inserted && inserted.id) {
                             importedRowIds[inserted.id] = importOrderIndex;
                             importOrder.push(inserted.id);
@@ -2096,7 +2499,6 @@
                 return;
             }
 
-            // تصفية المستورد فقط إذا كان الخيار مفعلاً
             var filteredTransactions = transactions;
             if (showImportedOnly) {
                 filteredTransactions = transactions.filter(function(t) {
@@ -2110,7 +2512,6 @@
                 return;
             }
 
-            // ترتيب حسب ترتيب الاستيراد إذا كان الخيار مفعلاً
             var sortedTransactions = filteredTransactions.slice();
             if (sortByImportOrder) {
                 sortedTransactions.sort(function(a, b) {
@@ -2119,7 +2520,6 @@
                     return orderA - orderB;
                 });
             } else {
-                // ترتيب حسب التاريخ (الأحدث أولاً)
                 sortedTransactions.sort(function(a, b) {
                     var dateA = new Date(a.date || a.created_at);
                     var dateB = new Date(b.date || b.created_at);
@@ -2160,12 +2560,10 @@
                 var incoming = isIncoming ? displayAmount.toLocaleString() : '-';
                 var outgoing = !isIncoming ? displayAmount.toLocaleString() : '-';
 
-                // ✅ تحديد إذا كانت الحركة مستوردة
                 var isImported = item.is_imported === true;
                 var importedClass = isImported ? 'imported-row' : '';
                 var importBadge = isImported ? ' 📥' : '';
 
-                // ✅ عرض رقم الصف في Excel إذا كان مستورداً
                 var orderDisplay = '';
                 if (isImported && importedRowIds[item.id]) {
                     orderDisplay = ' (صف ' + importedRowIds[item.id] + ')';
@@ -2357,7 +2755,6 @@
                 var transactions = await getTransactionsWithPagination(currentTreasuryId);
                 allTransactions = transactions;
 
-                // ✅ تحديث بيانات المستوردين
                 transactions.forEach(function(t) {
                     if (t.is_imported && t.import_order) {
                         importedRowIds[t.id] = t.import_order;
@@ -2372,7 +2769,6 @@
 
                 populateTreasurySelects(treasuries, currentTreasuryId, treasury.name);
 
-                // ✅ عرض البيانات مع ترتيب الاستيراد
                 renderTransactions(transactions);
                 updateStats(transactions);
 
@@ -2470,6 +2866,7 @@
                 closeOpeningModal();
                 closeImportModal();
                 closeEditModal();
+                closeAddModal();
             }
         });
 
@@ -2481,6 +2878,9 @@
         });
         document.getElementById('editModal').addEventListener('click', function(e) {
             if (e.target === this) closeEditModal();
+        });
+        document.getElementById('addModal').addEventListener('click', function(e) {
+            if (e.target === this) closeAddModal();
         });
 
         // ============================================================
@@ -2518,7 +2918,7 @@
         // INIT
         // ============================================================
         (async function init() {
-            console.log('🏛️ الخزينة - QuickData ProSoft (نسخة محسنة مع ترتيب الاستيراد)');
+            console.log('🏛️ الخزينة - QuickData ProSoft (نسخة محسنة مع ترحيل التحصيلات)');
 
             var token = getToken();
             if (!token) {
@@ -2533,6 +2933,7 @@
             }
 
             try {
+                await loadClientsForAdd();
                 await loadData();
                 console.log('✅ تم تحميل البيانات بنجاح');
             } catch (e) {
