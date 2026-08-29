@@ -676,7 +676,7 @@
         }
 
         // ============================================================
-        // DISPLAY DATA - مع ترتيب زمني للحركات
+        // DISPLAY DATA - العرض الأصلي (مجمّع حسب العميل)
         // ============================================================
         function displayData(transactions) {
             var tbody = document.getElementById('collectionsBody');
@@ -704,7 +704,6 @@
                 return;
             }
 
-            // ✅ تجميع الحركات حسب العميل
             var clientMap = {};
             transactions.forEach(function(item) {
                 var clientName = item.client_name || 'غير محدد';
@@ -727,15 +726,7 @@
 
             clientArray.forEach(function(client) {
                 counter++;
-                
-                // ✅ ترتيب حركات العميل من الأحدث إلى الأقدم
-                client.transactions.sort(function(a, b) {
-                    var dateA = new Date(a.payment_date || a.created_at);
-                    var dateB = new Date(b.payment_date || b.created_at);
-                    return dateB - dateA;
-                });
-
-                // صف المجموع للعميل
+                var firstItem = client.transactions[0];
                 rows += `
                     <tr style="background:var(--gold-glow);font-weight:700;">
                         <td>${counter}</td>
@@ -745,7 +736,6 @@
                     </tr>
                 `;
 
-                // حركات العميل (مرتبة زمنياً)
                 client.transactions.forEach(function(item) {
                     var amount = parseFloat(item.amount) || 0;
                     var isIncoming = amount > 0;
@@ -767,14 +757,12 @@
                     };
                     var displayType = typeLabels[item.type] || item.type || '-';
 
-                    var dateDisplay = formatDate(item.payment_date || item.created_at);
-
                     rows += `
                         <tr>
                             <td></td>
                             <td></td>
                             <td><span class="treasury-badge">${treasuryName}</span></td>
-                            <td>${dateDisplay}</td>
+                            <td>${formatDate(item.payment_date || item.created_at)}</td>
                             <td style="text-align:right;">${item.notes || item.description || '-'}</td>
                             <td class="amount-col ${isIncoming ? 'incoming' : 'outgoing'}">${isIncoming ? '+' : '-'} ${displayAmount.toLocaleString()}</td>
                             <td>${displayType}</td>
@@ -804,14 +792,14 @@
         }
 
         // ============================================================
-        // SET DEFAULT DATES
+        // SET DEFAULT DATES - ✅ من أول يوم في السنة
         // ============================================================
         function setDefaultDates() {
             var now = new Date();
-            var firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            var firstDayOfYear = new Date(now.getFullYear(), 0, 1); // ✅ 1 يناير
             var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-            document.getElementById('filterDateFrom').value = firstDayOfMonth.toISOString().split('T')[0];
+            document.getElementById('filterDateFrom').value = firstDayOfYear.toISOString().split('T')[0];
             document.getElementById('filterDateTo').value = today.toISOString().split('T')[0];
         }
 
