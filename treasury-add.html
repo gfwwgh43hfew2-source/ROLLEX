@@ -148,7 +148,7 @@
             background: var(--bg-card);
             border-radius: var(--radius);
             padding: 48px 40px 40px;
-            max-width: 520px;
+            max-width: 560px;
             width: 100%;
             margin-top: 90px;
             box-shadow: var(--shadow-lg);
@@ -205,6 +205,12 @@
             color: var(--danger);
         }
 
+        .form-group label .optional {
+            font-weight: 400;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+        }
+
         .form-group input,
         .form-group select,
         .form-group textarea {
@@ -243,6 +249,37 @@
             font-size: 0.7rem;
             color: var(--text-muted);
             margin-top: 4px;
+        }
+
+        .form-group .hint i {
+            color: var(--gold);
+        }
+
+        /* ==========================================================
+           DIVIDER
+           ========================================================== */
+        .form-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .form-divider::before,
+        .form-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .form-divider span {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            white-space: nowrap;
+            background: var(--bg-card);
+            padding: 0 12px;
         }
 
         /* ==========================================================
@@ -364,6 +401,7 @@
         @media (max-width: 480px) {
             .form-container .form-header h2 { font-size: 1.2rem; }
             .form-container .form-header .icon-wrapper { width: 50px; height: 50px; font-size: 1.4rem; }
+            .form-group input, .form-group select { font-size: 0.8rem; padding: 9px 12px; }
         }
     </style>
 </head>
@@ -429,11 +467,22 @@
                 <textarea id="treasuryDesc" placeholder="وصف الخزينة (اختياري)"></textarea>
             </div>
 
-            <!-- الرصيد الافتتاحي -->
-            <div class="form-group">
-                <label>الرصيد الافتتاحي</label>
-                <input type="number" id="treasuryBalance" placeholder="0" value="0" step="0.01" min="0" />
-                <div class="hint">يمكنك تعديل الرصيد لاحقاً من خلال حركات الخزينة</div>
+            <!-- ===== الرصيد الافتتاحي مع التاريخ ===== -->
+            <div class="form-divider">
+                <span><i class="fas fa-coins"></i> الرصيد الافتتاحي (اختياري)</span>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>المبلغ</label>
+                    <input type="number" id="openingBalance" placeholder="0.00" value="0" step="0.01" min="0" />
+                    <div class="hint"><i class="fas fa-info-circle"></i> اتركه صفراً إذا كنت لا تريد رصيداً افتتاحياً</div>
+                </div>
+                <div class="form-group">
+                    <label>التاريخ <span class="optional">(اختياري)</span></label>
+                    <input type="date" id="openingDate" />
+                    <div class="hint"><i class="fas fa-calendar"></i> تاريخ إثبات الرصيد</div>
+                </div>
             </div>
 
             <!-- الأزرار -->
@@ -488,7 +537,10 @@
          */
         async function logout() {
             try {
-                await supabaseClient.auth.signOut();
+                var client = getSupabaseClient();
+                if (client) {
+                    await client.auth.signOut();
+                }
                 localStorage.removeItem('rollex_session');
                 sessionStorage.removeItem('rollex_session');
                 window.location.href = 'login.html';
@@ -500,6 +552,19 @@
 
         /**
          * ============================================================
+         * SET DEFAULT DATE
+         * ============================================================
+         */
+        function setDefaultDate() {
+            var today = new Date();
+            var year = today.getFullYear();
+            var month = String(today.getMonth() + 1).padStart(2, '0');
+            var day = String(today.getDate()).padStart(2, '0');
+            document.getElementById('openingDate').value = year + '-' + month + '-' + day;
+        }
+
+        /**
+         * ============================================================
          * SAVE TREASURY
          * ============================================================
          */
@@ -507,7 +572,8 @@
             var name = document.getElementById('treasuryName').value.trim();
             var type = document.getElementById('treasuryType').value;
             var description = document.getElementById('treasuryDesc').value.trim();
-            var balance = parseFloat(document.getElementById('treasuryBalance').value) || 0;
+            var openingBalance = parseFloat(document.getElementById('openingBalance').value) || 0;
+            var openingDate = document.getElementById('openingDate').value;
 
             // التحقق من صحة الإدخال
             if (!name) {
@@ -516,9 +582,9 @@
                 return;
             }
 
-            if (balance < 0) {
+            if (openingBalance < 0) {
                 showToast('⚠️ تنبيه', 'الرصيد لا يمكن أن يكون سالباً', 'error');
-                document.getElementById('treasuryBalance').focus();
+                document.getElementById('openingBalance').focus();
                 return;
             }
 
@@ -545,22 +611,48 @@
 
                 var user = await getCurrentUserProfile();
 
-                // إدراج الخزينة باستخدام insertRow من supabase-client.js
-                var result = await insertRow('treasuries', {
+                // 1. إدراج الخزينة
+                var treasuryData = {
                     company_id: companyId,
                     user_id: user?.id || null,
                     name: name,
                     type: type,
                     description: description || null,
-                    balance: balance,
+                    balance: openingBalance, // الرصيد الافتتاحي
                     is_active: true
-                });
+                };
 
-                console.log('✅ تم إضافة الخزينة:', result);
+                var treasury = await insertRow('treasuries', treasuryData);
 
-                showToast('✅ تم الحفظ', 'تم إضافة الخزينة "' + name + '" بنجاح', 'success');
+                console.log('✅ تم إضافة الخزينة:', treasury);
 
-                // التوجيه بعد ثانية
+                // 2. إذا كان هناك رصيد افتتاحي، أضف حركة
+                if (openingBalance > 0 && treasury && treasury.id) {
+                    var transactionDate = openingDate || new Date().toISOString();
+
+                    var transactionData = {
+                        treasury_id: treasury.id,
+                        amount: openingBalance,
+                        type: 'opening',
+                        description: 'رصيد افتتاحي - ' + name,
+                        general_tab: 'رأس مال',
+                        private_tab: 'رصيد افتتاحي',
+                        date: transactionDate + 'T00:00:00',
+                        company_id: companyId,
+                        user_id: user?.id || null,
+                        is_imported: false,
+                        import_order: null
+                    };
+
+                    await insertRow('treasury_transactions', transactionData);
+
+                    console.log('✅ تم إضافة حركة الرصيد الافتتاحي:', transactionData);
+                    showToast('✅ تم الحفظ', 'تم إضافة الخزينة "' + name + '" مع رصيد افتتاحي ' + openingBalance.toLocaleString() + ' ج.م بتاريخ ' + (openingDate || 'اليوم'), 'success');
+                } else {
+                    showToast('✅ تم الحفظ', 'تم إضافة الخزينة "' + name + '" بنجاح', 'success');
+                }
+
+                // التوجيه بعد ثانية ونصف
                 setTimeout(function() {
                     window.location.href = 'treasuries.html';
                 }, 1500);
@@ -607,6 +699,9 @@
             }
 
             // تعيين التاريخ الافتراضي
+            setDefaultDate();
+
+            // التركيز على حقل الاسم
             var nameInput = document.getElementById('treasuryName');
             if (nameInput) {
                 setTimeout(function() {
