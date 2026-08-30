@@ -48,7 +48,11 @@
             --font: 'Cairo', sans-serif;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
             font-family: var(--font);
@@ -1244,8 +1248,33 @@
                 </div>
                 <div class="form-group">
                     <label>التبويب العام</label>
-                    <input type="text" id="editGeneralTab" placeholder="التبويب العام" />
+                    <input type="text" id="editGeneralTab" placeholder="التبويب العام" list="editGeneralTabsList" />
+                    <datalist id="editGeneralTabsList">
+                        <option value="تحصيلات_العملاء">
+                        <option value="مبيعات">
+                        <option value="مشتريات">
+                        <option value="مصاريف">
+                        <option value="رواتب">
+                        <option value="تحويلات">
+                    </datalist>
+                    <div class="helper-text" style="font-size:0.6rem;color:var(--text-muted);">
+                        <i class="fas fa-info-circle"></i> إذا اخترت "تحصيلات_العملاء"، سيتم تحديث تحصيلات العميل تلقائياً
+                    </div>
                 </div>
+                
+                <!-- ===== حقل اختيار العميل في مودال التعديل ===== -->
+                <div class="form-group" id="editClientSelectionGroup" style="display:none;">
+                    <label>اختر العميل <span class="required">*</span></label>
+                    <div class="client-suggestions">
+                        <input type="text" id="editClientSearch" placeholder="ابحث عن عميل..." autocomplete="off" />
+                        <div class="suggestions-list" id="editClientSuggestions"></div>
+                        <input type="hidden" id="editClientId" value="" />
+                    </div>
+                    <div class="helper-text" style="font-size:0.6rem;color:var(--text-muted);">
+                        <i class="fas fa-info-circle"></i> سيتم تحديث تحصيلات العميل عند تغيير الاسم
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label>التبويب الخاص</label>
                     <input type="text" id="editPrivateTab" placeholder="التبويب الخاص" />
@@ -1275,6 +1304,7 @@
         var allTransactions = [];
         var supabaseClient = null;
         var allClientsForAdd = [];
+        var allClientsForEdit = [];
         
         // ===== متغيرات للتحكم في ترتيب العرض =====
         var importedRowIds = {};
@@ -1282,6 +1312,7 @@
         var sortByImportOrder = true;
         var showImportedOnly = false;
         var addSelectedSuggestionIndex = -1;
+        var editSelectedSuggestionIndex = -1;
 
         // ============================================================
         // GET SUPABASE CLIENT
@@ -1434,6 +1465,20 @@
             } catch (error) {
                 console.error('❌ خطأ في جلب العملاء:', error);
                 allClientsForAdd = [];
+            }
+        }
+
+        // ============================================================
+        // LOAD CLIENTS FOR EDIT MODAL
+        // ============================================================
+        async function loadClientsForEdit() {
+            try {
+                var data = await getTable('clients');
+                allClientsForEdit = data || [];
+                console.log('👤 تم جلب ' + allClientsForEdit.length + ' عميل للتعديل');
+            } catch (error) {
+                console.error('❌ خطأ في جلب العملاء للتعديل:', error);
+                allClientsForEdit = [];
             }
         }
 
@@ -1710,7 +1755,7 @@
         }
 
         // ============================================================
-        // SHOW/HIDE CLIENT SELECTION BASED ON GENERAL TAB
+        // SHOW/HIDE CLIENT SELECTION IN ADD MODAL
         // ============================================================
         document.getElementById('addGeneralTab').addEventListener('input', function() {
             var val = this.value.trim();
@@ -1729,9 +1774,12 @@
         // ============================================================
         // CLIENT SUGGESTIONS FOR ADD MODAL
         // ============================================================
+        var addClientSuggestionsList = document.getElementById('addClientSuggestions');
+        var addClientSearch = document.getElementById('addClientSearch');
+
         function showAddClientSuggestions(input) {
             var searchTerm = input.trim().toLowerCase();
-            var suggestionsList = document.getElementById('addClientSuggestions');
+            var suggestionsList = addClientSuggestionsList;
 
             if (!searchTerm || searchTerm.length < 1) {
                 suggestionsList.classList.remove('show');
@@ -1776,38 +1824,172 @@
         function selectAddClient(id, name) {
             document.getElementById('addClientId').value = id;
             document.getElementById('addClientSearch').value = name;
-            document.getElementById('addClientSuggestions').classList.remove('show');
+            addClientSuggestionsList.classList.remove('show');
             addSelectedSuggestionIndex = -1;
         }
 
         // ============================================================
         // ADD CLIENT INPUT EVENTS
         // ============================================================
-        document.getElementById('addClientSearch').addEventListener('input', function() {
+        addClientSearch.addEventListener('input', function() {
             var value = this.value.trim();
             if (value.length >= 1) {
                 showAddClientSuggestions(value);
             } else {
-                document.getElementById('addClientSuggestions').classList.remove('show');
+                addClientSuggestionsList.classList.remove('show');
                 document.getElementById('addClientId').value = '';
                 addSelectedSuggestionIndex = -1;
             }
         });
 
-        document.getElementById('addClientSearch').addEventListener('blur', function() {
+        addClientSearch.addEventListener('blur', function() {
             setTimeout(function() {
                 if (!document.activeElement || !document.activeElement.closest('.client-suggestions')) {
-                    document.getElementById('addClientSuggestions').classList.remove('show');
+                    addClientSuggestionsList.classList.remove('show');
                     addSelectedSuggestionIndex = -1;
                 }
             }, 200);
         });
 
         document.addEventListener('click', function(e) {
-            var container = document.querySelector('.client-suggestions');
+            var container = document.querySelector('#addModal .client-suggestions');
             if (container && !container.contains(e.target)) {
-                document.getElementById('addClientSuggestions').classList.remove('show');
+                addClientSuggestionsList.classList.remove('show');
                 addSelectedSuggestionIndex = -1;
+            }
+        });
+
+        // ============================================================
+        // CLIENT SUGGESTIONS FOR EDIT MODAL
+        // ============================================================
+        var editClientSuggestionsList = document.getElementById('editClientSuggestions');
+        var editClientSearch = document.getElementById('editClientSearch');
+
+        // عرض اقتراحات العملاء في مودال التعديل
+        function showEditClientSuggestions(input) {
+            var searchTerm = input.trim().toLowerCase();
+            var suggestionsList = editClientSuggestionsList;
+
+            if (!searchTerm || searchTerm.length < 1) {
+                suggestionsList.classList.remove('show');
+                editSelectedSuggestionIndex = -1;
+                return;
+            }
+
+            var filtered = allClientsForEdit.filter(function(client) {
+                return client.name.toLowerCase().includes(searchTerm) ||
+                    (client.phone && client.phone.includes(searchTerm)) ||
+                    (client.code && client.code.toLowerCase().includes(searchTerm));
+            });
+
+            var results = filtered.slice(0, 10);
+
+            if (results.length === 0) {
+                suggestionsList.innerHTML = `
+                    <div class="suggestion-item" style="padding:10px 14px;color:var(--text-muted);">
+                        لا توجد نتائج مطابقة
+                    </div>
+                `;
+                suggestionsList.classList.add('show');
+                editSelectedSuggestionIndex = -1;
+                return;
+            }
+
+            var html = '';
+            results.forEach(function(client) {
+                html += `
+                    <div class="suggestion-item" onclick="selectEditClient('${client.id}', '${client.name}')">
+                        <span>${client.code ? client.code + ' — ' : ''}${client.name}</span>
+                        ${client.phone ? `<span class="client-phone">📱 ${client.phone}</span>` : ''}
+                    </div>
+                `;
+            });
+
+            suggestionsList.innerHTML = html;
+            suggestionsList.classList.add('show');
+            editSelectedSuggestionIndex = -1;
+        }
+
+        function selectEditClient(id, name) {
+            document.getElementById('editClientId').value = id;
+            document.getElementById('editClientSearch').value = name;
+            document.getElementById('editPrivateTab').value = name;
+            editClientSuggestionsList.classList.remove('show');
+            editSelectedSuggestionIndex = -1;
+        }
+
+        // ============================================================
+        // EDIT CLIENT INPUT EVENTS
+        // ============================================================
+        editClientSearch.addEventListener('input', function() {
+            var value = this.value.trim();
+            if (value.length >= 1) {
+                showEditClientSuggestions(value);
+            } else {
+                editClientSuggestionsList.classList.remove('show');
+                document.getElementById('editClientId').value = '';
+                editSelectedSuggestionIndex = -1;
+            }
+        });
+
+        editClientSearch.addEventListener('blur', function() {
+            setTimeout(function() {
+                if (!document.activeElement || !document.activeElement.closest('.client-suggestions')) {
+                    editClientSuggestionsList.classList.remove('show');
+                    editSelectedSuggestionIndex = -1;
+                }
+            }, 200);
+        });
+
+        document.addEventListener('click', function(e) {
+            var container = document.querySelector('#editModal .client-suggestions');
+            if (container && !container.contains(e.target)) {
+                editClientSuggestionsList.classList.remove('show');
+                editSelectedSuggestionIndex = -1;
+            }
+        });
+
+        // ============================================================
+        // SHOW/HIDE CLIENT SELECTION IN EDIT MODAL
+        // ============================================================
+        document.getElementById('editGeneralTab').addEventListener('input', function() {
+            var val = this.value.trim();
+            var clientGroup = document.getElementById('editClientSelectionGroup');
+            if (val === 'تحصيلات_العملاء') {
+                clientGroup.style.display = 'block';
+                var privateTab = document.getElementById('editPrivateTab').value.trim();
+                if (privateTab) {
+                    document.getElementById('editClientSearch').value = privateTab;
+                    var found = allClientsForEdit.find(function(c) {
+                        return c.name === privateTab;
+                    });
+                    if (found) {
+                        document.getElementById('editClientId').value = found.id;
+                    }
+                }
+                document.getElementById('editClientSearch').focus();
+            } else {
+                clientGroup.style.display = 'none';
+                document.getElementById('editClientId').value = '';
+                document.getElementById('editClientSearch').value = '';
+                editClientSuggestionsList.classList.remove('show');
+            }
+        });
+
+        // ============================================================
+        // عند تغيير التبويب الخاص يدوياً، حاول البحث عن العميل
+        // ============================================================
+        document.getElementById('editPrivateTab').addEventListener('input', function() {
+            var val = this.value.trim();
+            var generalTab = document.getElementById('editGeneralTab').value.trim();
+            if (generalTab === 'تحصيلات_العملاء' && val) {
+                var found = allClientsForEdit.find(function(c) {
+                    return c.name === val;
+                });
+                if (found) {
+                    document.getElementById('editClientId').value = found.id;
+                    document.getElementById('editClientSearch').value = val;
+                }
             }
         });
 
@@ -2411,7 +2593,7 @@
         }
 
         // ============================================================
-        // EDIT TRANSACTION - مع تعبئة جميع الحقول
+        // EDIT TRANSACTION
         // ============================================================
         function editTransaction(transactionId) {
             openEditModal(transactionId);
@@ -2428,7 +2610,7 @@
         }
 
         // ============================================================
-        // FETCH TRANSACTION DATA - مع تعبئة جميع الحقول
+        // FETCH TRANSACTION DATA - مع تعبئة جميع الحقول والاقتراحات
         // ============================================================
         async function fetchTransactionData(transactionId) {
             try {
@@ -2458,6 +2640,28 @@
                 var isIncoming = transaction.amount > 0;
                 document.getElementById('editDirection').value = isIncoming ? 'incoming' : 'outgoing';
 
+                // ✅ إذا كان التبويب العام = تحصيلات_العملاء، أظهر حقل العميل
+                var generalTab = transaction.general_tab || '';
+                var privateTab = transaction.private_tab || '';
+                var clientGroup = document.getElementById('editClientSelectionGroup');
+                
+                if (generalTab === 'تحصيلات_العملاء' && privateTab) {
+                    clientGroup.style.display = 'block';
+                    document.getElementById('editClientSearch').value = privateTab;
+                    
+                    // البحث عن العميل في القائمة
+                    var found = allClientsForEdit.find(function(c) {
+                        return c.name === privateTab;
+                    });
+                    if (found) {
+                        document.getElementById('editClientId').value = found.id;
+                    }
+                } else {
+                    clientGroup.style.display = 'none';
+                    document.getElementById('editClientId').value = '';
+                    document.getElementById('editClientSearch').value = '';
+                }
+
             } catch (error) {
                 console.error('❌ خطأ:', error);
                 showToast('❌ خطأ', error.message, 'error');
@@ -2478,9 +2682,17 @@
             var generalTab = document.getElementById('editGeneralTab').value.trim();
             var privateTab = document.getElementById('editPrivateTab').value.trim();
             var date = document.getElementById('editDate').value;
+            var clientId = document.getElementById('editClientId').value;
 
             if (!amount || amount <= 0) {
                 showToast('⚠️ تنبيه', 'يرجى إدخال مبلغ صحيح', 'error');
+                return;
+            }
+
+            // ✅ إذا كان التبويب = تحصيلات_العملاء، تحقق من وجود عميل
+            if (generalTab === 'تحصيلات_العملاء' && !clientId) {
+                showToast('⚠️ تنبيه', 'يرجى اختيار عميل للتحصيل', 'error');
+                document.getElementById('editClientSearch').focus();
                 return;
             }
 
@@ -2491,13 +2703,12 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
 
             try {
-                // ✅ 1. جلب الحركة القديمة
                 var oldTransaction = allTransactions.find(function(t) { return t.id == transactionId; });
                 var oldGeneralTab = oldTransaction ? oldTransaction.general_tab : '';
                 var oldPrivateTab = oldTransaction ? oldTransaction.private_tab : '';
                 var oldAmount = oldTransaction ? Math.abs(oldTransaction.amount) : 0;
 
-                // ✅ 2. تحديث البيانات في treasury_transactions
+                // ✅ تحديث البيانات في treasury_transactions
                 var updateData = {
                     amount: finalAmount,
                     type: type,
@@ -2512,32 +2723,37 @@
 
                 await patchRow('treasury_transactions', transactionId, updateData);
 
-                // ✅ 3. تحديث client_payments إذا كان التبويب = تحصيلات_العملاء
-                if (generalTab === 'تحصيلات_العملاء' && privateTab) {
+                // ✅ تحديث client_payments إذا كان التبويب = تحصيلات_العملاء
+                if (generalTab === 'تحصيلات_العملاء' && clientId) {
                     var clientPayments = await getTable('client_payments');
                     var existingPayment = clientPayments.find(function(p) {
                         return p.reference === 'TREASURY-' + transactionId ||
                             (p.client_name === oldPrivateTab && p.amount === oldAmount);
                     });
 
+                    // جلب اسم العميل من القائمة
+                    var clientObj = allClientsForEdit.find(function(c) { return c.id === clientId; });
+                    var clientName = clientObj ? clientObj.name : privateTab;
+
                     if (existingPayment) {
                         var paymentUpdateData = {
-                            client_name: privateTab,
+                            client_id: clientId,
+                            client_name: clientName,
                             amount: amount,
                             payment_date: date || new Date().toISOString().split('T')[0],
-                            notes: description || 'تحصيل من العميل ' + privateTab
+                            notes: description || 'تحصيل من العميل ' + clientName
                         };
                         await patchRow('client_payments', existingPayment.id, paymentUpdateData);
                         console.log('✅ تم تحديث دفعة العميل:', existingPayment.id);
                     } else {
                         await addClientPayment(
-                            null,
-                            privateTab,
+                            clientId,
+                            clientName,
                             amount,
                             date || new Date().toISOString().split('T')[0],
                             'نقدي',
                             'TREASURY-' + transactionId,
-                            description || 'تحصيل من العميل ' + privateTab
+                            description || 'تحصيل من العميل ' + clientName
                         );
                         console.log('✅ تم إضافة دفعة عميل جديدة');
                     }
@@ -2769,7 +2985,7 @@
         // INIT
         // ============================================================
         (async function init() {
-            console.log('🏛️ الخزينة - QuickData ProSoft (نسخة محسنة مع ترحيل التحصيلات)');
+            console.log('🏛️ الخزينة - QuickData ProSoft (نسخة محسنة مع ترحيل التحصيلات والاقتراحات الذكية)');
 
             var token = getToken();
             if (!token) {
@@ -2785,6 +3001,7 @@
 
             try {
                 await loadClientsForAdd();
+                await loadClientsForEdit();
                 await loadData();
                 console.log('✅ تم تحميل البيانات بنجاح');
             } catch (e) {
