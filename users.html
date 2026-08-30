@@ -1224,6 +1224,33 @@
         // ============================================================
         // MODULES LIST
         // ============================================================
+        // ============================================================
+        // MANAGE USERS EDGE FUNCTION — إضافة/حذف/إعادة تعيين كلمة مرور
+        // حقيقية عبر السيرفر (service role) بدون فقدان جلسة الأدمن
+        // ============================================================
+        async function callManageUsers(action, payload) {
+            var token = await getValidToken();
+            if (!token) throw new Error('جلسة منتهية، يرجى تسجيل الدخول من جديد');
+
+            var res = await fetch(SUPABASE_URL + '/functions/v1/manage-users', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(Object.assign({ action: action }, payload))
+            });
+
+            var result = {};
+            try { result = await res.json(); } catch (e) {}
+
+            if (!res.ok || result.error) {
+                throw new Error(result.error || 'فشل تنفيذ العملية (' + res.status + ')');
+            }
+            return result;
+        }
+
         var MODULES = [
             { id: 'dashboard', label: 'لوحة التحكم' },
             { id: 'sales', label: 'المبيعات' },
@@ -1685,46 +1712,21 @@
                 return;
             }
 
-            var token = await getValidToken();
-            if (!token) {
-                console.error('❌ [hardDeleteUser] لا يوجد توكن صالح');
-                showToast('❌ خطأ', 'جلسة منتهية', 'error');
-                return;
-            }
-
             try {
-                // 1. حذف الصلاحيات
-                var permUrl = SUPABASE_URL + '/rest/v1/user_permissions?user_id=eq.' + userId;
-                var permResponse = await fetch(permUrl, {
-                    method: 'DELETE',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
+                // ✅ الحذف النهائي الحقيقي يمر عبر Edge Function لأنه يحتاج
+                // صلاحية Admin API لحذف حساب auth.users نفسه. الحذف القديم
+                // كان يمسح صف profiles فقط ويترك المستخدم قادراً على تسجيل
+                // الدخول بنفس الإيميل وكلمة المرور القديمة!
+                var delResult = await callManageUsers('delete', { user_id: userId });
 
-                if (!permResponse.ok) {
-                    console.warn('⚠️ [hardDeleteUser] فشل حذف الصلاحيات:', permResponse.status);
-                }
-
-                // 2. حذف البروفايل
-                var profileUrl = SUPABASE_URL + '/rest/v1/profiles?id=eq.' + userId;
-                var profileResponse = await fetch(profileUrl, {
-                    method: 'DELETE',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!profileResponse.ok) {
-                    var errorText = await profileResponse.text();
-                    console.error('❌ [hardDeleteUser] فشل الحذف النهائي:', errorText);
-                    throw new Error('فشل الحذف النهائي: ' + profileResponse.status);
+                if (delResult.warning) {
+                    console.warn('⚠️ [hardDeleteUser]', delResult.warning);
+                    showToast('⚠️ تنبيه', delResult.warning, 'warning');
+                } else {
+                    showToast('✅ تم الحذف النهائي', 'تم حذف المستخدم نهائياً من النظام (بما في ذلك حساب الدخول)', 'success');
                 }
 
                 console.log('✅ [hardDeleteUser] تم الحذف النهائي للمستخدم بنجاح');
-                showToast('✅ تم الحذف النهائي', 'تم حذف المستخدم نهائياً من النظام', 'success');
                 loadData();
             } catch (error) {
                 console.error('❌ [hardDeleteUser] خطأ:', error);
@@ -1887,6 +1889,18 @@
                         }
                     }
 
+                    // ✅ إذا أدخل الأدمن كلمة مرور جديدة أثناء التعديل، طبّقها فعلياً
+                    if (password && password.length > 0) {
+                        if (password.length < 6) {
+                            throw new Error('كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل');
+                        }
+                        await callManageUsers('reset_password', {
+                            user_id: userId,
+                            new_password: password
+                        });
+                        console.log('✅ [saveUser] تم تحديث كلمة المرور');
+                    }
+
                     console.log('✅ [saveUser] تم تحديث المستخدم بنجاح');
                     showToast('✅ تم التعديل', 'تم تحديث المستخدم بنجاح', 'success');
 
@@ -1901,94 +1915,20 @@
                         return;
                     }
 
-                    // إنشاء المستخدم في Auth
-                    var { data, error } = await supabaseClient.auth.signUp({
+                    // ✅ إنشاء المستخدم فعلياً عبر Edge Function (service role)
+                    // بدلاً من supabaseClient.auth.signUp() التي كانت تستبدل
+                    // جلسة الأدمن الحالية بجلسة الموظف الجديد. هذا الاستدعاء
+                    // يمر عبر السيرفر ولا يمس جلسة المتصفح الحالية إطلاقاً.
+                    var createResult = await callManageUsers('create', {
+                        name: name,
                         email: email,
                         password: password,
-                        options: {
-                            data: {
-                                name: name,
-                                company_id: companyId,
-                                role: role
-                            }
-                        }
+                        role: role,
+                        is_active: status,
+                        permissions: permissions
                     });
 
-                    if (error) {
-                        var errMsg = error.message || 'فشل إنشاء المستخدم';
-                        if (errMsg.includes('already registered')) {
-                            errMsg = 'هذا البريد الإلكتروني مسجل بالفعل';
-                        }
-                        console.error('❌ [saveUser] خطأ في إنشاء المستخدم:', errMsg);
-                        throw new Error(errMsg);
-                    }
-
-                    if (!data.user) {
-                        console.error('❌ [saveUser] فشل إنشاء المستخدم - لا يوجد user');
-                        throw new Error('فشل إنشاء المستخدم');
-                    }
-
-                    var newUserId = data.user.id;
-                    console.log('✅ [saveUser] تم إنشاء المستخدم في Auth:', newUserId);
-
-                    // إدراج البروفايل
-                    var profileUrl = SUPABASE_URL + '/rest/v1/profiles';
-                    var profileResponse = await fetch(profileUrl, {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'return=representation'
-                        },
-                        body: JSON.stringify({
-                            id: newUserId,
-                            name: name,
-                            email: email,
-                            role: role,
-                            is_active: status,
-                            company_id: companyId,
-                            deleted_at: null
-                        })
-                    });
-
-                    if (!profileResponse.ok) {
-                        var profileErrorText = await profileResponse.text();
-                        console.warn('⚠️ [saveUser] فشل إنشاء البروفايل:', profileErrorText);
-                    } else {
-                        console.log('✅ [saveUser] تم إنشاء البروفايل بنجاح');
-                    }
-
-                    // إضافة الصلاحيات
-                    for (var mod in permissions) {
-                        var permData = permissions[mod];
-                        var permUrl = SUPABASE_URL + '/rest/v1/user_permissions';
-                        var permResponse = await fetch(permUrl, {
-                            method: 'POST',
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + token,
-                                'Content-Type': 'application/json',
-                                'Prefer': 'return=representation'
-                            },
-                            body: JSON.stringify({
-                                company_id: companyId,
-                                user_id: newUserId,
-                                module: mod,
-                                can_view: permData.view || false,
-                                can_add: permData.add || false,
-                                can_edit: permData.edit || false,
-                                can_delete: permData.delete || false,
-                                can_export: permData.export || false
-                            })
-                        });
-
-                        if (!permResponse.ok) {
-                            console.warn('⚠️ [saveUser] فشل إضافة الصلاحية للموديول:', mod);
-                        }
-                    }
-
-                    console.log('✅ [saveUser] تم إضافة المستخدم بنجاح');
+                    console.log('✅ [saveUser] تم إنشاء المستخدم بنجاح:', createResult.user);
                     showToast('✅ تم الإضافة', 'تم إضافة المستخدم بنجاح', 'success');
                 }
 
