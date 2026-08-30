@@ -48,11 +48,7 @@
             --font: 'Cairo', sans-serif;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: var(--font);
@@ -1462,9 +1458,11 @@
                 var data = await getTable('clients');
                 allClientsForAdd = data || [];
                 console.log('👤 تم جلب ' + allClientsForAdd.length + ' عميل للتحصيلات');
+                return allClientsForAdd;
             } catch (error) {
                 console.error('❌ خطأ في جلب العملاء:', error);
                 allClientsForAdd = [];
+                return [];
             }
         }
 
@@ -1476,9 +1474,11 @@
                 var data = await getTable('clients');
                 allClientsForEdit = data || [];
                 console.log('👤 تم جلب ' + allClientsForEdit.length + ' عميل للتعديل');
+                return allClientsForEdit;
             } catch (error) {
                 console.error('❌ خطأ في جلب العملاء للتعديل:', error);
                 allClientsForEdit = [];
+                return [];
             }
         }
 
@@ -1778,84 +1778,131 @@
         var addClientSearch = document.getElementById('addClientSearch');
 
         function showAddClientSuggestions(input) {
-            var searchTerm = input.trim().toLowerCase();
-            var suggestionsList = addClientSuggestionsList;
+            try {
+                var searchTerm = input.trim().toLowerCase();
+                var suggestionsList = addClientSuggestionsList;
 
-            if (!searchTerm || searchTerm.length < 1) {
-                suggestionsList.classList.remove('show');
-                addSelectedSuggestionIndex = -1;
-                return;
-            }
+                if (!searchTerm || searchTerm.length < 1) {
+                    if (suggestionsList) suggestionsList.classList.remove('show');
+                    addSelectedSuggestionIndex = -1;
+                    return;
+                }
 
-            var filtered = allClientsForAdd.filter(function(client) {
-                return client.name.toLowerCase().includes(searchTerm) ||
-                    (client.phone && client.phone.includes(searchTerm)) ||
-                    (client.code && client.code.toLowerCase().includes(searchTerm));
-            });
+                if (!allClientsForAdd || allClientsForAdd.length === 0) {
+                    if (suggestionsList) {
+                        suggestionsList.innerHTML = `
+                            <div class="suggestion-item" style="padding:10px 14px;color:var(--text-muted);">
+                                جاري تحميل العملاء...
+                            </div>
+                        `;
+                        suggestionsList.classList.add('show');
+                    }
+                    return;
+                }
 
-            var results = filtered.slice(0, 10);
+                var filtered = allClientsForAdd.filter(function(client) {
+                    return (client.name && client.name.toLowerCase().includes(searchTerm)) ||
+                        (client.phone && client.phone.includes(searchTerm)) ||
+                        (client.code && client.code.toLowerCase().includes(searchTerm));
+                });
 
-            if (results.length === 0) {
-                suggestionsList.innerHTML = `
-                    <div class="suggestion-item" style="padding:10px 14px;color:var(--text-muted);">
-                        لا توجد نتائج مطابقة
-                    </div>
-                `;
+                var results = filtered.slice(0, 10);
+
+                if (!suggestionsList) return;
+
+                if (results.length === 0) {
+                    suggestionsList.innerHTML = `
+                        <div class="suggestion-item" style="padding:10px 14px;color:var(--text-muted);">
+                            لا توجد نتائج مطابقة
+                        </div>
+                    `;
+                    suggestionsList.classList.add('show');
+                    addSelectedSuggestionIndex = -1;
+                    return;
+                }
+
+                var html = '';
+                results.forEach(function(client) {
+                    html += `
+                        <div class="suggestion-item" onclick="selectAddClient('${client.id}', '${client.name}')">
+                            <span>${client.code ? client.code + ' — ' : ''}${client.name}</span>
+                            ${client.phone ? `<span class="client-phone">📱 ${client.phone}</span>` : ''}
+                        </div>
+                    `;
+                });
+
+                suggestionsList.innerHTML = html;
                 suggestionsList.classList.add('show');
                 addSelectedSuggestionIndex = -1;
-                return;
+            } catch (error) {
+                console.error('❌ خطأ في عرض اقتراحات العملاء:', error);
+                if (addClientSuggestionsList) {
+                    addClientSuggestionsList.classList.remove('show');
+                }
             }
-
-            var html = '';
-            results.forEach(function(client) {
-                html += `
-                    <div class="suggestion-item" onclick="selectAddClient('${client.id}', '${client.name}')">
-                        <span>${client.code ? client.code + ' — ' : ''}${client.name}</span>
-                        ${client.phone ? `<span class="client-phone">📱 ${client.phone}</span>` : ''}
-                    </div>
-                `;
-            });
-
-            suggestionsList.innerHTML = html;
-            suggestionsList.classList.add('show');
-            addSelectedSuggestionIndex = -1;
         }
 
         function selectAddClient(id, name) {
-            document.getElementById('addClientId').value = id;
-            document.getElementById('addClientSearch').value = name;
-            addClientSuggestionsList.classList.remove('show');
-            addSelectedSuggestionIndex = -1;
+            try {
+                document.getElementById('addClientId').value = id;
+                document.getElementById('addClientSearch').value = name;
+                if (addClientSuggestionsList) {
+                    addClientSuggestionsList.classList.remove('show');
+                }
+                addSelectedSuggestionIndex = -1;
+            } catch (error) {
+                console.error('❌ خطأ في اختيار العميل:', error);
+            }
         }
 
         // ============================================================
         // ADD CLIENT INPUT EVENTS
         // ============================================================
-        addClientSearch.addEventListener('input', function() {
-            var value = this.value.trim();
-            if (value.length >= 1) {
-                showAddClientSuggestions(value);
-            } else {
-                addClientSuggestionsList.classList.remove('show');
-                document.getElementById('addClientId').value = '';
-                addSelectedSuggestionIndex = -1;
-            }
-        });
-
-        addClientSearch.addEventListener('blur', function() {
-            setTimeout(function() {
-                if (!document.activeElement || !document.activeElement.closest('.client-suggestions')) {
-                    addClientSuggestionsList.classList.remove('show');
-                    addSelectedSuggestionIndex = -1;
+        if (addClientSearch) {
+            addClientSearch.addEventListener('input', function() {
+                try {
+                    var value = this.value.trim();
+                    if (value.length >= 1) {
+                        showAddClientSuggestions(value);
+                    } else {
+                        if (addClientSuggestionsList) {
+                            addClientSuggestionsList.classList.remove('show');
+                        }
+                        document.getElementById('addClientId').value = '';
+                        addSelectedSuggestionIndex = -1;
+                    }
+                } catch (error) {
+                    console.error('❌ خطأ في حدث input:', error);
                 }
-            }, 200);
-        });
+            });
+
+            addClientSearch.addEventListener('blur', function() {
+                setTimeout(function() {
+                    try {
+                        if (!document.activeElement || !document.activeElement.closest('.client-suggestions')) {
+                            if (addClientSuggestionsList) {
+                                addClientSuggestionsList.classList.remove('show');
+                            }
+                            addSelectedSuggestionIndex = -1;
+                        }
+                    } catch (error) {
+                        console.error('❌ خطأ في حدث blur:', error);
+                    }
+                }, 200);
+            });
+        }
 
         document.addEventListener('click', function(e) {
-            var container = document.querySelector('#addModal .client-suggestions');
-            if (container && !container.contains(e.target)) {
-                addClientSuggestionsList.classList.remove('show');
-                addSelectedSuggestionIndex = -1;
+            try {
+                var container = document.querySelector('#addModal .client-suggestions');
+                if (container && !container.contains(e.target)) {
+                    if (addClientSuggestionsList) {
+                        addClientSuggestionsList.classList.remove('show');
+                    }
+                    addSelectedSuggestionIndex = -1;
+                }
+            } catch (error) {
+                console.error('❌ خطأ في حدث click:', error);
             }
         });
 
@@ -1865,87 +1912,133 @@
         var editClientSuggestionsList = document.getElementById('editClientSuggestions');
         var editClientSearch = document.getElementById('editClientSearch');
 
-        // عرض اقتراحات العملاء في مودال التعديل
         function showEditClientSuggestions(input) {
-            var searchTerm = input.trim().toLowerCase();
-            var suggestionsList = editClientSuggestionsList;
+            try {
+                var searchTerm = input.trim().toLowerCase();
+                var suggestionsList = editClientSuggestionsList;
 
-            if (!searchTerm || searchTerm.length < 1) {
-                suggestionsList.classList.remove('show');
-                editSelectedSuggestionIndex = -1;
-                return;
-            }
+                if (!searchTerm || searchTerm.length < 1) {
+                    if (suggestionsList) suggestionsList.classList.remove('show');
+                    editSelectedSuggestionIndex = -1;
+                    return;
+                }
 
-            var filtered = allClientsForEdit.filter(function(client) {
-                return client.name.toLowerCase().includes(searchTerm) ||
-                    (client.phone && client.phone.includes(searchTerm)) ||
-                    (client.code && client.code.toLowerCase().includes(searchTerm));
-            });
+                if (!allClientsForEdit || allClientsForEdit.length === 0) {
+                    if (suggestionsList) {
+                        suggestionsList.innerHTML = `
+                            <div class="suggestion-item" style="padding:10px 14px;color:var(--text-muted);">
+                                جاري تحميل العملاء...
+                            </div>
+                        `;
+                        suggestionsList.classList.add('show');
+                    }
+                    return;
+                }
 
-            var results = filtered.slice(0, 10);
+                var filtered = allClientsForEdit.filter(function(client) {
+                    return (client.name && client.name.toLowerCase().includes(searchTerm)) ||
+                        (client.phone && client.phone.includes(searchTerm)) ||
+                        (client.code && client.code.toLowerCase().includes(searchTerm));
+                });
 
-            if (results.length === 0) {
-                suggestionsList.innerHTML = `
-                    <div class="suggestion-item" style="padding:10px 14px;color:var(--text-muted);">
-                        لا توجد نتائج مطابقة
-                    </div>
-                `;
+                var results = filtered.slice(0, 10);
+
+                if (!suggestionsList) return;
+
+                if (results.length === 0) {
+                    suggestionsList.innerHTML = `
+                        <div class="suggestion-item" style="padding:10px 14px;color:var(--text-muted);">
+                            لا توجد نتائج مطابقة
+                        </div>
+                    `;
+                    suggestionsList.classList.add('show');
+                    editSelectedSuggestionIndex = -1;
+                    return;
+                }
+
+                var html = '';
+                results.forEach(function(client) {
+                    html += `
+                        <div class="suggestion-item" onclick="selectEditClient('${client.id}', '${client.name}')">
+                            <span>${client.code ? client.code + ' — ' : ''}${client.name}</span>
+                            ${client.phone ? `<span class="client-phone">📱 ${client.phone}</span>` : ''}
+                        </div>
+                    `;
+                });
+
+                suggestionsList.innerHTML = html;
                 suggestionsList.classList.add('show');
                 editSelectedSuggestionIndex = -1;
-                return;
+            } catch (error) {
+                console.error('❌ خطأ في عرض اقتراحات العملاء:', error);
+                if (editClientSuggestionsList) {
+                    editClientSuggestionsList.classList.remove('show');
+                }
             }
-
-            var html = '';
-            results.forEach(function(client) {
-                html += `
-                    <div class="suggestion-item" onclick="selectEditClient('${client.id}', '${client.name}')">
-                        <span>${client.code ? client.code + ' — ' : ''}${client.name}</span>
-                        ${client.phone ? `<span class="client-phone">📱 ${client.phone}</span>` : ''}
-                    </div>
-                `;
-            });
-
-            suggestionsList.innerHTML = html;
-            suggestionsList.classList.add('show');
-            editSelectedSuggestionIndex = -1;
         }
 
         function selectEditClient(id, name) {
-            document.getElementById('editClientId').value = id;
-            document.getElementById('editClientSearch').value = name;
-            document.getElementById('editPrivateTab').value = name;
-            editClientSuggestionsList.classList.remove('show');
-            editSelectedSuggestionIndex = -1;
+            try {
+                document.getElementById('editClientId').value = id;
+                document.getElementById('editClientSearch').value = name;
+                document.getElementById('editPrivateTab').value = name;
+                if (editClientSuggestionsList) {
+                    editClientSuggestionsList.classList.remove('show');
+                }
+                editSelectedSuggestionIndex = -1;
+            } catch (error) {
+                console.error('❌ خطأ في اختيار العميل:', error);
+            }
         }
 
         // ============================================================
         // EDIT CLIENT INPUT EVENTS
         // ============================================================
-        editClientSearch.addEventListener('input', function() {
-            var value = this.value.trim();
-            if (value.length >= 1) {
-                showEditClientSuggestions(value);
-            } else {
-                editClientSuggestionsList.classList.remove('show');
-                document.getElementById('editClientId').value = '';
-                editSelectedSuggestionIndex = -1;
-            }
-        });
-
-        editClientSearch.addEventListener('blur', function() {
-            setTimeout(function() {
-                if (!document.activeElement || !document.activeElement.closest('.client-suggestions')) {
-                    editClientSuggestionsList.classList.remove('show');
-                    editSelectedSuggestionIndex = -1;
+        if (editClientSearch) {
+            editClientSearch.addEventListener('input', function() {
+                try {
+                    var value = this.value.trim();
+                    if (value.length >= 1) {
+                        showEditClientSuggestions(value);
+                    } else {
+                        if (editClientSuggestionsList) {
+                            editClientSuggestionsList.classList.remove('show');
+                        }
+                        document.getElementById('editClientId').value = '';
+                        editSelectedSuggestionIndex = -1;
+                    }
+                } catch (error) {
+                    console.error('❌ خطأ في حدث input:', error);
                 }
-            }, 200);
-        });
+            });
+
+            editClientSearch.addEventListener('blur', function() {
+                setTimeout(function() {
+                    try {
+                        if (!document.activeElement || !document.activeElement.closest('.client-suggestions')) {
+                            if (editClientSuggestionsList) {
+                                editClientSuggestionsList.classList.remove('show');
+                            }
+                            editSelectedSuggestionIndex = -1;
+                        }
+                    } catch (error) {
+                        console.error('❌ خطأ في حدث blur:', error);
+                    }
+                }, 200);
+            });
+        }
 
         document.addEventListener('click', function(e) {
-            var container = document.querySelector('#editModal .client-suggestions');
-            if (container && !container.contains(e.target)) {
-                editClientSuggestionsList.classList.remove('show');
-                editSelectedSuggestionIndex = -1;
+            try {
+                var container = document.querySelector('#editModal .client-suggestions');
+                if (container && !container.contains(e.target)) {
+                    if (editClientSuggestionsList) {
+                        editClientSuggestionsList.classList.remove('show');
+                    }
+                    editSelectedSuggestionIndex = -1;
+                }
+            } catch (error) {
+                console.error('❌ خطأ في حدث click:', error);
             }
         });
 
@@ -1953,43 +2046,58 @@
         // SHOW/HIDE CLIENT SELECTION IN EDIT MODAL
         // ============================================================
         document.getElementById('editGeneralTab').addEventListener('input', function() {
-            var val = this.value.trim();
-            var clientGroup = document.getElementById('editClientSelectionGroup');
-            if (val === 'تحصيلات_العملاء') {
-                clientGroup.style.display = 'block';
-                var privateTab = document.getElementById('editPrivateTab').value.trim();
-                if (privateTab) {
-                    document.getElementById('editClientSearch').value = privateTab;
-                    var found = allClientsForEdit.find(function(c) {
-                        return c.name === privateTab;
-                    });
-                    if (found) {
-                        document.getElementById('editClientId').value = found.id;
+            try {
+                var val = this.value.trim();
+                var clientGroup = document.getElementById('editClientSelectionGroup');
+                if (val === 'تحصيلات_العملاء') {
+                    clientGroup.style.display = 'block';
+                    var privateTab = document.getElementById('editPrivateTab').value.trim();
+                    if (privateTab) {
+                        document.getElementById('editClientSearch').value = privateTab;
+                        if (allClientsForEdit && allClientsForEdit.length > 0) {
+                            var found = allClientsForEdit.find(function(c) {
+                                return c.name === privateTab;
+                            });
+                            if (found) {
+                                document.getElementById('editClientId').value = found.id;
+                            }
+                        }
+                    }
+                    document.getElementById('editClientSearch').focus();
+                } else {
+                    clientGroup.style.display = 'none';
+                    document.getElementById('editClientId').value = '';
+                    document.getElementById('editClientSearch').value = '';
+                    if (editClientSuggestionsList) {
+                        editClientSuggestionsList.classList.remove('show');
                     }
                 }
-                document.getElementById('editClientSearch').focus();
-            } else {
-                clientGroup.style.display = 'none';
-                document.getElementById('editClientId').value = '';
-                document.getElementById('editClientSearch').value = '';
-                editClientSuggestionsList.classList.remove('show');
+            } catch (error) {
+                console.error('❌ خطأ في حدث editGeneralTab:', error);
             }
         });
 
         // ============================================================
-        // عند تغيير التبويب الخاص يدوياً، حاول البحث عن العميل
+        // EDIT PRIVATE TAB - آمن مع try/catch
         // ============================================================
         document.getElementById('editPrivateTab').addEventListener('input', function() {
-            var val = this.value.trim();
-            var generalTab = document.getElementById('editGeneralTab').value.trim();
-            if (generalTab === 'تحصيلات_العملاء' && val) {
-                var found = allClientsForEdit.find(function(c) {
-                    return c.name === val;
-                });
-                if (found) {
-                    document.getElementById('editClientId').value = found.id;
-                    document.getElementById('editClientSearch').value = val;
+            try {
+                var val = this.value.trim();
+                var generalTab = document.getElementById('editGeneralTab').value.trim();
+                if (generalTab === 'تحصيلات_العملاء' && val && allClientsForEdit && allClientsForEdit.length > 0) {
+                    var found = allClientsForEdit.find(function(c) {
+                        return c.name === val;
+                    });
+                    if (found) {
+                        document.getElementById('editClientId').value = found.id;
+                        document.getElementById('editClientSearch').value = val;
+                    } else {
+                        document.getElementById('editClientId').value = '';
+                    }
                 }
+            } catch (error) {
+                // لا نفعل شيئاً، نترك المستخدم يواصل الكتابة
+                console.warn('⚠️ خطأ في البحث عن العميل:', error);
             }
         });
 
@@ -2041,7 +2149,6 @@
                 var companyId = await getCompanyId();
                 var user = await getCurrentUserProfile();
 
-                // ✅ 1. إضافة الحركة إلى treasury_transactions
                 var transactionData = {
                     treasury_id: currentTreasuryId,
                     amount: finalAmount,
@@ -2058,7 +2165,6 @@
 
                 var transaction = await insertRow('treasury_transactions', transactionData);
 
-                // ✅ 2. إذا كان التبويب العام = تحصيلات_العملاء، أضف إلى client_payments
                 if (generalTab === 'تحصيلات_العملاء' && clientId) {
                     await addClientPayment(
                         clientId,
@@ -2601,7 +2707,10 @@
 
         function openEditModal(transactionId) {
             document.getElementById('editTransactionId').value = transactionId;
-            fetchTransactionData(transactionId);
+            // ✅ تحميل العملاء قبل فتح المودال
+            loadClientsForEdit().then(function() {
+                fetchTransactionData(transactionId);
+            });
             document.getElementById('editModal').classList.add('active');
         }
 
@@ -2610,7 +2719,7 @@
         }
 
         // ============================================================
-        // FETCH TRANSACTION DATA - مع تعبئة جميع الحقول والاقتراحات
+        // FETCH TRANSACTION DATA - مع تعبئة جميع الحقول
         // ============================================================
         async function fetchTransactionData(transactionId) {
             try {
@@ -2622,7 +2731,6 @@
                     return;
                 }
 
-                // ✅ تعبئة جميع الحقول
                 document.getElementById('editAmount').value = Math.abs(transaction.amount);
                 document.getElementById('editType').value = transaction.type || 'incoming';
                 document.getElementById('editDescription').value = transaction.description || '';
@@ -2640,23 +2748,23 @@
                 var isIncoming = transaction.amount > 0;
                 document.getElementById('editDirection').value = isIncoming ? 'incoming' : 'outgoing';
 
-                // ✅ إذا كان التبويب العام = تحصيلات_العملاء، أظهر حقل العميل
                 var generalTab = transaction.general_tab || '';
                 var privateTab = transaction.private_tab || '';
                 var clientGroup = document.getElementById('editClientSelectionGroup');
                 
-                if (generalTab === 'تحصيلات_العملاء' && privateTab) {
+                if (generalTab === 'تحصيلات_العملاء' && privateTab && clientGroup) {
                     clientGroup.style.display = 'block';
                     document.getElementById('editClientSearch').value = privateTab;
                     
-                    // البحث عن العميل في القائمة
-                    var found = allClientsForEdit.find(function(c) {
-                        return c.name === privateTab;
-                    });
-                    if (found) {
-                        document.getElementById('editClientId').value = found.id;
+                    if (allClientsForEdit && allClientsForEdit.length > 0) {
+                        var found = allClientsForEdit.find(function(c) {
+                            return c.name === privateTab;
+                        });
+                        if (found) {
+                            document.getElementById('editClientId').value = found.id;
+                        }
                     }
-                } else {
+                } else if (clientGroup) {
                     clientGroup.style.display = 'none';
                     document.getElementById('editClientId').value = '';
                     document.getElementById('editClientSearch').value = '';
@@ -2689,7 +2797,6 @@
                 return;
             }
 
-            // ✅ إذا كان التبويب = تحصيلات_العملاء، تحقق من وجود عميل
             if (generalTab === 'تحصيلات_العملاء' && !clientId) {
                 showToast('⚠️ تنبيه', 'يرجى اختيار عميل للتحصيل', 'error');
                 document.getElementById('editClientSearch').focus();
@@ -2708,7 +2815,6 @@
                 var oldPrivateTab = oldTransaction ? oldTransaction.private_tab : '';
                 var oldAmount = oldTransaction ? Math.abs(oldTransaction.amount) : 0;
 
-                // ✅ تحديث البيانات في treasury_transactions
                 var updateData = {
                     amount: finalAmount,
                     type: type,
@@ -2723,7 +2829,6 @@
 
                 await patchRow('treasury_transactions', transactionId, updateData);
 
-                // ✅ تحديث client_payments إذا كان التبويب = تحصيلات_العملاء
                 if (generalTab === 'تحصيلات_العملاء' && clientId) {
                     var clientPayments = await getTable('client_payments');
                     var existingPayment = clientPayments.find(function(p) {
@@ -2731,7 +2836,6 @@
                             (p.client_name === oldPrivateTab && p.amount === oldAmount);
                     });
 
-                    // جلب اسم العميل من القائمة
                     var clientObj = allClientsForEdit.find(function(c) { return c.id === clientId; });
                     var clientName = clientObj ? clientObj.name : privateTab;
 
