@@ -55,6 +55,7 @@
         ::-webkit-scrollbar-track { background:transparent; }
         ::-webkit-scrollbar-thumb { background:var(--ink-4); border-radius:10px; }
 
+        /* ===== SIDEBAR ===== */
         .sidebar-overlay {
             display:none; position:fixed; inset:0;
             background:rgba(33,29,26,0.4); z-index:999;
@@ -127,6 +128,7 @@
         }
         .sidebar .footer .logout:hover { color:var(--rust); border-color:var(--rust); }
 
+        /* ===== MAIN ===== */
         .main {
             margin-right:var(--sidebar-w); min-height:100vh;
             transition:margin-right .35s var(--ease);
@@ -176,6 +178,7 @@
 
         .dash { padding:18px 22px 34px; max-width:1500px; }
 
+        /* ===== PAGE HEADER ===== */
         .page-header {
             display:flex; justify-content:space-between; align-items:center;
             margin-bottom:14px; flex-wrap:wrap; gap:8px;
@@ -210,6 +213,7 @@
         .btn.small { padding:3px 8px; font-size:0.55rem; }
         .btn:disabled { opacity:0.5; cursor:not-allowed; }
 
+        /* ===== SUMMARY ===== */
         .summary-bar {
             display:flex; flex-wrap:wrap; gap:8px;
             background:var(--surface); border-radius:var(--r-md);
@@ -219,7 +223,7 @@
         .summary-bar .stat { font-size:0.7rem; color:var(--ink-2); }
         .summary-bar .stat span { color:var(--gold-dark); font-weight:700; font-size:0.85rem; }
 
-        /* ===== TABLE - كل تركيبة في صف منفصل ===== */
+        /* ===== TABLE - عرض كل تركيبة مع خاماتها ===== */
         .table-wrapper {
             background:var(--surface);
             border-radius:var(--r-lg);
@@ -230,12 +234,12 @@
             width:100%;
             border-collapse:collapse;
             font-size:0.65rem;
-            min-width:900px;
+            min-width:950px;
         }
         th {
             background:var(--surface-2);
             color:var(--ink-3);
-            padding:8px 12px;
+            padding:10px 14px;
             text-align:right;
             font-weight:700;
             white-space:nowrap;
@@ -248,7 +252,7 @@
             z-index:10;
         }
         td {
-            padding:6px 12px;
+            padding:8px 14px;
             border-bottom:1px solid var(--line);
             color:var(--ink-2);
             font-size:0.65rem;
@@ -264,12 +268,43 @@
             border-bottom:none;
         }
 
-        /* كل صف تركيبة له خلفية متميزة */
-        tr.formulation-row td {
+        /* ===== صف التركيبة الرئيسي ===== */
+        tr.formulation-header td {
+            background:var(--gold-glow);
+            font-weight:700;
+            border-top:2px solid var(--gold);
+            padding:10px 14px;
+        }
+        tr.formulation-header td:first-child {
+            border-right:3px solid var(--gold);
+        }
+        tr.formulation-header:hover td {
+            background:rgba(179,129,58,0.15);
+        }
+        tr.formulation-header .formulation-name {
+            color:var(--gold-dark);
+            font-weight:800;
+        }
+
+        /* ===== صف الخامة ===== */
+        tr.material-row td {
+            padding:5px 14px 5px 30px;
+            background:var(--surface-2);
+        }
+        tr.material-row td:first-child {
+            padding-right:30px;
+        }
+        tr.material-row:hover td {
             background:var(--surface);
         }
-        tr.formulation-row:hover td {
-            background:var(--surface-2);
+        tr.material-row .material-indent {
+            display:inline-block;
+            width:16px;
+            margin-left:8px;
+            color:var(--ink-4);
+        }
+        tr.material-row .material-indent i {
+            font-size:0.5rem;
         }
 
         .badge {
@@ -314,7 +349,7 @@
             to { transform:rotate(360deg); }
         }
 
-        /* باقي الأنماط كما هي */
+        /* ===== باقي الأنماط ===== */
         .modal-overlay {
             display:none; position:fixed; inset:0;
             background:rgba(18,24,33,0.65); backdrop-filter:blur(14px);
@@ -1222,19 +1257,18 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>المنتج</th>
-                            <th>اسم التركيبة</th>
-                            <th style="text-align:center;">الكمية</th>
-                            <th style="text-align:center;">الخامات</th>
-                            <th style="text-align:center;">التكلفة</th>
-                            <th style="text-align:center;">تك/وحدة</th>
-                            <th>الحالة</th>
-                            <th style="text-align:center;">إجراءات</th>
+                            <th style="width:45px;">#</th>
+                            <th style="min-width:180px;">المنتج / الخامة</th>
+                            <th style="width:140px;">اسم التركيبة</th>
+                            <th style="width:70px;text-align:center;">الكمية</th>
+                            <th style="width:70px;text-align:center;">التكلفة</th>
+                            <th style="width:70px;text-align:center;">تك/وحدة</th>
+                            <th style="width:90px;">الحالة</th>
+                            <th style="width:110px;text-align:center;">إجراءات</th>
                         </tr>
                     </thead>
                     <tbody id="entriesBody">
-                        <tr><td colspan="9"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري التحميل...</p></div></td></tr>
+                        <tr><td colspan="8"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري التحميل...</p></div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -1731,7 +1765,7 @@
 
         async function loadData() {
             entriesBody.innerHTML = `
-                <tr><td colspan="9"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري التحميل...</p></div></td></tr>
+                <tr><td colspan="8"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري التحميل...</p></div></td></tr>
             `;
 
             var results = await Promise.all([getProducts(), getMaterials(), getFormulations(), getFormulationItems()]);
@@ -2168,10 +2202,9 @@
         }
 
         // ============================================================
-        // DISPLAY - كل تركيبة في صف منفصل
+        // DISPLAY - عرض كل تركيبة مع خاماتها
         // ============================================================
         function displayFormulations() {
-            // ترتيب التركيبات حسب row_order
             var sortedFormulations = [...allFormulations].sort(function(a, b) {
                 return (a.row_order || 0) - (b.row_order || 0);
             });
@@ -2185,26 +2218,32 @@
 
             if (allFormulations.length === 0) {
                 entriesBody.innerHTML = `
-                    <tr><td colspan="9"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد تركيبات</p></div></td></tr>
+                    <tr><td colspan="8"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد تركيبات</p></div></td></tr>
                 `;
                 return;
             }
 
             var html = '';
-            sortedFormulations.forEach(function(f, index) {
+            var counter = 0;
+
+            sortedFormulations.forEach(function(f) {
+                counter++;
                 var costInfo = computeFormulationCost(f.id);
                 var outputQty = parseFloat(f.output_qty) || 0;
                 var unitCost = outputQty > 0 ? (costInfo.total / outputQty) : 0;
                 var statusClass = f.status === 'نشط' ? 'active' : 'inactive';
 
+                // ===== صف التركيبة الرئيسي =====
                 html += `
-                    <tr class="formulation-row">
-                        <td style="font-weight:700;color:var(--gold-dark);">${index + 1}</td>
-                        <td style="font-weight:700;">${escapeHtml(f.product_name || '-')}</td>
-                        <td>${escapeHtml(f.name || '-')}</td>
-                        <td style="text-align:center;font-weight:600;">${formatNumber(outputQty)} ${escapeHtml(f.output_unit || '')}</td>
-                        <td style="text-align:center;">${costInfo.itemsCount}</td>
-                        <td style="text-align:center;">${formatNumber(costInfo.total)}</td>
+                    <tr class="formulation-header">
+                        <td style="font-weight:800;color:var(--gold-dark);">${counter}</td>
+                        <td style="font-weight:800;color:var(--gold-dark);">
+                            <i class="fas fa-flask" style="color:var(--gold);margin-left:6px;"></i>
+                            ${escapeHtml(f.product_name || '-')}
+                        </td>
+                        <td class="formulation-name">${escapeHtml(f.name || '-')}</td>
+                        <td style="text-align:center;font-weight:700;">${formatNumber(outputQty)} ${escapeHtml(f.output_unit || '')}</td>
+                        <td style="text-align:center;font-weight:700;">${formatNumber(costInfo.total)}</td>
                         <td style="text-align:center;font-weight:700;color:var(--gold-dark);">${formatNumber(unitCost)}</td>
                         <td><span class="badge ${statusClass}">${escapeHtml(f.status || 'نشط')}</span></td>
                         <td style="text-align:center;white-space:nowrap;">
@@ -2217,7 +2256,57 @@
                         </td>
                     </tr>
                 `;
+
+                // ===== الخامات التابعة للتركيبة =====
+                var items = allFormulationItems.filter(function(it) {
+                    return it.formulation_id == f.id;
+                });
+
+                if (items && items.length > 0) {
+                    items.forEach(function(item, idx) {
+                        var material = allMaterials.find(function(m) { return m.id == item.material_id; });
+                        var materialName = item.material_name || (material ? material.name : 'غير معروف');
+                        var unit = item.unit || (material ? material.unit : '');
+                        var qty = parseFloat(item.quantity) || 0;
+                        var unitCost = parseFloat(item.unit_cost) || 0;
+                        var lineCost = qty * unitCost;
+
+                        var prefix = idx === 0 ? '└─' : '├─';
+                        var color = idx === 0 ? 'var(--gold)' : 'var(--ink-3)';
+
+                        html += `
+                            <tr class="material-row">
+                                <td></td>
+                                <td style="padding-right:30px;color:var(--ink-2);">
+                                    <span style="color:${color};margin-left:6px;font-size:0.5rem;">${prefix}</span>
+                                    <i class="fas fa-cube" style="color:var(--ink-3);font-size:0.5rem;margin-left:6px;"></i>
+                                    ${escapeHtml(materialName)}
+                                </td>
+                                <td style="color:var(--ink-3);font-size:0.6rem;">-</td>
+                                <td style="text-align:center;color:var(--ink-2);">
+                                    ${formatNumber(qty)} <span style="color:var(--ink-3);font-size:0.5rem;">${escapeHtml(unit)}</span>
+                                </td>
+                                <td style="text-align:center;color:var(--ink-2);">${formatNumber(lineCost)}</td>
+                                <td style="text-align:center;color:var(--ink-3);font-size:0.55rem;">${formatNumber(unitCost)}</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    // إذا كانت التركيبة بدون خامات
+                    html += `
+                        <tr class="material-row">
+                            <td></td>
+                            <td style="padding-right:30px;color:var(--ink-3);font-style:italic;font-size:0.6rem;">
+                                <i class="fas fa-info-circle" style="margin-left:6px;"></i>
+                                لا توجد خامات
+                            </td>
+                            <td colspan="6"></td>
+                        </tr>
+                    `;
+                }
             });
+
             entriesBody.innerHTML = html;
         }
 
@@ -2230,16 +2319,16 @@
                 return;
             }
 
-            var data = allFormulations.map(function(f) {
+            var data = [];
+            allFormulations.forEach(function(f) {
                 var costInfo = computeFormulationCost(f.id);
                 var outputQty = parseFloat(f.output_qty) || 0;
                 var unitCost = outputQty > 0 ? (costInfo.total / outputQty) : 0;
                 var items = allFormulationItems.filter(function(it) { return it.formulation_id == f.id; });
-                var materialsText = items.map(function(it) {
-                    return (it.material_name || '') + ' (' + it.quantity + ' ' + (it.unit || '') + ')';
-                }).join(' + ');
 
-                return {
+                // صف التركيبة الرئيسي
+                data.push({
+                    'النوع': 'تركيبة',
                     'المنتج': f.product_name || '',
                     'اسم التركيبة': f.name || '',
                     'الكمية الناتجة': outputQty,
@@ -2248,16 +2337,40 @@
                     'إجمالي التكلفة': costInfo.total,
                     'تكلفة الوحدة': unitCost,
                     'الحالة': f.status || 'نشط',
-                    'المكونات': materialsText,
-                    'ملاحظات': f.notes || ''
-                };
+                    'الخامة': '',
+                    'كمية الخامة': '',
+                    'وحدة الخامة': '',
+                    'سعر الوحدة': '',
+                    'تكلفة الخامة': ''
+                });
+
+                // صفوف الخامات
+                items.forEach(function(item) {
+                    var material = allMaterials.find(function(m) { return m.id == item.material_id; });
+                    data.push({
+                        'النوع': 'خامة',
+                        'المنتج': '',
+                        'اسم التركيبة': '',
+                        'الكمية الناتجة': '',
+                        'وحدة الناتج': '',
+                        'عدد الخامات': '',
+                        'إجمالي التكلفة': '',
+                        'تكلفة الوحدة': '',
+                        'الحالة': '',
+                        'الخامة': item.material_name || (material ? material.name : ''),
+                        'كمية الخامة': item.quantity || 0,
+                        'وحدة الخامة': item.unit || (material ? material.unit : ''),
+                        'سعر الوحدة': item.unit_cost || 0,
+                        'تكلفة الخامة': (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_cost) || 0)
+                    });
+                });
             });
 
             var wb = XLSX.utils.book_new();
             var ws = XLSX.utils.json_to_sheet(data);
             XLSX.utils.book_append_sheet(wb, ws, 'التركيبات');
             XLSX.writeFile(wb, 'التركيبات_' + new Date().toISOString().slice(0, 10) + '.xlsx');
-            showToast('✅ تم التصدير', 'تم تصدير ' + data.length + ' تركيبة', 'success');
+            showToast('✅ تم التصدير', 'تم تصدير ' + allFormulations.length + ' تركيبة', 'success');
         }
 
         // ============================================================
@@ -2646,7 +2759,7 @@
             var token = getToken();
             if (!token) {
                 entriesBody.innerHTML = `
-                    <tr><td colspan="9"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول</p></div></td></tr>
+                    <tr><td colspan="8"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول</p></div></td></tr>
                 `;
                 setTimeout(function() { window.location.href = 'login.html'; }, 1500);
                 return;
