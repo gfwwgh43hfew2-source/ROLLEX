@@ -224,6 +224,7 @@
         }
         .btn.danger:hover { background:#a63a31; color:#fff; }
         .btn.small { padding:3px 8px; font-size:0.55rem; }
+        .btn:disabled { opacity:0.5; cursor:not-allowed; }
 
         /* ============================================================ */
         /* SUMMARY */
@@ -288,7 +289,7 @@
         .modal-overlay.active { display:flex; }
         .modal-box {
             background:var(--surface); border-radius:var(--r-lg);
-            max-width:720px; width:100%; padding:20px 24px;
+            max-width:760px; width:100%; padding:20px 24px;
             border:1px solid var(--line); box-shadow:0 12px 32px rgba(33,29,26,0.12);
             animation:modalIn 0.2s ease; max-height:90vh; overflow-y:auto;
         }
@@ -318,6 +319,7 @@
             color:var(--ink-2); margin-bottom:2px;
         }
         .modal-box .form-group label .required { color:var(--rust); }
+        .modal-box .form-group label .hint { color:var(--ink-3); font-weight:500; margin-right:4px; }
         .modal-box .form-group input,
         .modal-box .form-group select,
         .modal-box .form-group textarea {
@@ -359,63 +361,102 @@
         .modal-box .form-actions .btn-cancel:hover { background:var(--surface-2); }
 
         /* ============================================================ */
-        /* AUTOCOMPLETE */
+        /* AUTOCOMPLETE (generic, portal-based — never clipped) */
         /* ============================================================ */
         .autocomplete-wrapper { position:relative; }
         .autocomplete-wrapper input { width:100%; }
-        .autocomplete-suggestions {
-            position:absolute; top:100%; right:0; left:0;
+
+        /* Rendered detached in <body> with position:fixed so it can never
+           be clipped by a scrolling/overflow-hidden ancestor, and always
+           flips above the field when there isn't room below. */
+        .ac-portal {
+            position:fixed; z-index:99999;
             background:var(--surface); border:1px solid var(--line);
-            border-radius:var(--r-sm); max-height:140px; overflow-y:auto;
-            z-index:1000; display:none; box-shadow:0 4px 12px rgba(0,0,0,0.06);
+            border-radius:var(--r-sm); box-shadow:0 10px 28px rgba(33,29,26,0.14);
+            max-height:220px; overflow-y:auto;
+            display:none;
         }
-        .autocomplete-suggestions .suggestion {
-            padding:4px 10px; cursor:pointer; font-size:0.65rem;
-            transition:0.15s; border-bottom:1px solid var(--line-soft);
-            display:flex; justify-content:space-between; align-items:center;
+        .ac-portal.open { display:block; }
+        .ac-item {
+            padding:6px 10px; cursor:pointer; font-size:0.68rem;
+            display:flex; justify-content:space-between; align-items:center; gap:8px;
+            border-bottom:1px solid var(--line-soft);
         }
-        .autocomplete-suggestions .suggestion:last-child { border-bottom:none; }
-        .autocomplete-suggestions .suggestion:hover,
-        .autocomplete-suggestions .suggestion.active {
+        .ac-item:last-child { border-bottom:none; }
+        .ac-item .ac-main { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .ac-item .ac-main b { color:var(--gold-dark); font-weight:800; }
+        .ac-item .ac-meta { font-size:0.55rem; color:var(--ink-3); white-space:nowrap; flex-shrink:0; }
+        .ac-item:hover, .ac-item.active {
             background:var(--gold-glow); color:var(--gold-dark);
         }
-        .autocomplete-suggestions .suggestion .code {
-            font-size:0.55rem; color:var(--ink-3);
-        }
-        .autocomplete-suggestions .no-results {
-            padding:8px 10px; text-align:center; color:var(--ink-3); font-size:0.65rem;
+        .ac-item.active .ac-meta { color:var(--gold-dark); }
+        .ac-empty { padding:10px; text-align:center; color:var(--ink-3); font-size:0.65rem; }
+        .ac-hint {
+            padding:4px 10px; font-size:0.5rem; color:var(--ink-3);
+            border-top:1px solid var(--line-soft); background:var(--surface-2);
+            display:flex; gap:8px; justify-content:center;
         }
 
         /* ============================================================ */
-        /* ITEMS */
+        /* INGREDIENT PICKER (new interaction model) */
         /* ============================================================ */
-        .items-container {
-            display:flex; flex-direction:column; gap:4px;
-            margin:4px 0 6px; max-height:160px; overflow-y:auto;
+        .picker-box {
+            border:1.5px dashed var(--gold-light); border-radius:var(--r-md);
+            background:var(--gold-glow); padding:10px; margin:4px 0 10px;
         }
-        .item-row {
-            display:flex; gap:4px; align-items:center;
-            background:var(--surface-2); border:1px solid var(--line);
-            border-radius:var(--r-sm); padding:4px 6px;
+        .picker-row {
+            display:flex; gap:6px; align-items:flex-end;
         }
-        .item-row .item-material { flex:2; min-width:0; }
-        .item-row .item-material-input { width:100%; padding:3px 6px; border-radius:var(--r-sm); border:1px solid var(--line); background:#fff; font-size:0.6rem; }
-        .item-row .item-qty { flex:0.7; min-width:0; padding:3px 6px; border-radius:var(--r-sm); border:1px solid var(--line); background:#fff; font-size:0.6rem; width:50px; }
-        .item-row .item-unit { flex:0.3; text-align:center; font-size:0.55rem; color:var(--ink-3); }
-        .item-row .item-cost { flex:0.5; text-align:center; font-size:0.55rem; font-weight:700; color:var(--gold-dark); }
-        .item-row .item-remove {
-            flex:0 0 auto; background:none; border:none;
-            color:var(--rust); cursor:pointer; font-size:0.65rem; padding:1px 4px;
+        .picker-row .picker-search { flex:2; min-width:0; }
+        .picker-row .picker-qty { flex:0.7; min-width:80px; }
+        .picker-row .picker-unit {
+            flex:0.5; min-width:56px; display:flex; align-items:center; justify-content:center;
+            background:var(--surface); border:1px solid var(--line); border-radius:var(--r-sm);
+            padding:5px 6px; font-size:0.65rem; color:var(--ink-3); font-weight:700;
+            height:29px; text-align:center;
         }
-        .item-row .item-remove:hover { color:#a63a31; }
+        .picker-row .picker-add {
+            flex:0 0 auto; height:29px; padding:0 14px;
+        }
+        .picker-selected {
+            margin-top:6px; font-size:0.62rem; color:var(--gold-dark); font-weight:700;
+            display:none; align-items:center; gap:6px;
+        }
+        .picker-selected.show { display:flex; }
+        .picker-selected .clear-selected {
+            background:none; border:none; color:var(--ink-3); cursor:pointer; font-size:0.7rem;
+        }
+        .picker-hint { font-size:0.55rem; color:var(--ink-3); margin-top:6px; }
 
-        .btn-add-item {
-            width:100%; padding:4px; border:1.5px dashed var(--line);
-            border-radius:var(--r-sm); background:transparent;
-            color:var(--ink-3); font-family:'Cairo',sans-serif; font-weight:600;
-            font-size:0.6rem; cursor:pointer; transition:.15s;
+        .items-table-wrapper {
+            border:1px solid var(--line); border-radius:var(--r-md);
+            overflow:hidden; margin-bottom:6px;
         }
-        .btn-add-item:hover { border-color:var(--gold); color:var(--gold-dark); }
+        table.items-mini { width:100%; border-collapse:collapse; font-size:0.65rem; }
+        table.items-mini thead th {
+            background:var(--surface-2); color:var(--ink-3); font-size:0.55rem;
+            text-transform:uppercase; letter-spacing:0.3px; font-weight:700;
+            padding:6px 8px; text-align:right; border-bottom:1px solid var(--line);
+        }
+        table.items-mini tbody td {
+            padding:5px 8px; border-bottom:1px solid var(--line-soft); vertical-align:middle;
+        }
+        table.items-mini tbody tr:last-child td { border-bottom:none; }
+        table.items-mini tbody tr.new-row { animation:rowIn .3s var(--ease); }
+        @keyframes rowIn { from { background:var(--gold-glow); } to { background:transparent; } }
+        table.items-mini .qty-edit {
+            width:70px; padding:3px 6px; border-radius:var(--r-sm);
+            border:1px solid var(--line); background:#fff; font-size:0.62rem;
+            font-family:'Cairo',sans-serif; text-align:center;
+        }
+        table.items-mini .qty-edit:focus { border-color:var(--gold); outline:none; box-shadow:0 0 0 2px var(--gold-glow); }
+        table.items-mini .row-remove {
+            background:none; border:none; color:var(--rust); cursor:pointer; font-size:0.65rem; padding:2px 6px;
+        }
+        table.items-mini .row-remove:hover { color:#a63a31; }
+        .items-empty-row td {
+            text-align:center; color:var(--ink-3); padding:14px 8px; font-size:0.65rem;
+        }
 
         .formulation-totals {
             display:flex; justify-content:space-between;
@@ -466,6 +507,11 @@
             .modal-box .form-actions .btn-save { width:100%; justify-content:center; }
             .modal-box .form-actions .btn-cancel { width:100%; justify-content:center; }
             .toast-container { top:60px; left:8px; max-width:280px; }
+            .picker-row { flex-wrap:wrap; }
+            .picker-row .picker-search { flex:1 1 100%; }
+            .picker-row .picker-qty { flex:1 1 auto; }
+            .picker-row .picker-unit { flex:0 0 auto; }
+            .picker-row .picker-add { flex:1 1 auto; }
         }
         @media (max-width:480px) {
             .toast-container { top:50px; left:6px; max-width:240px; }
@@ -480,6 +526,8 @@
     </style>
 </head>
 <body>
+
+    <div class="toast-container" id="toastContainer"></div>
 
     <!-- ============================================================ -->
     <!-- SIDEBAR -->
@@ -613,33 +661,68 @@
                 <div class="form-group">
                     <label>المنتج <span class="required">*</span></label>
                     <div class="autocomplete-wrapper">
-                        <input type="text" id="productSearch" placeholder="ابحث عن منتج..." autocomplete="off" />
-                        <div class="autocomplete-suggestions" id="productSuggestions"></div>
+                        <input type="text" id="productSearch" placeholder="ابحث بالكود أو الاسم... (↑↓ للتنقل، Enter للاختيار)" autocomplete="off" />
                     </div>
-                </div>
-
-                <div class="form-group">
-                    <label>اسم التركيبة</label>
-                    <input type="text" id="formName" placeholder="اسم التركيبة..." />
                 </div>
 
                 <div class="form-row two">
                     <div class="form-group">
-                        <label>الكمية الناتجة <span class="required">*</span></label>
-                        <input type="number" id="formOutputQty" placeholder="100" min="0.01" step="0.01" required />
+                        <label>اسم التركيبة</label>
+                        <input type="text" id="formName" placeholder="اسم التركيبة..." />
                     </div>
-                    <div class="form-group">
-                        <label>الوحدة</label>
-                        <input type="text" id="formOutputUnit" placeholder="لتر" />
+                    <div class="form-row two" style="margin:0;">
+                        <div class="form-group">
+                            <label>الكمية الناتجة <span class="required">*</span></label>
+                            <input type="number" id="formOutputQty" placeholder="100" min="0.01" step="0.01" required oninput="recalcTotals()" />
+                        </div>
+                        <div class="form-group">
+                            <label>الوحدة</label>
+                            <input type="text" id="formOutputUnit" placeholder="لتر" />
+                        </div>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>مكونات التركيبة <span class="required">*</span></label>
-                    <div class="items-container" id="itemsContainer"></div>
-                    <button type="button" class="btn-add-item" onclick="addItemRow()">
-                        <i class="fas fa-plus"></i> إضافة خامة
-                    </button>
+                    <label>مكونات التركيبة <span class="required">*</span> <span class="hint">— دوّر على الخامة، حدد الكمية، وسيبها تتضاف لحالها</span></label>
+
+                    <div class="picker-box">
+                        <div class="picker-row">
+                            <div class="autocomplete-wrapper picker-search">
+                                <input type="text" id="materialSearch" placeholder="اكتب كود أو اسم الخامة... (↑↓ Enter)" autocomplete="off" />
+                            </div>
+                            <div class="picker-qty">
+                                <input type="number" id="materialQty" placeholder="الكمية" min="0.01" step="0.01" />
+                            </div>
+                            <div class="picker-unit" id="materialUnitDisplay">-</div>
+                            <button type="button" class="btn primary picker-add" id="addMaterialBtn" onclick="addSelectedMaterial()" disabled>
+                                <i class="fas fa-plus"></i> إضافة
+                            </button>
+                        </div>
+                        <div class="picker-selected" id="pickerSelected">
+                            <i class="fas fa-check-circle"></i>
+                            <span id="pickerSelectedText"></span>
+                            <button type="button" class="clear-selected" onclick="clearMaterialPicker()" title="إلغاء الاختيار"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="picker-hint">اختَر الخامة من القائمة ثم اكتب الكمية واضغط Enter (أو زرار إضافة) لإضافتها للتركيبة</div>
+                    </div>
+
+                    <div class="items-table-wrapper">
+                        <table class="items-mini">
+                            <thead>
+                                <tr>
+                                    <th>الخامة</th>
+                                    <th style="text-align:center;width:80px;">الكمية</th>
+                                    <th style="text-align:center;width:56px;">الوحدة</th>
+                                    <th style="text-align:center;width:70px;">سعر الوحدة</th>
+                                    <th style="text-align:center;width:80px;">التكلفة</th>
+                                    <th style="width:40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsTableBody">
+                                <tr class="items-empty-row"><td colspan="6">لسه معملتش تركيبة — دوّر على خامة وضيفها</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <div class="formulation-totals">
@@ -739,6 +822,11 @@
             return n.toLocaleString('ar-EG', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
         }
 
+        function escapeHtml(str) {
+            return String(str == null ? '' : str)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
         async function logout() {
             try {
                 var client = getSupabaseClient();
@@ -784,6 +872,164 @@
         });
 
         // ============================================================
+        // GENERIC AUTOCOMPLETE — portal-based, fully keyboard driven
+        // ============================================================
+        // Renders its dropdown as a single shared element appended to
+        // <body> with position:fixed, positioned via getBoundingClientRect.
+        // This guarantees it is never clipped by a parent's overflow:hidden
+        // / overflow:auto (which was the bug with the old per-row material
+        // dropdowns living inside a scrollable items list), and it flips
+        // above the input automatically when there isn't room below.
+        var Autocomplete = (function() {
+            var portal = null;
+            var activeInstance = null;
+
+            function ensurePortal() {
+                if (portal) return portal;
+                portal = document.createElement('div');
+                portal.className = 'ac-portal';
+                document.body.appendChild(portal);
+                return portal;
+            }
+
+            function create(input, options) {
+                // options: { getItems(query) -> array, renderItem(item) -> html,
+                //            onSelect(item), minChars, placeholder }
+                var state = { items: [], activeIndex: -1, open: false };
+
+                function position() {
+                    var rect = input.getBoundingClientRect();
+                    var spaceBelow = window.innerHeight - rect.bottom;
+                    var maxH = 220;
+                    ensurePortal();
+                    portal.style.width = rect.width + 'px';
+                    portal.style.left = rect.left + 'px';
+                    if (spaceBelow < maxH && rect.top > spaceBelow) {
+                        // flip above
+                        portal.style.top = 'auto';
+                        portal.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+                        portal.style.maxHeight = Math.min(maxH, rect.top - 8) + 'px';
+                    } else {
+                        portal.style.bottom = 'auto';
+                        portal.style.top = (rect.bottom + 4) + 'px';
+                        portal.style.maxHeight = Math.min(maxH, spaceBelow - 8) + 'px';
+                    }
+                }
+
+                function render() {
+                    ensurePortal();
+                    if (state.items.length === 0) {
+                        portal.innerHTML = '<div class="ac-empty">لا توجد نتائج مطابقة</div>';
+                    } else {
+                        portal.innerHTML = state.items.map(function(item, i) {
+                            return '<div class="ac-item' + (i === state.activeIndex ? ' active' : '') + '" data-idx="' + i + '">' + options.renderItem(item) + '</div>';
+                        }).join('') + '<div class="ac-hint"><span>↑↓ تنقل</span><span>Enter اختيار</span><span>Esc إغلاق</span></div>';
+
+                        Array.prototype.forEach.call(portal.querySelectorAll('.ac-item'), function(el) {
+                            el.addEventListener('mousedown', function(e) {
+                                e.preventDefault();
+                                var idx = parseInt(el.getAttribute('data-idx'), 10);
+                                select(idx);
+                            });
+                            el.addEventListener('mouseenter', function() {
+                                state.activeIndex = parseInt(el.getAttribute('data-idx'), 10);
+                                highlight();
+                            });
+                        });
+                    }
+                }
+
+                function highlight() {
+                    Array.prototype.forEach.call(portal.querySelectorAll('.ac-item'), function(el) {
+                        var idx = parseInt(el.getAttribute('data-idx'), 10);
+                        var isActive = idx === state.activeIndex;
+                        el.classList.toggle('active', isActive);
+                        if (isActive) el.scrollIntoView({ block: 'nearest' });
+                    });
+                }
+
+                function open(query) {
+                    state.items = options.getItems(query || '') || [];
+                    state.activeIndex = state.items.length ? 0 : -1;
+                    state.open = true;
+                    activeInstance = { close: close };
+                    position();
+                    render();
+                    portal.classList.add('open');
+                    highlight();
+                }
+
+                function close() {
+                    state.open = false;
+                    if (portal) portal.classList.remove('open');
+                    if (activeInstance && activeInstance.close === close) activeInstance = null;
+                }
+
+                function select(idx) {
+                    if (idx < 0 || idx >= state.items.length) return;
+                    var item = state.items[idx];
+                    close();
+                    options.onSelect(item);
+                }
+
+                input.addEventListener('input', function() {
+                    var q = input.value.trim();
+                    var minChars = options.minChars || 1;
+                    if (q.length < minChars) { close(); return; }
+                    open(q);
+                });
+
+                input.addEventListener('focus', function() {
+                    var q = input.value.trim();
+                    if (q.length >= (options.minChars || 1)) open(q);
+                });
+
+                input.addEventListener('keydown', function(e) {
+                    if (!state.open) {
+                        if (e.key === 'ArrowDown') { open(input.value.trim()); e.preventDefault(); }
+                        return;
+                    }
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        if (state.items.length === 0) return;
+                        state.activeIndex = (state.activeIndex + 1) % state.items.length;
+                        highlight();
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (state.items.length === 0) return;
+                        state.activeIndex = (state.activeIndex - 1 + state.items.length) % state.items.length;
+                        highlight();
+                    } else if (e.key === 'Home') {
+                        if (state.items.length) { e.preventDefault(); state.activeIndex = 0; highlight(); }
+                    } else if (e.key === 'End') {
+                        if (state.items.length) { e.preventDefault(); state.activeIndex = state.items.length - 1; highlight(); }
+                    } else if (e.key === 'Enter') {
+                        if (state.activeIndex >= 0) { e.preventDefault(); select(state.activeIndex); }
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        close();
+                    } else if (e.key === 'Tab') {
+                        close();
+                    }
+                });
+
+                window.addEventListener('scroll', function() { if (state.open) position(); }, true);
+                window.addEventListener('resize', function() { if (state.open) position(); });
+
+                document.addEventListener('mousedown', function(e) {
+                    if (!state.open) return;
+                    if (e.target === input) return;
+                    if (portal && portal.contains(e.target)) return;
+                    close();
+                });
+
+                return { close: close, open: open };
+            }
+
+            return { create: create };
+        })();
+
+        // ============================================================
         // DOM REFS
         // ============================================================
         var entriesBody = document.getElementById('entriesBody');
@@ -794,7 +1040,10 @@
         var allMaterials = [];
         var allFormulations = [];
         var allFormulationItems = [];
-        var itemRowCounter = 0;
+
+        // Working state for the item picker while the modal is open.
+        var currentItems = [];      // [{material_id, material_name, quantity, unit, unit_cost}]
+        var pickedMaterial = null;  // material object currently selected in the picker, awaiting qty + add
 
         // ============================================================
         // GET DATA
@@ -900,7 +1149,7 @@
         }
 
         // ============================================================
-        // COMPUTE COST
+        // COMPUTE COST (list view)
         // ============================================================
         function computeFormulationCost(formulationId) {
             var items = allFormulationItems.filter(function(it) { return it.formulation_id == formulationId; });
@@ -910,227 +1159,167 @@
         }
 
         // ============================================================
-        // AUTOCOMPLETE - PRODUCT
+        // AUTOCOMPLETE INSTANCES
         // ============================================================
-        function filterProductSuggestions() {
-            var input = document.getElementById('productSearch');
-            var suggestions = document.getElementById('productSuggestions');
-            var query = input.value.trim().toLowerCase();
+        var productAc = Autocomplete.create(document.getElementById('productSearch'), {
+            minChars: 1,
+            getItems: function(query) {
+                var q = query.toLowerCase();
+                return allProducts.filter(function(p) {
+                    var code = (p.product_code || '').toLowerCase();
+                    var name = (p.product_name || '').toLowerCase();
+                    return code.includes(q) || name.includes(q);
+                }).slice(0, 30);
+            },
+            renderItem: function(p) {
+                var label = (p.product_code ? escapeHtml(p.product_code) + ' — ' : '') + escapeHtml(p.product_name);
+                return '<div class="ac-main">' + label + '</div><div class="ac-meta">' + escapeHtml(p.product_unit || '') + '</div>';
+            },
+            onSelect: function(p) { selectProduct(p); }
+        });
 
-            if (!query || query.length < 1) {
-                suggestions.style.display = 'none';
-                return;
-            }
+        var materialAc = Autocomplete.create(document.getElementById('materialSearch'), {
+            minChars: 1,
+            getItems: function(query) {
+                var q = query.toLowerCase();
+                return allMaterials.filter(function(m) {
+                    var code = (m.code || '').toLowerCase();
+                    var name = (m.name || '').toLowerCase();
+                    return code.includes(q) || name.includes(q);
+                }).slice(0, 30);
+            },
+            renderItem: function(m) {
+                var label = (m.code ? escapeHtml(m.code) + ' — ' : '') + escapeHtml(m.name);
+                var already = currentItems.some(function(it) { return it.material_id == m.id; });
+                return '<div class="ac-main">' + (already ? '<i class="fas fa-check" style="color:var(--teal);margin-left:4px;"></i>' : '') + label + '</div><div class="ac-meta">' + escapeHtml(m.unit || '') + ' · ' + formatNumber(m.cost_price) + ' ج.م</div>';
+            },
+            onSelect: function(m) { selectMaterialForPicker(m); }
+        });
 
-            var filtered = allProducts.filter(function(p) {
-                var code = (p.product_code || '').toLowerCase();
-                var name = (p.product_name || '').toLowerCase();
-                return code.includes(query) || name.includes(query);
-            });
-
-            if (filtered.length === 0) {
-                suggestions.innerHTML = '<div class="no-results">لا توجد نتائج</div>';
-                suggestions.style.display = 'block';
-                return;
-            }
-
-            var html = '';
-            filtered.slice(0, 10).forEach(function(p) {
-                var displayName = (p.product_code ? p.product_code + ' — ' : '') + p.product_name;
-                html += `<div class="suggestion" onclick="selectProduct('${p.id}')">
-                    ${displayName}
-                    <span class="code">${p.product_unit || ''}</span>
-                </div>`;
-            });
-            suggestions.innerHTML = html;
-            suggestions.style.display = 'block';
-        }
-
-        function selectProduct(id) {
-            var product = allProducts.find(function(p) { return p.id == id; });
-            if (!product) return;
-
+        function selectProduct(product) {
             document.getElementById('productSearch').value = (product.product_code ? product.product_code + ' — ' : '') + product.product_name;
-            document.getElementById('editProductId').value = id;
-            document.getElementById('productSuggestions').style.display = 'none';
+            document.getElementById('editProductId').value = product.id;
 
             if (product.product_unit && !document.getElementById('formOutputUnit').value) {
                 document.getElementById('formOutputUnit').value = product.product_unit;
             }
-            if (product.product_name) {
+            if (product.product_name && !document.getElementById('editId').value) {
                 document.getElementById('formName').value = 'تركيبة ' + product.product_name;
             }
         }
 
-        document.getElementById('productSearch').addEventListener('input', filterProductSuggestions);
-        document.getElementById('productSearch').addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                document.getElementById('productSuggestions').style.display = 'none';
-            }
-            if (e.key === 'Enter') {
-                var active = document.querySelector('#productSuggestions .suggestion.active');
-                if (active) { active.click(); }
-            }
-        });
-        document.addEventListener('click', function(e) {
-            var wrapper = document.getElementById('productSearch').parentElement;
-            if (wrapper && !wrapper.contains(e.target)) {
-                document.getElementById('productSuggestions').style.display = 'none';
-            }
-        });
-
         // ============================================================
-        // AUTOCOMPLETE - MATERIAL
+        // INGREDIENT PICKER — search once, pick, set qty, add to table.
+        // Replaces the old "one autocomplete per row" pattern, which is
+        // both harder to use (rows scroll, search re-opens per row) and
+        // was the source of the clipped-dropdown bug.
         // ============================================================
-        function getMaterialSuggestions(inputId, rowId) {
-            var input = document.getElementById(inputId);
-            if (!input) return;
-            var query = input.value.trim().toLowerCase();
+        var materialQtyInput = document.getElementById('materialQty');
+        var materialUnitDisplay = document.getElementById('materialUnitDisplay');
+        var addMaterialBtn = document.getElementById('addMaterialBtn');
+        var pickerSelected = document.getElementById('pickerSelected');
+        var pickerSelectedText = document.getElementById('pickerSelectedText');
 
-            var suggestionsDiv = document.getElementById(rowId + '-suggestions');
-            if (!suggestionsDiv) return;
+        function selectMaterialForPicker(material) {
+            pickedMaterial = material;
+            document.getElementById('materialSearch').value = (material.code ? material.code + ' — ' : '') + material.name;
+            materialUnitDisplay.textContent = material.unit || '-';
+            pickerSelectedText.textContent = 'محدد: ' + (material.code ? material.code + ' — ' : '') + material.name + ' (' + formatNumber(material.cost_price) + ' ج.م/' + (material.unit || 'وحدة') + ')';
+            pickerSelected.classList.add('show');
+            addMaterialBtn.disabled = false;
+            materialQtyInput.focus();
+            materialQtyInput.select();
+        }
 
-            if (!query || query.length < 1) {
-                suggestionsDiv.style.display = 'none';
+        function clearMaterialPicker() {
+            pickedMaterial = null;
+            document.getElementById('materialSearch').value = '';
+            materialQtyInput.value = '';
+            materialUnitDisplay.textContent = '-';
+            pickerSelected.classList.remove('show');
+            addMaterialBtn.disabled = true;
+        }
+
+        function addSelectedMaterial() {
+            if (!pickedMaterial) {
+                showToast('⚠️ تنبيه', 'اختر خامة أولاً من قائمة البحث', 'warning');
+                document.getElementById('materialSearch').focus();
+                return;
+            }
+            var qty = parseFloat(materialQtyInput.value);
+            if (!qty || qty <= 0) {
+                showToast('⚠️ تنبيه', 'أدخل كمية صحيحة أكبر من صفر', 'warning');
+                materialQtyInput.focus();
                 return;
             }
 
-            var filtered = allMaterials.filter(function(m) {
-                var code = (m.code || '').toLowerCase();
-                var name = (m.name || '').toLowerCase();
-                return code.includes(query) || name.includes(query);
-            });
-
-            if (filtered.length === 0) {
-                suggestionsDiv.innerHTML = '<div class="no-results">لا توجد نتائج</div>';
-                suggestionsDiv.style.display = 'block';
-                return;
+            var existing = currentItems.find(function(it) { return it.material_id == pickedMaterial.id; });
+            var isUpdate = !!existing;
+            if (existing) {
+                existing.quantity = qty;
+            } else {
+                currentItems.push({
+                    material_id: pickedMaterial.id,
+                    material_name: (pickedMaterial.code ? pickedMaterial.code + ' — ' : '') + pickedMaterial.name,
+                    quantity: qty,
+                    unit: pickedMaterial.unit || '',
+                    unit_cost: parseFloat(pickedMaterial.cost_price) || 0,
+                    _new: true
+                });
             }
 
+            renderItemsTable();
+            recalcTotals();
+            showToast('✅ ' + (isUpdate ? 'تم التحديث' : 'تمت الإضافة'), (pickedMaterial.name || 'الخامة') + (isUpdate ? ' اتحدثت' : ' اتضافت للتركيبة'), 'success');
+
+            clearMaterialPicker();
+            document.getElementById('materialSearch').focus();
+        }
+
+        function removeCurrentItem(materialId) {
+            currentItems = currentItems.filter(function(it) { return it.material_id != materialId; });
+            renderItemsTable();
+            recalcTotals();
+        }
+
+        function updateCurrentItemQty(materialId, value) {
+            var qty = parseFloat(value);
+            var item = currentItems.find(function(it) { return it.material_id == materialId; });
+            if (!item) return;
+            item.quantity = isNaN(qty) ? 0 : qty;
+            recalcTotals();
+            // refresh just the line cost cell without a full re-render (keeps focus in the input)
+            var row = document.querySelector('tr[data-material-id="' + materialId + '"]');
+            if (row) {
+                var costCell = row.querySelector('.line-cost');
+                if (costCell) costCell.textContent = formatNumber(item.quantity * item.unit_cost);
+            }
+        }
+
+        function renderItemsTable() {
+            var tbody = document.getElementById('itemsTableBody');
+            if (currentItems.length === 0) {
+                tbody.innerHTML = '<tr class="items-empty-row"><td colspan="6">لسه معملتش تركيبة — دوّر على خامة وضيفها</td></tr>';
+                return;
+            }
             var html = '';
-            filtered.slice(0, 10).forEach(function(m) {
-                var displayName = (m.code ? m.code + ' — ' : '') + m.name;
-                html += `<div class="suggestion" onclick="selectMaterial('${m.id}', '${rowId}')">
-                    ${displayName}
-                    <span class="code">${m.unit || ''} | ${formatNumber(m.cost_price)}</span>
-                </div>`;
+            currentItems.forEach(function(it) {
+                var lineCost = (parseFloat(it.quantity) || 0) * (parseFloat(it.unit_cost) || 0);
+                html += '<tr data-material-id="' + it.material_id + '" class="' + (it._new ? 'new-row' : '') + '">' +
+                    '<td>' + escapeHtml(it.material_name) + '</td>' +
+                    '<td style="text-align:center;"><input type="number" class="qty-edit" min="0.01" step="0.01" value="' + it.quantity + '" onchange="updateCurrentItemQty(\'' + it.material_id + '\', this.value)" oninput="updateCurrentItemQty(\'' + it.material_id + '\', this.value)" /></td>' +
+                    '<td style="text-align:center;">' + escapeHtml(it.unit) + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(it.unit_cost) + '</td>' +
+                    '<td style="text-align:center;" class="line-cost">' + formatNumber(lineCost) + '</td>' +
+                    '<td><button type="button" class="row-remove" onclick="removeCurrentItem(\'' + it.material_id + '\')" title="حذف"><i class="fas fa-trash"></i></button></td>' +
+                '</tr>';
+                it._new = false;
             });
-            suggestionsDiv.innerHTML = html;
-            suggestionsDiv.style.display = 'block';
-        }
-
-        function selectMaterial(id, rowId) {
-            var material = allMaterials.find(function(m) { return m.id == id; });
-            if (!material) return;
-
-            var row = document.getElementById(rowId);
-            if (!row) return;
-
-            var input = row.querySelector('.item-material-input');
-            var unitSpan = row.querySelector('.item-unit');
-            var costSpan = row.querySelector('.item-cost');
-
-            var hidden = row.querySelector('.item-material-id');
-            if (!hidden) {
-                var h = document.createElement('input');
-                h.type = 'hidden';
-                h.className = 'item-material-id';
-                row.appendChild(h);
-                hidden = h;
-            }
-            hidden.value = id;
-
-            if (input) {
-                input.value = (material.code ? material.code + ' — ' : '') + material.name;
-                input.dataset.materialId = id;
-            }
-            if (unitSpan) unitSpan.textContent = material.unit || '';
-            if (costSpan) {
-                costSpan.dataset.unitCost = material.cost_price || 0;
-                costSpan.textContent = '0';
-            }
-
-            var suggestionsDiv = document.getElementById(rowId + '-suggestions');
-            if (suggestionsDiv) suggestionsDiv.style.display = 'none';
-
-            recalcTotals();
-        }
-
-        // ============================================================
-        // ITEM ROWS
-        // ============================================================
-        function addItemRow(prefill) {
-            itemRowCounter++;
-            var rowId = 'item-row-' + itemRowCounter;
-
-            var container = document.getElementById('itemsContainer');
-            var row = document.createElement('div');
-            row.className = 'item-row';
-            row.id = rowId;
-
-            row.innerHTML = `
-                <div class="autocomplete-wrapper" style="flex:2;min-width:0;position:relative;">
-                    <input type="text" class="item-material-input" placeholder="ابحث عن خامة..." 
-                        oninput="getMaterialSuggestions(this.id, '${rowId}')" 
-                        autocomplete="off" id="${rowId}-input" />
-                    <div class="autocomplete-suggestions" id="${rowId}-suggestions"></div>
-                </div>
-                <input type="number" class="item-qty" placeholder="الكمية" min="0.01" step="0.01" 
-                    value="${prefill ? prefill.quantity : ''}" oninput="recalcTotals()" />
-                <span class="item-unit" id="${rowId}-unit">${prefill ? (prefill.unit || '') : ''}</span>
-                <span class="item-cost" id="${rowId}-cost" data-unit-cost="${prefill ? prefill.unit_cost : 0}">
-                    ${formatNumber(prefill ? prefill.quantity * prefill.unit_cost : 0)}
-                </span>
-                <button type="button" class="item-remove" onclick="removeItemRow('${rowId}')">
-                    <i class="fas fa-trash"></i>
-                </button>
-            `;
-
-            container.appendChild(row);
-
-            if (prefill && prefill.material_id) {
-                var material = allMaterials.find(function(m) { return m.id == prefill.material_id; });
-                if (material) {
-                    var input = row.querySelector('.item-material-input');
-                    input.value = (material.code ? material.code + ' — ' : '') + material.name;
-                    input.dataset.materialId = material.id;
-                    var h = document.createElement('input');
-                    h.type = 'hidden';
-                    h.className = 'item-material-id';
-                    h.value = material.id;
-                    row.appendChild(h);
-                    var unitSpan = row.querySelector('.item-unit');
-                    if (unitSpan) unitSpan.textContent = material.unit || '';
-                    var costSpan = row.querySelector('.item-cost');
-                    if (costSpan) costSpan.dataset.unitCost = material.cost_price || 0;
-                }
-            }
-
-            recalcTotals();
-        }
-
-        function removeItemRow(rowId) {
-            var row = document.getElementById(rowId);
-            if (row) row.remove();
-            recalcTotals();
+            tbody.innerHTML = html;
         }
 
         function recalcTotals() {
-            var rows = document.querySelectorAll('#itemsContainer .item-row');
-            var total = 0;
-
-            rows.forEach(function(row) {
-                var qtyInput = row.querySelector('.item-qty');
-                var costSpan = row.querySelector('.item-cost');
-
-                var unitCost = parseFloat(costSpan ? costSpan.dataset.unitCost : 0) || 0;
-                var qty = parseFloat(qtyInput ? qtyInput.value : 0) || 0;
-                var lineCost = qty * unitCost;
-
-                if (costSpan) costSpan.textContent = formatNumber(lineCost);
-                total += lineCost;
-            });
-
+            var total = currentItems.reduce(function(sum, it) { return sum + (parseFloat(it.quantity) || 0) * (parseFloat(it.unit_cost) || 0); }, 0);
             var outputQty = parseFloat(document.getElementById('formOutputQty').value) || 0;
             var unitCostTotal = outputQty > 0 ? (total / outputQty) : 0;
 
@@ -1138,9 +1327,13 @@
             document.getElementById('unitCostDisplay').textContent = formatNumber(unitCostTotal);
         }
 
-        function clearItemRows() {
-            document.getElementById('itemsContainer').innerHTML = '';
-        }
+        // Enter in the qty field adds the item directly (no need to reach for the mouse).
+        materialQtyInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addSelectedMaterial();
+            }
+        });
 
         // ============================================================
         // MODAL
@@ -1155,10 +1348,10 @@
             document.getElementById('formOutputUnit').value = '';
             document.getElementById('formStatus').value = 'نشط';
             document.getElementById('formNotes').value = '';
-            document.getElementById('productSuggestions').style.display = 'none';
 
-            clearItemRows();
-            addItemRow();
+            currentItems = [];
+            clearMaterialPicker();
+            renderItemsTable();
             recalcTotals();
 
             document.getElementById('formulationModal').classList.add('active');
@@ -1182,22 +1375,20 @@
             document.getElementById('formOutputUnit').value = formulation.output_unit || '';
             document.getElementById('formStatus').value = formulation.status || 'نشط';
             document.getElementById('formNotes').value = formulation.notes || '';
-            document.getElementById('productSuggestions').style.display = 'none';
 
-            clearItemRows();
             var items = allFormulationItems.filter(function(it) { return it.formulation_id == id; });
-            if (items.length === 0) {
-                addItemRow();
-            } else {
-                items.forEach(function(it) {
-                    addItemRow({
-                        material_id: it.material_id,
-                        quantity: it.quantity,
-                        unit: it.unit,
-                        unit_cost: it.unit_cost
-                    });
-                });
-            }
+            currentItems = items.map(function(it) {
+                var material = allMaterials.find(function(m) { return m.id == it.material_id; });
+                return {
+                    material_id: it.material_id,
+                    material_name: it.material_name || (material ? ((material.code ? material.code + ' — ' : '') + material.name) : ''),
+                    quantity: parseFloat(it.quantity) || 0,
+                    unit: it.unit || (material ? material.unit : ''),
+                    unit_cost: parseFloat(it.unit_cost) || 0
+                };
+            });
+            clearMaterialPicker();
+            renderItemsTable();
             recalcTotals();
 
             document.getElementById('formulationModal').classList.add('active');
@@ -1207,6 +1398,8 @@
         function closeModal() {
             document.getElementById('formulationModal').classList.remove('active');
             document.body.style.overflow = '';
+            productAc.close();
+            materialAc.close();
         }
 
         // ============================================================
@@ -1220,7 +1413,7 @@
             var productName = document.getElementById('productSearch').value;
 
             if (!productId) {
-                showToast('⚠️ تنبيه', 'يرجى اختيار منتج', 'error');
+                showToast('⚠️ تنبيه', 'يرجى اختيار منتج من قائمة الاقتراحات', 'error');
                 return;
             }
 
@@ -1230,42 +1423,13 @@
                 return;
             }
 
-            var rows = document.querySelectorAll('#itemsContainer .item-row');
-            var items = [];
-            var hasError = false;
-
-            rows.forEach(function(row) {
-                var hiddenInput = row.querySelector('.item-material-id');
-                var qtyInput = row.querySelector('.item-qty');
-                var unitSpan = row.querySelector('.item-unit');
-                var costSpan = row.querySelector('.item-cost');
-
-                var materialId = hiddenInput ? hiddenInput.value : '';
-                var qty = parseFloat(qtyInput ? qtyInput.value : 0);
-                var unit = unitSpan ? unitSpan.textContent : '';
-                var unitCost = parseFloat(costSpan ? costSpan.dataset.unitCost : 0) || 0;
-
-                if (!materialId || !qty || qty <= 0) {
-                    hasError = true;
-                    return;
-                }
-
-                var material = allMaterials.find(function(m) { return m.id == materialId; });
-                items.push({
-                    material_id: materialId,
-                    material_name: material ? (material.code ? material.code + ' — ' : '') + material.name : '',
-                    quantity: qty,
-                    unit: unit,
-                    unit_cost: unitCost
-                });
-            });
-
-            if (items.length === 0) {
-                showToast('⚠️ تنبيه', 'يجب إضافة خامة واحدة على الأقل بكمية صحيحة', 'error');
+            if (currentItems.length === 0) {
+                showToast('⚠️ تنبيه', 'يجب إضافة خامة واحدة على الأقل للتركيبة', 'error');
                 return;
             }
-            if (hasError) {
-                showToast('⚠️ تنبيه', 'تحقق من كل الأسطر: كل خامة لازم يكون ليها كمية صحيحة', 'error');
+            var invalid = currentItems.some(function(it) { return !it.quantity || it.quantity <= 0; });
+            if (invalid) {
+                showToast('⚠️ تنبيه', 'تحقق من كميات الخامات: كل خامة لازم يكون ليها كمية أكبر من صفر', 'error');
                 return;
             }
 
@@ -1292,7 +1456,7 @@
                     var created = await insertFormulation(data);
                     formulationId = created.id;
                 }
-                await insertItems(formulationId, items);
+                await insertItems(formulationId, currentItems);
                 showToast('✅ تم الحفظ', 'تم حفظ التركيبة بنجاح', 'success');
                 closeModal();
                 loadData();
@@ -1342,13 +1506,13 @@
                 html += `
                     <tr>
                         <td>${index + 1}</td>
-                        <td style="font-weight:700;">${f.product_name || '-'}</td>
-                        <td>${f.name || '-'}</td>
-                        <td style="text-align:center;">${formatNumber(outputQty)} ${f.output_unit || ''}</td>
+                        <td style="font-weight:700;">${escapeHtml(f.product_name || '-')}</td>
+                        <td>${escapeHtml(f.name || '-')}</td>
+                        <td style="text-align:center;">${formatNumber(outputQty)} ${escapeHtml(f.output_unit || '')}</td>
                         <td style="text-align:center;">${costInfo.itemsCount}</td>
                         <td style="text-align:center;">${formatNumber(costInfo.total)}</td>
                         <td style="text-align:center;font-weight:700;color:var(--gold-dark);">${formatNumber(unitCost)}</td>
-                        <td><span class="badge ${statusClass}">${f.status || 'نشط'}</span></td>
+                        <td><span class="badge ${statusClass}">${escapeHtml(f.status || 'نشط')}</span></td>
                         <td style="text-align:center;white-space:nowrap;">
                             <button class="btn small" onclick="editFormulation('${f.id}')" style="background:var(--gold-glow);color:var(--gold-dark);border-color:var(--gold-glow);">
                                 <i class="fas fa-edit"></i>
@@ -1436,8 +1600,10 @@
         window.closeModal = closeModal;
         window.deleteFormulationConfirm = deleteFormulationConfirm;
         window.saveFormulation = saveFormulation;
-        window.addItemRow = addItemRow;
-        window.removeItemRow = removeItemRow;
+        window.addSelectedMaterial = addSelectedMaterial;
+        window.clearMaterialPicker = clearMaterialPicker;
+        window.removeCurrentItem = removeCurrentItem;
+        window.updateCurrentItemQty = updateCurrentItemQty;
         window.recalcTotals = recalcTotals;
         window.exportToExcel = exportToExcel;
         window.loadData = loadData;
