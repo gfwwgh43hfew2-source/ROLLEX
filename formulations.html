@@ -11,6 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="supabase-client.js"></script>
     <style>
+        /* ... كل الأنماط السابقة ... */
         :root {
             --canvas: #f6f3ec;
             --surface: #ffffff;
@@ -946,7 +947,7 @@
         .modal-box-small {
             background:var(--surface);
             border-radius:16px;
-            max-width:700px;
+            max-width:900px;
             width:100%;
             padding:24px 28px;
             border:1px solid var(--line);
@@ -1005,11 +1006,15 @@
             font-size:0.7rem;
             padding:10px;
             border-radius:8px;
-            max-height:150px;
+            max-height:200px;
             overflow:auto;
             white-space:pre-wrap;
             margin-top:10px;
+            direction:ltr;
         }
+        .import-log .success { color:#4ade80; }
+        .import-log .error { color:#f87171; }
+        .import-log .warning { color:#fbbf24; }
         .import-stat-row {
             display:flex;
             gap:12px;
@@ -1046,6 +1051,7 @@
                 grid-template-columns:1fr 120px 60px auto;
                 gap:8px;
             }
+            .modal-box-small { max-width:95%; }
         }
         @media (max-width:768px) {
             .sidebar { right:calc(-1 * var(--sidebar-w)); }
@@ -1338,7 +1344,7 @@
     </div>
 
     <!-- ============================================================ -->
-    <!-- IMPORT MODAL -->
+    <!-- IMPORT MODAL - محسّن لتتبع الأخطاء -->
     <!-- ============================================================ -->
     <div class="modal-overlay-small" id="importModal">
         <div class="modal-box-small">
@@ -1348,8 +1354,8 @@
             </div>
 
             <p class="import-hint">
-                الأعمدة المتوقعة: <strong>المنتج</strong> (كود أو اسم)، <strong>اسم التركيبة</strong>، <strong>الخامة</strong> (كود أو اسم)، <strong>كمية الخامة</strong>، <strong>وحدة الخامة</strong>.<br />
-                <span style="color:var(--gold-dark);">📌 ملاحظة: الكمية الناتجة تُحسب تلقائياً من مجموع كميات الخامات.</span><br />
+                الأعمدة المتوقعة: <strong>المنتج</strong> (كود أو اسم)، <strong>اسم التركيبة</strong> (اختياري)، <strong>الخامة</strong> (كود أو اسم)، <strong>كمية الخامة</strong>، <strong>وحدة الخامة</strong> (اختياري).<br />
+                <span style="color:var(--gold-dark);">📌 ملاحظة: الكمية الناتجة تُحسب تلقائياً من مجموع كميات الخامات لكل منتج.</span><br />
                 <span style="color:var(--teal);">✅ يمكن استيراد عدة صفوف لنفس المنتج لتكوين تركيبته.</span>
                 <span style="color:var(--rust);margin-right:8px;">⚠️ الخامات والمنتجات يجب أن تكون موجودة مسبقاً.</span>
             </p>
@@ -1358,6 +1364,7 @@
                 <input type="file" id="importFileInput" accept=".xlsx,.xls" />
                 <button class="btn primary" onclick="parseImportFile()"><i class="fas fa-play"></i> تحليل</button>
                 <button class="btn success" id="btnRunImport" onclick="runImport()" disabled><i class="fas fa-upload"></i> استيراد</button>
+                <button class="btn danger" id="btnClearLog" onclick="clearImportLog()" style="display:none;"><i class="fas fa-eraser"></i> مسح السجل</button>
             </div>
 
             <div class="import-progress-outer">
@@ -1930,18 +1937,15 @@
         }
 
         // ============================================================
-        // RECALC TOTALS - الكمية الناتجة = مجموع كميات الخامات
+        // RECALC TOTALS
         // ============================================================
         function recalcTotals() {
-            // حساب مجموع كميات الخامات
             var totalQty = currentItems.reduce(function(sum, it) {
                 return sum + (parseFloat(it.quantity) || 0);
             }, 0);
             
-            // تحديث الكمية الناتجة تلقائياً
             document.getElementById('formOutputQty').value = totalQty > 0 ? totalQty : '';
             
-            // حساب التكاليف
             var totalCost = currentItems.reduce(function(sum, it) {
                 return sum + (parseFloat(it.quantity) || 0) * (parseFloat(it.unit_cost) || 0);
             }, 0);
@@ -2051,7 +2055,6 @@
                 return;
             }
 
-            // الكمية الناتجة = مجموع كميات الخامات
             var outputQty = currentItems.reduce(function(sum, it) {
                 return sum + (parseFloat(it.quantity) || 0);
             }, 0);
@@ -2205,10 +2208,11 @@
         }
 
         // ============================================================
-        // IMPORT FROM EXCEL
+        // IMPORT FROM EXCEL - محسّن مع تتبع الأخطاء
         // ============================================================
         var importData = [];
-        var importStats = { total: 0, ok: 0, fail: 0 };
+        var importStats = { total: 0, ok: 0, fail: 0, groups: 0, imported: 0 };
+        var importErrors = [];
 
         function openImportModal() {
             document.getElementById('importModal').classList.add('active');
@@ -2217,12 +2221,29 @@
             document.getElementById('importStats').innerHTML = '';
             document.getElementById('importLogBox').textContent = '';
             document.getElementById('btnRunImport').disabled = true;
+            document.getElementById('btnClearLog').style.display = 'none';
             importData = [];
-            importStats = { total: 0, ok: 0, fail: 0 };
+            importStats = { total: 0, ok: 0, fail: 0, groups: 0, imported: 0 };
+            importErrors = [];
         }
 
         function closeImportModal() {
             document.getElementById('importModal').classList.remove('active');
+        }
+
+        function clearImportLog() {
+            document.getElementById('importLogBox').textContent = '';
+            document.getElementById('btnClearLog').style.display = 'none';
+        }
+
+        function addImportLog(message, type) {
+            var logBox = document.getElementById('importLogBox');
+            var colorClass = '';
+            if (type === 'success') colorClass = 'success';
+            else if (type === 'error') colorClass = 'error';
+            else if (type === 'warning') colorClass = 'warning';
+            logBox.innerHTML += `<div class="${colorClass}">${message}</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
         }
 
         function parseImportFile() {
@@ -2247,37 +2268,115 @@
 
                     importData = rows;
                     importStats.total = rows.length;
+                    importErrors = [];
+                    var productGroups = {};
 
-                    rows.forEach(function(row, i) {
-                        var product = (row['المنتج'] || row['product'] || '').trim();
-                        var material = (row['الخامة'] || row['material'] || '').trim();
+                    rows.forEach(function(row, index) {
+                        var rowNum = index + 2; // +2 لأن Excel يبدأ من 1 ونضيف رأس الجدول
+                        var product = (row['المنتج'] || row['product'] || '').toString().trim();
+                        var material = (row['الخامة'] || row['material'] || '').toString().trim();
                         var materialQty = parseFloat(row['كمية الخامة'] || row['material_qty'] || 0);
 
-                        if (!product) { importStats.fail++; return; }
-                        if (!material || !materialQty || materialQty <= 0) { importStats.fail++; return; }
+                        // التحقق من الحقول المطلوبة
+                        if (!product) {
+                            importErrors.push(`⚠️ الصف ${rowNum}: المنتج مطلوب`);
+                            importStats.fail++;
+                            return;
+                        }
+                        if (!material) {
+                            importErrors.push(`⚠️ الصف ${rowNum}: الخامة مطلوبة للمنتج "${product}"`);
+                            importStats.fail++;
+                            return;
+                        }
+                        if (!materialQty || materialQty <= 0) {
+                            importErrors.push(`⚠️ الصف ${rowNum}: كمية الخامة غير صالحة للمنتج "${product}"`);
+                            importStats.fail++;
+                            return;
+                        }
 
+                        // البحث عن المنتج
                         var foundProduct = allProducts.find(function(p) {
-                            return (p.product_code || '').toLowerCase() === product.toLowerCase() ||
-                                (p.product_name || '').toLowerCase() === product.toLowerCase();
+                            var code = (p.product_code || '').toString().toLowerCase();
+                            var name = (p.product_name || '').toString().toLowerCase();
+                            var search = product.toLowerCase();
+                            return code === search || name === search;
                         });
-                        if (!foundProduct) { importStats.fail++; return; }
+                        if (!foundProduct) {
+                            importErrors.push(`❌ الصف ${rowNum}: المنتج "${product}" غير موجود في قاعدة البيانات`);
+                            importStats.fail++;
+                            return;
+                        }
 
+                        // البحث عن الخامة
                         var foundMaterial = allMaterials.find(function(m) {
-                            return (m.code || '').toLowerCase() === material.toLowerCase() ||
-                                (m.name || '').toLowerCase() === material.toLowerCase();
+                            var code = (m.code || '').toString().toLowerCase();
+                            var name = (m.name || '').toString().toLowerCase();
+                            var search = material.toLowerCase();
+                            return code === search || name === search;
                         });
-                        if (!foundMaterial) { importStats.fail++; return; }
+                        if (!foundMaterial) {
+                            importErrors.push(`❌ الصف ${rowNum}: الخامة "${material}" غير موجودة في قاعدة البيانات للمنتج "${product}"`);
+                            importStats.fail++;
+                            return;
+                        }
+
+                        // تجميع الصفوف حسب المنتج
+                        var productKey = foundProduct.id;
+                        if (!productGroups[productKey]) {
+                            productGroups[productKey] = {
+                                product: foundProduct,
+                                rows: [],
+                                formulationName: '',
+                                outputUnit: foundProduct.product_unit || ''
+                            };
+                        }
+
+                        // جمع بيانات التركيبة
+                        var formulationName = (row['اسم التركيبة'] || row['name'] || '').toString().trim();
+                        if (formulationName && !productGroups[productKey].formulationName) {
+                            productGroups[productKey].formulationName = formulationName;
+                        }
+                        if (!productGroups[productKey].formulationName) {
+                            productGroups[productKey].formulationName = foundProduct.product_name + ' (تركيبة)';
+                        }
+
+                        var unit = (row['وحدة الخامة'] || row['material_unit'] || foundMaterial.unit || '').toString().trim();
+                        productGroups[productKey].rows.push({
+                            material: foundMaterial,
+                            quantity: materialQty,
+                            unit: unit,
+                            rowNum: rowNum,
+                            productName: product
+                        });
 
                         importStats.ok++;
                     });
 
+                    importStats.groups = Object.keys(productGroups).length;
+                    importStats.imported = 0;
+
+                    // عرض الإحصائيات
                     document.getElementById('importStats').innerHTML = `
                         <div class="stat"><b>${importStats.total}</b><span>إجمالي الصفوف</span></div>
                         <div class="stat ok"><b>${importStats.ok}</b><span>صالحة للاستيراد</span></div>
                         <div class="stat warn"><b>${importStats.fail}</b><span>غير صالحة</span></div>
+                        <div class="stat"><b>${importStats.groups}</b><span>مجموعات منتجات</span></div>
                     `;
 
                     document.getElementById('importProgressBar').style.width = '100%';
+
+                    // عرض الأخطاء في السجل
+                    var logBox = document.getElementById('importLogBox');
+                    logBox.textContent = '';
+                    if (importErrors.length > 0) {
+                        importErrors.forEach(function(err) {
+                            addImportLog(err, 'error');
+                        });
+                        document.getElementById('btnClearLog').style.display = 'inline-block';
+                    } else {
+                        addImportLog('✅ جميع الصفوف صالحة للاستيراد!', 'success');
+                        addImportLog(`📊 تم العثور على ${importStats.groups} منتج/منتجات للاستيراد`, 'success');
+                    }
 
                     if (importStats.ok > 0) {
                         document.getElementById('btnRunImport').disabled = false;
@@ -2286,14 +2385,9 @@
                         showToast('⚠️ تنبيه', 'لا توجد صفوف صالحة للاستيراد', 'warning');
                     }
 
-                    var log = 'تم تحليل الملف\n';
-                    log += 'إجمالي الصفوف: ' + importStats.total + '\n';
-                    log += 'صالحة: ' + importStats.ok + '\n';
-                    log += 'غير صالحة: ' + importStats.fail + '\n';
-                    document.getElementById('importLogBox').textContent = log;
-
                 } catch (error) {
                     showToast('❌ خطأ', 'فشل قراءة الملف: ' + error.message, 'error');
+                    addImportLog('❌ خطأ في قراءة الملف: ' + error.message, 'error');
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -2313,35 +2407,67 @@
             var logBox = document.getElementById('importLogBox');
             var imported = 0;
             var failed = 0;
-            var logs = [];
+            var totalGroups = 0;
 
             try {
+                // إعادة تجميع البيانات
                 var productGroups = {};
                 importData.forEach(function(row) {
-                    var product = (row['المنتج'] || row['product'] || '').trim();
+                    var product = (row['المنتج'] || row['product'] || '').toString().trim();
                     if (!product) return;
-                    var key = product.toLowerCase();
+                    
+                    var foundProduct = allProducts.find(function(p) {
+                        var code = (p.product_code || '').toString().toLowerCase();
+                        var name = (p.product_name || '').toString().toLowerCase();
+                        var search = product.toLowerCase();
+                        return code === search || name === search;
+                    });
+                    if (!foundProduct) return;
+
+                    var key = foundProduct.id;
                     if (!productGroups[key]) {
                         productGroups[key] = {
-                            productName: product,
-                            rows: []
+                            product: foundProduct,
+                            rows: [],
+                            formulationName: '',
+                            outputUnit: foundProduct.product_unit || ''
                         };
                     }
-                    productGroups[key].rows.push(row);
+
+                    var formulationName = (row['اسم التركيبة'] || row['name'] || '').toString().trim();
+                    if (formulationName && !productGroups[key].formulationName) {
+                        productGroups[key].formulationName = formulationName;
+                    }
+                    if (!productGroups[key].formulationName) {
+                        productGroups[key].formulationName = foundProduct.product_name + ' (تركيبة)';
+                    }
+
+                    var material = (row['الخامة'] || row['material'] || '').toString().trim();
+                    var foundMaterial = allMaterials.find(function(m) {
+                        var code = (m.code || '').toString().toLowerCase();
+                        var name = (m.name || '').toString().toLowerCase();
+                        var search = material.toLowerCase();
+                        return code === search || name === search;
+                    });
+                    if (!foundMaterial) return;
+
+                    var materialQty = parseFloat(row['كمية الخامة'] || row['material_qty'] || 0);
+                    var unit = (row['وحدة الخامة'] || row['material_unit'] || foundMaterial.unit || '').toString().trim();
+
+                    productGroups[key].rows.push({
+                        material: foundMaterial,
+                        quantity: materialQty,
+                        unit: unit                    });
                 });
 
-                var totalGroups = Object.keys(productGroups).length;
+                totalGroups = Object.keys(productGroups).length;
                 var done = 0;
 
                 for (var groupKey in productGroups) {
                     var group = productGroups[groupKey];
-                    var product = allProducts.find(function(p) {
-                        return (p.product_code || '').toLowerCase() === group.productName.toLowerCase() ||
-                            (p.product_name || '').toLowerCase() === group.productName.toLowerCase();
-                    });
+                    var product = group.product;
 
                     if (!product) {
-                        logs.push('⚠️ المنتج غير موجود: ' + group.productName);
                         failed++;
                         done++;
                         progress.style.width = Math.round((done / totalGroups) * 100) + '%';
@@ -2349,43 +2475,25 @@
                     }
 
                     var itemsMap = {};
-                    var formulationName = '';
-                    var outputUnit = '';
+                    var outputUnit = group.outputUnit || product.product_unit || '';
 
                     group.rows.forEach(function(row) {
-                        var material = (row['الخامة'] || row['material'] || '').trim();
-                        var materialQty = parseFloat(row['كمية الخامة'] || row['material_qty'] || 0);
-                        var materialUnit = (row['وحدة الخامة'] || row['material_unit'] || '').trim();
-
-                        if (!formulationName) {
-                            formulationName = (row['اسم التركيبة'] || row['name'] || product.product_name + ' (تركيبة)').trim();
-                        }
-                        if (!outputUnit) {
-                            outputUnit = (row['وحدة الناتج'] || row['output_unit'] || product.product_unit || '').trim();
-                        }
-
-                        if (material && materialQty > 0) {
-                            var foundMaterial = allMaterials.find(function(m) {
-                                return (m.code || '').toLowerCase() === material.toLowerCase() ||
-                                    (m.name || '').toLowerCase() === material.toLowerCase();
-                            });
-                            if (foundMaterial) {
-                                if (!itemsMap[material]) {
-                                    itemsMap[material] = {
-                                        material_id: foundMaterial.id,
-                                        material_name: (foundMaterial.code ? foundMaterial.code + ' — ' : '') + foundMaterial.name,
-                                        quantity: 0,
-                                        unit: foundMaterial.unit || '',
-                                        unit_cost: parseFloat(foundMaterial.cost_price) || 0
-                                    };
-                                }
-                                itemsMap[material].quantity += materialQty;
+                        if (row.material && row.quantity > 0) {
+                            if (!itemsMap[row.material.id]) {
+                                itemsMap[row.material.id] = {
+                                    material_id: row.material.id,
+                                    material_name: (row.material.code ? row.material.code + ' — ' : '') + row.material.name,
+                                    quantity: 0,
+                                    unit: row.unit || row.material.unit || '',
+                                    unit_cost: parseFloat(row.material.cost_price) || 0
+                                };
                             }
+                            itemsMap[row.material.id].quantity += row.quantity;
                         }
                     });
 
                     if (Object.keys(itemsMap).length === 0) {
-                        logs.push('⚠️ لا توجد خامات صالحة للمنتج: ' + group.productName);
+                        addImportLog(`⚠️ لا توجد خامات صالحة للمنتج: ${product.product_name}`, 'warning');
                         failed++;
                         done++;
                         progress.style.width = Math.round((done / totalGroups) * 100) + '%';
@@ -2393,18 +2501,36 @@
                     }
 
                     var itemsArray = Object.values(itemsMap);
-                    
-                    // حساب الكمية الناتجة = مجموع كميات الخامات
                     var outputQty = itemsArray.reduce(function(sum, it) {
                         return sum + (it.quantity || 0);
                     }, 0);
 
+                    // التحقق من وجود تركيبة مكررة لنفس المنتج
+                    var existingFormulation = allFormulations.find(function(f) {
+                        return f.product_id == product.id;
+                    });
+
+                    if (existingFormulation) {
+                        addImportLog(`⚠️ المنتج "${product.product_name}" لديه تركيبة موجودة بالفعل، سيتم تحديثها`, 'warning');
+                        try {
+                            // حذف التركيبة القديمة
+                            await deleteRows('formulation_items', 'formulation_id', existingFormulation.id);
+                            await deleteRows('formulations', 'id', existingFormulation.id);
+                        } catch (err) {
+                            addImportLog(`❌ فشل حذف التركيبة القديمة للمنتج: ${product.product_name} - ${err.message}`, 'error');
+                            failed++;
+                            done++;
+                            progress.style.width = Math.round((done / totalGroups) * 100) + '%';
+                            continue;
+                        }
+                    }
+
                     var formulationData = {
                         product_id: product.id,
                         product_name: product.product_name,
-                        name: formulationName || product.product_name + ' (تركيبة)',
+                        name: group.formulationName || product.product_name + ' (تركيبة)',
                         output_qty: outputQty,
-                        output_unit: outputUnit || product.product_unit || '',
+                        output_unit: outputUnit,
                         status: 'نشط',
                         notes: 'مستوردة من Excel'
                     };
@@ -2415,29 +2541,38 @@
                         await insertItems(formulationId, itemsArray);
 
                         imported++;
-                        logs.push('✅ تم استيراد: ' + product.product_name + ' (' + Object.keys(itemsMap).length + ' خامات) - الكمية الناتجة: ' + outputQty);
+                        addImportLog(`✅ تم استيراد: ${product.product_name} (${Object.keys(itemsMap).length} خامات) - الكمية الناتجة: ${outputQty} ${outputUnit}`, 'success');
 
                     } catch (err) {
                         failed++;
-                        logs.push('❌ فشل استيراد: ' + product.product_name + ' - ' + err.message);
+                        addImportLog(`❌ فشل استيراد: ${product.product_name} - ${err.message}`, 'error');
                     }
 
                     done++;
                     progress.style.width = Math.round((done / totalGroups) * 100) + '%';
-                    logBox.textContent = logs.join('\n');
-                    logBox.scrollTop = logBox.scrollHeight;
                 }
 
+                importStats.imported = imported;
+                document.getElementById('importStats').innerHTML = `
+                    <div class="stat"><b>${importStats.total}</b><span>إجمالي الصفوف</span></div>
+                    <div class="stat ok"><b>${importStats.ok}</b><span>صفوف صالحة</span></div>
+                    <div class="stat warn"><b>${importStats.fail}</b><span>صفوف غير صالحة</span></div>
+                    <div class="stat"><b>${importStats.groups}</b><span>مجموعات منتجات</span></div>
+                    <div class="stat ok"><b>${imported}</b><span>تم استيرادها</span></div>
+                    <div class="stat warn"><b>${failed}</b><span>فشل الاستيراد</span></div>
+                `;
+
                 showToast('✅ اكتمل الاستيراد', 'تم استيراد ' + imported + ' تركيبة' + (failed > 0 ? '، فشل ' + failed : ''), failed > 0 ? 'warning' : 'success');
-                loadData();
-                closeImportModal();
+                await loadData();
 
             } catch (error) {
                 showToast('❌ خطأ', error.message || 'فشل الاستيراد', 'error');
+                addImportLog(`❌ خطأ عام: ${error.message}`, 'error');
             }
 
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-upload"></i> بدء الاستيراد';
+            btn.innerHTML = '<i class="fas fa-upload"></i> استيراد';
+            document.getElementById('btnClearLog').style.display = 'inline-block';
         }
 
         // ============================================================
@@ -2488,6 +2623,7 @@
         window.closeImportModal = closeImportModal;
         window.parseImportFile = parseImportFile;
         window.runImport = runImport;
+        window.clearImportLog = clearImportLog;
 
         // ============================================================
         // CLOSE MODAL ON OVERLAY CLICK
