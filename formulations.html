@@ -11,7 +11,6 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="supabase-client.js"></script>
     <style>
-        /* ============================================================ */
         :root {
             --canvas: #f6f3ec;
             --surface: #ffffff;
@@ -39,10 +38,8 @@
             --r-sm: 8px;
             --ease: cubic-bezier(0.22,1,0.36,1);
         }
-
         * { margin:0; padding:0; box-sizing:border-box; }
         html { scroll-behavior:smooth; }
-
         body {
             font-family: 'Cairo', 'Segoe UI', system-ui, sans-serif;
             background: var(--canvas);
@@ -52,24 +49,19 @@
             -webkit-font-smoothing: antialiased;
             font-size: 13px;
         }
-
         a { text-decoration:none; color:inherit; }
-        button { font-family:inherit; }
-
+        button { font-family:inherit; cursor:pointer; }
         ::-webkit-scrollbar { width:5px; height:5px; }
         ::-webkit-scrollbar-track { background:transparent; }
         ::-webkit-scrollbar-thumb { background:var(--ink-4); border-radius:10px; }
 
-        /* ============================================================ */
-        /* SIDEBAR */
-        /* ============================================================ */
+        /* ===== SIDEBAR ===== */
         .sidebar-overlay {
             display:none; position:fixed; inset:0;
             background:rgba(33,29,26,0.4); z-index:999;
             opacity:0; transition:opacity .25s ease; pointer-events:none;
         }
         .sidebar-overlay.active { opacity:1; pointer-events:auto; }
-
         .sidebar {
             position:fixed; top:0; right:0;
             width:var(--sidebar-w); height:100vh;
@@ -78,7 +70,6 @@
             transition:right .35s var(--ease);
         }
         .sidebar.collapsed { right:calc(-1 * var(--sidebar-w)); }
-
         .sidebar .brand {
             padding:16px 18px 14px; display:flex; align-items:center; gap:10px;
             border-bottom:1px solid var(--line);
@@ -91,7 +82,6 @@
         }
         .sidebar .brand .text { font-weight:800; font-size:0.8rem; color:var(--ink); line-height:1.2; }
         .sidebar .brand .text span { display:block; font-size:0.55rem; font-weight:600; color:var(--ink-3); margin-top:2px; }
-
         .sidebar .menu { flex:1; padding:10px 10px; }
         .sidebar .menu .label {
             font-size:0.55rem; color:var(--ink-3);
@@ -99,7 +89,6 @@
             padding:12px 8px 4px; font-weight:700;
         }
         .sidebar .menu .label:first-child { padding-top:2px; }
-
         .sidebar .menu .item {
             display:flex; align-items:center; gap:8px;
             padding:6px 10px; border-radius:var(--r-sm);
@@ -115,7 +104,6 @@
             border-inline-end:2px solid var(--gold);
         }
         .sidebar .menu .item i { width:14px; text-align:center; font-size:0.75rem; opacity:0.7; }
-
         .sidebar .footer {
             padding:10px 14px 14px; border-top:1px solid var(--line);
         }
@@ -140,15 +128,12 @@
         }
         .sidebar .footer .logout:hover { color:var(--rust); border-color:var(--rust); }
 
-        /* ============================================================ */
-        /* MAIN */
-        /* ============================================================ */
+        /* ===== MAIN ===== */
         .main {
             margin-right:var(--sidebar-w); min-height:100vh;
             transition:margin-right .35s var(--ease);
         }
         .main.expanded { margin-right:0; }
-
         .header {
             position:sticky; top:0; z-index:100;
             height:var(--header-h); padding:0 20px;
@@ -167,7 +152,6 @@
         .header .hamburger:hover { border-color:var(--ink-3); color:var(--ink); }
         .header .breadcrumb { font-size:0.72rem; color:var(--ink-3); }
         .header .breadcrumb b { color:var(--ink); font-weight:700; }
-
         .header .right {
             display:flex; align-items:center; gap:6px;
         }
@@ -186,12 +170,15 @@
         }
         .header .right .profile .name { font-size:0.7rem; font-weight:700; }
         .header .right .profile .name small { display:block; font-size:0.5rem; font-weight:500; color:var(--ink-3); }
+        .header .right .logout-btn {
+            background:none; border:none; color:var(--ink-3); font-size:0.85rem;
+            cursor:pointer; padding:2px 6px; transition:.15s;
+        }
+        .header .right .logout-btn:hover { color:var(--rust); }
 
         .dash { padding:18px 22px 34px; max-width:1500px; }
 
-        /* ============================================================ */
-        /* PAGE HEADER */
-        /* ============================================================ */
+        /* ===== PAGE HEADER ===== */
         .page-header {
             display:flex; justify-content:space-between; align-items:center;
             margin-bottom:14px; flex-wrap:wrap; gap:8px;
@@ -226,9 +213,7 @@
         .btn.small { padding:3px 8px; font-size:0.55rem; }
         .btn:disabled { opacity:0.5; cursor:not-allowed; }
 
-        /* ============================================================ */
-        /* SUMMARY */
-        /* ============================================================ */
+        /* ===== SUMMARY ===== */
         .summary-bar {
             display:flex; flex-wrap:wrap; gap:8px;
             background:var(--surface); border-radius:var(--r-md);
@@ -238,9 +223,7 @@
         .summary-bar .stat { font-size:0.7rem; color:var(--ink-2); }
         .summary-bar .stat span { color:var(--gold-dark); font-weight:700; font-size:0.85rem; }
 
-        /* ============================================================ */
-        /* TABLE */
-        /* ============================================================ */
+        /* ===== TABLE ===== */
         .table-wrapper {
             background:var(--surface); border-radius:var(--r-lg);
             overflow-x:auto; border:1px solid var(--line);
@@ -278,149 +261,154 @@
         @keyframes spin { to { transform:rotate(360deg); } }
 
         /* ============================================================ */
-        /* MODAL */
+        /* MODAL - تصميم جديد محسّن */
         /* ============================================================ */
         .modal-overlay {
             display:none; position:fixed; inset:0;
-            background:rgba(33,29,26,0.5); backdrop-filter:blur(6px);
+            background:rgba(18,24,33,0.6); backdrop-filter:blur(6px);
             z-index:9999; justify-content:center; align-items:center;
             padding:16px;
         }
         .modal-overlay.active { display:flex; }
+
         .modal-box {
-            background:var(--surface); border-radius:var(--r-lg);
-            max-width:940px; width:100%;
-            border:1px solid var(--line); box-shadow:0 20px 48px rgba(33,29,26,0.16);
-            animation:modalIn 0.2s ease; max-height:92vh;
-            display:flex; flex-direction:column; overflow:hidden;
+            background:var(--surface); border-radius:16px;
+            max-width:960px; width:100%;
+            border:1px solid var(--line);
+            box-shadow:0 24px 64px rgba(18,24,33,0.2);
+            animation:modalIn 0.25s ease;
+            max-height:92vh;
+            display:flex; flex-direction:column;
+            overflow:hidden;
         }
         @keyframes modalIn {
-            from { transform:translateY(10px); opacity:0; }
-            to { transform:translateY(0); opacity:1; }
+            from { transform:translateY(16px) scale(0.97); opacity:0; }
+            to { transform:translateY(0) scale(1); opacity:1; }
         }
 
-        .modal-box .modal-header {
+        /* ===== HEADER ===== */
+        .modal-header {
             display:flex; justify-content:space-between; align-items:flex-start;
-            padding:18px 24px 14px; flex:0 0 auto;
+            padding:20px 28px 16px;
             border-bottom:1px solid var(--line);
+            flex-shrink:0;
+            background:var(--surface);
         }
-        .modal-box .modal-header .heading { display:flex; flex-direction:column; gap:2px; }
-        .modal-box .modal-header h3 {
-            font-size:1.02rem; font-weight:800; color:var(--ink);
-            display:flex; align-items:center; gap:7px;
+        .modal-header .heading { display:flex; flex-direction:column; gap:4px; }
+        .modal-header h3 {
+            font-size:1.1rem; font-weight:800; color:var(--ink);
+            display:flex; align-items:center; gap:10px;
         }
-        .modal-box .modal-header h3 i {
-            color:#fff; background:var(--gold-gradient);
-            width:26px; height:26px; border-radius:8px;
-            display:flex; align-items:center; justify-content:center; font-size:0.75rem;
+        .modal-header h3 .icon {
+            width:32px; height:32px; border-radius:10px;
+            background:var(--gold-gradient);
+            display:flex; align-items:center; justify-content:center;
+            color:#fff; font-size:0.85rem;
         }
-        .modal-box .modal-header .subtitle { font-size:0.62rem; color:var(--ink-3); margin-right:33px; }
-        .modal-box .modal-header .close-modal {
-            background:none; border:none; color:var(--ink-3);
-            font-size:0.95rem; cursor:pointer; padding:4px 8px;
-            border-radius:var(--r-sm); transition:.15s; flex-shrink:0;
+        .modal-header .subtitle {
+            font-size:0.65rem; color:var(--ink-3); margin-right:42px;
         }
-        .modal-box .modal-header .close-modal:hover { background:var(--surface-2); color:var(--ink); }
+        .modal-header .close-modal {
+            background:var(--surface-2); border:none;
+            color:var(--ink-3); font-size:0.9rem;
+            cursor:pointer; padding:6px 10px;
+            border-radius:8px; transition:.15s;
+            border:1px solid var(--line);
+            flex-shrink:0;
+        }
+        .modal-header .close-modal:hover {
+            background:var(--rust-soft); color:var(--rust); border-color:var(--rust-soft);
+        }
 
-        .modal-box form { overflow-y:auto; padding:18px 24px 20px; flex:1 1 auto; }
+        /* ===== BODY ===== */
+        .modal-body {
+            padding:20px 28px 12px;
+            overflow-y:auto;
+            flex:1 1 auto;
+        }
 
+        /* ===== GRID ===== */
         .modal-grid {
-            display:grid; grid-template-columns:250px 1fr; gap:22px; align-items:start;
+            display:grid; grid-template-columns:260px 1fr; gap:24px;
+            align-items:start;
         }
+
+        /* ===== PANEL ===== */
         .panel-title {
-            display:flex; align-items:center; gap:6px;
-            font-size:0.68rem; font-weight:800; color:var(--ink);
-            margin-bottom:10px;
+            display:flex; align-items:center; gap:8px;
+            font-size:0.7rem; font-weight:800; color:var(--ink);
+            margin-bottom:12px;
+            padding-bottom:8px;
+            border-bottom:2px solid var(--gold-glow);
         }
-        .panel-title i { color:var(--gold-dark); font-size:0.7rem; }
+        .panel-title i { color:var(--gold-dark); font-size:0.75rem; }
         .panel-title .count {
             margin-right:auto; font-weight:700; color:var(--ink-3); font-size:0.6rem;
             background:var(--surface-2); border:1px solid var(--line); border-radius:50px;
-            padding:1px 8px;
+            padding:1px 10px;
         }
 
         .meta-panel {
-            background:var(--surface-2); border:1px solid var(--line);
-            border-radius:var(--r-md); padding:14px;
+            background:var(--surface-2);
+            border:1px solid var(--line);
+            border-radius:12px;
+            padding:16px;
         }
         .compo-panel { min-width:0; }
 
-        .modal-box .form-group { margin-bottom:10px; }
-        .modal-box .form-group:last-child { margin-bottom:0; }
-        .modal-box .form-group label {
+        .form-group { margin-bottom:12px; }
+        .form-group:last-child { margin-bottom:0; }
+        .form-group label {
             display:block; font-size:0.6rem; font-weight:700;
-            color:var(--ink-2); margin-bottom:2px;
+            color:var(--ink-2); margin-bottom:3px;
         }
-        .modal-box .form-group label .required { color:var(--rust); }
-        .modal-box .form-group label .hint { color:var(--ink-3); font-weight:500; margin-right:4px; }
-        .modal-box .form-group input,
-        .modal-box .form-group select,
-        .modal-box .form-group textarea {
-            width:100%; padding:6px 10px; border-radius:var(--r-sm);
-            border:1px solid var(--line); background:#fff;
+        .form-group label .required { color:var(--rust); }
+        .form-group label .hint { color:var(--ink-3); font-weight:500; margin-right:4px; }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width:100%; padding:6px 10px; border-radius:8px;
+            border:1.5px solid var(--line); background:#fff;
             color:var(--ink); font-size:0.75rem; font-family:'Cairo',sans-serif;
-            outline:none; transition:.15s;
+            outline:none; transition:.2s;
         }
-        .modal-box .form-group input:focus,
-        .modal-box .form-group select:focus,
-        .modal-box .form-group textarea:focus {
-            border-color:var(--gold); background:#fff;
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color:var(--gold);
             box-shadow:0 0 0 3px var(--gold-glow);
         }
+        .form-group textarea { resize:vertical; min-height:50px; }
 
-        .modal-box .form-row { display:grid; gap:8px; }
-        .modal-box .form-row.two { grid-template-columns:1fr 1fr; }
-        .modal-box .form-row.three { grid-template-columns:1fr 1fr 1fr; }
+        .form-row { display:grid; gap:8px; }
+        .form-row.two { grid-template-columns:1fr 1fr; }
+        .form-row.three { grid-template-columns:1fr 1fr 1fr; }
 
+        /* ===== SELECTION CHIP ===== */
         .selection-chip {
             margin-top:6px; display:none; align-items:center; gap:6px;
             font-size:0.6rem; font-weight:700; color:var(--teal);
-            background:var(--teal-soft); border-radius:50px; padding:3px 10px;
+            background:var(--teal-soft); border-radius:50px; padding:3px 12px;
         }
         .selection-chip.show { display:inline-flex; }
-        .selection-chip i.fa-circle-check { font-size:0.65rem; }
         .selection-chip .clear-selected {
-            background:none; border:none; color:var(--teal); opacity:0.7;
-            cursor:pointer; font-size:0.65rem; margin-right:2px;
+            background:none; border:none; color:var(--teal); opacity:0.6;
+            cursor:pointer; font-size:0.65rem;
         }
         .selection-chip .clear-selected:hover { opacity:1; }
 
-        .modal-box .form-actions {
-            display:flex; gap:8px; padding:14px 24px; flex:0 0 auto;
-            border-top:1px solid var(--line); background:var(--surface-2);
-        }
-        .modal-box .form-actions .btn-save {
-            padding:9px 22px; background:var(--teal); color:#fff;
-            border:none; border-radius:var(--r-sm); font-weight:700;
-            font-size:0.76rem; cursor:pointer; transition:.15s;
-            font-family:'Cairo',sans-serif; flex:1;
-        }
-        .modal-box .form-actions .btn-save:hover { background:#156b5d; transform:translateY(-1px); }
-        .modal-box .form-actions .btn-save:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
-        .modal-box .form-actions .btn-cancel {
-            padding:9px 18px; border-radius:var(--r-sm);
-            border:1px solid var(--line); background:var(--surface);
-            color:var(--ink-3); font-weight:600; font-size:0.72rem;
-            cursor:pointer; transition:.15s; font-family:'Cairo',sans-serif;
-        }
-        .modal-box .form-actions .btn-cancel:hover { background:var(--surface-2); }
-
-        /* ============================================================ */
-        /* AUTOCOMPLETE (portal-based) */
-        /* ============================================================ */
+        /* ===== AUTOCOMPLETE ===== */
         .autocomplete-wrapper { position:relative; }
-        .autocomplete-wrapper input { width:100%; }
-
         .ac-portal {
             position:fixed; z-index:99999;
             background:var(--surface); border:1px solid var(--line);
-            border-radius:var(--r-sm); box-shadow:0 10px 28px rgba(33,29,26,0.14);
-            max-height:220px; overflow-y:auto;
-            display:none;
+            border-radius:10px; box-shadow:0 12px 32px rgba(18,24,33,0.16);
+            max-height:220px; overflow-y:auto; display:none;
+            min-width:200px;
         }
         .ac-portal.open { display:block; }
         .ac-item {
-            padding:6px 10px; cursor:pointer; font-size:0.68rem;
+            padding:7px 12px; cursor:pointer; font-size:0.68rem;
             display:flex; justify-content:space-between; align-items:center; gap:8px;
             border-bottom:1px solid var(--line-soft);
         }
@@ -431,37 +419,38 @@
         .ac-item:hover, .ac-item.active {
             background:var(--gold-glow); color:var(--gold-dark);
         }
-        .ac-item.active .ac-meta { color:var(--gold-dark); }
-        .ac-empty { padding:10px; text-align:center; color:var(--ink-3); font-size:0.65rem; }
+        .ac-empty { padding:12px; text-align:center; color:var(--ink-3); font-size:0.65rem; }
         .ac-hint {
-            padding:4px 10px; font-size:0.5rem; color:var(--ink-3);
+            padding:4px 12px; font-size:0.5rem; color:var(--ink-3);
             border-top:1px solid var(--line-soft); background:var(--surface-2);
-            display:flex; gap:8px; justify-content:center;
+            display:flex; gap:12px; justify-content:center;
         }
 
-        /* ============================================================ */
-        /* INGREDIENT PICKER */
-        /* ============================================================ */
+        /* ===== PICKER ===== */
         .picker-box {
-            border:1.5px dashed var(--gold-light); border-radius:var(--r-md);
-            background:var(--gold-glow); padding:10px; margin:0 0 10px;
+            border:2px dashed var(--gold-light);
+            border-radius:12px;
+            background:var(--gold-glow);
+            padding:12px 14px;
+            margin-bottom:12px;
         }
         .picker-row {
-            display:flex; gap:6px; align-items:flex-end;
+            display:flex; gap:8px; align-items:flex-end;
         }
         .picker-row .picker-search { flex:2; min-width:0; }
         .picker-row .picker-qty { flex:0.7; min-width:80px; }
         .picker-row .picker-unit {
-            flex:0.5; min-width:56px; display:flex; align-items:center; justify-content:center;
-            background:var(--surface); border:1px solid var(--line); border-radius:var(--r-sm);
+            flex:0.4; min-width:50px;
+            display:flex; align-items:center; justify-content:center;
+            background:var(--surface); border:1.5px solid var(--line); border-radius:8px;
             padding:5px 6px; font-size:0.65rem; color:var(--ink-3); font-weight:700;
-            height:29px; text-align:center;
+            height:32px; text-align:center;
         }
         .picker-row .picker-add {
-            flex:0 0 auto; height:29px; padding:0 14px;
+            flex:0 0 auto; height:32px; padding:0 16px;
         }
         .picker-selected {
-            margin-top:6px; font-size:0.62rem; color:var(--gold-dark); font-weight:700;
+            margin-top:6px; font-size:0.6rem; color:var(--gold-dark); font-weight:700;
             display:none; align-items:center; gap:6px;
         }
         .picker-selected.show { display:flex; }
@@ -470,15 +459,16 @@
         }
         .picker-hint { font-size:0.55rem; color:var(--ink-3); margin-top:6px; }
 
+        /* ===== ITEMS TABLE ===== */
         .items-table-wrapper {
-            border:1px solid var(--line); border-radius:var(--r-md);
-            overflow:hidden; margin-bottom:6px;
+            border:1px solid var(--line); border-radius:10px;
+            overflow:hidden; margin-bottom:8px;
         }
         table.items-mini { width:100%; border-collapse:collapse; font-size:0.65rem; }
         table.items-mini thead th {
             background:var(--surface-2); color:var(--ink-3); font-size:0.55rem;
             text-transform:uppercase; letter-spacing:0.3px; font-weight:700;
-            padding:6px 8px; text-align:right; border-bottom:1px solid var(--line);
+            padding:6px 10px; text-align:right; border-bottom:1.5px solid var(--line);
         }
         table.items-mini tbody td {
             padding:5px 8px; border-bottom:1px solid var(--line-soft); vertical-align:middle;
@@ -487,30 +477,28 @@
         table.items-mini tbody tr.new-row { animation:rowIn .3s var(--ease); }
         @keyframes rowIn { from { background:var(--gold-glow); } to { background:transparent; } }
         table.items-mini .qty-edit {
-            width:70px; padding:3px 6px; border-radius:var(--r-sm);
-            border:1px solid var(--line); background:#fff; font-size:0.62rem;
+            width:65px; padding:3px 6px; border-radius:6px;
+            border:1.5px solid var(--line); background:#fff; font-size:0.62rem;
             font-family:'Cairo',sans-serif; text-align:center;
         }
         table.items-mini .qty-edit:focus { border-color:var(--gold); outline:none; box-shadow:0 0 0 2px var(--gold-glow); }
         table.items-mini .row-remove {
-            background:none; border:none; color:var(--rust); cursor:pointer; font-size:0.65rem; padding:2px 6px;
+            background:none; border:none; color:var(--rust); cursor:pointer; font-size:0.7rem; padding:2px 6px;
         }
         table.items-mini .row-remove:hover { color:#a63a31; }
         .items-empty-row td {
             text-align:center; color:var(--ink-3); padding:14px 8px; font-size:0.65rem;
         }
 
-        /* ============================================================ */
-        /* COST CARD */
-        /* ============================================================ */
+        /* ===== COST CARD ===== */
         .cost-card {
-            border:1.5px solid var(--ink); border-radius:var(--r-sm);
-            padding:10px 14px 12px; margin-top:10px; background:var(--surface);
+            border:2px solid var(--ink); border-radius:10px;
+            padding:12px 16px 14px; background:var(--surface);
             font-variant-numeric:tabular-nums;
         }
-        .cost-card .cost-card-title {
+        .cost-card .cost-title {
             font-size:0.62rem; font-weight:800; color:var(--ink-2);
-            border-bottom:5px solid var(--ink); padding-bottom:5px; margin-bottom:5px;
+            border-bottom:4px solid var(--ink); padding-bottom:5px; margin-bottom:6px;
         }
         .cost-card .cost-row {
             display:flex; justify-content:space-between; align-items:center;
@@ -520,11 +508,94 @@
         .cost-card .cost-hero {
             display:flex; justify-content:space-between; align-items:baseline;
             border-top:3px solid var(--ink); border-bottom:3px solid var(--ink);
-            padding:7px 0; margin-top:4px;
+            padding:8px 0; margin-top:4px;
         }
         .cost-card .cost-hero .label { font-size:0.72rem; font-weight:800; color:var(--ink); }
-        .cost-card .cost-hero .value { font-size:1.5rem; font-weight:900; color:var(--gold-dark); line-height:1; }
+        .cost-card .cost-hero .value { font-size:1.6rem; font-weight:900; color:var(--gold-dark); line-height:1; }
         .cost-card .cost-hero .value small { font-size:0.58rem; font-weight:700; color:var(--ink-3); }
+
+        /* ===== FOOTER ===== */
+        .modal-footer {
+            display:flex; gap:10px; padding:14px 28px 20px;
+            border-top:1px solid var(--line);
+            background:var(--surface-2);
+            flex-shrink:0;
+        }
+        .modal-footer .btn-save {
+            padding:10px 24px; background:var(--teal); color:#fff;
+            border:none; border-radius:10px; font-weight:700;
+            font-size:0.78rem; cursor:pointer; transition:.15s;
+            font-family:'Cairo',sans-serif; flex:1;
+        }
+        .modal-footer .btn-save:hover { background:#156b5d; transform:translateY(-1px); }
+        .modal-footer .btn-save:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+        .modal-footer .btn-cancel {
+            padding:10px 20px; border-radius:10px;
+            border:1.5px solid var(--line); background:var(--surface);
+            color:var(--ink-3); font-weight:600; font-size:0.72rem;
+            cursor:pointer; transition:.15s; font-family:'Cairo',sans-serif;
+        }
+        .modal-footer .btn-cancel:hover { background:var(--surface-2); }
+
+        /* ============================================================ */
+        /* IMPORT MODAL */
+        /* ============================================================ */
+        .modal-overlay-small {
+            display:none; position:fixed; inset:0;
+            background:rgba(18,24,33,0.6); backdrop-filter:blur(6px);
+            z-index:10000; justify-content:center; align-items:center;
+            padding:16px;
+        }
+        .modal-overlay-small.active { display:flex; }
+        .modal-box-small {
+            background:var(--surface); border-radius:16px;
+            max-width:680px; width:100%; padding:24px 28px;
+            border:1px solid var(--line);
+            box-shadow:0 24px 64px rgba(18,24,33,0.2);
+            max-height:90vh; overflow-y:auto;
+        }
+        .modal-box-small .modal-header {
+            display:flex; justify-content:space-between; align-items:center;
+            margin-bottom:16px;
+        }
+        .modal-box-small .modal-header h3 {
+            font-size:1rem; font-weight:800; color:var(--ink);
+            display:flex; align-items:center; gap:8px;
+        }
+        .modal-box-small .modal-header h3 i { color:var(--gold); }
+        .modal-box-small .close-modal {
+            background:none; border:none; color:var(--ink-3);
+            font-size:1rem; cursor:pointer; padding:4px 8px;
+            border-radius:8px; transition:.15s;
+        }
+        .modal-box-small .close-modal:hover { background:var(--surface-2); color:var(--ink); }
+
+        .import-hint { font-size:0.75rem; color:var(--ink-2); line-height:1.8; margin-bottom:12px; }
+        .import-hint strong { color:var(--ink); }
+        .import-flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+        .import-progress-outer {
+            background:var(--surface-2); border-radius:20px; height:8px; overflow:hidden;
+            border:1px solid var(--line); margin-top:10px;
+        }
+        .import-progress-inner {
+            background:var(--gold-gradient); height:100%; width:0%; transition:width .3s ease;
+        }
+        .import-log {
+            background:var(--ink); color:#dfe6e2; font-family:monospace;
+            font-size:0.7rem; padding:10px; border-radius:8px;
+            max-height:150px; overflow:auto; white-space:pre-wrap; margin-top:10px;
+        }
+        .import-stat-row {
+            display:flex; gap:12px; flex-wrap:wrap; margin-top:10px;
+        }
+        .import-stat-row .stat {
+            background:var(--surface-2); border:1px solid var(--line);
+            border-radius:8px; padding:6px 14px; min-width:80px;
+        }
+        .import-stat-row .stat b { display:block; font-size:1rem; }
+        .import-stat-row .stat span { font-size:0.6rem; color:var(--ink-3); }
+        .import-stat-row .stat.ok b { color:var(--teal); }
+        .import-stat-row .stat.warn b { color:var(--rust); }
 
         /* ============================================================ */
         /* TOAST */
@@ -550,65 +621,6 @@
         .toast .toast-close { background:none; border:none; color:var(--ink-3); cursor:pointer; font-size:0.75rem; padding:2px; margin-right:auto; }
 
         /* ============================================================ */
-        /* IMPORT MODAL */
-        /* ============================================================ */
-        .modal-overlay-small {
-            display:none; position:fixed; inset:0;
-            background:rgba(33,29,26,0.5); backdrop-filter:blur(6px);
-            z-index:10000; justify-content:center; align-items:center;
-            padding:16px;
-        }
-        .modal-overlay-small.active { display:flex; }
-        .modal-box-small {
-            background:var(--surface); border-radius:var(--r-lg);
-            max-width:700px; width:100%; padding:24px;
-            border:1px solid var(--line); box-shadow:0 20px 48px rgba(33,29,26,0.16);
-            max-height:90vh; overflow-y:auto;
-        }
-        .modal-box-small .modal-header {
-            display:flex; justify-content:space-between; align-items:center;
-            margin-bottom:16px;
-        }
-        .modal-box-small .modal-header h3 {
-            font-size:1rem; font-weight:800; color:var(--ink);
-            display:flex; align-items:center; gap:8px;
-        }
-        .modal-box-small .modal-header h3 i { color:var(--gold); }
-        .modal-box-small .close-modal {
-            background:none; border:none; color:var(--ink-3);
-            font-size:1rem; cursor:pointer; padding:4px 8px;
-            border-radius:var(--r-sm); transition:.15s;
-        }
-        .modal-box-small .close-modal:hover { background:var(--surface-2); color:var(--ink); }
-
-        .import-hint { font-size:0.75rem; color:var(--ink-2); line-height:1.7; margin-bottom:12px; }
-        .import-hint strong { color:var(--ink); }
-        .import-flex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-        .import-progress-outer {
-            background:var(--surface-2); border-radius:20px; height:10px; overflow:hidden;
-            border:1px solid var(--line); margin-top:8px;
-        }
-        .import-progress-inner {
-            background:var(--gold); height:100%; width:0%; transition:width .3s ease;
-        }
-        .import-log {
-            background:var(--ink); color:#dfe6e2; font-family:'JetBrains Mono',monospace;
-            font-size:0.7rem; padding:10px; border-radius:var(--r-sm);
-            max-height:160px; overflow:auto; white-space:pre-wrap; margin-top:8px;
-        }
-        .import-stat-row {
-            display:flex; gap:12px; flex-wrap:wrap; margin-top:10px;
-        }
-        .import-stat-row .stat {
-            background:var(--surface-2); border:1px solid var(--line);
-            border-radius:var(--r-sm); padding:6px 12px; min-width:90px;
-        }
-        .import-stat-row .stat b { display:block; font-size:1rem; }
-        .import-stat-row .stat span { font-size:0.6rem; color:var(--ink-3); }
-        .import-stat-row .stat.ok b { color:var(--teal); }
-        .import-stat-row .stat.warn b { color:var(--rust); }
-
-        /* ============================================================ */
         /* RESPONSIVE */
         /* ============================================================ */
         @media (max-width:768px) {
@@ -621,14 +633,14 @@
             .header .right .profile .name { display:none; }
             .page-header { flex-direction:column; align-items:flex-start; }
             .modal-box { margin:8px; max-height:94vh; }
-            .modal-box .modal-header { padding:14px 16px 12px; }
-            .modal-box form { padding:14px 16px 16px; }
-            .modal-grid { grid-template-columns:1fr; gap:14px; }
-            .modal-box .form-row.two { grid-template-columns:1fr; }
-            .modal-box .form-row.three { grid-template-columns:1fr; }
-            .modal-box .form-actions { flex-direction:column; padding:12px 16px; }
-            .modal-box .form-actions .btn-save { width:100%; justify-content:center; }
-            .modal-box .form-actions .btn-cancel { width:100%; justify-content:center; }
+            .modal-header { padding:14px 16px 12px; }
+            .modal-body { padding:14px 16px 8px; }
+            .modal-grid { grid-template-columns:1fr; gap:16px; }
+            .modal-footer { flex-direction:column; padding:12px 16px; }
+            .modal-footer .btn-save { width:100%; justify-content:center; }
+            .modal-footer .btn-cancel { width:100%; justify-content:center; }
+            .form-row.two { grid-template-columns:1fr; }
+            .form-row.three { grid-template-columns:1fr; }
             .toast-container { top:60px; left:8px; max-width:280px; }
             .picker-row { flex-wrap:wrap; }
             .picker-row .picker-search { flex:1 1 100%; }
@@ -642,6 +654,8 @@
             .page-header h1 { font-size:1rem; }
             table { font-size:0.55rem; min-width:650px; }
             th, td { padding:4px 6px; }
+            .modal-header h3 { font-size:0.9rem; }
+            .modal-header .subtitle { display:none; }
         }
         @media (min-width:769px) {
             .hamburger { display:none !important; }
@@ -653,11 +667,8 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- ============================================================ -->
-    <!-- SIDEBAR -->
-    <!-- ============================================================ -->
+    <!-- ===== SIDEBAR ===== -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
     <nav class="sidebar" id="sidebar">
         <div class="brand">
             <div class="mark"><i class="fas fa-flask"></i></div>
@@ -692,16 +703,12 @@
                     <div class="name" id="sidebarUserName">محمد خلاف</div>
                     <div class="role" id="sidebarUserRole">مدير النظام</div>
                 </div>
-                <button class="logout" onclick="logout()" title="تسجيل الخروج">
-                    <i class="fas fa-arrow-right-from-bracket"></i>
-                </button>
+                <button class="logout" onclick="logout()"><i class="fas fa-arrow-right-from-bracket"></i></button>
             </div>
         </div>
     </nav>
 
-    <!-- ============================================================ -->
-    <!-- HEADER -->
-    <!-- ============================================================ -->
+    <!-- ===== HEADER ===== -->
     <div class="main" id="main">
         <header class="header">
             <div class="left">
@@ -714,15 +721,11 @@
                     <div class="name" id="headerName">محمد خلاف<small id="headerRole">مدير النظام</small></div>
                     <i class="fas fa-chevron-down"></i>
                 </div>
-                <button onclick="logout()" title="تسجيل الخروج" style="background:none;border:none;cursor:pointer;color:var(--ink-3);font-size:0.85rem;padding:2px 6px;">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
+                <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
 
-        <!-- ============================================================ -->
-        <!-- CONTENT -->
-        <!-- ============================================================ -->
+        <!-- ===== CONTENT ===== -->
         <div class="dash">
 
             <div class="page-header">
@@ -755,14 +758,7 @@
                         </tr>
                     </thead>
                     <tbody id="entriesBody">
-                        <tr>
-                            <td colspan="9">
-                                <div class="loading-state">
-                                    <i class="fas fa-spinner"></i>
-                                    <p>جاري التحميل...</p>
-                                </div>
-                            </td>
-                        </tr>
+                        <tr><td colspan="9"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري التحميل...</p></div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -771,132 +767,136 @@
     </div>
 
     <!-- ============================================================ -->
-    <!-- FORMULATION MODAL -->
+    <!-- FORMULATION MODAL - تصميم محسّن -->
     <!-- ============================================================ -->
     <div class="modal-overlay" id="formulationModal">
         <div class="modal-box">
             <div class="modal-header">
                 <div class="heading">
-                    <h3><i class="fas fa-flask"></i> <span id="modalTitle">تركيبة جديدة</span></h3>
+                    <h3><span class="icon"><i class="fas fa-flask"></i></span> <span id="modalTitle">تركيبة جديدة</span></h3>
                     <div class="subtitle">حدد المنتج، ابني التركيبة من الخامات، وشوف تكلفة الوحدة لحظيًا</div>
                 </div>
                 <button class="close-modal" onclick="closeModal()"><i class="fas fa-times"></i></button>
             </div>
-            <form id="formulationForm" onsubmit="saveFormulation(event)">
-                <input type="hidden" id="editId" value="" />
-                <input type="hidden" id="editProductId" value="" />
 
-                <div class="modal-grid">
-                    <!-- META PANEL -->
-                    <div class="meta-panel">
-                        <div class="panel-title"><i class="fas fa-tag"></i> بيانات التركيبة</div>
+            <div class="modal-body">
+                <form id="formulationForm" onsubmit="saveFormulation(event)">
+                    <input type="hidden" id="editId" value="" />
+                    <input type="hidden" id="editProductId" value="" />
 
-                        <div class="form-group">
-                            <label>المنتج <span class="required">*</span></label>
-                            <div class="autocomplete-wrapper">
-                                <input type="text" id="productSearch" placeholder="ابحث بالكود أو الاسم..." autocomplete="off" />
-                            </div>
-                            <div class="selection-chip" id="productChip">
-                                <i class="fas fa-circle-check"></i>
-                                <span id="productChipText"></span>
-                            </div>
-                        </div>
+                    <div class="modal-grid">
+                        <!-- ===== META PANEL ===== -->
+                        <div class="meta-panel">
+                            <div class="panel-title"><i class="fas fa-tag"></i> بيانات التركيبة</div>
 
-                        <div class="form-group">
-                            <label>اسم التركيبة</label>
-                            <input type="text" id="formName" placeholder="اسم التركيبة..." />
-                        </div>
-
-                        <div class="form-row two">
                             <div class="form-group">
-                                <label>الكمية الناتجة <span class="required">*</span></label>
-                                <input type="number" id="formOutputQty" placeholder="100" min="0.01" step="0.01" required oninput="recalcTotals()" />
+                                <label>المنتج <span class="required">*</span></label>
+                                <div class="autocomplete-wrapper">
+                                    <input type="text" id="productSearch" placeholder="ابحث بالكود أو الاسم..." autocomplete="off" />
+                                </div>
+                                <div class="selection-chip" id="productChip">
+                                    <i class="fas fa-circle-check"></i>
+                                    <span id="productChipText"></span>
+                                    <button type="button" class="clear-selected" onclick="clearProductSelection()" title="إلغاء"><i class="fas fa-times"></i></button>
+                                </div>
                             </div>
+
                             <div class="form-group">
-                                <label>الوحدة</label>
-                                <input type="text" id="formOutputUnit" placeholder="لتر" oninput="recalcTotals()" />
+                                <label>اسم التركيبة</label>
+                                <input type="text" id="formName" placeholder="اسم التركيبة..." />
+                            </div>
+
+                            <div class="form-row two">
+                                <div class="form-group">
+                                    <label>الكمية الناتجة <span class="required">*</span></label>
+                                    <input type="number" id="formOutputQty" placeholder="100" min="0.01" step="0.01" required oninput="recalcTotals()" />
+                                </div>
+                                <div class="form-group">
+                                    <label>الوحدة</label>
+                                    <input type="text" id="formOutputUnit" placeholder="لتر" oninput="recalcTotals()" />
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>الحالة</label>
+                                <select id="formStatus">
+                                    <option value="نشط">نشط</option>
+                                    <option value="غير نشط">غير نشط</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>ملاحظات</label>
+                                <textarea id="formNotes" placeholder="ملاحظات..." rows="3"></textarea>
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>الحالة</label>
-                            <select id="formStatus">
-                                <option value="نشط">نشط</option>
-                                <option value="غير نشط">غير نشط</option>
-                            </select>
-                        </div>
+                        <!-- ===== COMPOSITION PANEL ===== -->
+                        <div class="compo-panel">
+                            <div class="panel-title">
+                                <i class="fas fa-vial"></i> مكونات التركيبة <span class="required">*</span>
+                                <span class="count" id="itemsCountBadge">0 خامة</span>
+                            </div>
 
-                        <div class="form-group">
-                            <label>ملاحظات</label>
-                            <textarea id="formNotes" placeholder="ملاحظات..." rows="3"></textarea>
+                            <div class="picker-box">
+                                <div class="picker-row">
+                                    <div class="autocomplete-wrapper picker-search">
+                                        <input type="text" id="materialSearch" placeholder="اكتب كود أو اسم الخامة... (↑↓ Enter)" autocomplete="off" />
+                                    </div>
+                                    <div class="picker-qty">
+                                        <input type="number" id="materialQty" placeholder="الكمية" min="0.01" step="0.01" />
+                                    </div>
+                                    <div class="picker-unit" id="materialUnitDisplay">-</div>
+                                    <button type="button" class="btn primary picker-add" id="addMaterialBtn" onclick="addSelectedMaterial()" disabled>
+                                        <i class="fas fa-plus"></i> إضافة
+                                    </button>
+                                </div>
+                                <div class="picker-selected" id="pickerSelected">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span id="pickerSelectedText"></span>
+                                    <button type="button" class="clear-selected" onclick="clearMaterialPicker()" title="إلغاء الاختيار"><i class="fas fa-times"></i></button>
+                                </div>
+                                <div class="picker-hint">اختَر الخامة من القائمة ثم اكتب الكمية واضغط Enter لإضافتها</div>
+                            </div>
+
+                            <div class="items-table-wrapper">
+                                <table class="items-mini">
+                                    <thead>
+                                        <tr>
+                                            <th>الخامة</th>
+                                            <th style="text-align:center;width:80px;">الكمية</th>
+                                            <th style="text-align:center;width:50px;">الوحدة</th>
+                                            <th style="text-align:center;width:70px;">سعر الوحدة</th>
+                                            <th style="text-align:center;width:80px;">التكلفة</th>
+                                            <th style="width:40px;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="itemsTableBody">
+                                        <tr class="items-empty-row"><td colspan="6">لسه معملتش تركيبة — دوّر على خامة وضيفها</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="cost-card">
+                                <div class="cost-title">📊 بطاقة التكلفة</div>
+                                <div class="cost-row"><span>عدد الخامات</span><b id="itemsCountDisplay">0</b></div>
+                                <div class="cost-row"><span>إجمالي تكلفة الدفعة</span><b><span id="totalCostDisplay">0</span> ج.م</b></div>
+                                <div class="cost-hero">
+                                    <span class="label">تكلفة الوحدة</span>
+                                    <span class="value"><span id="unitCostDisplay">0</span><small> ج.م<span id="unitCostUnitLabel"></span></small></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- COMPOSITION PANEL -->
-                    <div class="compo-panel">
-                        <div class="panel-title">
-                            <i class="fas fa-vial"></i> مكونات التركيبة <span class="required">*</span>
-                            <span class="count" id="itemsCountBadge">0 خامة</span>
-                        </div>
-
-                        <div class="picker-box">
-                            <div class="picker-row">
-                                <div class="autocomplete-wrapper picker-search">
-                                    <input type="text" id="materialSearch" placeholder="اكتب كود أو اسم الخامة... (↑↓ Enter)" autocomplete="off" />
-                                </div>
-                                <div class="picker-qty">
-                                    <input type="number" id="materialQty" placeholder="الكمية" min="0.01" step="0.01" />
-                                </div>
-                                <div class="picker-unit" id="materialUnitDisplay">-</div>
-                                <button type="button" class="btn primary picker-add" id="addMaterialBtn" onclick="addSelectedMaterial()" disabled>
-                                    <i class="fas fa-plus"></i> إضافة
-                                </button>
-                            </div>
-                            <div class="picker-selected" id="pickerSelected">
-                                <i class="fas fa-check-circle"></i>
-                                <span id="pickerSelectedText"></span>
-                                <button type="button" class="clear-selected" onclick="clearMaterialPicker()" title="إلغاء الاختيار"><i class="fas fa-times"></i></button>
-                            </div>
-                            <div class="picker-hint">اختَر الخامة من القائمة ثم اكتب الكمية واضغط Enter لإضافتها للتركيبة</div>
-                        </div>
-
-                        <div class="items-table-wrapper">
-                            <table class="items-mini">
-                                <thead>
-                                    <tr>
-                                        <th>الخامة</th>
-                                        <th style="text-align:center;width:80px;">الكمية</th>
-                                        <th style="text-align:center;width:56px;">الوحدة</th>
-                                        <th style="text-align:center;width:70px;">سعر الوحدة</th>
-                                        <th style="text-align:center;width:80px;">التكلفة</th>
-                                        <th style="width:40px;"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="itemsTableBody">
-                                    <tr class="items-empty-row"><td colspan="6">لسه معملتش تركيبة — دوّر على خامة وضيفها</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div class="cost-card">
-                            <div class="cost-card-title">بطاقة التكلفة</div>
-                            <div class="cost-row"><span>عدد الخامات</span><b id="itemsCountDisplay">0</b></div>
-                            <div class="cost-row"><span>إجمالي تكلفة الدفعة</span><b><span id="totalCostDisplay">0</span> ج.م</b></div>
-                            <div class="cost-hero">
-                                <span class="label">تكلفة الوحدة</span>
-                                <span class="value"><span id="unitCostDisplay">0</span><small> ج.م<span id="unitCostUnitLabel"></span></small></span>
-                            </div>
-                        </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn-save" id="submitBtn">
+                            <i class="fas fa-save"></i> حفظ التركيبة
+                        </button>
+                        <button type="button" class="btn-cancel" onclick="closeModal()">إلغاء</button>
                     </div>
-                </div>
-
-                <div class="form-actions">
-                    <button type="submit" class="btn-save" id="submitBtn">
-                        <i class="fas fa-save"></i> حفظ التركيبة
-                    </button>
-                    <button type="button" class="btn-cancel" onclick="closeModal()">إلغاء</button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -913,13 +913,13 @@
             <p class="import-hint">
                 الأعمدة المتوقعة: <strong>المنتج</strong> (كود أو اسم)، <strong>اسم التركيبة</strong>، <strong>الكمية الناتجة</strong>، <strong>وحدة الناتج</strong>، <strong>الخامة</strong> (كود أو اسم)، <strong>كمية الخامة</strong>، <strong>وحدة الخامة</strong>.<br />
                 <span style="color:var(--teal);">✅ يمكن استيراد عدة صفوف لنفس المنتج لتكوين تركيبته.</span>
-                <span style="color:var(--rust);margin-right:8px;">⚠️ الخامات والمنتجات يجب أن تكون موجودة مسبقاً في قاعدة البيانات.</span>
+                <span style="color:var(--rust);margin-right:8px;">⚠️ الخامات والمنتجات يجب أن تكون موجودة مسبقاً.</span>
             </p>
 
             <div class="import-flex">
                 <input type="file" id="importFileInput" accept=".xlsx,.xls" />
-                <button class="btn primary" onclick="parseImportFile()"><i class="fas fa-play"></i> تحليل الملف</button>
-                <button class="btn success" id="btnRunImport" onclick="runImport()" disabled><i class="fas fa-upload"></i> بدء الاستيراد</button>
+                <button class="btn primary" onclick="parseImportFile()"><i class="fas fa-play"></i> تحليل</button>
+                <button class="btn success" id="btnRunImport" onclick="runImport()" disabled><i class="fas fa-upload"></i> استيراد</button>
             </div>
 
             <div class="import-progress-outer">
@@ -936,13 +936,10 @@
     <!-- ============================================================ -->
     <script>
         // ============================================================
-        // SUPABASE CONFIG - مستخدم من supabase-client.js
+        // SUPABASE CONFIG
         // ============================================================
         var supabaseClient = getSupabaseClient();
 
-        // ============================================================
-        // HELPERS
-        // ============================================================
         function getToken() {
             try {
                 var session = localStorage.getItem('rollex_session') || sessionStorage.getItem('rollex_session');
@@ -1048,7 +1045,7 @@
         });
 
         // ============================================================
-        // GENERIC AUTOCOMPLETE
+        // AUTOCOMPLETE
         // ============================================================
         var Autocomplete = (function() {
             var portal = null;
@@ -1378,6 +1375,13 @@
                 document.getElementById('formName').value = 'تركيبة ' + product.product_name;
             }
             recalcTotals();
+        }
+
+        function clearProductSelection() {
+            document.getElementById('productSearch').value = '';
+            document.getElementById('editProductId').value = '';
+            document.getElementById('productChip').classList.remove('show');
+            document.getElementById('productSuggestions').style.display = 'none';
         }
 
         // ============================================================
@@ -1790,7 +1794,6 @@
                     importData = rows;
                     importStats.total = rows.length;
 
-                    // تحليل البيانات وعرض الإحصائيات
                     var productMap = {};
                     rows.forEach(function(row, i) {
                         var product = (row['المنتج'] || row['product'] || '').trim();
@@ -1832,7 +1835,6 @@
                         showToast('⚠️ تنبيه', 'لا توجد صفوف صالحة للاستيراد', 'warning');
                     }
 
-                    // سجل الأخطاء في الـ Log
                     var log = 'تم تحليل الملف\n';
                     log += 'إجمالي الصفوف: ' + importStats.total + '\n';
                     log += 'صالحة: ' + importStats.ok + '\n';
@@ -1863,7 +1865,6 @@
             var logs = [];
 
             try {
-                // تجميع الصفوف حسب المنتج
                 var productGroups = {};
                 importData.forEach(function(row) {
                     var product = (row['المنتج'] || row['product'] || '').trim();
@@ -1896,7 +1897,6 @@
                         continue;
                     }
 
-                    // تجميع الخامات للتركيبة الواحدة
                     var itemsMap = {};
                     var formulationName = '';
                     var outputQty = 0;
@@ -1946,9 +1946,7 @@
                     }
 
                     var itemsArray = Object.values(itemsMap);
-                    var totalCost = itemsArray.reduce(function(sum, it) { return sum + (it.quantity * it.unit_cost); }, 0);
 
-                    // إنشاء التركيبة
                     var formulationData = {
                         product_id: product.id,
                         product_name: product.product_name,
@@ -2026,6 +2024,7 @@
         window.saveFormulation = saveFormulation;
         window.addSelectedMaterial = addSelectedMaterial;
         window.clearMaterialPicker = clearMaterialPicker;
+        window.clearProductSelection = clearProductSelection;
         window.removeCurrentItem = removeCurrentItem;
         window.updateCurrentItemQty = updateCurrentItemQty;
         window.recalcTotals = recalcTotals;
