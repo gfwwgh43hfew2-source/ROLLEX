@@ -312,7 +312,7 @@
         .modal-overlay.active { display:flex; }
         .modal-box {
             background:var(--surface); border-radius:var(--radius);
-            max-width:750px; width:100%; padding:18px 20px;
+            max-width:780px; width:100%; padding:18px 20px;
             border:1px solid var(--line); box-shadow:var(--shadow);
             animation:modalIn 0.2s ease; max-height:95vh; overflow-y:auto;
         }
@@ -356,36 +356,54 @@
         .modal-box .form-group textarea { min-height:40px; resize:vertical; }
 
         /* ===== AUTOCOMPLETE ===== */
-        .autocomplete-wrapper { position:relative; }
+        .autocomplete-wrapper { position:relative; width:100%; }
         .autocomplete-wrapper input { width:100%; }
         .autocomplete-suggestions {
             position:absolute; top:100%; right:0; left:0;
             background:var(--surface); border:1px solid var(--line);
             border-radius:var(--radius-sm); max-height:140px; overflow-y:auto;
-            z-index:100; display:none; box-shadow:var(--shadow-sm);
+            z-index:1000; display:none; box-shadow:var(--shadow-sm);
         }
         .autocomplete-suggestions .suggestion {
             padding:4px 10px; cursor:pointer; font-size:0.7rem;
             transition:0.15s; border-bottom:1px solid var(--line-soft);
+            display:flex; justify-content:space-between; align-items:center;
         }
+        .autocomplete-suggestions .suggestion:last-child { border-bottom:none; }
         .autocomplete-suggestions .suggestion:hover,
         .autocomplete-suggestions .suggestion.active {
             background:var(--accent-soft); color:var(--accent-ink);
         }
+        .autocomplete-suggestions .suggestion .suggestion-code {
+            font-size:0.55rem; color:var(--ink-mute);
+        }
+        .autocomplete-suggestions .no-results {
+            padding:8px 10px; text-align:center; color:var(--ink-mute); font-size:0.7rem;
+        }
+        .autocomplete-suggestions .add-new {
+            color:var(--teal); font-weight:700;
+        }
+        .autocomplete-suggestions .add-new:hover { background:var(--teal-soft); }
 
         /* ===== ITEMS ===== */
-        .items-container { display:flex; flex-direction:column; gap:4px; margin:4px 0 6px; max-height:200px; overflow-y:auto; }
+        .items-container {
+            display:flex; flex-direction:column; gap:4px; margin:4px 0 6px;
+            max-height:200px; overflow-y:auto; padding-left:2px;
+        }
         .item-row {
             display:flex; gap:4px; align-items:center;
             background:var(--surface-muted); border:1px solid var(--line);
             border-radius:var(--radius-sm); padding:4px 6px;
+            transition:0.15s;
         }
-        .item-row select { flex:2; min-width:0; padding:3px 6px; border-radius:var(--radius-sm); border:1px solid var(--line); background:#fff; font-size:0.65rem; font-family:inherit; }
-        .item-row input { flex:1; min-width:0; padding:3px 6px; border-radius:var(--radius-sm); border:1px solid var(--line); background:#fff; font-size:0.65rem; font-family:inherit; width:60px; }
+        .item-row:hover { background:var(--surface); border-color:var(--line-strong); }
+        .item-row .item-material-input { flex:2; min-width:0; padding:3px 6px; border-radius:var(--radius-sm); border:1px solid var(--line); background:#fff; font-size:0.65rem; font-family:inherit; }
+        .item-row .item-qty { flex:0.8; min-width:0; padding:3px 6px; border-radius:var(--radius-sm); border:1px solid var(--line); background:#fff; font-size:0.65rem; font-family:inherit; width:60px; }
         .item-row .item-unit { flex:0.5; text-align:center; font-size:0.6rem; color:var(--ink-mute); }
         .item-row .item-cost { flex:0.7; text-align:center; font-size:0.6rem; font-weight:700; color:var(--accent-ink); }
         .item-row .item-remove { flex:0 0 auto; background:none; border:none; color:var(--rust); cursor:pointer; font-size:0.7rem; padding:2px 4px; }
         .item-row .item-remove:hover { color:#a63a31; }
+        .item-row .item-material-input:focus { border-color:var(--accent); box-shadow:0 0 0 2px rgba(221,159,46,0.15); }
 
         .btn-add-item {
             width:100%; padding:4px; border:1.5px dashed var(--line);
@@ -476,17 +494,15 @@
             .sidebar-overlay { display:none !important; }
         }
 
-        /* ===== IMPORT ZONE ===== */
         .import-zone {
-            display:flex; align-items:center; gap:8px;
-            padding:6px 12px; background:var(--surface-muted);
+            display:flex; align-items:center; gap:6px;
+            padding:4px 10px; background:var(--surface-muted);
             border:2px dashed var(--line); border-radius:var(--radius-sm);
-            cursor:pointer; transition:0.2s;
+            cursor:pointer; transition:0.2s; font-size:0.65rem; color:var(--ink-mute);
         }
-        .import-zone:hover { border-color:var(--accent); background:var(--accent-soft); }
+        .import-zone:hover { border-color:var(--accent); background:var(--accent-soft); color:var(--accent-ink); }
         .import-zone input[type="file"] { display:none; }
-        .import-zone .icon { font-size:0.9rem; color:var(--accent); }
-        .import-zone .text { font-size:0.65rem; color:var(--ink-mute); }
+        .import-zone .icon { font-size:0.8rem; }
     </style>
 </head>
 <body>
@@ -531,7 +547,7 @@
         </div>
         <div class="footer">
             <div class="user">
-                <div class="avatar">م</div>
+                <div class="avatar" id="sidebarAvatar">م</div>
                 <div class="info">
                     <div class="name" id="sidebarUserName">محمد خلاف</div>
                     <div class="role" id="sidebarUserRole">مدير النظام</div>
@@ -571,7 +587,7 @@
             <div class="actions">
                 <div class="import-zone" onclick="document.getElementById('fileInput').click()">
                     <i class="fas fa-file-excel icon"></i>
-                    <span class="text">استيراد من Excel</span>
+                    <span>استيراد من Excel</span>
                     <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="importFromExcel(event)" />
                 </div>
                 <button class="btn-action success small" onclick="exportToExcel()"><i class="fas fa-download"></i> تصدير</button>
@@ -687,6 +703,52 @@
         sidebarOverlay.addEventListener('click', closeSidebar);
         document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeSidebar(); closeModal(); } });
         window.addEventListener('resize', function() { if (window.innerWidth > 768 && sidebar.classList.contains('open')) closeSidebar(); });
+
+        // ============================================================
+        // TOAST SYSTEM
+        // ============================================================
+        function showToast(title, message, type) {
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast';
+            var iconMap = { success: 'fa-check-circle', error: 'fa-times-circle', warning: 'fa-exclamation-triangle' };
+            var iconClass = type || 'warning';
+            if (iconClass === 'success') iconClass = 'success';
+            else if (iconClass === 'error') iconClass = 'error';
+            else iconClass = 'warning';
+            toast.innerHTML = `
+                <div class="toast-icon ${iconClass}"><i class="fas ${iconMap[iconClass] || 'fa-info-circle'}"></i></div>
+                <div class="toast-content"><div class="toast-title">${title}</div><div class="toast-message">${message}</div></div>
+                <button class="toast-close"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(toast);
+            requestAnimationFrame(function() { toast.classList.add('show'); });
+            setTimeout(function() {
+                toast.classList.remove('show');
+                setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
+            }, 4000);
+            toast.querySelector('.toast-close').addEventListener('click', function() {
+                toast.classList.remove('show');
+                setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
+            });
+        }
+
+        // ============================================================
+        // LOGOUT
+        // ============================================================
+        async function logout() {
+            try {
+                var client = getSupabaseClient();
+                if (client) await client.auth.signOut();
+                localStorage.removeItem('rollex_session');
+                sessionStorage.removeItem('rollex_session');
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('❌ خطأ في تسجيل الخروج:', error);
+                window.location.href = 'login.html';
+            }
+        }
+        window.logout = logout;
 
         // ============================================================
         // DOM REFS
@@ -819,14 +881,14 @@
         }
 
         // ============================================================
-        // AUTOCOMPLETE - PRODUCT
+        // AUTOCOMPLETE - PRODUCT (مثل الفاتورة بالضبط)
         // ============================================================
         function filterProductSuggestions() {
             var input = document.getElementById('productSearch');
             var suggestions = document.getElementById('productSuggestions');
             var query = input.value.trim().toLowerCase();
 
-            if (!query) {
+            if (!query || query.length < 1) {
                 suggestions.style.display = 'none';
                 return;
             }
@@ -838,15 +900,17 @@
             });
 
             if (filtered.length === 0) {
-                suggestions.innerHTML = '<div class="suggestion" style="color:var(--ink-mute);font-size:0.65rem;">لا توجد نتائج</div>';
+                suggestions.innerHTML = '<div class="no-results">لا توجد نتائج مطابقة</div>';
                 suggestions.style.display = 'block';
                 return;
             }
 
             var html = '';
-            filtered.forEach(function(p) {
-                html += '<div class="suggestion" onclick="selectProduct(\'' + p.id + '\', \'' + (p.product_code || '') + ' — ' + (p.product_name || '') + '\', \'' + (p.product_unit || '') + '\')">' +
-                    (p.product_code ? p.product_code + ' — ' : '') + p.product_name +
+            filtered.slice(0, 10).forEach(function(p) {
+                var displayName = (p.product_code ? p.product_code + ' — ' : '') + p.product_name;
+                html += '<div class="suggestion" onclick="selectProduct(\'' + p.id + '\', \'' + displayName.replace(/'/g, "\\'") + '\', \'' + (p.product_unit || '') + '\')">' +
+                    displayName +
+                    '<span class="suggestion-code">' + (p.product_unit ? p.product_unit : '') + '</span>' +
                     '</div>';
             });
             suggestions.innerHTML = html;
@@ -861,19 +925,41 @@
             if (unit && !document.getElementById('formOutputUnit').value) {
                 document.getElementById('formOutputUnit').value = unit;
             }
+            // تحديد المنتج في الخلفية
+            var product = allProducts.find(function(p) { return p.id == id; });
+            if (product) {
+                document.getElementById('formName').value = product.product_name ? 'تركيبة ' + product.product_name : '';
+            }
         }
+        window.selectProduct = selectProduct;
+
+        // أحداث البحث عن المنتج
+        document.getElementById('productSearch').addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { document.getElementById('productSuggestions').style.display = 'none'; }
+            if (e.key === 'Enter') {
+                var firstSuggestion = document.querySelector('#productSuggestions .suggestion');
+                if (firstSuggestion) firstSuggestion.click();
+            }
+        });
+        document.addEventListener('click', function(e) {
+            var wrapper = document.getElementById('productAutocomplete');
+            if (wrapper && !wrapper.contains(e.target)) {
+                document.getElementById('productSuggestions').style.display = 'none';
+            }
+        });
 
         // ============================================================
-        // AUTOCOMPLETE - MATERIAL (للخامات في الصفوف)
+        // AUTOCOMPLETE - MATERIAL (مثل الفاتورة بالضبط)
         // ============================================================
         function getMaterialSuggestions(inputId, rowId) {
             var input = document.getElementById(inputId);
+            if (!input) return;
             var query = input.value.trim().toLowerCase();
 
             var suggestionsDiv = document.getElementById(rowId + '-suggestions');
             if (!suggestionsDiv) return;
 
-            if (!query) {
+            if (!query || query.length < 1) {
                 suggestionsDiv.style.display = 'none';
                 return;
             }
@@ -885,15 +971,17 @@
             });
 
             if (filtered.length === 0) {
-                suggestionsDiv.innerHTML = '<div class="suggestion" style="color:var(--ink-mute);font-size:0.65rem;">لا توجد نتائج</div>';
+                suggestionsDiv.innerHTML = '<div class="no-results">لا توجد نتائج مطابقة</div>';
                 suggestionsDiv.style.display = 'block';
                 return;
             }
 
             var html = '';
-            filtered.forEach(function(m) {
-                html += '<div class="suggestion" onclick="selectMaterial(\'' + m.id + '\', \'' + (m.code || '') + ' — ' + (m.name || '') + '\', \'' + (m.unit || '') + '\', ' + (m.cost_price || 0) + ', \'' + rowId + '\')">' +
-                    (m.code ? m.code + ' — ' : '') + m.name +
+            filtered.slice(0, 10).forEach(function(m) {
+                var displayName = (m.code ? m.code + ' — ' : '') + m.name;
+                html += '<div class="suggestion" onclick="selectMaterial(\'' + m.id + '\', \'' + displayName.replace(/'/g, "\\'") + '\', \'' + (m.unit || '') + '\', ' + (m.cost_price || 0) + ', \'' + rowId + '\')">' +
+                    displayName +
+                    '<span class="suggestion-code">' + (m.unit ? m.unit : '') + ' | ' + (m.cost_price || 0) + ' ج.م</span>' +
                     '</div>';
             });
             suggestionsDiv.innerHTML = html;
@@ -904,45 +992,49 @@
             var row = document.getElementById(rowId);
             if (!row) return;
 
-            var select = row.querySelector('.item-material');
+            var material = allMaterials.find(function(m) { return m.id == id; });
+            if (!material) return;
+
+            var input = row.querySelector('.item-material-input');
             var unitSpan = row.querySelector('.item-unit');
             var costSpan = row.querySelector('.item-cost');
 
-            // Update hidden value
             var hiddenInput = row.querySelector('.item-material-id');
-            if (hiddenInput) hiddenInput.value = id;
-            else {
+            if (!hiddenInput) {
                 var h = document.createElement('input');
                 h.type = 'hidden';
                 h.className = 'item-material-id';
-                h.value = id;
                 row.appendChild(h);
+                hiddenInput = h;
             }
+            hiddenInput.value = id;
 
-            select.value = id;
-            select.textContent = name;
-            unitSpan.textContent = unit || '';
-            costSpan.dataset.unitCost = cost || 0;
+            if (input) {
+                input.value = name;
+                input.dataset.materialId = id;
+            }
+            unitSpan.textContent = material.unit || '';
+            costSpan.dataset.unitCost = material.cost_price || 0;
+            costSpan.textContent = '0';
 
             var suggestionsDiv = document.getElementById(rowId + '-suggestions');
             if (suggestionsDiv) suggestionsDiv.style.display = 'none';
 
+            // حساب التكلفة تلقائياً
+            var qtyInput = row.querySelector('.item-qty');
+            if (qtyInput && qtyInput.value) {
+                var qty = parseFloat(qtyInput.value) || 0;
+                var unitCost = material.cost_price || 0;
+                costSpan.textContent = (qty * unitCost).toFixed(2);
+            }
+
             recalcTotals();
         }
+        window.selectMaterial = selectMaterial;
 
         // ============================================================
-        // ITEM ROWS
+        // ITEM ROWS (ديناميكية مثل الفاتورة)
         // ============================================================
-        function buildMaterialOptions(selectedId) {
-            var html = '<option value="">— اختر —</option>';
-            allMaterials.forEach(function(m) {
-                var sel = (selectedId && m.id == selectedId) ? ' selected' : '';
-                html += '<option value="' + m.id + '" data-cost="' + (m.cost_price || 0) + '" data-unit="' + (m.unit || '') + '"' + sel + '>' +
-                    (m.code ? m.code + ' — ' : '') + m.name + '</option>';
-            });
-            return html;
-        }
-
         function addItemRow(prefill) {
             itemRowCounter++;
             var rowId = 'item-row-' + itemRowCounter;
@@ -964,23 +1056,23 @@
 
             container.appendChild(row);
 
-            // Prefill material name if exists
+            // Prefill
             if (prefill && prefill.material_id) {
                 var material = allMaterials.find(function(m) { return m.id == prefill.material_id; });
                 if (material) {
                     var input = row.querySelector('.item-material-input');
                     input.value = (material.code ? material.code + ' — ' : '') + material.name;
+                    input.dataset.materialId = material.id;
                     var h = document.createElement('input');
                     h.type = 'hidden';
                     h.className = 'item-material-id';
                     h.value = material.id;
                     row.appendChild(h);
+                    var unitSpan = row.querySelector('.item-unit');
+                    if (unitSpan) unitSpan.textContent = material.unit || '';
+                    var costSpan = row.querySelector('.item-cost');
+                    if (costSpan) costSpan.dataset.unitCost = material.cost_price || 0;
                 }
-            }
-
-            if (prefill) {
-                var qtyInput = row.querySelector('.item-qty');
-                qtyInput.dataset.unitCost = prefill.unit_cost || 0;
             }
 
             recalcTotals();
@@ -991,6 +1083,8 @@
             if (row) row.remove();
             recalcTotals();
         }
+        window.removeItemRow = removeItemRow;
+        window.addItemRow = addItemRow;
 
         function recalcTotals() {
             var rows = document.querySelectorAll('#itemsContainer .item-row');
@@ -1004,7 +1098,7 @@
                 var qty = parseFloat(qtyInput ? qtyInput.value : 0) || 0;
                 var lineCost = qty * unitCost;
 
-                if (costSpan) costSpan.textContent = formatNumber(lineCost);
+                if (costSpan) costSpan.textContent = lineCost.toFixed(2);
                 total += lineCost;
             });
 
@@ -1014,6 +1108,7 @@
             document.getElementById('totalCostDisplay').textContent = formatNumber(total);
             document.getElementById('unitCostDisplay').textContent = formatNumber(unitCostTotal);
         }
+        window.recalcTotals = recalcTotals;
 
         function clearItemRows() {
             document.getElementById('itemsContainer').innerHTML = '';
@@ -1040,6 +1135,7 @@
             document.body.style.overflow = 'hidden';
             setTimeout(function() { document.getElementById('productSearch').focus(); }, 100);
         }
+        window.openAddModal = openAddModal;
 
         function editFormulation(id) {
             var formulation = allFormulations.find(function(f) { return f.id == id; });
@@ -1076,11 +1172,13 @@
             document.getElementById('formulationModal').classList.add('active');
             document.body.style.overflow = 'hidden';
         }
+        window.editFormulation = editFormulation;
 
         function closeModal() {
             document.getElementById('formulationModal').classList.remove('active');
             document.body.style.overflow = '';
         }
+        window.closeModal = closeModal;
 
         // ============================================================
         // SAVE FORMULATION
@@ -1176,6 +1274,7 @@
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
         }
+        window.saveFormulation = saveFormulation;
 
         // ============================================================
         // DELETE FORMULATION
@@ -1186,6 +1285,7 @@
                 .then(function() { showToast('✅ تم الحذف', 'تم حذف التركيبة بنجاح', 'success'); loadData(); })
                 .catch(function(error) { showToast('❌ خطأ', error.message || 'فشل الحذف', 'error'); });
         }
+        window.deleteFormulationConfirm = deleteFormulationConfirm;
 
         // ============================================================
         // DISPLAY FORMULATIONS
@@ -1242,7 +1342,9 @@
         }
 
         function applyFilters() { displayFormulations(); }
+        window.applyFilters = applyFilters;
         function resetFilters() { filterProduct.value = ''; filterStatus.value = 'all'; displayFormulations(); }
+        window.resetFilters = resetFilters;
 
         // ============================================================
         // IMPORT FROM EXCEL
@@ -1250,7 +1352,6 @@
         function importFromExcel(event) {
             var file = event.target.files[0];
             if (!file) return;
-
             var reader = new FileReader();
             reader.onload = function(e) {
                 try {
@@ -1258,13 +1359,7 @@
                     var workbook = XLSX.read(data, { type: 'array' });
                     var sheet = workbook.Sheets[workbook.SheetNames[0]];
                     var json = XLSX.utils.sheet_to_json(sheet);
-
-                    if (!json || json.length === 0) {
-                        showToast('⚠️ تنبيه', 'الملف فارغ أو غير صحيح', 'warning');
-                        return;
-                    }
-
-                    // معالجة البيانات
+                    if (!json || json.length === 0) { showToast('⚠️ تنبيه', 'الملف فارغ أو غير صحيح', 'warning'); return; }
                     importFormulationsFromArray(json);
                 } catch (error) {
                     showToast('❌ خطأ', 'فشل قراءة الملف: ' + error.message, 'error');
@@ -1273,6 +1368,7 @@
             reader.readAsArrayBuffer(file);
             event.target.value = '';
         }
+        window.importFromExcel = importFromExcel;
 
         async function importFormulationsFromArray(data) {
             var companyId = await getCompanyId();
@@ -1281,8 +1377,6 @@
             if (!user) { showToast('❌ خطأ', 'فشل جلب المستخدم', 'error'); return; }
 
             var added = 0;
-            var errors = [];
-
             for (var i = 0; i < data.length; i++) {
                 try {
                     var row = data[i];
@@ -1295,18 +1389,13 @@
 
                     if (!productName || !outputQty || outputQty <= 0) continue;
 
-                    // البحث عن المنتج
                     var product = allProducts.find(function(p) {
                         return (p.product_name || '').toLowerCase() === productName.toLowerCase() ||
                             (p.product_code || '').toLowerCase() === productName.toLowerCase();
                     });
 
-                    if (!product) {
-                        errors.push('المنتج غير موجود: ' + productName);
-                        continue;
-                    }
+                    if (!product) { continue; }
 
-                    // إضافة التركيبة
                     var formulationData = {
                         product_id: product.id,
                         product_name: product.product_name,
@@ -1320,10 +1409,7 @@
                     var created = await insertFormulation(formulationData);
                     var formulationId = created.id;
 
-                    // إضافة الخامات (لو موجودة في الصف)
-                    // يمكنك تخصيص هذا الجزء حسب تنسيق الـ Excel الخاص بك
-                    // مثلاً: columns: خامة1, كمية1, خامة2, كمية2, ...
-                    // هنا نضيف مثال بسيط
+                    // خامات (إن وجدت)
                     var materialName = (row['الخامة'] || row['material'] || '').trim();
                     var materialQty = parseFloat(row['كمية الخامة'] || row['material_qty'] || 0);
                     var materialUnit = (row['وحدة الخامة'] || row['material_unit'] || '').trim();
@@ -1344,19 +1430,13 @@
                             }]);
                         }
                     }
-
                     added++;
                 } catch (e) {
-                    errors.push('خطأ في السطر ' + (i + 1) + ': ' + e.message);
+                    console.warn('⚠️ خطأ في السطر ' + (i + 1) + ':', e.message);
                 }
             }
 
-            var msg = '✅ تم استيراد ' + added + ' تركيبة';
-            if (errors.length > 0) msg += '، أخطاء: ' + errors.length;
-            showToast('✅ اكتمل الاستيراد', msg, errors.length > 0 ? 'warning' : 'success');
-            if (errors.length > 0 && errors.length <= 5) {
-                errors.forEach(function(e) { console.warn('⚠️', e); });
-            }
+            showToast('✅ اكتمل الاستيراد', 'تم استيراد ' + added + ' تركيبة', 'success');
             loadData();
         }
 
@@ -1373,8 +1453,6 @@
                 var costInfo = computeFormulationCost(f.id);
                 var outputQty = parseFloat(f.output_qty) || 0;
                 var unitCost = outputQty > 0 ? (costInfo.total / outputQty) : 0;
-
-                // جمع الخامات كنص
                 var items = allFormulationItems.filter(function(it) { return it.formulation_id == f.id; });
                 var materialsText = items.map(function(it) {
                     return (it.material_name || '') + ' (' + it.quantity + ' ' + (it.unit || '') + ')';
@@ -1400,9 +1478,10 @@
             XLSX.writeFile(wb, 'التركيبات_' + new Date().toISOString().slice(0, 10) + '.xlsx');
             showToast('✅ تم التصدير', 'تم تصدير ' + data.length + ' تركيبة', 'success');
         }
+        window.exportToExcel = exportToExcel;
 
         // ============================================================
-        // LOAD DATA
+        // LOAD DATA IN BACKGROUND
         // ============================================================
         async function loadData() {
             entriesBody.innerHTML = '<tr><td colspan="9"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري التحميل...</p></div></td></tr>';
@@ -1413,6 +1492,7 @@
             allFormulationItems = results[3];
             displayFormulations();
         }
+        window.loadData = loadData;
 
         // ============================================================
         // CLOSE MODAL ON OVERLAY CLICK
@@ -1422,37 +1502,46 @@
         });
 
         // ============================================================
-        // EXPOSE FUNCTIONS TO GLOBAL
+        // SESSION VALIDATION & INIT
         // ============================================================
-        window.applyFilters = applyFilters;
-        window.resetFilters = resetFilters;
-        window.loadData = loadData;
-        window.openAddModal = openAddModal;
-        window.editFormulation = editFormulation;
-        window.closeModal = closeModal;
-        window.deleteFormulationConfirm = deleteFormulationConfirm;
-        window.saveFormulation = saveFormulation;
-        window.addItemRow = addItemRow;
-        window.removeItemRow = removeItemRow;
-        window.recalcTotals = recalcTotals;
-        window.filterProductSuggestions = filterProductSuggestions;
-        window.selectProduct = selectProduct;
-        window.getMaterialSuggestions = getMaterialSuggestions;
-        window.selectMaterial = selectMaterial;
-        window.importFromExcel = importFromExcel;
-        window.exportToExcel = exportToExcel;
+        function getToken() {
+            try {
+                var stored = localStorage.getItem('rollex_session') || sessionStorage.getItem('rollex_session');
+                if (stored) {
+                    var parsed = JSON.parse(stored);
+                    if (parsed && parsed.access_token) return parsed.access_token;
+                }
+                return null;
+            } catch (e) { return null; }
+        }
+
+        async function verifySessionOrRedirect() {
+            var token = getToken();
+            if (!token) { window.location.href = 'login.html'; return false; }
+            try {
+                var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
+                });
+                if (response.ok) return true;
+                window.location.href = 'login.html';
+                return false;
+            } catch (e) { return true; }
+        }
+
+        function startSessionMonitor() {
+            console.log('📡 بدء مراقبة الجلسة');
+            setInterval(async function() {
+                await verifySessionOrRedirect();
+            }, 30000);
+        }
 
         // ============================================================
         // INIT
         // ============================================================
         (async function init() {
             console.log('🏭 صفحة التركيبات - QuickData ProSoft');
-            var token = getToken();
-            if (!token) {
-                entriesBody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول</p></div></td></tr>';
-                setTimeout(function() { window.location.href = 'login.html'; }, 2000);
-                return;
-            }
+            var sessionOk = await verifySessionOrRedirect();
+            if (!sessionOk) return;
             await loadData();
             setTimeout(function() { startSessionMonitor(); }, 3000);
         })();
