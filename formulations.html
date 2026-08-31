@@ -2457,44 +2457,62 @@
 
                     var headers = rows[0];
                     var headerMap = {};
-                    headers.forEach(function(h, idx) {
-                        var clean = String(h || '').trim();
-                        if (clean.includes('كود التركيبة') || clean.includes('كود') || clean.includes('code')) headerMap.code = idx;
-                        else if (clean.includes('المنتج') || clean.includes('product')) headerMap.product = idx;
-                        else if (clean.includes('اسم التركيبة') || clean.includes('name')) headerMap.name = idx;
-                        else if (clean.includes('الكمية الناتجة') || clean.includes('output_qty')) headerMap.outputQty = idx;
-                        else if (clean.includes('وحدة الناتج') || clean.includes('output_unit')) headerMap.outputUnit = idx;
-                        else if (clean.includes('الخامة') || clean.includes('material')) headerMap.material = idx;
-                        else if (clean.includes('كمية الخامة') || clean.includes('material_qty')) headerMap.materialQty = idx;
-                        else if (clean.includes('وحدة الخامة') || clean.includes('material_unit')) headerMap.materialUnit = idx;
-                    });
 
-                    if (headerMap.product === undefined) {
-                        showToast('❌ خطأ', 'لم يتم العثور على عمود "المنتج" في الملف', 'error');
-                        return;
-                    }
-                    if (headerMap.material === undefined) {
-                        showToast('❌ خطأ', 'لم يتم العثور على عمود "الخامة" في الملف', 'error');
-                        return;
-                    }
-                    if (headerMap.materialQty === undefined) {
-                        showToast('❌ خطأ', 'لم يتم العثور على عمود "كمية الخامة" في الملف', 'error');
-                        return;
+                    // دالة مساعدة للبحث عن اسم العمود
+                    function findColumnIndex(possibleNames) {
+                        for (var i = 0; i < headers.length; i++) {
+                            var clean = String(headers[i] || '').trim();
+                            for (var j = 0; j < possibleNames.length; j++) {
+                                if (clean === possibleNames[j] || clean.includes(possibleNames[j]) || possibleNames[j].includes(clean)) {
+                                    return i;
+                                }
+                            }
+                        }
+                        return -1;
                     }
 
+                    // البحث عن الأعمدة بأسماء مرنة
+                    headerMap.code = findColumnIndex(['كود التركيبة', 'كود', 'code', 'رقم التركيبة', 'رقم']);
+                    headerMap.product = findColumnIndex(['المنتج', 'product', 'اسم المنتج']);
+                    headerMap.name = findColumnIndex(['اسم التركيبة', 'name', 'التركيبة']);
+                    headerMap.outputQty = findColumnIndex(['الكمية الناتجة', 'output_qty', 'كمية الناتج', 'الكمية']);
+                    headerMap.outputUnit = findColumnIndex(['وحدة الناتج', 'output_unit', 'وحدة']);
+                    headerMap.material = findColumnIndex(['الخامة', 'material', 'اسم الخامة']);
+                    headerMap.materialQty = findColumnIndex(['كمية الخامة', 'material_qty', 'كمية', 'الكمية']);
+                    headerMap.materialUnit = findColumnIndex(['وحدة الخامة', 'material_unit', 'وحدة الخامة']);
+
+                    // عرض أسماء الأعمدة الموجودة في السجل
+                    console.log('📋 الأعمدة الموجودة في الملف:', headers);
+                    console.log('🔍 نتائج البحث عن الأعمدة:', headerMap);
+
+                    // التحقق من وجود الأعمدة الأساسية
+                    var missingColumns = [];
+                    if (headerMap.product === -1) missingColumns.push('المنتج');
+                    if (headerMap.material === -1) missingColumns.push('الخامة');
+                    if (headerMap.materialQty === -1) missingColumns.push('كمية الخامة');
+
+                    if (missingColumns.length > 0) {
+                        var errorMsg = 'الأعمدة التالية غير موجودة: ' + missingColumns.join(', ') + '\n';
+                        errorMsg += 'الأعمدة الموجودة: ' + headers.join(', ');
+                        showToast('❌ خطأ', errorMsg, 'error');
+                        addImportLog('❌ ' + errorMsg, 'error');
+                        return;
+                    }
+
+                    // تحويل البيانات إلى كائنات
                     var jsonData = [];
                     for (var i = 1; i < rows.length; i++) {
                         var row = rows[i];
                         if (!row || row.length === 0) continue;
                         var obj = {};
-                        if (headerMap.code !== undefined) obj['كود التركيبة'] = String(row[headerMap.code] || '').trim();
-                        if (headerMap.product !== undefined) obj['المنتج'] = String(row[headerMap.product] || '').trim();
-                        if (headerMap.name !== undefined) obj['اسم التركيبة'] = String(row[headerMap.name] || '').trim();
-                        if (headerMap.outputQty !== undefined) obj['الكمية الناتجة'] = parseFloat(row[headerMap.outputQty]) || 0;
-                        if (headerMap.outputUnit !== undefined) obj['وحدة الناتج'] = String(row[headerMap.outputUnit] || '').trim();
-                        if (headerMap.material !== undefined) obj['الخامة'] = String(row[headerMap.material] || '').trim();
-                        if (headerMap.materialQty !== undefined) obj['كمية الخامة'] = parseFloat(row[headerMap.materialQty]) || 0;
-                        if (headerMap.materialUnit !== undefined) obj['وحدة الخامة'] = String(row[headerMap.materialUnit] || '').trim();
+                        if (headerMap.code !== -1) obj['كود التركيبة'] = String(row[headerMap.code] || '').trim();
+                        if (headerMap.product !== -1) obj['المنتج'] = String(row[headerMap.product] || '').trim();
+                        if (headerMap.name !== -1) obj['اسم التركيبة'] = String(row[headerMap.name] || '').trim();
+                        if (headerMap.outputQty !== -1) obj['الكمية الناتجة'] = parseFloat(row[headerMap.outputQty]) || 0;
+                        if (headerMap.outputUnit !== -1) obj['وحدة الناتج'] = String(row[headerMap.outputUnit] || '').trim();
+                        if (headerMap.material !== -1) obj['الخامة'] = String(row[headerMap.material] || '').trim();
+                        if (headerMap.materialQty !== -1) obj['كمية الخامة'] = parseFloat(row[headerMap.materialQty]) || 0;
+                        if (headerMap.materialUnit !== -1) obj['وحدة الخامة'] = String(row[headerMap.materialUnit] || '').trim();
                         jsonData.push(obj);
                     }
 
