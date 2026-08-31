@@ -219,42 +219,102 @@
         .summary-bar .stat { font-size:0.7rem; color:var(--ink-2); }
         .summary-bar .stat span { color:var(--gold-dark); font-weight:700; font-size:0.85rem; }
 
+        /* ===== TABLE - كل تركيبة في صف منفصل ===== */
         .table-wrapper {
-            background:var(--surface); border-radius:var(--r-lg);
-            overflow-x:auto; border:1px solid var(--line);
+            background:var(--surface);
+            border-radius:var(--r-lg);
+            overflow-x:auto;
+            border:1px solid var(--line);
         }
         table {
-            width:100%; border-collapse:collapse; font-size:0.65rem; min-width:850px;
+            width:100%;
+            border-collapse:collapse;
+            font-size:0.65rem;
+            min-width:900px;
         }
         th {
-            background:var(--surface-2); color:var(--ink-3);
-            padding:8px 10px; text-align:right; font-weight:700;
-            white-space:nowrap; font-size:0.55rem; text-transform:uppercase;
-            letter-spacing:0.3px; border-bottom:2px solid var(--line);
+            background:var(--surface-2);
+            color:var(--ink-3);
+            padding:8px 12px;
+            text-align:right;
+            font-weight:700;
+            white-space:nowrap;
+            font-size:0.55rem;
+            text-transform:uppercase;
+            letter-spacing:0.3px;
+            border-bottom:2px solid var(--line);
+            position:sticky;
+            top:0;
+            z-index:10;
         }
         td {
-            padding:6px 10px; border-bottom:1px solid var(--line);
-            color:var(--ink-2); font-size:0.65rem;
+            padding:6px 12px;
+            border-bottom:1px solid var(--line);
+            color:var(--ink-2);
+            font-size:0.65rem;
+            vertical-align:middle;
         }
-        tr:hover td { background:var(--surface-2); }
+        tr {
+            transition:background .15s ease;
+        }
+        tr:hover td {
+            background:var(--surface-2);
+        }
+        tr:last-child td {
+            border-bottom:none;
+        }
+
+        /* كل صف تركيبة له خلفية متميزة */
+        tr.formulation-row td {
+            background:var(--surface);
+        }
+        tr.formulation-row:hover td {
+            background:var(--surface-2);
+        }
 
         .badge {
-            display:inline-block; padding:1px 10px; border-radius:50px;
-            font-size:0.5rem; font-weight:700;
+            display:inline-block;
+            padding:2px 12px;
+            border-radius:50px;
+            font-size:0.5rem;
+            font-weight:700;
         }
-        .badge.active { background:var(--teal-soft); color:var(--teal); }
-        .badge.inactive { background:var(--rust-soft); color:var(--rust); }
+        .badge.active {
+            background:var(--teal-soft);
+            color:var(--teal);
+        }
+        .badge.inactive {
+            background:var(--rust-soft);
+            color:var(--rust);
+        }
 
         .empty-state {
-            text-align:center; padding:30px 16px; color:var(--ink-3);
+            text-align:center;
+            padding:40px 16px;
+            color:var(--ink-3);
         }
-        .empty-state i { font-size:2rem; opacity:0.3; display:block; margin-bottom:8px; }
+        .empty-state i {
+            font-size:2.5rem;
+            opacity:0.3;
+            display:block;
+            margin-bottom:12px;
+        }
         .loading-state {
-            text-align:center; padding:30px 16px; color:var(--gold);
+            text-align:center;
+            padding:40px 16px;
+            color:var(--gold);
         }
-        .loading-state i { animation:spin 1s linear infinite; font-size:1.5rem; display:block; margin-bottom:8px; }
-        @keyframes spin { to { transform:rotate(360deg); } }
+        .loading-state i {
+            animation:spin 1s linear infinite;
+            font-size:2rem;
+            display:block;
+            margin-bottom:12px;
+        }
+        @keyframes spin {
+            to { transform:rotate(360deg); }
+        }
 
+        /* باقي الأنماط كما هي */
         .modal-overlay {
             display:none; position:fixed; inset:0;
             background:rgba(18,24,33,0.65); backdrop-filter:blur(14px);
@@ -1697,7 +1757,8 @@
                 output_qty: parseFloat(data.output_qty) || 0,
                 output_unit: data.output_unit || '',
                 status: data.status || 'نشط',
-                notes: data.notes || ''
+                notes: data.notes || '',
+                row_order: data.row_order || 0
             };
             return await insertRow('formulations', payload);
         }
@@ -1710,7 +1771,8 @@
                 output_qty: parseFloat(data.output_qty) || 0,
                 output_unit: data.output_unit || '',
                 status: data.status || 'نشط',
-                notes: data.notes || ''
+                notes: data.notes || '',
+                row_order: data.row_order || 0
             };
             await patchRow('formulations', id, payload);
             return true;
@@ -2066,7 +2128,8 @@
                 output_qty: outputQty,
                 output_unit: document.getElementById('formOutputUnit').value.trim(),
                 status: document.getElementById('formStatus').value,
-                notes: document.getElementById('formNotes').value.trim()
+                notes: document.getElementById('formNotes').value.trim(),
+                row_order: 0
             };
 
             var btn = document.getElementById('submitBtn');
@@ -2105,9 +2168,14 @@
         }
 
         // ============================================================
-        // DISPLAY
+        // DISPLAY - كل تركيبة في صف منفصل
         // ============================================================
         function displayFormulations() {
+            // ترتيب التركيبات حسب row_order
+            var sortedFormulations = [...allFormulations].sort(function(a, b) {
+                return (a.row_order || 0) - (b.row_order || 0);
+            });
+            
             totalCount.textContent = allFormulations.length;
 
             var productsWithFormulation = {};
@@ -2123,18 +2191,18 @@
             }
 
             var html = '';
-            allFormulations.forEach(function(f, index) {
+            sortedFormulations.forEach(function(f, index) {
                 var costInfo = computeFormulationCost(f.id);
                 var outputQty = parseFloat(f.output_qty) || 0;
                 var unitCost = outputQty > 0 ? (costInfo.total / outputQty) : 0;
                 var statusClass = f.status === 'نشط' ? 'active' : 'inactive';
 
                 html += `
-                    <tr>
-                        <td>${index + 1}</td>
+                    <tr class="formulation-row">
+                        <td style="font-weight:700;color:var(--gold-dark);">${index + 1}</td>
                         <td style="font-weight:700;">${escapeHtml(f.product_name || '-')}</td>
                         <td>${escapeHtml(f.name || '-')}</td>
-                        <td style="text-align:center;">${formatNumber(outputQty)} ${escapeHtml(f.output_unit || '')}</td>
+                        <td style="text-align:center;font-weight:600;">${formatNumber(outputQty)} ${escapeHtml(f.output_unit || '')}</td>
                         <td style="text-align:center;">${costInfo.itemsCount}</td>
                         <td style="text-align:center;">${formatNumber(costInfo.total)}</td>
                         <td style="text-align:center;font-weight:700;color:var(--gold-dark);">${formatNumber(unitCost)}</td>
@@ -2313,7 +2381,8 @@
                                 product: foundProduct,
                                 rows: [],
                                 formulationName: '',
-                                outputUnit: foundProduct.product_unit || ''
+                                outputUnit: foundProduct.product_unit || '',
+                                firstRowIndex: index
                             };
                         }
 
@@ -2394,7 +2463,7 @@
 
             try {
                 var productGroups = {};
-                importData.forEach(function(row) {
+                importData.forEach(function(row, index) {
                     var product = (row['المنتج'] || row['product'] || '').toString().trim();
                     if (!product) return;
                     
@@ -2412,7 +2481,8 @@
                             product: foundProduct,
                             rows: [],
                             formulationName: '',
-                            outputUnit: foundProduct.product_unit || ''
+                            outputUnit: foundProduct.product_unit || '',
+                            firstRowIndex: index
                         };
                     }
 
@@ -2445,10 +2515,14 @@
                     });
                 });
 
-                totalGroups = Object.keys(productGroups).length;
+                var sortedKeys = Object.keys(productGroups).sort(function(a, b) {
+                    return (productGroups[a].firstRowIndex || 0) - (productGroups[b].firstRowIndex || 0);
+                });
+
+                totalGroups = sortedKeys.length;
                 var done = 0;
 
-                for (var groupKey in productGroups) {
+                for (var groupKey of sortedKeys) {
                     var group = productGroups[groupKey];
                     var product = group.product;
 
@@ -2519,7 +2593,8 @@
                         output_qty: outputQty,
                         output_unit: outputUnit,
                         status: 'نشط',
-                        notes: 'مستوردة من Excel'
+                        notes: 'مستوردة من Excel',
+                        row_order: group.firstRowIndex || 0
                     };
 
                     try {
