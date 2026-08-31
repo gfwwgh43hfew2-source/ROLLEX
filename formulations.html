@@ -6,522 +6,506 @@
     <title>التركيبات - QuickData ProSoft</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="supabase-client.js"></script>
     <style>
+        /* ============================================================ */
+        /* ROOT VARIABLES */
+        /* ============================================================ */
         :root {
-            --ink: #121821;
-            --ink-soft: #2c3644;
-            --ink-mute: #6d7883;
-            --paper: #eef1ef;
+            --canvas: #f6f3ec;
             --surface: #ffffff;
-            --surface-muted: #f4f6f5;
-            --line: #dde3e0;
-            --line-strong: #c7d0cc;
-            --accent: #dd9f2e;
-            --accent-ink: #7a5312;
-            --accent-soft: #faead0;
+            --surface-2: #fbf9f4;
+            --line: rgba(33, 29, 26, 0.11);
+            --line-soft: rgba(33, 29, 26, 0.06);
+            --ink: #211d1a;
+            --ink-2: #6e645a;
+            --ink-3: #a69c90;
+            --ink-4: #d8d0c4;
+            --gold: #b3813a;
+            --gold-light: #f1e0ba;
+            --gold-dark: #8a611f;
+            --gold-glow: rgba(179, 129, 58, 0.11);
+            --gold-gradient: linear-gradient(135deg, #d3a25a 0%, #b3813a 48%, #8a611f 100%);
+            --navy: #212b42;
+            --navy-gradient: linear-gradient(135deg, #384464 0%, #212b42 100%);
             --teal: #1d7b6c;
             --teal-soft: #e2f2ee;
             --rust: #bf4f30;
             --rust-soft: #fbe8e1;
-            --blue: #2f5b8a;
-            --radius: 10px;
-            --radius-sm: 5px;
-            --shadow: 0 6px 18px -10px rgba(18,24,33,0.2);
-            --shadow-sm: 0 2px 6px -3px rgba(18,24,33,0.1);
-            --font-display: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
-            --header-height: 50px;
-            --sidebar-width: 220px;
+            --sidebar-w: 270px;
+            --header-h: 68px;
+            --r-lg: 18px;
+            --r-md: 12px;
+            --r-sm: 8px;
+            --ease: cubic-bezier(0.22, 1, 0.36, 1);
+            --display: 'Bricolage Grotesque', 'Cairo', sans-serif;
         }
-        * { margin:0; padding:0; box-sizing:border-box; }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
         body {
-            font-family: var(--font-display);
-            background: var(--paper);
+            font-family: 'Cairo', 'Segoe UI', system-ui, sans-serif;
+            background: var(--canvas);
             color: var(--ink);
             direction: rtl;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            font-size: 13px;
+            -webkit-font-smoothing: antialiased;
         }
-        a { text-decoration:none; color:inherit; }
-        button { font-family:inherit; cursor:pointer; }
 
-        .swatch-stripe { height:3px; flex-shrink:0; display:flex; }
-        .swatch-stripe span { flex:1; }
-        .swatch-stripe span:nth-child(1) { background:var(--accent); }
-        .swatch-stripe span:nth-child(2) { background:var(--teal); }
-        .swatch-stripe span:nth-child(3) { background:var(--rust); }
-        .swatch-stripe span:nth-child(4) { background:var(--blue); }
+        a { text-decoration: none; color: inherit; }
+        button { font-family: inherit; }
 
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--ink-4); border-radius: 10px; }
+
+        /* ============================================================ */
+        /* SIDEBAR */
+        /* ============================================================ */
         .sidebar-overlay {
-            display:none; position:fixed; inset:0;
-            background:rgba(0,0,0,0.3); backdrop-filter:blur(3px);
-            z-index:999; opacity:0; transition:opacity 0.25s ease;
-            pointer-events:none;
+            display: none; position: fixed; inset: 0;
+            background: rgba(33, 29, 26, 0.4); z-index: 999;
+            opacity: 0; transition: opacity .25s ease; pointer-events: none;
         }
-        .sidebar-overlay.active { opacity:1; pointer-events:auto; }
+        .sidebar-overlay.active { opacity: 1; pointer-events: auto; }
 
         .sidebar {
-            position:fixed; top:0; right:calc(-1 * var(--sidebar-width));
-            width:var(--sidebar-width); height:100vh;
-            background:var(--surface); border-left:1px solid var(--line);
-            z-index:1000; display:flex; flex-direction:column;
-            transition:right 0.3s cubic-bezier(0.4,0,0.2,1);
-            box-shadow:var(--shadow); overflow-y:auto;
+            position: fixed; top: 0; right: 0;
+            width: var(--sidebar-w); height: 100vh;
+            background: var(--surface-2); border-left: 1px solid var(--line);
+            z-index: 1000; display: flex; flex-direction: column; overflow-y: auto;
+            transition: right .35s var(--ease);
         }
-        .sidebar.open { right:0; }
+        .sidebar.collapsed { right: calc(-1 * var(--sidebar-w)); }
 
         .sidebar .brand {
-            padding:14px 14px 10px; display:flex; align-items:center; gap:8px;
-            border-bottom:1px solid var(--line); flex-shrink:0;
+            padding: 24px 22px 20px; display: flex; align-items: center; gap: 12px;
+            border-bottom: 1px solid var(--line);
         }
         .sidebar .brand .mark {
-            width:30px; height:30px; border-radius:var(--radius-sm);
-            background:var(--accent); display:flex; align-items:center;
-            justify-content:center; font-size:0.8rem; font-weight:900;
-            color:#fff; flex-shrink:0;
+            width: 34px; height: 34px; border-radius: 9px;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+            background: var(--ink); position: relative;
         }
-        .sidebar .brand .text {
-            font-weight:800; font-size:0.75rem; color:var(--ink); line-height:1.2;
+        .sidebar .brand .mark::after {
+            content: ''; position: absolute; bottom: -3px; left: -3px;
+            width: 9px; height: 9px; border-radius: 50%;
+            background: var(--terracotta); border: 2px solid var(--surface-2);
         }
-        .sidebar .brand .text span {
-            display:block; font-size:0.5rem; font-weight:600; color:var(--ink-mute);
-        }
-        .sidebar .close-btn {
-            margin-right:auto; background:none; border:none;
-            color:var(--ink-mute); font-size:0.9rem; cursor:pointer;
-            padding:2px 6px; border-radius:var(--radius-sm); transition:0.2s;
-        }
-        .sidebar .close-btn:hover { background:var(--surface-muted); color:var(--ink); }
+        .sidebar .brand .text { font-weight: 800; font-size: 0.88rem; color: var(--ink); line-height: 1.3; }
+        .sidebar .brand .text span { display: block; font-size: 0.6rem; font-weight: 600; color: var(--ink-3); margin-top: 2px; }
 
-        .sidebar .menu { flex:1; padding:8px 10px; overflow-y:auto; }
+        .sidebar .menu { flex: 1; padding: 14px 12px; }
         .sidebar .menu .label {
-            font-size:0.5rem; color:var(--ink-mute); text-transform:uppercase;
-            letter-spacing:0.5px; padding:10px 8px 4px; font-weight:700;
+            font-size: 0.6rem; color: var(--ink-3);
+            text-transform: uppercase; letter-spacing: 1px;
+            padding: 16px 10px 6px; font-weight: 700;
         }
-        .sidebar .menu .label:first-child { padding-top:2px; }
+        .sidebar .menu .label:first-child { padding-top: 4px; }
+
         .sidebar .menu .item {
-            display:flex; align-items:center; gap:8px; padding:6px 10px;
-            border-radius:var(--radius-sm); color:var(--ink-soft);
-            font-weight:600; font-size:0.72rem; transition:0.2s;
-            cursor:pointer; text-decoration:none; border-right:2px solid transparent;
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 12px; border-radius: var(--r-sm);
+            color: var(--ink-2); font-weight: 600; font-size: 0.82rem;
+            transition: background .15s ease, color .15s ease;
+            cursor: pointer; margin-bottom: 2px; position: relative;
+            border-inline-end: 3px solid transparent;
         }
-        .sidebar .menu .item:hover { background:var(--surface-muted); color:var(--ink); }
+        .sidebar .menu .item:hover { background: rgba(33, 29, 26, 0.04); color: var(--ink); }
         .sidebar .menu .item.active {
-            background:var(--accent-soft); color:var(--accent-ink);
-            border-right-color:var(--accent);
+            background: var(--surface); color: var(--ink);
+            box-shadow: 0 2px 10px rgba(33, 29, 26, 0.08);
+            border-inline-end: 3px solid var(--swatch, var(--ink));
         }
-        .sidebar .menu .item i { width:16px; text-align:center; font-size:0.75rem; color:var(--ink-mute); }
-        .sidebar .menu .item.active i { color:var(--accent); }
+        .sidebar .menu .item i { width: 16px; text-align: center; font-size: 0.86rem; opacity: 0.8; }
 
         .sidebar .footer {
-            padding:10px 12px 12px; border-top:1px solid var(--line); flex-shrink:0;
+            padding: 14px 18px 20px; border-top: 1px solid var(--line);
         }
         .sidebar .footer .user {
-            display:flex; align-items:center; gap:8px;
+            display: flex; align-items: center; gap: 10px;
         }
         .sidebar .footer .user .avatar {
-            width:28px; height:28px; border-radius:50%; background:var(--line);
-            display:flex; align-items:center; justify-content:center;
-            font-weight:700; font-size:0.65rem; color:var(--ink-mute);
+            width: 33px; height: 33px; border-radius: var(--r-sm);
+            background: var(--ink); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.8rem; flex-shrink: 0;
         }
         .sidebar .footer .user .info .name {
-            font-size:0.72rem; font-weight:700; color:var(--ink);
+            font-size: 0.8rem; font-weight: 700; color: var(--ink);
         }
         .sidebar .footer .user .info .role {
-            font-size:0.5rem; color:var(--ink-mute);
+            font-size: 0.62rem; color: var(--ink-3); margin-top: 1px;
         }
-        .sidebar .footer .logout-btn {
-            margin-right:auto; background:none; border:none;
-            color:var(--ink-mute); cursor:pointer; font-size:0.8rem;
-            padding:2px 6px; border-radius:var(--radius-sm); transition:0.2s;
+        .sidebar .footer .logout {
+            margin-right: auto; width: 28px; height: 28px;
+            border-radius: var(--r-sm); display: flex;
+            align-items: center; justify-content: center;
+            color: var(--ink-3); border: 1px solid var(--line);
+            transition: .15s; cursor: pointer; background: transparent;
         }
-        .sidebar .footer .logout-btn:hover { background:var(--surface-muted); color:var(--rust); }
+        .sidebar .footer .logout:hover { color: var(--oxide); border-color: var(--oxide); }
 
-        header {
-            position:sticky; top:0; z-index:100;
-            padding:0 14px; background:rgba(255,255,255,0.96);
-            backdrop-filter:blur(12px); border-bottom:1px solid var(--line);
-            height:var(--header-height); display:flex; align-items:center; flex-shrink:0;
+        /* ============================================================ */
+        /* MAIN LAYOUT */
+        /* ============================================================ */
+        .main {
+            margin-right: var(--sidebar-w); min-height: 100vh;
+            transition: margin-right .35s var(--ease);
         }
-        header .header-content { display:flex; align-items:center; justify-content:space-between; width:100%; }
-        .logo { display:flex; align-items:center; gap:8px; }
-        .logo-mark {
-            width:30px; height:30px; border-radius:8px; background:var(--ink);
-            display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;
-            gap:2px; padding:5px; flex-shrink:0;
-        }
-        .logo-mark span { border-radius:2px; }
-        .logo-mark span:nth-child(1) { background:var(--accent); }
-        .logo-mark span:nth-child(2) { background:var(--teal); }
-        .logo-mark span:nth-child(3) { background:var(--rust); }
-        .logo-mark span:nth-child(4) { background:var(--blue); }
-        .logo-text h1 { font-size:0.8rem; font-weight:800; color:var(--ink); line-height:1.2; }
-        .logo-text span { font-size:0.5rem; color:var(--ink-mute); display:block; font-weight:600; }
+        .main.expanded { margin-right: 0; }
 
-        nav { display:flex; align-items:center; gap:14px; }
-        nav a {
-            color:var(--ink-mute); font-weight:700; font-size:0.65rem;
-            transition:0.2s; position:relative; padding:4px 0;
+        .header {
+            position: sticky; top: 0; z-index: 100;
+            height: var(--header-h); padding: 0 30px;
+            background: rgba(246, 243, 236, 0.88); backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--line);
+            display: flex; align-items: center; justify-content: space-between;
         }
-        nav a::after {
-            content:''; position:absolute; bottom:-2px; right:0;
-            width:0; height:2px; background:var(--accent);
-            transition:0.25s; border-radius:10px;
+        .header .left { display: flex; align-items: center; gap: 16px; }
+        .header .hamburger {
+            display: flex; width: 34px; height: 34px;
+            border-radius: var(--r-sm); align-items: center; justify-content: center;
+            border: 1px solid var(--line); background: var(--surface);
+            color: var(--ink-2); cursor: pointer; transition: .15s;
         }
-        nav a:hover { color:var(--ink); }
-        nav a:hover::after { width:100%; }
-        nav a.active { color:var(--ink); }
-        nav a.active::after { width:100%; }
+        .header .hamburger:hover { border-color: var(--ink-3); color: var(--ink); }
+        .header .breadcrumb { font-size: 0.79rem; color: var(--ink-3); }
+        .header .breadcrumb b { color: var(--ink); font-weight: 700; }
 
-        .header-actions { display:flex; align-items:center; gap:4px; }
-        .header-actions button {
-            width:28px; height:28px; border-radius:6px; border:1px solid var(--line);
-            background:var(--surface); color:var(--ink-mute); cursor:pointer;
-            transition:0.2s; display:flex; align-items:center; justify-content:center;
-            font-size:0.7rem;
+        .header .right {
+            display: flex; align-items: center; gap: 9px;
         }
-        .header-actions button:hover { background:var(--ink); border-color:var(--ink); color:#fff; }
-        .hamburger {
-            display:none; font-size:0.9rem; color:var(--ink); cursor:pointer;
-            padding:4px 8px; border-radius:6px; border:1px solid var(--line);
-            background:var(--surface);
+        .header .right .profile {
+            display: flex; align-items: center; gap: 8px;
+            padding: 3px 12px 3px 5px; border-radius: 50px;
+            border: 1px solid var(--line); cursor: pointer; transition: .15s;
+            background: var(--surface);
+        }
+        .header .right .profile:hover { border-color: var(--ink-3); }
+        .header .right .profile .avatar {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: var(--ink); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.7rem;
+        }
+        .header .right .profile .name { font-size: 0.77rem; font-weight: 700; }
+        .header .right .profile .name small {
+            display: block; font-size: 0.58rem; font-weight: 500; color: var(--ink-3);
         }
 
-        .main-content { flex:1; padding:12px; max-width:1400px; margin:0 auto; width:100%; }
+        .dash { padding: 26px 30px 44px; max-width: 1500px; }
 
+        /* ============================================================ */
+        /* PAGE HEADER */
+        /* ============================================================ */
         .page-header {
-            display:flex; justify-content:space-between; align-items:center;
-            margin-bottom:12px; flex-wrap:wrap; gap:8px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
         }
         .page-header h1 {
-            font-size:1.2rem; font-weight:900; color:var(--ink);
-            display:flex; align-items:center; gap:8px;
+            font-size: 1.5rem; font-weight: 900; color: var(--ink);
+            display: flex; align-items: center; gap: 10px;
         }
-        .page-header h1 i { color:var(--accent); font-size:1.1rem; }
-        .page-header .actions { display:flex; gap:6px; flex-wrap:wrap; }
+        .page-header h1 i { color: var(--gold); }
+        .page-header .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-        .btn-action {
-            padding:5px 12px; border-radius:var(--radius-sm); border:1px solid var(--line);
-            background:var(--surface); color:var(--ink-mute); font-size:0.65rem;
-            font-weight:700; cursor:pointer; transition:0.2s;
-            display:inline-flex; align-items:center; gap:4px;
-            font-family:var(--font-display);
+        .btn {
+            padding: 8px 16px; border-radius: var(--r-sm); border: 1px solid var(--line);
+            background: var(--surface); color: var(--ink-2); font-size: 0.75rem;
+            font-weight: 700; cursor: pointer; transition: .15s;
+            display: inline-flex; align-items: center; gap: 6px;
+            font-family: 'Cairo', sans-serif;
         }
-        .btn-action:hover { background:var(--surface-muted); border-color:var(--line-strong); }
-        .btn-action.primary {
-            background:var(--accent); color:var(--accent-ink); border-color:var(--accent);
+        .btn:hover { background: var(--surface-2); border-color: var(--ink-3); }
+        .btn.primary {
+            background: var(--gold-gradient); color: #fff; border: none;
         }
-        .btn-action.primary:hover { background:var(--accent-ink); color:#fff; border-color:var(--accent-ink); }
-        .btn-action.success {
-            background:var(--teal); color:#fff; border-color:var(--teal);
+        .btn.primary:hover { background: var(--navy-gradient); color: #fff; }
+        .btn.success {
+            background: var(--teal); color: #fff; border: none;
         }
-        .btn-action.success:hover { background:#156b5d; border-color:#156b5d; }
-        .btn-action.danger {
-            background:var(--rust-soft); color:var(--rust); border-color:var(--rust-soft);
+        .btn.success:hover { background: #156b5d; color: #fff; }
+        .btn.danger {
+            background: var(--rust); color: #fff; border: none;
         }
-        .btn-action.danger:hover { background:var(--rust); color:#fff; }
-        .btn-action.small { padding:3px 8px; font-size:0.55rem; }
+        .btn.danger:hover { background: #a63a31; color: #fff; }
+        .btn.small { padding: 4px 10px; font-size: 0.65rem; }
 
-        .filters-section {
-            display:flex; flex-wrap:wrap; gap:8px;
-            background:var(--surface); border-radius:var(--radius);
-            padding:10px 14px; border:1px solid var(--line);
-            box-shadow:var(--shadow-sm); margin-bottom:10px; align-items:center;
-        }
-        .filters-section .filter-group {
-            display:flex; align-items:center; gap:4px; flex:1; min-width:120px;
-        }
-        .filters-section .filter-group label {
-            font-size:0.6rem; color:var(--ink-mute); font-weight:700; white-space:nowrap;
-        }
-        .filters-section .filter-group input,
-        .filters-section .filter-group select {
-            width:100%; padding:5px 8px; border-radius:var(--radius-sm);
-            border:1px solid var(--line); background:var(--surface-muted);
-            color:var(--ink); font-size:0.7rem; font-family:inherit;
-            transition:0.2s; outline:none;
-        }
-        .filters-section .filter-group input:focus,
-        .filters-section .filter-group select:focus {
-            border-color:var(--accent); background:#fff;
-            box-shadow:0 0 0 3px rgba(221,159,46,0.1);
-        }
-
-        .btn-filter {
-            padding:5px 14px; border-radius:50px; background:var(--accent);
-            border:none; color:var(--accent-ink); font-weight:700; font-size:0.7rem;
-            cursor:pointer; transition:0.2s; font-family:var(--font-display);
-        }
-        .btn-filter:hover { background:var(--accent-ink); color:#fff; transform:translateY(-1px); }
-        .btn-reset {
-            padding:5px 12px; border-radius:50px; background:var(--surface-muted);
-            border:1px solid var(--line); color:var(--ink-mute); font-weight:600;
-            font-size:0.7rem; cursor:pointer; transition:0.2s;
-            font-family:var(--font-display);
-        }
-        .btn-reset:hover { background:var(--line); color:var(--ink); }
-
+        /* ============================================================ */
+        /* SUMMARY BAR */
+        /* ============================================================ */
         .summary-bar {
-            display:flex; flex-wrap:wrap; gap:8px;
-            background:var(--surface); border-radius:var(--radius);
-            padding:8px 14px; border:1px solid var(--line);
-            box-shadow:var(--shadow-sm); margin-bottom:10px;
-            align-items:center; justify-content:space-between;
+            display: flex; flex-wrap: wrap; gap: 12px;
+            background: var(--surface); border-radius: var(--r-md);
+            padding: 12px 20px; border: 1px solid var(--line);
+            margin-bottom: 16px; align-items: center; justify-content: space-between;
         }
-        .summary-bar .total { font-size:0.7rem; color:var(--ink-mute); }
-        .summary-bar .total span { color:var(--accent-ink); font-weight:700; font-size:0.9rem; }
-        .summary-bar .count { font-size:0.65rem; color:var(--ink-mute); }
-        .summary-bar .count span { color:var(--ink); font-weight:700; }
+        .summary-bar .stat { font-size: 0.8rem; color: var(--ink-2); }
+        .summary-bar .stat span { color: var(--gold-dark); font-weight: 700; font-size: 1rem; }
 
+        /* ============================================================ */
+        /* TABLE */
+        /* ============================================================ */
         .table-wrapper {
-            background:var(--surface); border-radius:var(--radius);
-            overflow-x:auto; border:1px solid var(--line); box-shadow:var(--shadow-sm);
+            background: var(--surface); border-radius: var(--r-lg);
+            overflow-x: auto; border: 1px solid var(--line);
         }
-        table { width:100%; border-collapse:collapse; font-size:0.65rem; min-width:900px; }
+        table {
+            width: 100%; border-collapse: collapse; font-size: 0.72rem; min-width: 900px;
+        }
         th {
-            background:var(--surface-muted); color:var(--ink-mute); padding:6px 10px;
-            text-align:right; font-weight:700; white-space:nowrap; font-size:0.55rem;
-            text-transform:uppercase; letter-spacing:0.3px; border-bottom:2px solid var(--line);
+            background: var(--surface-2); color: var(--ink-3);
+            padding: 12px 14px; text-align: right; font-weight: 700;
+            white-space: nowrap; font-size: 0.6rem; text-transform: uppercase;
+            letter-spacing: 0.3px; border-bottom: 2px solid var(--line);
         }
-        td { padding:5px 10px; border-bottom:1px solid var(--line); color:var(--ink-soft); font-size:0.65rem; }
-        tr:hover td { background:var(--surface-muted); }
-
-        .badge-status {
-            display:inline-block; padding:1px 8px; border-radius:50px; font-size:0.5rem; font-weight:600;
+        td {
+            padding: 10px 14px; border-bottom: 1px solid var(--line);
+            color: var(--ink-2); font-size: 0.72rem;
         }
-        .badge-status.active { background:var(--teal-soft); color:var(--teal); }
-        .badge-status.inactive { background:var(--rust-soft); color:var(--rust); }
+        tr:hover td { background: var(--surface-2); }
 
-        .empty-state { text-align:center; padding:30px 20px; color:var(--ink-mute); }
-        .empty-state i { font-size:2rem; opacity:0.3; display:block; margin-bottom:8px; }
-        .loading-state { text-align:center; padding:30px 20px; color:var(--accent); }
-        .loading-state i { animation:spin 1s linear infinite; }
-        @keyframes spin { to { transform:rotate(360deg); } }
+        .badge {
+            display: inline-block; padding: 2px 12px; border-radius: 50px;
+            font-size: 0.58rem; font-weight: 700;
+        }
+        .badge.active { background: var(--teal-soft); color: var(--teal); }
+        .badge.inactive { background: var(--rust-soft); color: var(--rust); }
 
-        /* ===== MODAL ===== */
+        .empty-state {
+            text-align: center; padding: 40px 20px; color: var(--ink-3);
+        }
+        .empty-state i { font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 12px; }
+        .loading-state {
+            text-align: center; padding: 40px 20px; color: var(--gold);
+        }
+        .loading-state i { animation: spin 1s linear infinite; font-size: 1.8rem; display: block; margin-bottom: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ============================================================ */
+        /* MODAL */
+        /* ============================================================ */
         .modal-overlay {
-            display:none; position:fixed; inset:0;
-            background:rgba(0,0,0,0.35); backdrop-filter:blur(3px);
-            z-index:9999; justify-content:center; align-items:center; padding:12px;
+            display: none; position: fixed; inset: 0;
+            background: rgba(33, 29, 26, 0.55); backdrop-filter: blur(8px);
+            z-index: 9999; justify-content: center; align-items: center;
+            padding: 20px;
         }
-        .modal-overlay.active { display:flex; }
+        .modal-overlay.active { display: flex; }
         .modal-box {
-            background:var(--surface); border-radius:var(--radius);
-            max-width:780px; width:100%; padding:18px 20px;
-            border:1px solid var(--line); box-shadow:var(--shadow);
-            animation:modalIn 0.2s ease; max-height:95vh; overflow-y:auto;
+            background: var(--surface); border-radius: var(--r-lg);
+            max-width: 760px; width: 100%; padding: 28px;
+            border: 1px solid var(--line); box-shadow: 0 16px 40px rgba(33, 29, 26, 0.12);
+            animation: modalIn 0.25s ease; max-height: 90vh; overflow-y: auto;
         }
         @keyframes modalIn {
-            from { transform:translateY(8px); opacity:0; }
-            to { transform:translateY(0); opacity:1; }
+            from { transform: translateY(12px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
         .modal-box .modal-header {
-            display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px;
         }
         .modal-box .modal-header h3 {
-            font-size:0.9rem; font-weight:800; color:var(--ink);
-            display:flex; align-items:center; gap:6px;
+            font-size: 1.05rem; font-weight: 800; color: var(--ink);
+            display: flex; align-items: center; gap: 8px;
         }
-        .modal-box .modal-header h3 i { color:var(--accent); }
+        .modal-box .modal-header h3 i { color: var(--gold); }
         .modal-box .modal-header .close-modal {
-            background:none; border:none; color:var(--ink-mute); font-size:0.9rem;
-            cursor:pointer; padding:2px 6px; border-radius:var(--radius-sm); transition:0.2s;
+            background: none; border: none; color: var(--ink-3);
+            font-size: 1.1rem; cursor: pointer; padding: 4px 8px;
+            border-radius: var(--r-sm); transition: .15s;
         }
-        .modal-box .modal-header .close-modal:hover { background:var(--surface-muted); color:var(--ink); }
+        .modal-box .modal-header .close-modal:hover { background: var(--surface-2); color: var(--ink); }
 
-        .modal-box .form-group { margin-bottom:8px; }
+        .modal-box .form-group { margin-bottom: 14px; }
         .modal-box .form-group label {
-            display:block; font-size:0.6rem; font-weight:700; color:var(--ink-soft); margin-bottom:2px;
+            display: block; font-size: 0.7rem; font-weight: 700;
+            color: var(--ink-2); margin-bottom: 4px;
         }
-        .modal-box .form-group label .required { color:var(--rust); }
+        .modal-box .form-group label .required { color: var(--rust); }
         .modal-box .form-group input,
         .modal-box .form-group select,
         .modal-box .form-group textarea {
-            width:100%; padding:4px 8px; border-radius:var(--radius-sm);
-            border:1px solid var(--line); background:var(--surface-muted);
-            color:var(--ink); font-size:0.75rem; font-family:var(--font-display);
-            outline:none; transition:0.2s;
+            width: 100%; padding: 8px 12px; border-radius: var(--r-sm);
+            border: 1px solid var(--line); background: var(--surface-2);
+            color: var(--ink); font-size: 0.85rem; font-family: 'Cairo', sans-serif;
+            outline: none; transition: .15s;
         }
         .modal-box .form-group input:focus,
         .modal-box .form-group select:focus,
         .modal-box .form-group textarea:focus {
-            border-color:var(--accent); background:#fff;
-            box-shadow:0 0 0 3px rgba(221,159,46,0.1);
+            border-color: var(--gold); background: #fff;
+            box-shadow: 0 0 0 3px var(--gold-glow);
         }
-        .modal-box .form-group textarea { min-height:40px; resize:vertical; }
 
-        /* ===== AUTOCOMPLETE - مثل الفاتورة بالضبط ===== */
-        .autocomplete-wrapper { position:relative; width:100%; }
-        .autocomplete-wrapper input { width:100%; }
-        .autocomplete-suggestions {
-            position:absolute; top:100%; right:0; left:0;
-            background:var(--surface); border:1px solid var(--line);
-            border-radius:var(--radius-sm); max-height:160px; overflow-y:auto;
-            z-index:1000; display:none; box-shadow:var(--shadow-sm);
+        .modal-box .form-row {
+            display: grid; gap: 10px;
         }
-        .autocomplete-suggestions .suggestion {
-            padding:5px 10px; cursor:pointer; font-size:0.7rem;
-            transition:0.15s; border-bottom:1px solid var(--line-soft);
-            display:flex; justify-content:space-between; align-items:center;
-        }
-        .autocomplete-suggestions .suggestion:last-child { border-bottom:none; }
-        .autocomplete-suggestions .suggestion:hover,
-        .autocomplete-suggestions .suggestion.active {
-            background:var(--accent-soft); color:var(--accent-ink);
-        }
-        .autocomplete-suggestions .suggestion .suggestion-code {
-            font-size:0.55rem; color:var(--ink-mute);
-        }
-        .autocomplete-suggestions .no-results {
-            padding:8px 10px; text-align:center; color:var(--ink-mute); font-size:0.7rem;
-        }
-        .autocomplete-suggestions .add-new {
-            color:var(--teal); font-weight:700;
-        }
-        .autocomplete-suggestions .add-new:hover { background:var(--teal-soft); }
-
-        /* ===== ITEMS ===== */
-        .items-container {
-            display:flex; flex-direction:column; gap:4px; margin:4px 0 6px;
-            max-height:200px; overflow-y:auto; padding-left:2px;
-        }
-        .item-row {
-            display:flex; gap:4px; align-items:center;
-            background:var(--surface-muted); border:1px solid var(--line);
-            border-radius:var(--radius-sm); padding:4px 6px;
-            transition:0.15s;
-        }
-        .item-row:hover { background:var(--surface); border-color:var(--line-strong); }
-        .item-row .item-material-input { flex:2; min-width:0; padding:3px 6px; border-radius:var(--radius-sm); border:1px solid var(--line); background:#fff; font-size:0.65rem; font-family:inherit; }
-        .item-row .item-qty { flex:0.8; min-width:0; padding:3px 6px; border-radius:var(--radius-sm); border:1px solid var(--line); background:#fff; font-size:0.65rem; font-family:inherit; width:60px; }
-        .item-row .item-unit { flex:0.5; text-align:center; font-size:0.6rem; color:var(--ink-mute); }
-        .item-row .item-cost { flex:0.7; text-align:center; font-size:0.6rem; font-weight:700; color:var(--accent-ink); }
-        .item-row .item-remove { flex:0 0 auto; background:none; border:none; color:var(--rust); cursor:pointer; font-size:0.7rem; padding:2px 4px; }
-        .item-row .item-remove:hover { color:#a63a31; }
-        .item-row .item-material-input:focus { border-color:var(--accent); box-shadow:0 0 0 2px rgba(221,159,46,0.15); }
-
-        .btn-add-item {
-            width:100%; padding:4px; border:1.5px dashed var(--line);
-            border-radius:var(--radius-sm); background:transparent;
-            color:var(--ink-mute); font-family:var(--font-display); font-weight:600;
-            font-size:0.6rem; cursor:pointer; transition:0.2s;
-        }
-        .btn-add-item:hover { border-color:var(--accent); color:var(--accent-ink); }
-
-        .formulation-totals {
-            display:flex; justify-content:space-between;
-            background:var(--accent-soft); border-radius:var(--radius-sm);
-            padding:4px 10px; font-size:0.65rem; font-weight:700;
-            color:var(--accent-ink); margin-bottom:8px;
-        }
+        .modal-box .form-row.two { grid-template-columns: 1fr 1fr; }
+        .modal-box .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
 
         .modal-box .form-actions {
-            display:flex; gap:6px; margin-top:10px;
+            display: flex; gap: 10px; margin-top: 20px;
         }
         .modal-box .form-actions .btn-save {
-            padding:6px 20px; background:var(--teal); color:#fff;
-            border:none; border-radius:var(--radius-sm); font-weight:700;
-            font-size:0.75rem; cursor:pointer; transition:0.2s;
-            font-family:var(--font-display); flex:1;
+            padding: 10px 28px; background: var(--teal); color: #fff;
+            border: none; border-radius: var(--r-sm); font-weight: 700;
+            font-size: 0.85rem; cursor: pointer; transition: .15s;
+            font-family: 'Cairo', sans-serif; flex: 1;
         }
-        .modal-box .form-actions .btn-save:hover { background:#156b5d; transform:translateY(-1px); }
-        .modal-box .form-actions .btn-save:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+        .modal-box .form-actions .btn-save:hover { background: #156b5d; transform: translateY(-1px); }
+        .modal-box .form-actions .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
         .modal-box .form-actions .btn-cancel {
-            padding:6px 16px; border-radius:var(--radius-sm);
-            border:1px solid var(--line); background:var(--surface);
-            color:var(--ink-mute); font-weight:600; font-size:0.7rem;
-            cursor:pointer; transition:0.2s; font-family:var(--font-display);
+            padding: 10px 24px; border-radius: var(--r-sm);
+            border: 1px solid var(--line); background: var(--surface);
+            color: var(--ink-3); font-weight: 600; font-size: 0.8rem;
+            cursor: pointer; transition: .15s; font-family: 'Cairo', sans-serif;
         }
-        .modal-box .form-actions .btn-cancel:hover { background:var(--surface-muted); }
+        .modal-box .form-actions .btn-cancel:hover { background: var(--surface-2); }
 
+        /* ============================================================ */
+        /* AUTOCOMPLETE */
+        /* ============================================================ */
+        .autocomplete-wrapper { position: relative; }
+        .autocomplete-wrapper input { width: 100%; }
+        .autocomplete-suggestions {
+            position: absolute; top: 100%; right: 0; left: 0;
+            background: var(--surface); border: 1px solid var(--line);
+            border-radius: var(--r-sm); max-height: 160px; overflow-y: auto;
+            z-index: 1000; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .autocomplete-suggestions .suggestion {
+            padding: 6px 12px; cursor: pointer; font-size: 0.75rem;
+            transition: 0.15s; border-bottom: 1px solid var(--line-soft);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .autocomplete-suggestions .suggestion:last-child { border-bottom: none; }
+        .autocomplete-suggestions .suggestion:hover,
+        .autocomplete-suggestions .suggestion.active {
+            background: var(--gold-glow); color: var(--gold-dark);
+        }
+        .autocomplete-suggestions .suggestion .code {
+            font-size: 0.6rem; color: var(--ink-3);
+        }
+        .autocomplete-suggestions .no-results {
+            padding: 10px; text-align: center; color: var(--ink-3); font-size: 0.75rem;
+        }
+
+        /* ============================================================ */
+        /* ITEMS CONTAINER */
+        /* ============================================================ */
+        .items-container {
+            display: flex; flex-direction: column; gap: 6px;
+            margin: 6px 0 8px; max-height: 200px; overflow-y: auto;
+        }
+        .item-row {
+            display: flex; gap: 6px; align-items: center;
+            background: var(--surface-2); border: 1px solid var(--line);
+            border-radius: var(--r-sm); padding: 6px 8px;
+        }
+        .item-row .item-material { flex: 2; min-width: 0; }
+        .item-row .item-qty { flex: 0.8; min-width: 0; width: 60px; }
+        .item-row .item-unit { flex: 0.4; text-align: center; font-size: 0.6rem; color: var(--ink-3); }
+        .item-row .item-cost { flex: 0.6; text-align: center; font-size: 0.6rem; font-weight: 700; color: var(--gold-dark); }
+        .item-row .item-remove {
+            flex: 0 0 auto; background: none; border: none;
+            color: var(--rust); cursor: pointer; font-size: 0.75rem; padding: 2px 4px;
+        }
+        .item-row .item-remove:hover { color: #a63a31; }
+
+        .btn-add-item {
+            width: 100%; padding: 6px; border: 1.5px dashed var(--line);
+            border-radius: var(--r-sm); background: transparent;
+            color: var(--ink-3); font-family: 'Cairo', sans-serif; font-weight: 600;
+            font-size: 0.7rem; cursor: pointer; transition: .15s;
+        }
+        .btn-add-item:hover { border-color: var(--gold); color: var(--gold-dark); }
+
+        .formulation-totals {
+            display: flex; justify-content: space-between;
+            background: var(--gold-glow); border-radius: var(--r-sm);
+            padding: 8px 14px; font-size: 0.75rem; font-weight: 700;
+            color: var(--gold-dark); margin: 6px 0 10px;
+        }
+
+        /* ============================================================ */
+        /* TOAST */
+        /* ============================================================ */
         .toast-container {
-            position:fixed; top:70px; right:14px; z-index:99999;
-            max-width:340px; width:90%; pointer-events:none;
-            display:flex; flex-direction:column; gap:4px;
+            position: fixed; top: 80px; left: 20px; z-index: 99999;
+            display: flex; flex-direction: column; gap: 8px; max-width: 380px; width: 100%;
         }
         .toast {
-            background:#fff; border:1px solid var(--line); border-radius:8px;
-            padding:8px 12px; display:flex; align-items:center; gap:8px;
-            transform:translateX(16px); transition:all 0.3s ease; opacity:0;
-            pointer-events:auto; box-shadow:var(--shadow); border-right:3px solid var(--ink);
+            background: #ffffff; border: 1px solid var(--line); border-radius: 12px;
+            padding: 12px 16px; display: flex; align-items: center; gap: 10px;
+            transform: translateX(20px); transition: all 0.4s ease; opacity: 0;
+            pointer-events: auto; box-shadow: 0 6px 18px rgba(24, 20, 8, 0.07);
+            border-right: 4px solid var(--gold);
         }
-        .toast.show { transform:translateX(0); opacity:1; }
-        .toast .toast-icon { font-size:0.8rem; width:24px; height:24px; min-width:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
-        .toast .toast-icon.success { color:var(--teal); background:var(--teal-soft); }
-        .toast .toast-icon.error { color:var(--rust); background:var(--rust-soft); }
-        .toast .toast-icon.warning { color:var(--accent-ink); background:var(--accent-soft); }
-        .toast .toast-title { font-size:0.7rem; font-weight:800; color:var(--ink); }
-        .toast .toast-message { font-size:0.6rem; color:var(--ink-mute); margin-top:1px; }
-        .toast .toast-close { background:none; border:none; color:var(--ink-mute); cursor:pointer; font-size:0.7rem; padding:2px; margin-right:auto; }
+        .toast.show { transform: translateX(0); opacity: 1; }
+        .toast .toast-icon { font-size: 0.9rem; width: 28px; height: 28px; min-width: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .toast .toast-icon.success { color: var(--teal); background: var(--teal-soft); }
+        .toast .toast-icon.error { color: var(--rust); background: var(--rust-soft); }
+        .toast .toast-icon.warning { color: var(--gold-dark); background: #faead0; }
+        .toast .toast-title { font-size: 0.82rem; font-weight: 800; color: var(--ink); }
+        .toast .toast-message { font-size: 0.72rem; color: var(--ink-2); margin-top: 1px; }
+        .toast .toast-close { background: none; border: none; color: var(--ink-3); cursor: pointer; font-size: 0.85rem; padding: 4px; margin-right: auto; }
 
-        @media (max-width:768px) {
-            .page-header { flex-direction:column; align-items:flex-start; }
-            .filters-section { flex-direction:column; align-items:stretch; }
-            .filters-section .filter-group { min-width:unset; }
-            .btn-filter, .btn-reset { width:100%; justify-content:center; }
-            .summary-bar { flex-direction:column; align-items:center; text-align:center; }
-            .main-content { padding:8px; }
-            table { font-size:0.55rem; min-width:700px; }
-            th, td { padding:4px 6px; }
-            .modal-box { padding:14px; margin:8px; }
-            .modal-box .form-actions { flex-direction:column; }
-            .modal-box .form-actions .btn-save { width:100%; justify-content:center; }
-            .modal-box .form-actions .btn-cancel { width:100%; justify-content:center; }
-            .toast-container { top:60px; right:8px; max-width:260px; }
-            nav { display:none !important; }
-            .hamburger { display:flex !important; }
-            .sidebar { width:260px; right:calc(-1 * 260px); }
-            .sidebar.open { right:0; }
-            .sidebar-overlay { display:block; }
+        /* ============================================================ */
+        /* RESPONSIVE */
+        /* ============================================================ */
+        @media (max-width: 768px) {
+            .sidebar { right: calc(-1 * var(--sidebar-w)); }
+            .sidebar.open { right: 0; }
+            .sidebar-overlay { display: block; }
+            .main { margin-right: 0 !important; }
+            .dash { padding: 18px 16px 34px; }
+            .header { padding: 0 16px; }
+            .header .right .profile .name { display: none; }
+            .header .hamburger { width: 42px; height: 42px; font-size: 1rem; }
+            .page-header { flex-direction: column; align-items: flex-start; }
+            .modal-box { padding: 20px; margin: 10px; }
+            .modal-box .form-row.two { grid-template-columns: 1fr; }
+            .modal-box .form-row.three { grid-template-columns: 1fr; }
+            .modal-box .form-actions { flex-direction: column; }
+            .modal-box .form-actions .btn-save { width: 100%; justify-content: center; }
+            .modal-box .form-actions .btn-cancel { width: 100%; justify-content: center; }
+            .toast-container { top: 70px; left: 10px; max-width: 300px; }
         }
-        @media (max-width:480px) {
-            .toast-container { top:50px; right:6px; max-width:220px; }
-            .toast { padding:6px 10px; }
-            .toast .toast-title { font-size:0.65rem; }
-            .toast .toast-message { font-size:0.55rem; }
-            .page-header h1 { font-size:1rem; }
-            table { font-size:0.5rem; min-width:600px; }
-            th, td { padding:3px 4px; }
+        @media (max-width: 480px) {
+            .toast-container { top: 60px; left: 8px; max-width: 260px; }
+            .page-header h1 { font-size: 1.2rem; }
+            table { font-size: 0.6rem; min-width: 700px; }
+            th, td { padding: 6px 8px; }
         }
-        @media (min-width:769px) {
-            .hamburger { display:none !important; }
-            nav { display:flex !important; }
-            .sidebar-overlay { display:none !important; }
+        @media (min-width: 769px) {
+            .hamburger { display: none !important; }
+            .sidebar-overlay { display: none !important; }
         }
-
-        .import-zone {
-            display:flex; align-items:center; gap:6px;
-            padding:4px 10px; background:var(--surface-muted);
-            border:2px dashed var(--line); border-radius:var(--radius-sm);
-            cursor:pointer; transition:0.2s; font-size:0.65rem; color:var(--ink-mute);
-        }
-        .import-zone:hover { border-color:var(--accent); background:var(--accent-soft); color:var(--accent-ink); }
-        .import-zone input[type="file"] { display:none; }
-        .import-zone .icon { font-size:0.8rem; }
     </style>
 </head>
 <body>
 
-    <div class="swatch-stripe"><span></span><span></span><span></span><span></span></div>
-
+    <!-- ============================================================ -->
+    <!-- SIDEBAR -->
+    <!-- ============================================================ -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <nav class="sidebar" id="sidebar">
         <div class="brand">
-            <div class="mark">🏭</div>
+            <div class="mark"><i class="fas fa-flask"></i></div>
             <div class="text">نظام المصنع<span>شركة رولكس للدهانات</span></div>
-            <button class="close-btn" id="closeSidebar"><i class="fas fa-times"></i></button>
         </div>
         <div class="menu">
             <div class="label">القائمة الرئيسية</div>
             <a href="index.html" class="item"><i class="fas fa-house"></i> الرئيسية</a>
             <a href="treasury.html" class="item"><i class="fas fa-coins"></i> الخزينة</a>
-            <a href="entry.html" class="item"><i class="fas fa-pen"></i> إدخال حركة</a>
             <div class="label">المبيعات والمشتريات</div>
             <a href="sales.html" class="item"><i class="fas fa-chart-line"></i> المبيعات</a>
             <a href="purchases.html" class="item"><i class="fas fa-shopping-cart"></i> المشتريات</a>
@@ -531,17 +515,12 @@
             <div class="label">المخزون</div>
             <a href="materials.html" class="item"><i class="fas fa-boxes"></i> الخامات</a>
             <a href="products.html" class="item"><i class="fas fa-cubes"></i> المنتجات</a>
-            <a href="raw-material-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المواد الخام</a>
-            <a href="finished-goods-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المنتج التام</a>
             <div class="label">الإنتاج</div>
-            <a href="formulations.html" class="item active"><i class="fas fa-flask"></i> التركيبات</a>
+            <a href="formulations.html" class="item active" style="--swatch:var(--gold)"><i class="fas fa-flask"></i> التركيبات</a>
             <a href="production-orders.html" class="item"><i class="fas fa-industry"></i> أوامر الإنتاج</a>
-            <a href="costs.html" class="item"><i class="fas fa-calculator"></i> التكاليف</a>
             <div class="label">التقارير</div>
             <a href="reports.html" class="item"><i class="fas fa-file-lines"></i> التقارير</a>
-            <a href="invoices-summary.html" class="item"><i class="fas fa-file-invoice"></i> ملخص الفواتير</a>
             <div class="label">الإعدادات</div>
-            <a href="tabs-settings.html" class="item"><i class="fas fa-tags"></i> التبويبات العامة</a>
             <a href="settings.html" class="item"><i class="fas fa-gear"></i> الإعدادات</a>
             <a href="help.html" class="item"><i class="fas fa-circle-question"></i> المساعدة</a>
         </div>
@@ -552,76 +531,86 @@
                     <div class="name" id="sidebarUserName">محمد خلاف</div>
                     <div class="role" id="sidebarUserRole">مدير النظام</div>
                 </div>
-                <button class="logout-btn" onclick="logout()" title="تسجيل الخروج"><i class="fas fa-sign-out-alt"></i></button>
+                <button class="logout" onclick="logout()" title="تسجيل الخروج">
+                    <i class="fas fa-arrow-right-from-bracket"></i>
+                </button>
             </div>
         </div>
     </nav>
 
-    <header id="header">
-        <div class="header-content">
-            <div class="logo">
-                <div class="logo-mark"><span></span><span></span><span></span><span></span></div>
-                <div class="logo-text"><h1>التركيبات</h1><span>QuickData ProSoft</span></div>
+    <!-- ============================================================ -->
+    <!-- HEADER -->
+    <!-- ============================================================ -->
+    <div class="main" id="main">
+        <header class="header">
+            <div class="left">
+                <button class="hamburger" id="hamburger"><i class="fas fa-bars"></i></button>
+                <div class="breadcrumb"><b>الإنتاج</b> / التركيبات</div>
             </div>
-            <nav>
-                <a href="materials.html">الخامات</a>
-                <a href="products.html">المنتجات</a>
-                <a href="#" class="active">التركيبات</a>
-                <a href="raw-material-stock.html">مخزن المواد الخام</a>
-                <a href="reports.html">التقارير</a>
-            </nav>
-            <div class="header-actions">
-                <button onclick="loadData()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
-                <button onclick="logout()" title="تسجيل الخروج"><i class="fas fa-sign-out-alt"></i></button>
-                <div class="hamburger" id="navToggle"><i class="fas fa-bars"></i></div>
-            </div>
-        </div>
-    </header>
-
-    <div class="toast-container" id="toastContainer"></div>
-
-    <div class="main-content">
-
-        <div class="page-header">
-            <h1><i class="fas fa-flask"></i> التركيبات</h1>
-            <div class="actions">
-                <div class="import-zone" onclick="document.getElementById('fileInput').click()">
-                    <i class="fas fa-file-excel icon"></i>
-                    <span>استيراد من Excel</span>
-                    <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="importFromExcel(event)" />
+            <div class="right">
+                <div class="profile">
+                    <div class="avatar" id="headerAvatar">م</div>
+                    <div class="name" id="headerName">محمد خلاف<small id="headerRole">مدير النظام</small></div>
+                    <i class="fas fa-chevron-down"></i>
                 </div>
-                <button class="btn-action success small" onclick="exportToExcel()"><i class="fas fa-download"></i> تصدير</button>
-                <button class="btn-action primary" onclick="openAddModal()"><i class="fas fa-plus"></i> تركيبة</button>
+                <button onclick="logout()" title="تسجيل الخروج" style="background:none;border:none;cursor:pointer;color:var(--ink-3);font-size:1rem;padding:4px 8px;">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
             </div>
-        </div>
+        </header>
 
-        <div class="filters-section">
-            <div class="filter-group"><label><i class="fas fa-cube"></i> المنتج</label><input type="text" id="filterProduct" placeholder="اسم المنتج..." /></div>
-            <div class="filter-group" style="flex:0.5;min-width:100px;"><label><i class="fas fa-circle"></i> الحالة</label>
-                <select id="filterStatus"><option value="all">الكل</option><option value="نشط">نشط</option><option value="غير نشط">غير نشط</option></select>
+        <!-- ============================================================ -->
+        <!-- CONTENT -->
+        <!-- ============================================================ -->
+        <div class="dash">
+
+            <div class="page-header">
+                <h1><i class="fas fa-flask"></i> التركيبات</h1>
+                <div class="actions">
+                    <button class="btn success small" onclick="exportToExcel()"><i class="fas fa-download"></i> تصدير</button>
+                    <button class="btn primary" onclick="openAddModal()"><i class="fas fa-plus"></i> تركيبة جديدة</button>
+                </div>
             </div>
-            <button class="btn-filter" onclick="applyFilters()"><i class="fas fa-filter"></i> تطبيق</button>
-            <button class="btn-reset" onclick="resetFilters()"><i class="fas fa-undo"></i> إلغاء</button>
-        </div>
 
-        <div class="summary-bar">
-            <div class="total">إجمالي التركيبات: <span id="totalCount">0</span></div>
-            <div class="count">منتجات بدون تركيبة: <span id="noFormulationCount">0</span></div>
-        </div>
+            <div class="summary-bar">
+                <div class="stat">إجمالي التركيبات: <span id="totalCount">0</span></div>
+                <div class="stat">منتجات بدون تركيبة: <span id="noFormulationCount">0</span></div>
+            </div>
 
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr><th>#</th><th>المنتج</th><th>اسم التركيبة</th><th style="text-align:center;">الكمية</th><th style="text-align:center;">عدد الخامات</th><th style="text-align:center;">التكلفة</th><th style="text-align:center;">تك/وحدة</th><th>الحالة</th><th style="text-align:center;">إجراءات</th></tr>
-                </thead>
-                <tbody id="entriesBody">
-                    <tr><td colspan="9"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري التحميل...</p></div></td></tr>
-                </tbody>
-            </table>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>المنتج</th>
+                            <th>اسم التركيبة</th>
+                            <th style="text-align:center;">الكمية</th>
+                            <th style="text-align:center;">الخامات</th>
+                            <th style="text-align:center;">التكلفة</th>
+                            <th style="text-align:center;">تك/وحدة</th>
+                            <th>الحالة</th>
+                            <th style="text-align:center;">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entriesBody">
+                        <tr>
+                            <td colspan="9">
+                                <div class="loading-state">
+                                    <i class="fas fa-spinner"></i>
+                                    <p>جاري تحميل البيانات...</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 
-    <!-- ===== MODAL ===== -->
+    <!-- ============================================================ -->
+    <!-- MODAL -->
+    <!-- ============================================================ -->
     <div class="modal-overlay" id="formulationModal">
         <div class="modal-box">
             <div class="modal-header">
@@ -634,8 +623,8 @@
 
                 <div class="form-group">
                     <label>المنتج <span class="required">*</span></label>
-                    <div class="autocomplete-wrapper" id="productAutocomplete">
-                        <input type="text" id="productSearch" placeholder="ابحث عن منتج..." oninput="filterProductSuggestions()" autocomplete="off" />
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="productSearch" placeholder="ابحث عن منتج..." autocomplete="off" />
                         <div class="autocomplete-suggestions" id="productSuggestions"></div>
                     </div>
                 </div>
@@ -645,12 +634,12 @@
                     <input type="text" id="formName" placeholder="اسم التركيبة..." />
                 </div>
 
-                <div class="form-group" style="display:flex;gap:8px;">
-                    <div style="flex:2;">
+                <div class="form-row two">
+                    <div class="form-group">
                         <label>الكمية الناتجة <span class="required">*</span></label>
-                        <input type="number" id="formOutputQty" placeholder="100" min="0.01" step="0.01" required oninput="recalcTotals()" />
+                        <input type="number" id="formOutputQty" placeholder="100" min="0.01" step="0.01" required />
                     </div>
-                    <div style="flex:1;">
+                    <div class="form-group">
                         <label>الوحدة</label>
                         <input type="text" id="formOutputUnit" placeholder="لتر" />
                     </div>
@@ -659,7 +648,9 @@
                 <div class="form-group">
                     <label>مكونات التركيبة <span class="required">*</span></label>
                     <div class="items-container" id="itemsContainer"></div>
-                    <button type="button" class="btn-add-item" onclick="addItemRow()"><i class="fas fa-plus"></i> إضافة خامة</button>
+                    <button type="button" class="btn-add-item" onclick="addItemRow()">
+                        <i class="fas fa-plus"></i> إضافة خامة
+                    </button>
                 </div>
 
                 <div class="formulation-totals">
@@ -667,10 +658,13 @@
                     <span>تكلفة الوحدة: <span id="unitCostDisplay">0</span> ج.م</span>
                 </div>
 
-                <div class="form-group" style="display:flex;gap:8px;">
-                    <div style="flex:1;">
+                <div class="form-row two">
+                    <div class="form-group">
                         <label>الحالة</label>
-                        <select id="formStatus"><option value="نشط">نشط</option><option value="غير نشط">غير نشط</option></select>
+                        <select id="formStatus">
+                            <option value="نشط">نشط</option>
+                            <option value="غير نشط">غير نشط</option>
+                        </select>
                     </div>
                 </div>
 
@@ -680,75 +674,127 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn-save" id="submitBtn"><i class="fas fa-save"></i> حفظ</button>
+                    <button type="submit" class="btn-save" id="submitBtn">
+                        <i class="fas fa-save"></i> حفظ
+                    </button>
                     <button type="button" class="btn-cancel" onclick="closeModal()">إلغاء</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- ============================================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================================ -->
     <script>
         // ============================================================
-        // SIDEBAR TOGGLE
+        // SUPABASE CONFIG
         // ============================================================
-        var sidebar = document.getElementById('sidebar');
-        var sidebarOverlay = document.getElementById('sidebarOverlay');
-        var closeSidebarBtn = document.getElementById('closeSidebar');
-        var navToggle = document.getElementById('navToggle');
-
-        function openSidebar() { sidebar.classList.add('open'); sidebarOverlay.classList.add('active'); document.body.style.overflow = 'hidden'; }
-        function closeSidebar() { sidebar.classList.remove('open'); sidebarOverlay.classList.remove('active'); document.body.style.overflow = ''; }
-        navToggle.addEventListener('click', openSidebar);
-        closeSidebarBtn.addEventListener('click', closeSidebar);
-        sidebarOverlay.addEventListener('click', closeSidebar);
-        document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeSidebar(); closeModal(); } });
-        window.addEventListener('resize', function() { if (window.innerWidth > 768 && sidebar.classList.contains('open')) closeSidebar(); });
+        var SUPABASE_URL = 'https://ykkhkgajzyxsgoamtmnn.supabase.co';
+        var SUPABASE_ANON_KEY = 'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF';
+        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ============================================================
-        // TOAST SYSTEM
+        // HELPERS
         // ============================================================
+        function getToken() {
+            try {
+                var session = localStorage.getItem('rollex_session') || sessionStorage.getItem('rollex_session');
+                if (session) {
+                    var parsed = JSON.parse(session);
+                    if (parsed && parsed.access_token) return parsed.access_token;
+                }
+                return null;
+            } catch (e) { return null; }
+        }
+
+        async function getCompanyId() {
+            try {
+                var token = getToken();
+                if (!token) return null;
+                var res = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=company_id&limit=1', {
+                    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
+                });
+                if (!res.ok) return null;
+                var data = await res.json();
+                return data[0]?.company_id || null;
+            } catch (e) { return null; }
+        }
+
         function showToast(title, message, type) {
             var container = document.getElementById('toastContainer');
             var toast = document.createElement('div');
             toast.className = 'toast';
-            var iconMap = { success: 'fa-check-circle', error: 'fa-times-circle', warning: 'fa-exclamation-triangle' };
-            var iconClass = type || 'warning';
-            if (iconClass === 'success') iconClass = 'success';
-            else if (iconClass === 'error') iconClass = 'error';
-            else iconClass = 'warning';
+            var icons = { success: 'fa-check-circle', error: 'fa-times-circle', warning: 'fa-exclamation-triangle' };
+            var cls = type || 'warning';
+            if (cls === 'success') cls = 'success';
+            else if (cls === 'error') cls = 'error';
+            else cls = 'warning';
             toast.innerHTML = `
-                <div class="toast-icon ${iconClass}"><i class="fas ${iconMap[iconClass] || 'fa-info-circle'}"></i></div>
+                <div class="toast-icon ${cls}"><i class="fas ${icons[cls] || 'fa-info-circle'}"></i></div>
                 <div class="toast-content"><div class="toast-title">${title}</div><div class="toast-message">${message}</div></div>
                 <button class="toast-close"><i class="fas fa-times"></i></button>
             `;
             container.appendChild(toast);
-            requestAnimationFrame(function() { toast.classList.add('show'); });
-            setTimeout(function() {
+            requestAnimationFrame(() => toast.classList.add('show'));
+            setTimeout(() => {
                 toast.classList.remove('show');
-                setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
+                setTimeout(() => { if (toast.parentElement) toast.remove(); }, 300);
             }, 4000);
-            toast.querySelector('.toast-close').addEventListener('click', function() {
+            toast.querySelector('.toast-close').addEventListener('click', () => {
                 toast.classList.remove('show');
-                setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
+                setTimeout(() => { if (toast.parentElement) toast.remove(); }, 300);
             });
         }
 
-        // ============================================================
-        // LOGOUT
-        // ============================================================
+        function formatNumber(num) {
+            var n = parseFloat(num) || 0;
+            return n.toLocaleString('ar-EG', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        }
+
         async function logout() {
             try {
-                var client = getSupabaseClient();
+                var client = supabaseClient;
                 if (client) await client.auth.signOut();
                 localStorage.removeItem('rollex_session');
                 sessionStorage.removeItem('rollex_session');
                 window.location.href = 'login.html';
-            } catch (error) {
-                console.error('❌ خطأ في تسجيل الخروج:', error);
-                window.location.href = 'login.html';
+            } catch (e) { window.location.href = 'login.html'; }
+        }
+
+        // ============================================================
+        // SIDEBAR
+        // ============================================================
+        var sidebar = document.getElementById('sidebar');
+        var overlay = document.getElementById('sidebarOverlay');
+        var hamburger = document.getElementById('hamburger');
+        var main = document.getElementById('main');
+        var mobileOpen = false;
+
+        function toggleSidebar() {
+            if (window.innerWidth <= 768) {
+                mobileOpen = !mobileOpen;
+                sidebar.classList.toggle('open', mobileOpen);
+                overlay.classList.toggle('active', mobileOpen);
+                document.body.style.overflow = mobileOpen ? 'hidden' : '';
+                hamburger.innerHTML = mobileOpen ? '<i class="fas fa-xmark"></i>' : '<i class="fas fa-bars"></i>';
+            } else {
+                var nowCollapsed = sidebar.classList.toggle('collapsed');
+                main.classList.toggle('expanded', nowCollapsed);
             }
         }
-        window.logout = logout;
+        hamburger.addEventListener('click', toggleSidebar);
+        overlay.addEventListener('click', () => { if (window.innerWidth <= 768 && mobileOpen) toggleSidebar(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && window.innerWidth <= 768 && mobileOpen) toggleSidebar(); });
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+                mobileOpen = false;
+                hamburger.innerHTML = '<i class="fas fa-bars"></i>';
+            }
+        });
 
         // ============================================================
         // DOM REFS
@@ -756,71 +802,66 @@
         var entriesBody = document.getElementById('entriesBody');
         var totalCount = document.getElementById('totalCount');
         var noFormulationCount = document.getElementById('noFormulationCount');
-        var filterProduct = document.getElementById('filterProduct');
-        var filterStatus = document.getElementById('filterStatus');
 
         var allProducts = [];
         var allMaterials = [];
         var allFormulations = [];
         var allFormulationItems = [];
         var itemRowCounter = 0;
-        var selectedProductId = '';
-        var selectedMaterialSuggestionIndex = -1;
 
         // ============================================================
-        // GET TABLES
+        // GET DATA
         // ============================================================
         async function getProducts() {
             try {
                 var data = await getTable('products', 'product_code.asc');
                 return data || [];
-            } catch (error) {
-                console.error('❌ خطأ في جلب المنتجات:', error);
-                return [];
-            }
+            } catch (e) { return []; }
         }
 
         async function getMaterials() {
             try {
                 var data = await getTable('materials', 'code.asc');
                 return data || [];
-            } catch (error) {
-                console.error('❌ خطأ في جلب الخامات:', error);
-                return [];
-            }
+            } catch (e) { return []; }
         }
 
         async function getFormulations() {
             try {
                 var data = await getTable('formulations', 'created_at.desc');
                 return data || [];
-            } catch (error) {
-                console.error('❌ خطأ في جلب التركيبات:', error);
-                return [];
-            }
+            } catch (e) { return []; }
         }
 
         async function getFormulationItems() {
             try {
                 var data = await getTable('formulation_items');
                 return data || [];
-            } catch (error) {
-                console.error('❌ خطأ في جلب مكونات التركيبات:', error);
-                return [];
-            }
+            } catch (e) { return []; }
+        }
+
+        async function loadData() {
+            entriesBody.innerHTML = `
+                <tr><td colspan="9"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري التحميل...</p></div></td></tr>
+            `;
+
+            var results = await Promise.all([getProducts(), getMaterials(), getFormulations(), getFormulationItems()]);
+            allProducts = results[0];
+            allMaterials = results[1];
+            allFormulations = results[2];
+            allFormulationItems = results[3];
+
+            displayFormulations();
         }
 
         // ============================================================
-        // CRUD OPERATIONS
+        // CRUD
         // ============================================================
         async function insertFormulation(data) {
             var companyId = await getCompanyId();
             if (!companyId) throw new Error('لم يتم العثور على الشركة');
-            var user = await getCurrentUserProfile();
-            if (!user) throw new Error('فشل جلب المستخدم');
             var payload = {
                 company_id: companyId,
-                user_id: user.id,
                 product_id: data.product_id,
                 product_name: data.product_name,
                 name: data.name || '',
@@ -872,7 +913,7 @@
         }
 
         // ============================================================
-        // COMPUTE FORMULATION COST
+        // COMPUTE COST
         // ============================================================
         function computeFormulationCost(formulationId) {
             var items = allFormulationItems.filter(function(it) { return it.formulation_id == formulationId; });
@@ -882,7 +923,7 @@
         }
 
         // ============================================================
-        // AUTOCOMPLETE - PRODUCT (مثل الفاتورة بالضبط)
+        // AUTOCOMPLETE - PRODUCT
         // ============================================================
         function filterProductSuggestions() {
             var input = document.getElementById('productSearch');
@@ -901,7 +942,7 @@
             });
 
             if (filtered.length === 0) {
-                suggestions.innerHTML = '<div class="no-results">لا توجد نتائج مطابقة</div>';
+                suggestions.innerHTML = '<div class="no-results">لا توجد نتائج</div>';
                 suggestions.style.display = 'block';
                 return;
             }
@@ -909,84 +950,50 @@
             var html = '';
             filtered.slice(0, 10).forEach(function(p) {
                 var displayName = (p.product_code ? p.product_code + ' — ' : '') + p.product_name;
-                html += '<div class="suggestion" onclick="selectProduct(\'' + p.id + '\', \'' + displayName.replace(/'/g, "\\'") + '\', \'' + (p.product_unit || '') + '\')">' +
-                    displayName +
-                    '<span class="suggestion-code">' + (p.product_unit ? p.product_unit : '') + '</span>' +
-                    '</div>';
+                html += `<div class="suggestion" onclick="selectProduct('${p.id}')">
+                    ${displayName}
+                    <span class="code">${p.product_unit || ''}</span>
+                </div>`;
             });
             suggestions.innerHTML = html;
             suggestions.style.display = 'block';
         }
 
-        function selectProduct(id, name, unit) {
-            selectedProductId = id;
-            document.getElementById('productSearch').value = name;
+        function selectProduct(id) {
+            var product = allProducts.find(function(p) { return p.id == id; });
+            if (!product) return;
+
+            document.getElementById('productSearch').value = (product.product_code ? product.product_code + ' — ' : '') + product.product_name;
             document.getElementById('editProductId').value = id;
             document.getElementById('productSuggestions').style.display = 'none';
-            if (unit && !document.getElementById('formOutputUnit').value) {
-                document.getElementById('formOutputUnit').value = unit;
+
+            if (product.product_unit && !document.getElementById('formOutputUnit').value) {
+                document.getElementById('formOutputUnit').value = product.product_unit;
             }
-            var product = allProducts.find(function(p) { return p.id == id; });
-            if (product) {
-                document.getElementById('formName').value = product.product_name ? 'تركيبة ' + product.product_name : '';
+            if (product.product_name) {
+                document.getElementById('formName').value = 'تركيبة ' + product.product_name;
             }
         }
-        window.selectProduct = selectProduct;
 
-        // أحداث البحث عن المنتج (أسفل/أعلى/Enter/Escape)
+        document.getElementById('productSearch').addEventListener('input', filterProductSuggestions);
         document.getElementById('productSearch').addEventListener('keydown', function(e) {
-            var items = document.querySelectorAll('#productSuggestions .suggestion');
-            
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                if (items.length > 0) {
-                    var currentIndex = -1;
-                    items.forEach(function(item, idx) {
-                        if (item.classList.contains('active')) currentIndex = idx;
-                    });
-                    var nextIndex = Math.min(currentIndex + 1, items.length - 1);
-                    items.forEach(function(item) { item.classList.remove('active'); });
-                    items[nextIndex].classList.add('active');
-                    items[nextIndex].scrollIntoView({ block: 'nearest' });
-                }
-            }
-            
-            if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                if (items.length > 0) {
-                    var currentIndex = items.length;
-                    items.forEach(function(item, idx) {
-                        if (item.classList.contains('active')) currentIndex = idx;
-                    });
-                    var prevIndex = Math.max(currentIndex - 1, 0);
-                    items.forEach(function(item) { item.classList.remove('active'); });
-                    items[prevIndex].classList.add('active');
-                    items[prevIndex].scrollIntoView({ block: 'nearest' });
-                }
-            }
-            
-            if (e.key === 'Enter') {
-                var activeItem = document.querySelector('#productSuggestions .suggestion.active');
-                if (activeItem) {
-                    e.preventDefault();
-                    activeItem.click();
-                }
-            }
-            
             if (e.key === 'Escape') {
                 document.getElementById('productSuggestions').style.display = 'none';
             }
+            if (e.key === 'Enter') {
+                var active = document.querySelector('#productSuggestions .suggestion.active');
+                if (active) { active.click(); }
+            }
         });
-
         document.addEventListener('click', function(e) {
-            var wrapper = document.getElementById('productAutocomplete');
+            var wrapper = document.getElementById('productSearch').parentElement;
             if (wrapper && !wrapper.contains(e.target)) {
                 document.getElementById('productSuggestions').style.display = 'none';
             }
         });
 
         // ============================================================
-        // AUTOCOMPLETE - MATERIAL (مثل الفاتورة بالضبط مع أسهم)
+        // AUTOCOMPLETE - MATERIAL
         // ============================================================
         function getMaterialSuggestions(inputId, rowId) {
             var input = document.getElementById(inputId);
@@ -1008,7 +1015,7 @@
             });
 
             if (filtered.length === 0) {
-                suggestionsDiv.innerHTML = '<div class="no-results">لا توجد نتائج مطابقة</div>';
+                suggestionsDiv.innerHTML = '<div class="no-results">لا توجد نتائج</div>';
                 suggestionsDiv.style.display = 'block';
                 return;
             }
@@ -1016,110 +1023,54 @@
             var html = '';
             filtered.slice(0, 10).forEach(function(m) {
                 var displayName = (m.code ? m.code + ' — ' : '') + m.name;
-                html += '<div class="suggestion" onclick="selectMaterial(\'' + m.id + '\', \'' + displayName.replace(/'/g, "\\'") + '\', \'' + (m.unit || '') + '\', ' + (m.cost_price || 0) + ', \'' + rowId + '\')">' +
-                    displayName +
-                    '<span class="suggestion-code">' + (m.unit ? m.unit : '') + ' | ' + (m.cost_price || 0) + ' ج.م</span>' +
-                    '</div>';
+                html += `<div class="suggestion" onclick="selectMaterial('${m.id}', '${rowId}')">
+                    ${displayName}
+                    <span class="code">${m.unit || ''} | ${m.cost_price || 0} ج.م</span>
+                </div>`;
             });
             suggestionsDiv.innerHTML = html;
             suggestionsDiv.style.display = 'block';
         }
 
-        // أحداث البحث عن الخامة (أسفل/أعلى/Enter/Escape)
-        document.addEventListener('keydown', function(e) {
-            if (e.target && e.target.classList.contains('item-material-input')) {
-                var inputId = e.target.id;
-                var rowId = inputId.replace('-input', '');
-                var items = document.querySelectorAll('#' + rowId + '-suggestions .suggestion');
-                
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    if (items.length > 0) {
-                        var currentIndex = -1;
-                        items.forEach(function(item, idx) {
-                            if (item.classList.contains('active')) currentIndex = idx;
-                        });
-                        var nextIndex = Math.min(currentIndex + 1, items.length - 1);
-                        items.forEach(function(item) { item.classList.remove('active'); });
-                        items[nextIndex].classList.add('active');
-                        items[nextIndex].scrollIntoView({ block: 'nearest' });
-                    }
-                }
-                
-                if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    if (items.length > 0) {
-                        var currentIndex = items.length;
-                        items.forEach(function(item, idx) {
-                            if (item.classList.contains('active')) currentIndex = idx;
-                        });
-                        var prevIndex = Math.max(currentIndex - 1, 0);
-                        items.forEach(function(item) { item.classList.remove('active'); });
-                        items[prevIndex].classList.add('active');
-                        items[prevIndex].scrollIntoView({ block: 'nearest' });
-                    }
-                }
-                
-                if (e.key === 'Enter') {
-                    var activeItem = document.querySelector('#' + rowId + '-suggestions .suggestion.active');
-                    if (activeItem) {
-                        e.preventDefault();
-                        activeItem.click();
-                    }
-                }
-                
-                if (e.key === 'Escape') {
-                    var suggestionsDiv = document.getElementById(rowId + '-suggestions');
-                    if (suggestionsDiv) suggestionsDiv.style.display = 'none';
-                }
-            }
-        });
-
-        function selectMaterial(id, name, unit, cost, rowId) {
-            var row = document.getElementById(rowId);
-            if (!row) return;
-
+        function selectMaterial(id, rowId) {
             var material = allMaterials.find(function(m) { return m.id == id; });
             if (!material) return;
+
+            var row = document.getElementById(rowId);
+            if (!row) return;
 
             var input = row.querySelector('.item-material-input');
             var unitSpan = row.querySelector('.item-unit');
             var costSpan = row.querySelector('.item-cost');
 
-            var hiddenInput = row.querySelector('.item-material-id');
-            if (!hiddenInput) {
+            var hidden = row.querySelector('.item-material-id');
+            if (!hidden) {
                 var h = document.createElement('input');
                 h.type = 'hidden';
                 h.className = 'item-material-id';
                 row.appendChild(h);
-                hiddenInput = h;
+                hidden = h;
             }
-            hiddenInput.value = id;
+            hidden.value = id;
 
             if (input) {
-                input.value = name;
+                input.value = (material.code ? material.code + ' — ' : '') + material.name;
                 input.dataset.materialId = id;
             }
-            unitSpan.textContent = material.unit || '';
-            costSpan.dataset.unitCost = material.cost_price || 0;
-            costSpan.textContent = '0';
+            if (unitSpan) unitSpan.textContent = material.unit || '';
+            if (costSpan) {
+                costSpan.dataset.unitCost = material.cost_price || 0;
+                costSpan.textContent = '0';
+            }
 
             var suggestionsDiv = document.getElementById(rowId + '-suggestions');
             if (suggestionsDiv) suggestionsDiv.style.display = 'none';
 
-            var qtyInput = row.querySelector('.item-qty');
-            if (qtyInput && qtyInput.value) {
-                var qty = parseFloat(qtyInput.value) || 0;
-                var unitCost = material.cost_price || 0;
-                costSpan.textContent = (qty * unitCost).toFixed(2);
-            }
-
             recalcTotals();
         }
-        window.selectMaterial = selectMaterial;
 
         // ============================================================
-        // ITEM ROWS (ديناميكية مثل الفاتورة)
+        // ITEM ROWS
         // ============================================================
         function addItemRow(prefill) {
             itemRowCounter++;
@@ -1130,15 +1081,23 @@
             row.className = 'item-row';
             row.id = rowId;
 
-            row.innerHTML =
-                '<div class="autocomplete-wrapper" style="flex:2;min-width:0;position:relative;">' +
-                '<input type="text" class="item-material-input" placeholder="ابحث عن خامة..." oninput="getMaterialSuggestions(this.id, \'' + rowId + '\')" autocomplete="off" id="' + rowId + '-input" />' +
-                '<div class="autocomplete-suggestions" id="' + rowId + '-suggestions"></div>' +
-                '</div>' +
-                '<input type="number" class="item-qty" placeholder="الكمية" min="0.01" step="0.01" value="' + (prefill ? prefill.quantity : '') + '" oninput="recalcTotals()" />' +
-                '<span class="item-unit" id="' + rowId + '-unit">' + (prefill ? (prefill.unit || '') : '') + '</span>' +
-                '<span class="item-cost" id="' + rowId + '-cost" data-unit-cost="' + (prefill ? prefill.unit_cost : 0) + '">' + formatNumber(prefill ? prefill.quantity * prefill.unit_cost : 0) + '</span>' +
-                '<button type="button" class="item-remove" onclick="removeItemRow(\'' + rowId + '\')"><i class="fas fa-trash"></i></button>';
+            row.innerHTML = `
+                <div class="autocomplete-wrapper" style="flex:2;min-width:0;position:relative;">
+                    <input type="text" class="item-material-input" placeholder="ابحث عن خامة..." 
+                        oninput="getMaterialSuggestions(this.id, '${rowId}')" 
+                        autocomplete="off" id="${rowId}-input" />
+                    <div class="autocomplete-suggestions" id="${rowId}-suggestions"></div>
+                </div>
+                <input type="number" class="item-qty" placeholder="الكمية" min="0.01" step="0.01" 
+                    value="${prefill ? prefill.quantity : ''}" oninput="recalcTotals()" />
+                <span class="item-unit" id="${rowId}-unit">${prefill ? (prefill.unit || '') : ''}</span>
+                <span class="item-cost" id="${rowId}-cost" data-unit-cost="${prefill ? prefill.unit_cost : 0}">
+                    ${formatNumber(prefill ? prefill.quantity * prefill.unit_cost : 0)}
+                </span>
+                <button type="button" class="item-remove" onclick="removeItemRow('${rowId}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
 
             container.appendChild(row);
 
@@ -1168,8 +1127,6 @@
             if (row) row.remove();
             recalcTotals();
         }
-        window.removeItemRow = removeItemRow;
-        window.addItemRow = addItemRow;
 
         function recalcTotals() {
             var rows = document.querySelectorAll('#itemsContainer .item-row');
@@ -1183,7 +1140,7 @@
                 var qty = parseFloat(qtyInput ? qtyInput.value : 0) || 0;
                 var lineCost = qty * unitCost;
 
-                if (costSpan) costSpan.textContent = lineCost.toFixed(2);
+                if (costSpan) costSpan.textContent = formatNumber(lineCost);
                 total += lineCost;
             });
 
@@ -1193,14 +1150,13 @@
             document.getElementById('totalCostDisplay').textContent = formatNumber(total);
             document.getElementById('unitCostDisplay').textContent = formatNumber(unitCostTotal);
         }
-        window.recalcTotals = recalcTotals;
 
         function clearItemRows() {
             document.getElementById('itemsContainer').innerHTML = '';
         }
 
         // ============================================================
-        // OPEN / CLOSE MODAL
+        // MODAL
         // ============================================================
         function openAddModal() {
             document.getElementById('modalTitle').textContent = 'تركيبة جديدة';
@@ -1213,14 +1169,15 @@
             document.getElementById('formStatus').value = 'نشط';
             document.getElementById('formNotes').value = '';
             document.getElementById('productSuggestions').style.display = 'none';
+
             clearItemRows();
             addItemRow();
             recalcTotals();
+
             document.getElementById('formulationModal').classList.add('active');
             document.body.style.overflow = 'hidden';
             setTimeout(function() { document.getElementById('productSearch').focus(); }, 100);
         }
-        window.openAddModal = openAddModal;
 
         function editFormulation(id) {
             var formulation = allFormulations.find(function(f) { return f.id == id; });
@@ -1242,7 +1199,9 @@
 
             clearItemRows();
             var items = allFormulationItems.filter(function(it) { return it.formulation_id == id; });
-            if (items.length === 0) { addItemRow(); } else {
+            if (items.length === 0) {
+                addItemRow();
+            } else {
                 items.forEach(function(it) {
                     addItemRow({
                         material_id: it.material_id,
@@ -1257,13 +1216,11 @@
             document.getElementById('formulationModal').classList.add('active');
             document.body.style.overflow = 'hidden';
         }
-        window.editFormulation = editFormulation;
 
         function closeModal() {
             document.getElementById('formulationModal').classList.remove('active');
             document.body.style.overflow = '';
         }
-        window.closeModal = closeModal;
 
         // ============================================================
         // SAVE FORMULATION
@@ -1359,10 +1316,9 @@
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
         }
-        window.saveFormulation = saveFormulation;
 
         // ============================================================
-        // DELETE FORMULATION
+        // DELETE
         // ============================================================
         function deleteFormulationConfirm(id) {
             if (!confirm('هل أنت متأكد من حذف هذه التركيبة بكل مكوناتها؟')) return;
@@ -1370,158 +1326,54 @@
                 .then(function() { showToast('✅ تم الحذف', 'تم حذف التركيبة بنجاح', 'success'); loadData(); })
                 .catch(function(error) { showToast('❌ خطأ', error.message || 'فشل الحذف', 'error'); });
         }
-        window.deleteFormulationConfirm = deleteFormulationConfirm;
 
         // ============================================================
-        // DISPLAY FORMULATIONS
+        // DISPLAY
         // ============================================================
         function displayFormulations() {
-            var filtered = filterFormulations(allFormulations);
-            totalCount.textContent = filtered.length;
+            totalCount.textContent = allFormulations.length;
 
             var productsWithFormulation = {};
             allFormulations.forEach(function(f) { productsWithFormulation[f.product_id] = true; });
             var noFormulation = allProducts.filter(function(p) { return !productsWithFormulation[p.id]; }).length;
             noFormulationCount.textContent = noFormulation;
 
-            if (filtered.length === 0) {
-                entriesBody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد تركيبات</p></div></td></tr>';
+            if (allFormulations.length === 0) {
+                entriesBody.innerHTML = `
+                    <tr><td colspan="9"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد تركيبات</p></div></td></tr>
+                `;
                 return;
             }
 
             var html = '';
-            filtered.forEach(function(f, index) {
+            allFormulations.forEach(function(f, index) {
                 var costInfo = computeFormulationCost(f.id);
                 var outputQty = parseFloat(f.output_qty) || 0;
                 var unitCost = outputQty > 0 ? (costInfo.total / outputQty) : 0;
                 var statusClass = f.status === 'نشط' ? 'active' : 'inactive';
 
-                html += '<tr>' +
-                    '<td>' + (index + 1) + '</td>' +
-                    '<td style="font-weight:700;">' + (f.product_name || '-') + '</td>' +
-                    '<td>' + (f.name || '-') + '</td>' +
-                    '<td style="text-align:center;">' + formatNumber(outputQty) + ' ' + (f.output_unit || '') + '</td>' +
-                    '<td style="text-align:center;">' + costInfo.itemsCount + '</td>' +
-                    '<td style="text-align:center;">' + formatNumber(costInfo.total) + '</td>' +
-                    '<td style="text-align:center;font-weight:700;color:var(--accent-ink);">' + formatNumber(unitCost) + '</td>' +
-                    '<td><span class="badge-status ' + statusClass + '">' + (f.status || 'نشط') + '</span></td>' +
-                    '<td style="text-align:center;white-space:nowrap;">' +
-                    '<button class="btn-action small" onclick="editFormulation(\'' + f.id + '\')" style="padding:2px 6px;font-size:0.5rem;background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent-soft);"><i class="fas fa-edit"></i></button> ' +
-                    '<button class="btn-action danger small" onclick="deleteFormulationConfirm(\'' + f.id + '\')" style="padding:2px 6px;font-size:0.5rem;"><i class="fas fa-trash"></i></button>' +
-                    '</td></tr>';
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td style="font-weight:700;">${f.product_name || '-'}</td>
+                        <td>${f.name || '-'}</td>
+                        <td style="text-align:center;">${formatNumber(outputQty)} ${f.output_unit || ''}</td>
+                        <td style="text-align:center;">${costInfo.itemsCount}</td>
+                        <td style="text-align:center;">${formatNumber(costInfo.total)}</td>
+                        <td style="text-align:center;font-weight:700;color:var(--gold-dark);">${formatNumber(unitCost)}</td>
+                        <td><span class="badge ${statusClass}">${f.status || 'نشط'}</span></td>
+                        <td style="text-align:center;white-space:nowrap;">
+                            <button class="btn small" onclick="editFormulation('${f.id}')" style="background:var(--gold-glow);color:var(--gold-dark);border-color:var(--gold-glow);">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn danger small" onclick="deleteFormulationConfirm('${f.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
             });
             entriesBody.innerHTML = html;
-        }
-
-        // ============================================================
-        // FILTERS
-        // ============================================================
-        function filterFormulations(formulations) {
-            return formulations.filter(function(f) {
-                var productVal = filterProduct.value.trim().toLowerCase();
-                if (productVal && !(f.product_name || '').toLowerCase().includes(productVal)) return false;
-                var status = filterStatus.value;
-                if (status !== 'all' && (f.status || 'نشط') !== status) return false;
-                return true;
-            });
-        }
-
-        function applyFilters() { displayFormulations(); }
-        window.applyFilters = applyFilters;
-        function resetFilters() { filterProduct.value = ''; filterStatus.value = 'all'; displayFormulations(); }
-        window.resetFilters = resetFilters;
-
-        // ============================================================
-        // IMPORT FROM EXCEL
-        // ============================================================
-        function importFromExcel(event) {
-            var file = event.target.files[0];
-            if (!file) return;
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    var data = new Uint8Array(e.target.result);
-                    var workbook = XLSX.read(data, { type: 'array' });
-                    var sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    var json = XLSX.utils.sheet_to_json(sheet);
-                    if (!json || json.length === 0) { showToast('⚠️ تنبيه', 'الملف فارغ أو غير صحيح', 'warning'); return; }
-                    importFormulationsFromArray(json);
-                } catch (error) {
-                    showToast('❌ خطأ', 'فشل قراءة الملف: ' + error.message, 'error');
-                }
-            };
-            reader.readAsArrayBuffer(file);
-            event.target.value = '';
-        }
-        window.importFromExcel = importFromExcel;
-
-        async function importFormulationsFromArray(data) {
-            var companyId = await getCompanyId();
-            if (!companyId) { showToast('❌ خطأ', 'لم يتم العثور على الشركة', 'error'); return; }
-            var user = await getCurrentUserProfile();
-            if (!user) { showToast('❌ خطأ', 'فشل جلب المستخدم', 'error'); return; }
-
-            var added = 0;
-            for (var i = 0; i < data.length; i++) {
-                try {
-                    var row = data[i];
-                    var productName = (row['المنتج'] || row['product'] || '').trim();
-                    var formulationName = (row['اسم التركيبة'] || row['name'] || '').trim();
-                    var outputQty = parseFloat(row['الكمية الناتجة'] || row['output_qty'] || 0);
-                    var outputUnit = (row['وحدة الناتج'] || row['unit'] || '').trim();
-                    var status = (row['الحالة'] || row['status'] || 'نشط').trim();
-                    var notes = (row['ملاحظات'] || row['notes'] || '').trim();
-
-                    if (!productName || !outputQty || outputQty <= 0) continue;
-
-                    var product = allProducts.find(function(p) {
-                        return (p.product_name || '').toLowerCase() === productName.toLowerCase() ||
-                            (p.product_code || '').toLowerCase() === productName.toLowerCase();
-                    });
-
-                    if (!product) { continue; }
-
-                    var formulationData = {
-                        product_id: product.id,
-                        product_name: product.product_name,
-                        name: formulationName || product.product_name + ' (تركيبة)',
-                        output_qty: outputQty,
-                        output_unit: outputUnit || product.product_unit || '',
-                        status: status === 'غير نشط' ? 'غير نشط' : 'نشط',
-                        notes: notes
-                    };
-
-                    var created = await insertFormulation(formulationData);
-                    var formulationId = created.id;
-
-                    var materialName = (row['الخامة'] || row['material'] || '').trim();
-                    var materialQty = parseFloat(row['كمية الخامة'] || row['material_qty'] || 0);
-                    var materialUnit = (row['وحدة الخامة'] || row['material_unit'] || '').trim();
-
-                    if (materialName && materialQty > 0) {
-                        var material = allMaterials.find(function(m) {
-                            return (m.name || '').toLowerCase() === materialName.toLowerCase() ||
-                                (m.code || '').toLowerCase() === materialName.toLowerCase();
-                        });
-
-                        if (material) {
-                            await insertItems(formulationId, [{
-                                material_id: material.id,
-                                material_name: material.name,
-                                quantity: materialQty,
-                                unit: materialUnit || material.unit || '',
-                                unit_cost: material.cost_price || 0
-                            }]);
-                        }
-                    }
-                    added++;
-                } catch (e) {
-                    console.warn('⚠️ خطأ في السطر ' + (i + 1) + ':', e.message);
-                }
-            }
-
-            showToast('✅ اكتمل الاستيراد', 'تم استيراد ' + added + ' تركيبة', 'success');
-            loadData();
         }
 
         // ============================================================
@@ -1562,21 +1414,48 @@
             XLSX.writeFile(wb, 'التركيبات_' + new Date().toISOString().slice(0, 10) + '.xlsx');
             showToast('✅ تم التصدير', 'تم تصدير ' + data.length + ' تركيبة', 'success');
         }
-        window.exportToExcel = exportToExcel;
 
         // ============================================================
-        // LOAD DATA IN BACKGROUND
+        // INIT
         // ============================================================
-        async function loadData() {
-            entriesBody.innerHTML = '<tr><td colspan="9"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري التحميل...</p></div></td></tr>';
-            var results = await Promise.all([getProducts(), getMaterials(), getFormulations(), getFormulationItems()]);
-            allProducts = results[0];
-            allMaterials = results[1];
-            allFormulations = results[2];
-            allFormulationItems = results[3];
-            displayFormulations();
-        }
+        (async function init() {
+            console.log('🧪 صفحة التركيبات - QuickData ProSoft');
+
+            var token = getToken();
+            if (!token) {
+                entriesBody.innerHTML = `
+                    <tr><td colspan="9"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول</p></div></td></tr>
+                `;
+                setTimeout(function() { window.location.href = 'login.html'; }, 1500);
+                return;
+            }
+
+            await loadData();
+
+            setTimeout(function() {
+                console.log('📡 بدء مراقبة الجلسة');
+                setInterval(async function() {
+                    var t = getToken();
+                    if (!t) { window.location.href = 'login.html'; }
+                }, 30000);
+            }, 3000);
+        })();
+
+        // ============================================================
+        // EXPOSE
+        // ============================================================
+        window.openAddModal = openAddModal;
+        window.editFormulation = editFormulation;
+        window.closeModal = closeModal;
+        window.deleteFormulationConfirm = deleteFormulationConfirm;
+        window.saveFormulation = saveFormulation;
+        window.addItemRow = addItemRow;
+        window.removeItemRow = removeItemRow;
+        window.recalcTotals = recalcTotals;
+        window.exportToExcel = exportToExcel;
         window.loadData = loadData;
+        window.logout = logout;
+        window.formatNumber = formatNumber;
 
         // ============================================================
         // CLOSE MODAL ON OVERLAY CLICK
@@ -1584,62 +1463,6 @@
         document.getElementById('formulationModal').addEventListener('click', function(e) {
             if (e.target === this) closeModal();
         });
-
-        // ============================================================
-        // FORMAT NUMBER
-        // ============================================================
-        function formatNumber(num) {
-            if (num === undefined || num === null) return '0';
-            var n = parseFloat(num);
-            if (isNaN(n)) return '0';
-            return n.toLocaleString('ar-EG', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-        }
-        window.formatNumber = formatNumber;
-
-        // ============================================================
-        // SESSION VALIDATION & INIT
-        // ============================================================
-        function getToken() {
-            try {
-                var stored = localStorage.getItem('rollex_session') || sessionStorage.getItem('rollex_session');
-                if (stored) {
-                    var parsed = JSON.parse(stored);
-                    if (parsed && parsed.access_token) return parsed.access_token;
-                }
-                return null;
-            } catch (e) { return null; }
-        }
-
-        async function verifySessionOrRedirect() {
-            var token = getToken();
-            if (!token) { window.location.href = 'login.html'; return false; }
-            try {
-                var response = await fetch(SUPABASE_URL + '/auth/v1/user', {
-                    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
-                });
-                if (response.ok) return true;
-                window.location.href = 'login.html';
-                return false;
-            } catch (e) { return true; }
-        }
-
-        function startSessionMonitor() {
-            console.log('📡 بدء مراقبة الجلسة');
-            setInterval(async function() {
-                await verifySessionOrRedirect();
-            }, 30000);
-        }
-
-        // ============================================================
-        // INIT
-        // ============================================================
-        (async function init() {
-            console.log('🏭 صفحة التركيبات - QuickData ProSoft');
-            var sessionOk = await verifySessionOrRedirect();
-            if (!sessionOk) return;
-            await loadData();
-            setTimeout(function() { startSessionMonitor(); }, 3000);
-        })();
     </script>
 
 </body>
