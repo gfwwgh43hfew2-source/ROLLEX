@@ -355,17 +355,17 @@
         }
         .modal-box .form-group textarea { min-height:40px; resize:vertical; }
 
-        /* ===== AUTOCOMPLETE ===== */
+        /* ===== AUTOCOMPLETE - مثل الفاتورة بالضبط ===== */
         .autocomplete-wrapper { position:relative; width:100%; }
         .autocomplete-wrapper input { width:100%; }
         .autocomplete-suggestions {
             position:absolute; top:100%; right:0; left:0;
             background:var(--surface); border:1px solid var(--line);
-            border-radius:var(--radius-sm); max-height:140px; overflow-y:auto;
+            border-radius:var(--radius-sm); max-height:160px; overflow-y:auto;
             z-index:1000; display:none; box-shadow:var(--shadow-sm);
         }
         .autocomplete-suggestions .suggestion {
-            padding:4px 10px; cursor:pointer; font-size:0.7rem;
+            padding:5px 10px; cursor:pointer; font-size:0.7rem;
             transition:0.15s; border-bottom:1px solid var(--line-soft);
             display:flex; justify-content:space-between; align-items:center;
         }
@@ -765,6 +765,7 @@
         var allFormulationItems = [];
         var itemRowCounter = 0;
         var selectedProductId = '';
+        var selectedMaterialSuggestionIndex = -1;
 
         // ============================================================
         // GET TABLES
@@ -925,7 +926,6 @@
             if (unit && !document.getElementById('formOutputUnit').value) {
                 document.getElementById('formOutputUnit').value = unit;
             }
-            // تحديد المنتج في الخلفية
             var product = allProducts.find(function(p) { return p.id == id; });
             if (product) {
                 document.getElementById('formName').value = product.product_name ? 'تركيبة ' + product.product_name : '';
@@ -933,14 +933,51 @@
         }
         window.selectProduct = selectProduct;
 
-        // أحداث البحث عن المنتج
+        // أحداث البحث عن المنتج (أسفل/أعلى/Enter/Escape)
         document.getElementById('productSearch').addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') { document.getElementById('productSuggestions').style.display = 'none'; }
+            var items = document.querySelectorAll('#productSuggestions .suggestion');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    var currentIndex = -1;
+                    items.forEach(function(item, idx) {
+                        if (item.classList.contains('active')) currentIndex = idx;
+                    });
+                    var nextIndex = Math.min(currentIndex + 1, items.length - 1);
+                    items.forEach(function(item) { item.classList.remove('active'); });
+                    items[nextIndex].classList.add('active');
+                    items[nextIndex].scrollIntoView({ block: 'nearest' });
+                }
+            }
+            
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    var currentIndex = items.length;
+                    items.forEach(function(item, idx) {
+                        if (item.classList.contains('active')) currentIndex = idx;
+                    });
+                    var prevIndex = Math.max(currentIndex - 1, 0);
+                    items.forEach(function(item) { item.classList.remove('active'); });
+                    items[prevIndex].classList.add('active');
+                    items[prevIndex].scrollIntoView({ block: 'nearest' });
+                }
+            }
+            
             if (e.key === 'Enter') {
-                var firstSuggestion = document.querySelector('#productSuggestions .suggestion');
-                if (firstSuggestion) firstSuggestion.click();
+                var activeItem = document.querySelector('#productSuggestions .suggestion.active');
+                if (activeItem) {
+                    e.preventDefault();
+                    activeItem.click();
+                }
+            }
+            
+            if (e.key === 'Escape') {
+                document.getElementById('productSuggestions').style.display = 'none';
             }
         });
+
         document.addEventListener('click', function(e) {
             var wrapper = document.getElementById('productAutocomplete');
             if (wrapper && !wrapper.contains(e.target)) {
@@ -949,7 +986,7 @@
         });
 
         // ============================================================
-        // AUTOCOMPLETE - MATERIAL (مثل الفاتورة بالضبط)
+        // AUTOCOMPLETE - MATERIAL (مثل الفاتورة بالضبط مع أسهم)
         // ============================================================
         function getMaterialSuggestions(inputId, rowId) {
             var input = document.getElementById(inputId);
@@ -988,6 +1025,56 @@
             suggestionsDiv.style.display = 'block';
         }
 
+        // أحداث البحث عن الخامة (أسفل/أعلى/Enter/Escape)
+        document.addEventListener('keydown', function(e) {
+            if (e.target && e.target.classList.contains('item-material-input')) {
+                var inputId = e.target.id;
+                var rowId = inputId.replace('-input', '');
+                var items = document.querySelectorAll('#' + rowId + '-suggestions .suggestion');
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (items.length > 0) {
+                        var currentIndex = -1;
+                        items.forEach(function(item, idx) {
+                            if (item.classList.contains('active')) currentIndex = idx;
+                        });
+                        var nextIndex = Math.min(currentIndex + 1, items.length - 1);
+                        items.forEach(function(item) { item.classList.remove('active'); });
+                        items[nextIndex].classList.add('active');
+                        items[nextIndex].scrollIntoView({ block: 'nearest' });
+                    }
+                }
+                
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (items.length > 0) {
+                        var currentIndex = items.length;
+                        items.forEach(function(item, idx) {
+                            if (item.classList.contains('active')) currentIndex = idx;
+                        });
+                        var prevIndex = Math.max(currentIndex - 1, 0);
+                        items.forEach(function(item) { item.classList.remove('active'); });
+                        items[prevIndex].classList.add('active');
+                        items[prevIndex].scrollIntoView({ block: 'nearest' });
+                    }
+                }
+                
+                if (e.key === 'Enter') {
+                    var activeItem = document.querySelector('#' + rowId + '-suggestions .suggestion.active');
+                    if (activeItem) {
+                        e.preventDefault();
+                        activeItem.click();
+                    }
+                }
+                
+                if (e.key === 'Escape') {
+                    var suggestionsDiv = document.getElementById(rowId + '-suggestions');
+                    if (suggestionsDiv) suggestionsDiv.style.display = 'none';
+                }
+            }
+        });
+
         function selectMaterial(id, name, unit, cost, rowId) {
             var row = document.getElementById(rowId);
             if (!row) return;
@@ -1020,7 +1107,6 @@
             var suggestionsDiv = document.getElementById(rowId + '-suggestions');
             if (suggestionsDiv) suggestionsDiv.style.display = 'none';
 
-            // حساب التكلفة تلقائياً
             var qtyInput = row.querySelector('.item-qty');
             if (qtyInput && qtyInput.value) {
                 var qty = parseFloat(qtyInput.value) || 0;
@@ -1056,7 +1142,6 @@
 
             container.appendChild(row);
 
-            // Prefill
             if (prefill && prefill.material_id) {
                 var material = allMaterials.find(function(m) { return m.id == prefill.material_id; });
                 if (material) {
@@ -1409,7 +1494,6 @@
                     var created = await insertFormulation(formulationData);
                     var formulationId = created.id;
 
-                    // خامات (إن وجدت)
                     var materialName = (row['الخامة'] || row['material'] || '').trim();
                     var materialQty = parseFloat(row['كمية الخامة'] || row['material_qty'] || 0);
                     var materialUnit = (row['وحدة الخامة'] || row['material_unit'] || '').trim();
@@ -1500,6 +1584,17 @@
         document.getElementById('formulationModal').addEventListener('click', function(e) {
             if (e.target === this) closeModal();
         });
+
+        // ============================================================
+        // FORMAT NUMBER
+        // ============================================================
+        function formatNumber(num) {
+            if (num === undefined || num === null) return '0';
+            var n = parseFloat(num);
+            if (isNaN(n)) return '0';
+            return n.toLocaleString('ar-EG', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        }
+        window.formatNumber = formatNumber;
 
         // ============================================================
         // SESSION VALIDATION & INIT
