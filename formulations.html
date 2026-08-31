@@ -1843,23 +1843,36 @@
         }
 
         async function insertItems(formulationId, items) {
-            var companyId = await getCompanyId();
-            var payload = items.map(function(it) {
-                return {
-                    company_id: companyId,
-                    formulation_id: formulationId,
-                    material_id: it.material_id,
-                    material_name: it.material_name,
-                    quantity: parseFloat(it.quantity) || 0,
-                    unit: it.unit || '',
-                    unit_cost: parseFloat(it.unit_cost) || 0
-                };
-            });
-            for (var i = 0; i < payload.length; i++) {
-                await insertRow('formulation_items', payload[i]);
-            }
-            return true;
-        }
+    var companyId = await getCompanyId();
+    if (!companyId) throw new Error('لم يتم العثور على الشركة');
+    
+    var payload = items.map(function(it) {
+        var qty = parseFloat(it.quantity) || 0;
+        var unitCost = parseFloat(it.unit_cost) || 0;
+        
+        console.log('📦 حفظ خامة:', {
+            material_name: it.material_name,
+            quantity: qty,
+            unit: it.unit,
+            unit_cost: unitCost
+        });
+        
+        return {
+            company_id: companyId,
+            formulation_id: formulationId,
+            material_id: it.material_id,
+            material_name: it.material_name,
+            quantity: qty,
+            unit: it.unit || '',
+            unit_cost: unitCost
+        };
+    });
+    
+    for (var i = 0; i < payload.length; i++) {
+        await insertRow('formulation_items', payload[i]);
+    }
+    return true;
+}
 
         // ============================================================
         // COMPUTE COST
