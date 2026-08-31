@@ -2448,7 +2448,7 @@
             logBox.scrollTop = logBox.scrollHeight;
         }
 
-        function parseImportFile() {
+       function parseImportFile() {
     var file = document.getElementById('importFileInput').files[0];
     if (!file) {
         showToast('⚠️ تنبيه', 'يرجى اختيار ملف Excel', 'warning');
@@ -2461,43 +2461,40 @@
             var data = new Uint8Array(e.target.result);
             var workbook = XLSX.read(data, { type: 'array' });
             var sheet = workbook.Sheets[workbook.SheetNames[0]];
-            
-            // استخدام sheet_to_json مع defval لتجنب القيم الفارغة
-            var rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+            var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
 
-            if (!rows || rows.length === 0) {
-                showToast('⚠️ تنبيه', 'الملف فارغ أو غير صحيح', 'warning');
+            if (!rows || rows.length < 2) {
+                showToast('⚠️ تنبيه', 'الملف فارغ أو لا يحتوي على بيانات كافية', 'warning');
                 return;
             }
 
-            // الحصول على أسماء الأعمدة من الصف الأول
-            var headers = Object.keys(rows[0]);
-            console.log('📋 الأعمدة الموجودة في الملف:', headers);
+            var headers = rows[0].map(function(h) { return String(h || '').trim(); });
+            console.log('📋 الرؤوس الموجودة في الملف:', headers);
 
-            // دالة للبحث عن العمود المناسب
-            function findColumnIndex(possibleNames) {
+            function findColIndex(possibleNames) {
                 for (var i = 0; i < headers.length; i++) {
-                    var clean = String(headers[i] || '').trim();
+                    var clean = headers[i];
                     for (var j = 0; j < possibleNames.length; j++) {
-                        if (clean === possibleNames[j] || clean.includes(possibleNames[j]) || possibleNames[j].includes(clean)) {
-                            return headers[i];
-                        }
+                        if (clean === possibleNames[j]) return i;
+                        if (clean.includes(possibleNames[j]) || possibleNames[j].includes(clean)) return i;
+                        var cleanNoSpace = clean.replace(/\s+/g, '');
+                        var nameNoSpace = possibleNames[j].replace(/\s+/g, '');
+                        if (cleanNoSpace === nameNoSpace) return i;
                     }
                 }
-                return null;
+                return -1;
             }
 
-            // البحث عن أسماء الأعمدة
-            var colCode = findColumnIndex(['رقم التركيبة', 'كود التركيبة', 'كود', 'code', 'رقم']);
-            var colProduct = findColumnIndex(['المنتج', 'product', 'اسم المنتج']);
-            var colName = findColumnIndex(['اسم التركيبة', 'name', 'التركيبة']);
-            var colOutputQty = findColumnIndex(['الكمية الناتجة', 'output_qty', 'كمية الناتج']);
-            var colOutputUnit = findColumnIndex(['وحدة الناتج', 'output_unit', 'وحدة الناتج']);
-            var colMaterial = findColumnIndex(['الخامة', 'material', 'اسم الخامة']);
-            var colMaterialQty = findColumnIndex(['كمية الخامة', 'material_qty', 'كمية', 'الكمية', 'كمية الخامه']);
-            var colMaterialUnit = findColumnIndex(['وحدة الخامة', 'material_unit', 'وحدة الخامه', 'وحدة']);
+            var colCode = findColIndex(['رقم التركيبة', 'كود', 'code']);
+            var colProduct = findColIndex(['المنتج', 'product']);
+            var colName = findColIndex(['اسم التركيبة', 'name']);
+            var colOutputQty = findColIndex(['الكمية الناتجة', 'output_qty']);
+            var colOutputUnit = findColIndex(['وحدة الناتج', 'output_unit']);
+            var colMaterial = findColIndex(['الخامة', 'material']);
+            var colMaterialQty = findColIndex(['كمية الخامة', 'material_qty', 'كمية']);
+            var colMaterialUnit = findColIndex(['وحدة الخامة', 'material_unit']);
 
-            console.log('🔍 أسماء الأعمدة:', {
+            console.log('🔍 فهارس الأعمدة:', {
                 code: colCode,
                 product: colProduct,
                 name: colName,
@@ -2508,51 +2505,62 @@
                 materialUnit: colMaterialUnit
             });
 
-            // التحقق من الأعمدة الأساسية
-            if (!colProduct) {
+            if (colProduct === -1) {
                 showToast('❌ خطأ', 'لم يتم العثور على عمود "المنتج"', 'error');
                 return;
             }
-            if (!colMaterial) {
+            if (colMaterial === -1) {
                 showToast('❌ خطأ', 'لم يتم العثور على عمود "الخامة"', 'error');
                 return;
             }
-            if (!colMaterialQty) {
+            if (colMaterialQty === -1) {
                 showToast('❌ خطأ', 'لم يتم العثور على عمود "كمية الخامة"', 'error');
                 return;
             }
 
             var jsonData = [];
-            
-            rows.forEach(function(row, index) {
-                var rowNum = index + 2;
-                
-                // قراءة الكمية مع معالجة خاصة
+            for (var i = 1; i < rows.length; i++) {
+                var row = rows[i];
+                if (!row || row.length === 0) continue;
+
+                // ===== قراءة كمية الخامة بشكل صحيح =====
                 var qtyValue = row[colMaterialQty];
                 var materialQty = 0;
                 
-                if (qtyValue !== undefined && qtyValue !== null && qtyValue !== '') {
-                    if (typeof qtyValue === 'string') {
-                        qtyValue = qtyValue.replace(',', '.').trim();
+                console.log('🔍 القيمة الخام للكمية (الصف ' + i + '):', qtyValue, 'نوعها:', typeof qtyValue);
+                
+                if (qtyValue !== '' && qtyValue !== null && qtyValue !== undefined) {
+                    // إذا كانت القيمة رقم
+                    if (typeof qtyValue === 'number') {
+                        materialQty = qtyValue;
+                    } 
+                    // إذا كانت القيمة نص
+                    else if (typeof qtyValue === 'string') {
+                        // إزالة المسافات واستبدال الفاصلة بنقطة
+                        var cleaned = qtyValue.trim().replace(/,/g, '.').replace(/\s/g, '');
+                        materialQty = parseFloat(cleaned) || 0;
                     }
-                    materialQty = parseFloat(qtyValue) || 0;
+                    // إذا كانت القيمة شيئاً آخر
+                    else {
+                        materialQty = parseFloat(String(qtyValue)) || 0;
+                    }
                 }
-                
+
+                console.log('📦 الصف ' + i + ' - الخامة: "' + String(row[colMaterial] || '').trim() + '" - الكمية المحولة: ' + materialQty);
+
                 var obj = {
-                    'رقم التركيبة': colCode ? String(row[colCode] || '').trim() : '',
-                    'المنتج': String(row[colProduct] || '').trim(),
-                    'اسم التركيبة': colName ? String(row[colName] || '').trim() : '',
-                    'الكمية الناتجة': colOutputQty ? parseFloat(String(row[colOutputQty]).replace(',', '.')) || 0 : 0,
-                    'وحدة الناتج': colOutputUnit ? String(row[colOutputUnit] || '').trim() : '',
-                    'الخامة': String(row[colMaterial] || '').trim(),
+                    'رقم التركيبة': colCode !== -1 ? String(row[colCode] || '').trim() : '',
+                    'المنتج': colProduct !== -1 ? String(row[colProduct] || '').trim() : '',
+                    'اسم التركيبة': colName !== -1 ? String(row[colName] || '').trim() : '',
+                    'الكمية الناتجة': colOutputQty !== -1 ? parseFloat(String(row[colOutputQty]).replace(/,/g, '.')) || 0 : 0,
+                    'وحدة الناتج': colOutputUnit !== -1 ? String(row[colOutputUnit] || '').trim() : '',
+                    'الخامة': colMaterial !== -1 ? String(row[colMaterial] || '').trim() : '',
                     'كمية الخامة': materialQty,
-                    'وحدة الخامة': colMaterialUnit ? String(row[colMaterialUnit] || '').trim() : ''
+                    'وحدة الخامة': colMaterialUnit !== -1 ? String(row[colMaterialUnit] || '').trim() : ''
                 };
-                
-                console.log('📦 الصف ' + rowNum + ' - الخامة: ' + obj['الخامة'] + ' - الكمية: ' + obj['كمية الخامة']);
-                
+
                 jsonData.push(obj);
-            });
+            }
 
             importData = jsonData;
             importStats.total = jsonData.length;
