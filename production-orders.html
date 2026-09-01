@@ -999,6 +999,9 @@
             </div>
             <form id="orderForm" onsubmit="saveOrder(event)">
 
+                <!-- حقل مخفي لتخزين ID عند التعديل -->
+                <input type="hidden" id="editOrderId" value="" />
+
                 <!-- ===== ORDER HEADER ===== -->
                 <div class="form-row three">
                     <div class="form-group">
@@ -1193,26 +1196,6 @@
                 'ملغي': '<span class="badge-status cancelled">ملغي</span>'
             };
             return map[status] || '<span class="badge-status draft">' + (status || 'مسودة') + '</span>';
-        }
-
-        function getSectionLabel(section) {
-            var map = {
-                'raw': 'المواد الخام',
-                'packaging': 'مواد التعبئة',
-                'additive': 'الأكاسيد والألوان المضافة',
-                'rawakid': 'الكميات المسحوبة من مخزن الرواكد'
-            };
-            return map[section] || section || 'مواد خام';
-        }
-
-        function getSectionIcon(section) {
-            var map = {
-                'raw': '🧪',
-                'packaging': '📦',
-                'additive': '🎨',
-                'rawakid': '♻️'
-            };
-            return map[section] || '📦';
         }
 
         // ============================================================
@@ -1658,7 +1641,7 @@
         }
 
         // ============================================================
-        // GET STOCK FOR MATERIAL IN WAREHOUSE (باستخدام منطق signedQty الصحيح)
+        // GET STOCK FOR MATERIAL IN WAREHOUSE
         // ============================================================
         async function getMaterialStock(materialId, warehouseId) {
             try {
@@ -1671,7 +1654,6 @@
                 var stock = 0;
                 movements.forEach(function(m) {
                     var qty = parseFloat(m.quantity) || 0;
-                    // منطق signedQty من raw-material-stock.html
                     if (m.type === 'وارد') {
                         stock += Math.abs(qty);
                     } else if (m.type === 'منصرف') {
@@ -1720,7 +1702,6 @@
                 var item = previewItems[i];
                 if (item.material_id && (item.quantity || 0) > 0) {
                     var actualWarehouseId = item.warehouse_id;
-                    // If section is rawakid, use rawakid warehouse
                     if (item.section === 'rawakid') {
                         var rawakidWh = allWarehouses.find(function(w) { return w.type === 'rawakid'; });
                         if (rawakidWh) {
@@ -1797,7 +1778,6 @@
                     var actualWarehouseId = item.warehouse_id;
                     var actualWarehouseName = item.warehouse_name;
 
-                    // If section is rawakid, use rawakid warehouse
                     if (item.section === 'rawakid') {
                         var rawakidWh = allWarehouses.find(function(w) { return w.type === 'rawakid'; });
                         if (rawakidWh) {
@@ -1822,7 +1802,7 @@
 
                     await insertRow('production_order_items', itemPayload);
 
-                    // Create stock movement (out) - باستخدام النظام الصحيح: type='منصرف', quantity موجب
+                    // Create stock movement (out)
                     if (actualWarehouseId && (item.quantity || 0) > 0) {
                         var movementPayload = {
                             company_id: companyId,
@@ -1932,7 +1912,6 @@
                     body { padding: 10mm 12mm; background: #fff; font-size: 12px; }
                     .print-wrapper { max-width: 210mm; margin: 0 auto; }
 
-                    /* Header */
                     .print-header {
                         display: flex;
                         justify-content: space-between;
@@ -1947,7 +1926,6 @@
                     .print-header-right { text-align: left; font-size: 11px; color: #2c3644; }
                     .print-header-right div { margin-bottom: 2px; }
 
-                    /* Details */
                     .print-details {
                         display: grid;
                         grid-template-columns: 1fr 1fr 1fr;
@@ -1959,7 +1937,6 @@
                     .print-details .detail-item { font-size: 11px; }
                     .print-details .detail-item strong { display: inline-block; width: 70px; color: #6d7883; }
 
-                    /* Sections */
                     .print-section {
                         margin-bottom: 14px;
                         page-break-inside: avoid;
@@ -1996,7 +1973,6 @@
                         background: #faead0;
                     }
 
-                    /* Signatures */
                     .print-signatures {
                         display: flex;
                         justify-content: space-between;
@@ -2029,7 +2005,6 @@
             <body>
                 <div class="print-wrapper">
 
-                    <!-- Header -->
                     <div class="print-header">
                         <div class="print-header-left">
                             <h2>${productName}</h2>
@@ -2045,7 +2020,6 @@
                         </div>
                     </div>
 
-                    <!-- Details -->
                     <div class="print-details">
                         <div class="detail-item"><strong>مستلم الأمر:</strong> ${receivedBy || '...............'}</div>
                         <div class="detail-item"><strong>المنتج:</strong> ${productName}</div>
@@ -2103,7 +2077,6 @@
                     `;
                 });
 
-                // Fill empty rows for raw materials (up to 29)
                 if (key === 'raw') {
                     var currentRows = sec.items.length;
                     for (var r = currentRows; r < 29; r++) {
@@ -2133,7 +2106,6 @@
                 `;
             });
 
-            // Signatures
             printHtml += `
                     <div class="print-signatures">
                         <div class="sig-item">
@@ -2256,6 +2228,14 @@
             allFormulationItems = results[4];
             allOrders = results[5];
             allOrderItems = results[6];
+
+            console.log('✅ تم تحميل ' + allProducts.length + ' منتج');
+            console.log('✅ تم تحميل ' + allMaterials.length + ' خامة');
+            console.log('✅ تم تحميل ' + allWarehouses.length + ' مخزن');
+            console.log('✅ تم تحميل ' + allFormulations.length + ' تركيبة');
+            console.log('✅ تم تحميل ' + allFormulationItems.length + ' بند تركيبة');
+            console.log('✅ تم تحميل ' + allOrders.length + ' أمر إنتاج');
+            console.log('✅ تم تحميل ' + allOrderItems.length + ' بند أمر إنتاج');
 
             displayOrders();
         }
