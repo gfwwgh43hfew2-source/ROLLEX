@@ -1513,7 +1513,7 @@
                 <div class="view-details">
                     <div class="item"><span class="label">رقم الأمر</span><div class="value">${order.order_no || '—'}</div></div>
                     <div class="item"><span class="label">المنتج</span><div class="value">${order.product_name || '—'}</div></div>
-                    <div class="item"><span class="label">الكمية</span><div class="value">${order.requested_qty || 0} ${order.unit || ''}</div></div>
+                    <div class="item"><span class="label">الكمية</span><div class="value">${order.quantity_produced || 0} ${order.unit || ''}</div></div>
                     <div class="item"><span class="label">العميل</span><div class="value">${order.client_name || '—'}</div></div>
                     <div class="item"><span class="label">اللون</span><div class="value">${order.color || '—'}</div></div>
                     <div class="item"><span class="label">الحالة</span><div class="value">${getStatusBadge(order.status)}</div></div>
@@ -1745,27 +1745,37 @@
                 var orderDay = document.getElementById('orderDay').value || now.toLocaleDateString('ar-EG', { weekday: 'long' });
 
                 var product = allProducts.find(function(p) { return p.id == productId; });
+                var formulation = allFormulations.find(function(f) { return f.id == formulationId; });
 
+                // بناء الـ payload حسب هيكل الجدول الحقيقي
                 var orderPayload = {
                     company_id: companyId,
                     user_id: user.id,
                     order_no: orderNo,
                     file_no: document.getElementById('orderFileNo').value.trim() || null,
                     run_no: document.getElementById('orderRunNo').value.trim() || null,
-                    order_date: orderDate,
                     order_day: orderDay,
-                    product_id: productId,
-                    product_name: product ? product.product_name : '',
-                    formulation_id: formulationId,
-                    requested_qty: qty,
-                    unit: document.getElementById('orderUnit').value.trim() || 'كجم',
                     color: document.getElementById('orderColor').value.trim() || null,
                     client_name: document.getElementById('orderClient').value.trim() || null,
                     location: document.getElementById('orderLocation').value.trim() || null,
                     received_by: document.getElementById('orderReceivedBy').value.trim() || null,
+                    product_id: productId,
+                    // حقول التركيبة
+                    formulation_id: formulationId,
+                    formulation_name: formulation ? formulation.name : '',
+                    // الكمية - نستخدم quantity_produced (العمود الموجود)
+                    quantity_produced: qty,
+                    // نضيف requested_qty للتوافق مع الكود (إذا كان العمود موجوداً)
+                    requested_qty: qty,
+                    unit: document.getElementById('orderUnit').value.trim() || 'كجم',
+                    production_date: orderDate,
                     status: 'مؤكد',
-                    notes: document.getElementById('orderNotes').value.trim() || null
+                    notes: document.getElementById('orderNotes').value.trim() || null,
+                    // حقول إضافية للتوافق
+                    order_date: orderDate
                 };
+
+                console.log('📦 حفظ أمر إنتاج:', orderPayload);
 
                 var orderResult = await insertRow('production_orders', orderPayload);
                 var orderId = orderResult.id;
@@ -2165,9 +2175,9 @@
                     '<td>' + (index + 1) + '</td>' +
                     '<td style="color:var(--accent-ink);font-weight:700;">' + (o.order_no || '-') + '</td>' +
                     '<td style="font-weight:700;">' + (o.product_name || '-') + '</td>' +
-                    '<td>' + formatNumber(o.requested_qty) + ' ' + (o.unit || '') + '</td>' +
+                    '<td>' + formatNumber(o.quantity_produced || o.requested_qty || 0) + ' ' + (o.unit || '') + '</td>' +
                     '<td>' + (o.client_name || '-') + '</td>' +
-                    '<td>' + formatDate(o.order_date) + '</td>' +
+                    '<td>' + formatDate(o.production_date || o.order_date) + '</td>' +
                     '<td>' + getStatusBadge(o.status) + '</td>' +
                     '<td style="text-align:center;white-space:nowrap;">' + actionsHtml + '</td>' +
                     '</tr>';
