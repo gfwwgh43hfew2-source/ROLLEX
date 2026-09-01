@@ -2472,14 +2472,21 @@
             console.log('📋 الرؤوس الموجودة في الملف:', headers);
 
             function findColIndex(possibleNames) {
+                // المرحلة 1: تطابق تام (مع/بدون مسافات) - له الأولوية دائمًا
+                for (var i = 0; i < headers.length; i++) {
+                    var clean = headers[i];
+                    var cleanNoSpace = clean.replace(/\s+/g, '');
+                    for (var j = 0; j < possibleNames.length; j++) {
+                        if (clean === possibleNames[j]) return i;
+                        var nameNoSpace = possibleNames[j].replace(/\s+/g, '');
+                        if (cleanNoSpace === nameNoSpace) return i;
+                    }
+                }
+                // المرحلة 2: تطابق جزئي (فقط إذا لم يوجد تطابق تام لأي عمود)
                 for (var i = 0; i < headers.length; i++) {
                     var clean = headers[i];
                     for (var j = 0; j < possibleNames.length; j++) {
-                        if (clean === possibleNames[j]) return i;
                         if (clean.includes(possibleNames[j]) || possibleNames[j].includes(clean)) return i;
-                        var cleanNoSpace = clean.replace(/\s+/g, '');
-                        var nameNoSpace = possibleNames[j].replace(/\s+/g, '');
-                        if (cleanNoSpace === nameNoSpace) return i;
                     }
                 }
                 return -1;
