@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-client.js"></script>
     <style>
         /* ============================================================
            ROOT VARIABLES — ثيم فاتح وأنيق
@@ -21,17 +20,14 @@
             --bg-input:        rgba(0, 0, 0, 0.03);
             --border-color:    rgba(0, 0, 0, 0.07);
             --border-hover:    rgba(0, 0, 0, 0.15);
-
             --gold:            #c9a030;
             --gold-light:      #dbb84a;
             --gold-dark:       #a88320;
             --gold-glow:       rgba(201, 160, 48, 0.12);
-
             --text-primary:    #1a1a1a;
             --text-secondary:  #4a4a4a;
             --text-muted:      #888888;
             --text-highlight:  #000000;
-
             --green:           #27ae60;
             --green-dark:      #1a7a42;
             --red:             #e74c3c;
@@ -39,7 +35,6 @@
             --blue:            #2980b9;
             --purple:          #8e44ad;
             --teal:            #1abc9c;
-
             --shadow-sm:       0 2px 8px rgba(0, 0, 0, 0.06);
             --shadow-md:       0 4px 20px rgba(0, 0, 0, 0.08);
             --shadow-lg:       0 8px 40px rgba(0, 0, 0, 0.1);
@@ -396,7 +391,7 @@
         }
 
         /* ============================================================
-           SUMMARY
+           SUMMARY BAR
            ============================================================ */
         .summary-bar {
             display: flex;
@@ -450,6 +445,29 @@
             font-size: 1.15rem;
         }
 
+        .summary-bar .refresh-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(201, 160, 48, 0.1);
+            border: 1px solid rgba(201, 160, 48, 0.2);
+            color: var(--gold-dark);
+            font-weight: 600;
+            font-size: 0.7rem;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .summary-bar .refresh-btn:hover {
+            background: rgba(201, 160, 48, 0.2);
+            transform: scale(1.02);
+        }
+
+        .summary-bar .refresh-btn i {
+            font-size: 0.8rem;
+        }
+
         /* ============================================================
            TABLE
            ============================================================ */
@@ -471,7 +489,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.7rem;
-            min-width: 1000px;
+            min-width: 900px;
         }
 
         .table-wrapper table thead th {
@@ -498,7 +516,6 @@
             text-align: center;
             vertical-align: middle;
             transition: 0.2s;
-            cursor: pointer;
         }
 
         .table-wrapper table tbody tr:hover td {
@@ -534,11 +551,6 @@
             font-weight: 500;
         }
 
-        .table-wrapper table tbody td.col-opening {
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
         .table-wrapper table tbody td.col-incoming {
             color: var(--green);
             font-weight: 600;
@@ -566,27 +578,10 @@
             font-size: 0.7rem;
         }
 
-        /* ===== مؤشر النقر ===== */
-        .table-wrapper table tbody tr {
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .table-wrapper table tbody tr:hover {
-            background: var(--gold-glow);
-        }
-
-        .table-wrapper table tbody tr .edit-hint {
-            opacity: 0;
-            transition: 0.3s;
-            font-size: 0.5rem;
-            color: var(--gold-dark);
-            display: inline-block;
-            margin-right: 6px;
-        }
-
-        .table-wrapper table tbody tr:hover .edit-hint {
-            opacity: 1;
+        .table-wrapper table tbody td.col-warehouse {
+            color: var(--blue);
+            font-weight: 500;
+            font-size: 0.6rem;
         }
 
         /* ============================================================
@@ -636,196 +631,6 @@
 
         @keyframes spin {
             to { transform: rotate(360deg); }
-        }
-
-        /* ============================================================
-           MODAL
-           ============================================================ */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(6px);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal-box {
-            background: #ffffff;
-            border-radius: 16px;
-            max-width: 520px;
-            width: 100%;
-            padding: 32px;
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-lg);
-            animation: modalIn 0.3s ease;
-            max-height: 90vh;
-            overflow-y: auto;
-            position: relative;
-        }
-
-        @keyframes modalIn {
-            from {
-                transform: scale(0.96) translateY(20px);
-                opacity: 0;
-            }
-            to {
-                transform: scale(1) translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .modal-box::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            left: 0;
-            height: 4px;
-            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
-            border-radius: 16px 16px 0 0;
-        }
-
-        .modal-box .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 14px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .modal-box .modal-header h3 {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .modal-box .modal-header h3 i {
-            color: var(--gold);
-        }
-
-        .modal-box .modal-header .close-modal {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 1.1rem;
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 8px;
-            transition: 0.3s;
-        }
-
-        .modal-box .modal-header .close-modal:hover {
-            background: var(--bg-primary);
-            color: var(--text-primary);
-        }
-
-        .modal-box .form-group {
-            margin-bottom: 14px;
-        }
-
-        .modal-box .form-group label {
-            display: block;
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: var(--text-secondary);
-            margin-bottom: 4px;
-        }
-
-        .modal-box .form-group label .required {
-            color: var(--red);
-        }
-
-        .modal-box .form-group input,
-        .modal-box .form-group select,
-        .modal-box .form-group textarea {
-            width: 100%;
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-input);
-            color: var(--text-primary);
-            font-size: 0.85rem;
-            font-family: var(--font-display);
-            outline: none;
-            transition: 0.2s;
-        }
-
-        .modal-box .form-group input:focus,
-        .modal-box .form-group select:focus,
-        .modal-box .form-group textarea:focus {
-            border-color: var(--gold);
-            background: #ffffff;
-            box-shadow: 0 0 0 3px rgba(201, 160, 48, 0.1);
-        }
-
-        .modal-box .form-group textarea {
-            min-height: 60px;
-            resize: vertical;
-        }
-
-        .modal-box .form-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .modal-box .form-actions .btn-save {
-            padding: 10px 28px;
-            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: 0.3s;
-            font-family: var(--font-display);
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            box-shadow: 0 4px 15px rgba(201, 160, 48, 0.25);
-        }
-
-        .modal-box .form-actions .btn-save:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(201, 160, 48, 0.35);
-        }
-
-        .modal-box .form-actions .btn-save:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .modal-box .form-actions .btn-cancel {
-            padding: 10px 24px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-card);
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: 0.3s;
-            font-family: var(--font-display);
-        }
-
-        .modal-box .form-actions .btn-cancel:hover {
-            background: var(--bg-primary);
         }
 
         /* ============================================================
@@ -887,6 +692,11 @@
         .toast .toast-icon.warning {
             background: rgba(201, 160, 48, 0.1);
             color: var(--gold-dark);
+        }
+
+        .toast .toast-icon.info {
+            background: rgba(41, 128, 185, 0.1);
+            color: var(--blue);
         }
 
         .toast .toast-content {
@@ -957,21 +767,8 @@
             .logo-icon { width: 36px; height: 36px; font-size: 1rem; }
             .header-actions button { width: 34px; height: 34px; }
 
-            .modal-box {
-                padding: 20px;
-                margin: 10px;
-            }
-            .modal-box .form-actions {
-                flex-direction: column;
-            }
-            .modal-box .form-actions .btn-save {
-                width: 100%;
-                justify-content: center;
-            }
-            .modal-box .form-actions .btn-cancel {
-                width: 100%;
-                justify-content: center;
-            }
+            .toast-container { right: 14px; left: 14px; bottom: 70px; }
+            .toast { min-width: unset; width: 100%; }
         }
 
         @media (max-width: 480px) {
@@ -979,145 +776,41 @@
             .table-wrapper table { font-size: 0.5rem; min-width: 450px; }
             .table-wrapper table thead th,
             .table-wrapper table tbody td { padding: 4px 6px; }
-            .toast-container { right: 14px; left: 14px; bottom: 70px; }
-            .toast { min-width: unset; width: 100%; }
         }
 
         /* ============================================================
            PRINT
            ============================================================ */
         @media print {
-            body {
-                background: #ffffff !important;
-                color: #000000 !important;
-            }
-
-            .no-print {
+            body { background: #ffffff !important; color: #000000 !important; }
+            .no-print { display: none !important; }
+            header, .mobile-overlay, .mobile-menu, .mobile-bottom, .header-actions, .hamburger, nav {
                 display: none !important;
             }
-
-            header,
-            .mobile-overlay,
-            .mobile-menu,
-            .mobile-bottom,
-            .header-actions,
-            .hamburger,
-            nav {
-                display: none !important;
-            }
-
-            .container {
-                padding: 0 !important;
-                max-width: 100% !important;
-            }
-
-            .page-header {
-                padding: 10px 0 15px !important;
-            }
-
-            .page-header .title-main h1 {
-                font-size: 1.4rem !important;
-                color: #000 !important;
-            }
-
-            .page-header .title-main h1 span {
-                color: #000 !important;
-            }
-
-            .page-header .title-main .icon-wrapper {
-                border-color: #ccc !important;
-                background: #f5f5f5 !important;
-            }
-
-            .page-header .title-sub {
-                color: #666 !important;
-                padding-right: 0 !important;
-            }
-
-            .summary-bar {
-                background: #f8f8f8 !important;
-                border: 1px solid #ddd !important;
-                box-shadow: none !important;
-                padding: 10px 16px !important;
-                margin-bottom: 12px !important;
-                border-radius: 4px !important;
-            }
-
-            .summary-bar .total,
-            .summary-bar .count {
-                color: #555 !important;
-            }
-
-            .summary-bar .total span,
-            .summary-bar .count span {
-                color: #000 !important;
-            }
-
-            .table-wrapper {
-                background: #fff !important;
-                border: 1px solid #ddd !important;
-                box-shadow: none !important;
-                border-radius: 4px !important;
-            }
-
-            .table-wrapper table thead th {
-                background: #f0f0f0 !important;
-                color: #333 !important;
-                border-bottom: 2px solid #ccc !important;
-            }
-
-            .table-wrapper table tbody td {
-                color: #333 !important;
-                border-bottom: 1px solid #eee !important;
-            }
-
-            .table-wrapper table tbody tr:hover td {
-                background: transparent !important;
-            }
-
-            .table-wrapper table tbody td.col-code {
-                color: #1a4a66 !important;
-            }
-
-            .table-wrapper table tbody td.col-name {
-                color: #000 !important;
-            }
-
-            .table-wrapper table tbody td.col-balance {
-                color: #1a4a66 !important;
-            }
-
-            .table-wrapper table tbody td.col-total-cost {
-                color: #1a4a66 !important;
-            }
-
-            .table-wrapper table tbody td.col-incoming {
-                color: #1a8a4a !important;
-            }
-
-            .table-wrapper table tbody td.col-outgoing {
-                color: #a93226 !important;
-            }
-
-            .print-footer {
-                text-align: center;
-                border-top: 1px solid #ddd;
-                padding-top: 12px;
-                margin-top: 16px;
-                font-size: 7pt;
-                color: #999;
-            }
-
+            .container { padding: 0 !important; max-width: 100% !important; }
+            .page-header { padding: 10px 0 15px !important; }
+            .page-header .title-main h1 { font-size: 1.4rem !important; color: #000 !important; }
+            .page-header .title-main h1 span { color: #000 !important; }
+            .page-header .title-main .icon-wrapper { border-color: #ccc !important; background: #f5f5f5 !important; }
+            .page-header .title-sub { color: #666 !important; padding-right: 0 !important; }
+            .summary-bar { background: #f8f8f8 !important; border: 1px solid #ddd !important; box-shadow: none !important; padding: 10px 16px !important; margin-bottom: 12px !important; border-radius: 4px !important; }
+            .summary-bar .total, .summary-bar .count { color: #555 !important; }
+            .summary-bar .total span, .summary-bar .count span { color: #000 !important; }
+            .table-wrapper { background: #fff !important; border: 1px solid #ddd !important; box-shadow: none !important; border-radius: 4px !important; }
+            .table-wrapper table thead th { background: #f0f0f0 !important; color: #333 !important; border-bottom: 2px solid #ccc !important; }
+            .table-wrapper table tbody td { color: #333 !important; border-bottom: 1px solid #eee !important; }
+            .table-wrapper table tbody tr:hover td { background: transparent !important; }
+            .table-wrapper table tbody td.col-code { color: #1a4a66 !important; }
+            .table-wrapper table tbody td.col-name { color: #000 !important; }
+            .table-wrapper table tbody td.col-balance { color: #1a4a66 !important; }
+            .table-wrapper table tbody td.col-total-cost { color: #1a4a66 !important; }
+            .table-wrapper table tbody td.col-incoming { color: #1a8a4a !important; }
+            .table-wrapper table tbody td.col-outgoing { color: #a93226 !important; }
+            .table-wrapper table tbody td.col-warehouse { color: #2980b9 !important; }
+            .print-footer { text-align: center; border-top: 1px solid #ddd; padding-top: 12px; margin-top: 16px; font-size: 7pt; color: #999; }
             table { page-break-inside: auto; }
             tr { page-break-inside: avoid; page-break-after: auto; }
             thead { display: table-header-group; }
-
-            .table-wrapper table tbody tr {
-                cursor: default !important;
-            }
-            .table-wrapper table tbody tr .edit-hint {
-                display: none !important;
-            }
         }
     </style>
 </head>
@@ -1187,13 +880,27 @@
                 <div class="icon-wrapper"><i class="fas fa-warehouse"></i></div>
                 <h1>مخزن <span>الإنتاج التام</span></h1>
             </div>
-            <div class="title-sub">انقر على أي صنف لتعديل بياناته — يتم جلب البيانات من شيت المنتجات</div>
+            <div class="title-sub">
+                يتم جلب البيانات من قاعدة البيانات مباشرة — رصيد دقيق من حركات الإنتاج والمبيعات
+                <span style="display:block;font-size:0.7rem;color:var(--text-muted);margin-top:4px;">
+                    <i class="fas fa-database"></i> متصل بـ Supabase · تحديث تلقائي كل 5 دقائق
+                </span>
+            </div>
         </div>
 
-        <!-- ===== SUMMARY ===== -->
+        <!-- ===== SUMMARY BAR ===== -->
         <div class="summary-bar no-print" id="summaryBar">
-            <div class="total"><i class="fas fa-cubes"></i> إجمالي المنتجات: <span id="totalProducts">0</span></div>
-            <div class="count"><i class="fas fa-hand-holding-usd"></i> إجمالي قيمة المخزون: <span id="totalInventoryValue">0</span></div>
+            <div class="total">
+                <i class="fas fa-cubes"></i> 
+                إجمالي المنتجات: <span id="totalProducts">0</span>
+            </div>
+            <div class="count">
+                <i class="fas fa-hand-holding-usd"></i> 
+                إجمالي قيمة المخزون: <span id="totalInventoryValue">0</span>
+            </div>
+            <button class="refresh-btn" onclick="loadInventory()">
+                <i class="fas fa-sync-alt"></i> تحديث
+            </button>
         </div>
 
         <!-- ===== TABLE ===== -->
@@ -1206,12 +913,12 @@
                             <th>كود المنتج</th>
                             <th style="text-align:right;">اسم المنتج</th>
                             <th>الوحده</th>
-                            <th style="text-align:center;">الرصيد الافتتاحي</th>
                             <th style="text-align:center;">الوارد</th>
                             <th style="text-align:center;">الصادر</th>
                             <th style="text-align:center;">الرصيد الحالي</th>
                             <th style="text-align:center;">التكلفه</th>
                             <th style="text-align:center;">اجمالي التكلفه</th>
+                            <th style="text-align:center;">المخزن</th>
                         </tr>
                     </thead>
                     <tbody id="entriesBody">
@@ -1236,55 +943,6 @@
     </div>
 
     <!-- ============================================================
-    EDIT MODAL
-    ============================================================ -->
-    <div class="modal-overlay" id="editModal">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3><i class="fas fa-edit"></i> تعديل المنتج</h3>
-                <button class="close-modal" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
-            </div>
-            <form id="editForm" onsubmit="saveProduct(event)">
-                <input type="hidden" id="editProductCode" />
-                <div class="form-group">
-                    <label>كود المنتج <span class="required">*</span></label>
-                    <input type="text" id="editCode" placeholder="كود المنتج" required />
-                </div>
-                <div class="form-group">
-                    <label>اسم المنتج <span class="required">*</span></label>
-                    <input type="text" id="editName" placeholder="اسم المنتج" required />
-                </div>
-                <div class="form-group">
-                    <label>الوحدة <span class="required">*</span></label>
-                    <select id="editUnit" required>
-                        <option value="كجم">كجم</option>
-                        <option value="لتر">لتر</option>
-                        <option value="قطعة">قطعة</option>
-                        <option value="علبة">علبة</option>
-                        <option value="برميل">برميل</option>
-                        <option value="كيس">كيس</option>
-                        <option value="طن">طن</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>الرصيد الافتتاحي</label>
-                    <input type="number" id="editOpening" placeholder="0" step="0.01" min="0" />
-                </div>
-                <div class="form-group">
-                    <label>التكلفة</label>
-                    <input type="number" id="editCost" placeholder="0.00" step="0.01" min="0" />
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn-save" id="editSubmitBtn">
-                        <i class="fas fa-save"></i> حفظ التغييرات
-                    </button>
-                    <button type="button" class="btn-cancel" onclick="closeEditModal()">إلغاء</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- ============================================================
     TOAST CONTAINER
     ============================================================ -->
     <div class="toast-container" id="toastContainer"></div>
@@ -1294,32 +952,87 @@
     ============================================================ -->
     <script>
         // ============================================================
+        // SUPABASE CONFIGURATION
+        // ============================================================
+        // ⚠️ قم بتغيير هذه القيم إلى بيانات مشروعك الفعلية
+        const SUPABASE_URL = 'https://your-project-id.supabase.co';
+        const SUPABASE_KEY = 'your-anon-public-key';
+
+        // ============================================================
+        // INITIALIZE SUPABASE CLIENT
+        // ============================================================
+        let supabase;
+
+        try {
+            // محاولة استخدام العميل من supabase-client.js
+            if (window.supabase) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            } else {
+                // استخدام العميل المدمج
+                supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
+            }
+            console.log('✅ Supabase client initialized successfully');
+        } catch (error) {
+            console.error('❌ Failed to initialize Supabase client:', error);
+            // إنشاء عميل وهمي لتجنب الأعطال
+            supabase = {
+                from: function() {
+                    return {
+                        select: function() {
+                            return {
+                                order: function() {
+                                    return {
+                                        then: function(callback) {
+                                            callback({
+                                                data: [],
+                                                error: new Error(
+                                                    'Supabase client not properly configured. Please check your SUPABASE_URL and SUPABASE_KEY.'
+                                                    )
+                                            });
+                                            return {
+                                                catch: function() {}
+                                            };
+                                        }
+                                    };
+                                }
+                            };
+                        }
+                    };
+                }
+            };
+        }
+
+        // ============================================================
         // TOAST SYSTEM
         // ============================================================
         function showToast(title, message, type) {
             var container = document.getElementById('toastContainer');
+            if (!container) return;
+
             var toast = document.createElement('div');
             toast.className = 'toast';
 
             var iconMap = {
                 'success': 'fa-check-circle',
                 'error': 'fa-times-circle',
-                'warning': 'fa-exclamation-triangle'
+                'warning': 'fa-exclamation-triangle',
+                'info': 'fa-info-circle'
             };
 
-            var iconClass = type || 'warning';
+            var iconClass = type || 'info';
 
             toast.innerHTML = `
                 <div class="toast-icon ${iconClass}"><i class="fas ${iconMap[iconClass] || 'fa-info-circle'}"></i></div>
                 <div class="toast-content">
-                    <div class="toast-title">${title}</div>
-                    <div class="toast-message">${message}</div>
+                    <div class="toast-title">${title || 'تنبيه'}</div>
+                    <div class="toast-message">${message || ''}</div>
                 </div>
                 <button class="toast-close"><i class="fas fa-times"></i></button>
             `;
 
             container.appendChild(toast);
 
+            // استخدام requestAnimationFrame لضمان تطبيق الأنيميشن
             requestAnimationFrame(function() {
                 toast.classList.add('show');
             });
@@ -1331,7 +1044,7 @@
                         if (toast.parentElement) toast.remove();
                     }, 300);
                 }
-            }, 4000);
+            }, 4500);
 
             toast.addEventListener('click', function(e) {
                 if (e.target.closest('.toast-close') || e.target.closest('.toast-icon')) {
@@ -1345,21 +1058,23 @@
         }
 
         // ============================================================
-        // HEADER SCROLL
+        // HEADER SCROLL EFFECT
         // ============================================================
         var header = document.querySelector('header');
-        window.addEventListener('scroll', function() {
-            if (window.pageYOffset > 10) {
-                header.style.background = 'rgba(255,255,255,0.98)';
-                header.style.borderBottom = '1px solid rgba(0,0,0,0.08)';
-            } else {
-                header.style.background = 'rgba(255,255,255,0.95)';
-                header.style.borderBottom = '1px solid rgba(0,0,0,0.07)';
-            }
-        });
+        if (header) {
+            window.addEventListener('scroll', function() {
+                if (window.pageYOffset > 10) {
+                    header.style.background = 'rgba(255,255,255,0.98)';
+                    header.style.borderBottom = '1px solid rgba(0,0,0,0.08)';
+                } else {
+                    header.style.background = 'rgba(255,255,255,0.95)';
+                    header.style.borderBottom = '1px solid rgba(0,0,0,0.07)';
+                }
+            });
+        }
 
         // ============================================================
-        // MOBILE NAV
+        // MOBILE NAVIGATION
         // ============================================================
         var hamburger = document.getElementById('hamburger');
         var mobileMenu = document.getElementById('mobileMenu');
@@ -1367,46 +1082,46 @@
         var closeMenu = document.getElementById('closeMenu');
 
         function openMenu() {
-            mobileMenu.classList.add('open');
-            mobileOverlay.classList.add('active');
+            if (mobileMenu) mobileMenu.classList.add('open');
+            if (mobileOverlay) mobileOverlay.classList.add('active');
             document.body.style.overflow = 'hidden';
         }
 
         function closeMenuFn() {
-            mobileMenu.classList.remove('open');
-            mobileOverlay.classList.remove('active');
+            if (mobileMenu) mobileMenu.classList.remove('open');
+            if (mobileOverlay) mobileOverlay.classList.remove('active');
             document.body.style.overflow = '';
         }
 
-        hamburger.addEventListener('click', function() {
-            if (mobileMenu.classList.contains('open')) {
-                closeMenuFn();
-            } else {
-                openMenu();
-            }
-        });
+        if (hamburger) {
+            hamburger.addEventListener('click', function() {
+                if (mobileMenu && mobileMenu.classList.contains('open')) {
+                    closeMenuFn();
+                } else {
+                    openMenu();
+                }
+            });
+        }
 
-        closeMenu.addEventListener('click', closeMenuFn);
-        mobileOverlay.addEventListener('click', closeMenuFn);
+        if (closeMenu) {
+            closeMenu.addEventListener('click', closeMenuFn);
+        }
+
+        if (mobileOverlay) {
+            mobileOverlay.addEventListener('click', closeMenuFn);
+        }
 
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && mobileMenu.classList.contains('open')) {
+            if (e.key === 'Escape' && mobileMenu && mobileMenu.classList.contains('open')) {
                 closeMenuFn();
             }
         });
 
         window.addEventListener('resize', function() {
-            if (window.innerWidth > 992 && mobileMenu.classList.contains('open')) {
+            if (window.innerWidth > 992 && mobileMenu && mobileMenu.classList.contains('open')) {
                 closeMenuFn();
             }
         });
-
-        // ============================================================
-        // CONFIGURATION
-        // ============================================================
-        var SHEET_ID = '1bBVMzBc_kJfApP0FXxZEmRwDRcJlNe3hK6MtgZ72aB4';
-        var SHEET_PRODUCTS = 'المنتجات';
-        var SHEET_SALES = 'المبيعات والمرتجعات';
 
         // ============================================================
         // DOM REFS
@@ -1416,13 +1131,7 @@
         var totalInventoryValue = document.getElementById('totalInventoryValue');
 
         // ============================================================
-        // STATE
-        // ============================================================
-        var productsData = [];
-        var salesMapData = {};
-
-        // ============================================================
-        // دالة تنسيق الأرقام
+        // UTILITY FUNCTIONS
         // ============================================================
         function formatNumber(num) {
             if (num === undefined || num === null || isNaN(num)) return '0';
@@ -1435,288 +1144,206 @@
             return Math.round(num).toLocaleString('ar-EG');
         }
 
-        function cleanNumber(value) {
-            if (!value) return 0;
-            if (typeof value === 'number') return value;
-            var cleaned = String(value).replace(/[^0-9.]/g, '');
-            return parseFloat(cleaned) || 0;
+        function getWarehouseName(warehouseId) {
+            var warehouseMap = {
+                '1': 'المخزن الرئيسي',
+                '2': 'المخزن الفرعي',
+                'main': 'المخزن الرئيسي',
+                'sub': 'المخزن الفرعي',
+                'rawakid': 'مخزن الرواكد'
+            };
+            return warehouseMap[warehouseId] || warehouseId || 'غير محدد';
         }
 
         // ============================================================
-        // PARSE CSV LINE
+        // LOAD INVENTORY FROM SUPABASE
         // ============================================================
-        function parseCSVLine(line) {
-            var row = [];
-            var current = '';
-            var insideQuotes = false;
-            for (var i = 0; i < line.length; i++) {
-                var char = line[i];
-                if (char === '"') {
-                    insideQuotes = !insideQuotes;
-                } else if (char === ',' && !insideQuotes) {
-                    row.push(current.trim());
-                    current = '';
-                } else {
-                    current += char;
+        async function loadInventory() {
+            if (!entriesBody) return;
+
+            // عرض حالة التحميل
+            entriesBody.innerHTML = `
+                <tr>
+                    <td colspan="10">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner"></i>
+                            <p>جاري تحميل البيانات...</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            try {
+                // التحقق من اتصال Supabase
+                if (!supabase || typeof supabase.from !== 'function') {
+                    throw new Error('Supabase client not properly initialized. Please check configuration.');
                 }
+
+                // جلب جميع حركات المنتج التام من قاعدة البيانات
+                const { data: movements, error: movementsError } = await supabase
+                    .from('finished_goods_movements')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (movementsError) {
+                    console.error('❌ Error fetching finished goods movements:', movementsError);
+                    throw new Error('فشل جلب حركات المنتج التام: ' + movementsError.message);
+                }
+
+                console.log('📦 Total movements fetched:', movements?.length || 0);
+
+                // إذا لم توجد حركات
+                if (!movements || movements.length === 0) {
+                    entriesBody.innerHTML = `
+                        <tr>
+                            <td colspan="10">
+                                <div class="empty-state">
+                                    <i class="fas fa-box-open"></i>
+                                    <p>لا توجد حركات للمنتج التام</p>
+                                    <div class="sub">
+                                        لم يتم إنتاج أي منتج تام بعد. 
+                                        قم بإنشاء أمر إنتاج لإضافة المنتجات إلى المخزن.
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    if (totalProducts) totalProducts.textContent = '0';
+                    if (totalInventoryValue) totalInventoryValue.textContent = '0';
+                    return;
+                }
+
+                // تجميع الرصيد لكل منتج
+                var productBalances = {};
+
+                movements.forEach(function(movement) {
+                    var productCode = movement.product_code || 'غير محدد';
+                    var quantity = movement.quantity || 0;
+                    var movementType = movement.movement_type || 'incoming';
+                    var warehouseId = movement.warehouse_id || movement.warehouse || '1';
+
+                    // تهيئة المنتج إذا لم يكن موجوداً
+                    if (!productBalances[productCode]) {
+                        productBalances[productCode] = {
+                            product_code: productCode,
+                            product_name: movement.product_name || productCode,
+                            unit: movement.unit || 'كجم',
+                            unit_cost: movement.unit_cost || 0,
+                            warehouse_id: warehouseId,
+                            incoming: 0,
+                            outgoing: 0,
+                            balance: 0,
+                            movements: []
+                        };
+                    }
+
+                    // تخزين الحركة للرجوع إليها
+                    productBalances[productCode].movements.push(movement);
+
+                    // تحديث الرصيد حسب نوع الحركة
+                    var typeLower = (movementType || '').toLowerCase();
+                    if (typeLower === 'incoming' || typeLower === 'إنتاج' || typeLower === 'وارد' || 
+                        movementType === 'incoming' || movementType === 'production') {
+                        productBalances[productCode].incoming += quantity;
+                        productBalances[productCode].balance += quantity;
+                    } else if (typeLower === 'outgoing' || typeLower === 'صرف' || typeLower === 'مبيعات' ||
+                        movementType === 'outgoing' || movementType === 'sales') {
+                        productBalances[productCode].outgoing += quantity;
+                        productBalances[productCode].balance -= quantity;
+                    }
+
+                    // تحديث التكلفة إذا كانت موجودة
+                    if (movement.unit_cost && movement.unit_cost > 0) {
+                        productBalances[productCode].unit_cost = movement.unit_cost;
+                    }
+
+                    // تحديث الاسم إذا تغير
+                    if (movement.product_name) {
+                        productBalances[productCode].product_name = movement.product_name;
+                    }
+
+                    // تحديث الوحدة إذا تغيرت
+                    if (movement.unit) {
+                        productBalances[productCode].unit = movement.unit;
+                    }
+
+                    // تحديث المخزن
+                    if (movement.warehouse_id || movement.warehouse) {
+                        productBalances[productCode].warehouse_id = movement.warehouse_id || movement.warehouse;
+                    }
+                });
+
+                // تحويل الكائن إلى مصفوفة وترتيب حسب الكود
+                var products = Object.values(productBalances);
+                products.sort(function(a, b) {
+                    return (a.product_code || '').localeCompare(b.product_code || '');
+                });
+
+                // عرض الجدول
+                renderTable(products);
+
+                console.log('✅ تم تحميل المخزن بنجاح - ' + products.length + ' منتج');
+                showToast('✅ تم التحديث', 'تم تحديث بيانات المخزن بنجاح', 'success');
+
+            } catch (error) {
+                console.error('❌ Error loading inventory:', error);
+                entriesBody.innerHTML = `
+                    <tr>
+                        <td colspan="10">
+                            <div class="empty-state">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <p>حدث خطأ في تحميل البيانات</p>
+                                <div class="sub">${error.message || 'خطأ غير معروف'}</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                showToast('❌ خطأ', error.message || 'حدث خطأ في تحميل البيانات', 'error');
             }
-            row.push(current.trim());
-            return row;
-        }
-
-        // ============================================================
-        // FETCH PRODUCTS
-        // ============================================================
-        function fetchProducts() {
-            var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + SHEET_PRODUCTS;
-            return fetch(url)
-                .then(function(response) {
-                    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
-                    return response.text();
-                })
-                .then(function(csvText) {
-                    var lines = csvText.split('\n').filter(function(line) {
-                        return line.trim() !== '';
-                    });
-                    var products = [];
-                    for (var i = 1; i < lines.length; i++) {
-                        var row = parseCSVLine(lines[i]);
-                        if (row.length < 6) continue;
-                        var code = row[0] ? row[0].trim() : '';
-                        var name1 = row[1] ? row[1].trim() : '';
-                        var name2 = row[2] ? row[2].trim() : '';
-                        var packageType = row[3] ? row[3].trim() : '';
-                        var weight = row[4] ? cleanNumber(row[4]) : 0;
-                        var unit = row[5] ? row[5].trim() : 'كجم';
-                        var openingBalance = row[9] ? cleanNumber(row[9]) : 0;
-                        var cost = row[7] ? cleanNumber(row[7]) : 0;
-
-                        if (!code || code === '' || code === 'كود المنتج') continue;
-                        if (code.match(/Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/i)) continue;
-                        if (code.match(/202[0-9]/)) continue;
-                        if (code.match(/^(Thu|Fri|Sat|Sun|Mon|Tue|Wed)/i)) continue;
-                        if (code.match(/GMT|توقیت|توقيت|EET|EEST/i)) continue;
-                        if (code.match(/\d{2}:\d{2}:\d{2}/)) continue;
-
-                        var fullName = name1;
-                        if (name2 && name2 !== '') {
-                            fullName = fullName + ' - ' + name2;
-                        }
-                        if (!fullName || fullName === '') continue;
-
-                        products.push({
-                            code: code,
-                            name: fullName,
-                            unit: unit || 'كجم',
-                            weight: weight,
-                            package: packageType || '',
-                            openingBalance: openingBalance,
-                            cost: cost
-                        });
-                    }
-                    return products;
-                });
-        }
-
-        // ============================================================
-        // FETCH SALES DATA
-        // ============================================================
-        function fetchSalesData() {
-            var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + SHEET_SALES;
-            return fetch(url)
-                .then(function(response) {
-                    if (!response.ok) throw new Error('HTTP error! status: ' + response.status);
-                    return response.text();
-                })
-                .then(function(csvText) {
-                    var lines = csvText.split('\n').filter(function(line) {
-                        return line.trim() !== '';
-                    });
-                    var salesMap = {};
-                    for (var i = 1; i < lines.length; i++) {
-                        var row = parseCSVLine(lines[i]);
-                        if (row.length < 12) continue;
-                        var productCode = row[7] ? row[7].trim() : '';
-                        var quantity = row[11] ? cleanNumber(row[11]) : 0;
-                        if (productCode && productCode !== '' && productCode !== 'كود الصنف') {
-                            if (!salesMap[productCode]) salesMap[productCode] = 0;
-                            salesMap[productCode] += quantity;
-                        }
-                    }
-                    return salesMap;
-                });
-        }
-
-        // ============================================================
-        // LOAD INVENTORY
-        // ============================================================
-        function loadInventory() {
-            entriesBody.innerHTML = '<tr><td colspan="10"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
-
-            Promise.all([fetchProducts(), fetchSalesData()])
-                .then(function(results) {
-                    productsData = results[0];
-                    salesMapData = results[1];
-
-                    if (!productsData || productsData.length === 0) {
-                        entriesBody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>لا توجد منتجات</p><div class="sub">لم يتم العثور على منتجات في شيت المنتجات</div></div></td></tr>';
-                        return;
-                    }
-
-                    renderTable(productsData, salesMapData);
-
-                    console.log('✅ تم تحميل المخزن - ' + productsData.length + ' منتج');
-                    console.log('📌 الرصيد الافتتاحي يتم جلبه من العامود J (index 9)');
-                })
-                .catch(function(error) {
-                    console.error('Error loading inventory:', error);
-                    entriesBody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p><div class="sub">' +
-                        error.message + '</div></div></td></tr>';
-                    showToast('❌ خطأ', 'حدث خطأ في تحميل البيانات', 'error');
-                });
         }
 
         // ============================================================
         // RENDER TABLE
         // ============================================================
-        function renderTable(products, salesMap) {
+        function renderTable(products) {
+            if (!entriesBody) return;
+
             var html = '';
             var totalProductsCount = products.length;
             var totalInventoryValueSum = 0;
 
             products.forEach(function(product, index) {
-                var openingBalance = product.openingBalance || 0;
-                var soldQuantity = salesMap[product.code] || 0;
-                var currentBalance = openingBalance - soldQuantity;
-                if (currentBalance < 0) currentBalance = 0;
-                var totalCost = currentBalance * product.cost;
+                var balance = product.balance || 0;
+                var unitCost = product.unit_cost || 0;
+                var totalCost = balance * unitCost;
+                var warehouseName = getWarehouseName(product.warehouse_id);
 
                 totalInventoryValueSum += totalCost;
 
-                html += '<tr onclick="openEditModal(\'' + product.code + '\')">' +
-                    '<td class="col-serial">' + (index + 1) + '</td>' +
-                    '<td class="col-code">' + (product.code || '-') + '</td>' +
-                    '<td class="col-name">' + (product.name || '-') + ' <span class="edit-hint"><i class="fas fa-pen"></i></span></td>' +
-                    '<td class="col-unit">' + (product.unit || 'كجم') + '</td>' +
-                    '<td class="col-opening">' + formatNumber(openingBalance) + '</td>' +
-                    '<td class="col-incoming">0</td>' +
-                    '<td class="col-outgoing">' + formatNumber(soldQuantity) + '</td>' +
-                    '<td class="col-balance">' + formatNumber(currentBalance) + '</td>' +
-                    '<td class="col-cost">' + formatNumber(product.cost) + '</td>' +
-                    '<td class="col-total-cost">' + formatNumberWithCommas(totalCost) + '</td>' +
-                    '</tr>';
+                html += `
+                    <tr>
+                        <td class="col-serial">${index + 1}</td>
+                        <td class="col-code">${product.product_code || '-'}</td>
+                        <td class="col-name">${product.product_name || '-'}</td>
+                        <td class="col-unit">${product.unit || 'كجم'}</td>
+                        <td class="col-incoming">${formatNumber(product.incoming || 0)}</td>
+                        <td class="col-outgoing">${formatNumber(product.outgoing || 0)}</td>
+                        <td class="col-balance">${formatNumber(balance)}</td>
+                        <td class="col-cost">${formatNumber(unitCost)}</td>
+                        <td class="col-total-cost">${formatNumberWithCommas(totalCost)}</td>
+                        <td class="col-warehouse">${warehouseName}</td>
+                    </tr>
+                `;
             });
 
             entriesBody.innerHTML = html;
-            totalProducts.textContent = totalProductsCount;
-            totalInventoryValue.textContent = formatNumberWithCommas(totalInventoryValueSum);
+
+            if (totalProducts) totalProducts.textContent = totalProductsCount;
+            if (totalInventoryValue) totalInventoryValue.textContent = formatNumberWithCommas(totalInventoryValueSum);
         }
 
         // ============================================================
-        // OPEN EDIT MODAL
-        // ============================================================
-        function openEditModal(productCode) {
-            var product = productsData.find(function(p) { return p.code === productCode; });
-            if (!product) {
-                showToast('❌ خطأ', 'المنتج غير موجود', 'error');
-                return;
-            }
-
-            document.getElementById('editProductCode').value = product.code;
-            document.getElementById('editCode').value = product.code || '';
-            document.getElementById('editName').value = product.name || '';
-            document.getElementById('editUnit').value = product.unit || 'كجم';
-            document.getElementById('editOpening').value = product.openingBalance || 0;
-            document.getElementById('editCost').value = product.cost || 0;
-
-            document.getElementById('editModal').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        // ============================================================
-        // CLOSE EDIT MODAL
-        // ============================================================
-        function closeEditModal() {
-            document.getElementById('editModal').classList.remove('active');
-            document.body.style.overflow = '';
-        }
-
-        // ============================================================
-        // SAVE PRODUCT
-        // ============================================================
-        async function saveProduct(event) {
-            event.preventDefault();
-
-            var code = document.getElementById('editCode').value.trim();
-            var name = document.getElementById('editName').value.trim();
-            var unit = document.getElementById('editUnit').value;
-            var opening = parseFloat(document.getElementById('editOpening').value) || 0;
-            var cost = parseFloat(document.getElementById('editCost').value) || 0;
-
-            if (!code) {
-                showToast('⚠️ تنبيه', 'يرجى إدخال كود المنتج', 'error');
-                document.getElementById('editCode').focus();
-                return;
-            }
-            if (!name) {
-                showToast('⚠️ تنبيه', 'يرجى إدخال اسم المنتج', 'error');
-                document.getElementById('editName').focus();
-                return;
-            }
-
-            var btn = document.getElementById('editSubmitBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
-
-            try {
-                // ✅ تحديث المنتج في القائمة المحلية
-                var productIndex = productsData.findIndex(function(p) { return p.code === code; });
-                if (productIndex !== -1) {
-                    productsData[productIndex].name = name;
-                    productsData[productIndex].unit = unit;
-                    productsData[productIndex].openingBalance = opening;
-                    productsData[productIndex].cost = cost;
-                }
-
-                // ✅ إعادة عرض الجدول
-                renderTable(productsData, salesMapData);
-
-                showToast('✅ تم التحديث', 'تم تحديث بيانات المنتج "' + name + '" بنجاح', 'success');
-
-                // ✅ إغلاق المودال
-                closeEditModal();
-
-            } catch (error) {
-                console.error('❌ خطأ في حفظ المنتج:', error);
-                showToast('❌ خطأ', error.message || 'فشل حفظ التغييرات', 'error');
-            }
-
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save"></i> حفظ التغييرات';
-        }
-
-        // ============================================================
-        // CLOSE MODAL ON OVERLAY CLICK
-        // ============================================================
-        document.getElementById('editModal').addEventListener('click', function(e) {
-            if (e.target === this) closeEditModal();
-        });
-
-        // ============================================================
-        // KEYBOARD SHORTCUT
-        // ============================================================
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeEditModal();
-            }
-            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
-                e.preventDefault();
-                printInventory();
-            }
-        });
-
-        // ============================================================
-        // PRINT
+        // PRINT INVENTORY REPORT
         // ============================================================
         function printInventory() {
             var printWindow = window.open('', '_blank', 'width=1100,height=800');
@@ -1725,26 +1352,39 @@
                 return;
             }
 
-            var tableContent = document.querySelector('.table-wrapper table').outerHTML;
+            var tableElement = document.querySelector('.table-wrapper table');
+            if (!tableElement) {
+                showToast('❌ خطأ', 'لا توجد بيانات للطباعة', 'error');
+                return;
+            }
+
+            var tableContent = tableElement.outerHTML;
             var now = new Date();
-            var dateStr = now.toLocaleDateString('ar-EG');
-            var timeStr = now.toLocaleTimeString('ar-EG');
-            var productCount = document.getElementById('totalProducts').textContent;
-            var inventoryValue = document.getElementById('totalInventoryValue').textContent;
+            var dateStr = now.toLocaleDateString('ar-EG', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            var timeStr = now.toLocaleTimeString('ar-EG', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            var productCount = document.getElementById('totalProducts')?.textContent || '0';
+            var inventoryValue = document.getElementById('totalInventoryValue')?.textContent || '0';
 
             printWindow.document.write(`
                 <!DOCTYPE html>
                 <html dir="rtl">
                 <head>
                     <meta charset="UTF-8" />
-                    <title>مخزن الإنتاج التام - شركة رولكس</title>
+                    <title>تقرير مخزن الإنتاج التام - شركة رولكس</title>
                     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
                     <style>
                         * { margin:0; padding:0; box-sizing:border-box; }
                         body { 
                             font-family: 'Cairo', sans-serif; 
-                            background:#fff; 
-                            color:#000; 
+                            background:#ffffff; 
+                            color:#000000; 
                             padding:25px; 
                             font-size:10pt; 
                             line-height:1.4; 
@@ -1757,17 +1397,17 @@
                             margin-bottom:18px; 
                         }
                         .print-header .company-name { 
-                            font-size:18pt; 
+                            font-size:20pt; 
                             font-weight:900; 
                             color:#0a0f1f; 
                         }
                         .print-header .company-sub { 
                             font-size:10pt; 
-                            color:#555; 
+                            color:#555555; 
                             margin-top:2px; 
                         }
                         .print-header .report-title { 
-                            font-size:14pt; 
+                            font-size:15pt; 
                             font-weight:700; 
                             color:#0a0f1f; 
                             margin-top:6px; 
@@ -1779,19 +1419,19 @@
                             padding:10px 16px; 
                             border-radius:6px; 
                             margin-bottom:14px; 
-                            border:1px solid #ddd; 
+                            border:1px solid #dddddd; 
                         }
                         .print-summary .item { 
                             font-size:10pt; 
-                            color:#333; 
+                            color:#333333; 
                         }
                         .print-summary .item span { 
                             font-weight:700; 
                             color:#0a0f1f; 
                         }
                         .table-wrapper { 
-                            background:#fff; 
-                            border:1px solid #ccc; 
+                            background:#ffffff; 
+                            border:1px solid #cccccc; 
                             border-radius:4px; 
                             overflow:hidden; 
                             margin-top:10px; 
@@ -1804,7 +1444,7 @@
                         th { 
                             background:#f0f0f0; 
                             color:#0a0f1f; 
-                            border:1px solid #ccc; 
+                            border:1px solid #cccccc; 
                             padding:7px 10px; 
                             font-size:7pt; 
                             font-weight:700; 
@@ -1812,37 +1452,44 @@
                             text-align:center; 
                         }
                         td { 
-                            color:#333; 
-                            border:1px solid #ddd; 
+                            color:#333333; 
+                            border:1px solid #dddddd; 
                             padding:6px 10px; 
                             font-size:8pt; 
                             text-align:center; 
                         }
                         td.col-name { text-align:right; }
+                        td.col-balance { font-weight:700; color:#0a4a66; }
+                        td.col-total-cost { font-weight:700; color:#0a4a66; }
+                        td.col-incoming { color:#1a8a4a; }
+                        td.col-outgoing { color:#a93226; }
+                        td.col-code { color:#1a4a66; font-weight:700; }
+                        td.col-warehouse { color:#2980b9; }
                         .print-footer { 
                             text-align:center; 
-                            border-top:1px solid #ddd; 
+                            border-top:1px solid #dddddd; 
                             padding-top:12px; 
                             margin-top:18px; 
                             font-size:7pt; 
-                            color:#999; 
+                            color:#999999; 
                         }
                         table { page-break-inside:auto; }
                         tr { page-break-inside:avoid; page-break-after:auto; }
                         thead { display:table-header-group; }
-                        .edit-hint { display:none !important; }
+                        .no-print { display:none !important; }
                     </style>
                 </head>
                 <body>
                     <div class="print-header">
                         <div class="company-name">🏭 شركة رولكس للدهانات والمنتجات الكيماوية</div>
                         <div class="company-sub">السجل التجاري: 0100585230 - 0100374906</div>
-                        <div class="report-title">📦 مخزن الإنتاج التام</div>
+                        <div class="report-title">📦 تقرير مخزن الإنتاج التام</div>
                     </div>
 
                     <div class="print-summary">
                         <div class="item">📊 إجمالي المنتجات: <span>${productCount}</span></div>
                         <div class="item">💰 إجمالي قيمة المخزون: <span>${inventoryValue}</span></div>
+                        <div class="item">📅 التاريخ: <span>${dateStr}</span></div>
                     </div>
 
                     <div class="table-wrapper">
@@ -1856,7 +1503,7 @@
                     <script>
                         window.onload = function() {
                             window.print();
-                            setTimeout(function() { window.close(); }, 1000);
+                            setTimeout(function() { window.close(); }, 1500);
                         };
                     <\/script>
                 </body>
@@ -1868,20 +1515,64 @@
         }
 
         // ============================================================
-        // INIT
+        // KEYBOARD SHORTCUTS
+        // ============================================================
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+P للطباعة
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                printInventory();
+            }
+            // Ctrl+R للتحديث
+            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                e.preventDefault();
+                loadInventory();
+                showToast('🔄 تحديث', 'جاري تحديث بيانات المخزن...', 'info');
+            }
+        });
+
+        // ============================================================
+        // AUTO REFRESH (every 5 minutes)
+        // ============================================================
+        var refreshInterval = setInterval(function() {
+            loadInventory();
+            console.log('🔄 Auto-refresh inventory at ' + new Date().toLocaleTimeString());
+        }, 300000);
+
+        // ============================================================
+        // INITIALIZATION
         // ============================================================
         (function init() {
+            console.log('='.repeat(60));
+            console.log('🏭 نظام إدارة مخزن الإنتاج التام');
+            console.log('📌 متصل بـ Supabase - جدول: finished_goods_movements');
+            console.log('📌 تحديث تلقائي كل 5 دقائق');
+            console.log('📌 Ctrl+P للطباعة | Ctrl+R للتحديث');
+            console.log('='.repeat(60));
+
+            // تحميل البيانات
             loadInventory();
 
-            console.log('🏭 مخزن الإنتاج التام - الثيم الفاتح');
-            console.log('📌 الرصيد الافتتاحي من العامود J (index 9)');
-            console.log('📌 انقر على أي صف لتعديل المنتج');
-            console.log('📌 Ctrl+P للطباعة السريعة');
-
-            setInterval(function() {
-                loadInventory();
-            }, 300000);
+            // عرض تاريخ الطباعة في الفوتر
+            var printDateSpan = document.getElementById('printDate');
+            if (printDateSpan) {
+                var now = new Date();
+                printDateSpan.textContent = now.toLocaleDateString('ar-EG', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
         })();
+
+        // ============================================================
+        // CLEANUP ON PAGE UNLOAD
+        // ============================================================
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
     </script>
 
 </body>
