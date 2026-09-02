@@ -1883,7 +1883,25 @@
                     }
                 }
 
-                showToast('✅ تم الحفظ', 'تم حفظ الأمر #' + orderNo + ' بنجاح', 'success');
+                // ✅ إضافة المنتج النهائي إلى مخزن المنتج التام تلقائياً
+                var finishedGoodsMovement = {
+                    company_id: companyId,
+                    user_id: user.id,
+                    product_id: productId,
+                    product_name: product ? product.product_name : '',
+                    type: 'وارد',
+                    quantity: qty,
+                    unit_cost: 0, // يمكن حسابها من التكلفة الإجمالية لاحقاً
+                    total_value: 0,
+                    reference: orderNo,
+                    notes: 'إنتاج - أمر إنتاج رقم ' + orderNo,
+                    movement_date: new Date().toISOString().split('T')[0]
+                };
+
+                await insertRow('finished_goods_movements', finishedGoodsMovement);
+                console.log('✅ تم إضافة المنتج النهائي إلى مخزن المنتج التام:', finishedGoodsMovement);
+
+                showToast('✅ تم الحفظ', 'تم حفظ الأمر #' + orderNo + ' وإضافة المنتج لمخزن المنتج التام', 'success');
                 closeModal();
                 loadData();
 
