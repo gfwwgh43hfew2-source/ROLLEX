@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
     <title>المشتريات - QuickData ProSoft</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- ===== إضافة الملف المركزي ===== -->
     <script src="supabase-client.js"></script>
     <style>
         :root {
@@ -31,8 +28,8 @@
             --blue: #2f5b8a;
             --radius: 14px;
             --radius-sm: 9px;
-            --shadow: 0 14px 34px -16px rgba(18, 24, 33, 0.28);
-            --shadow-sm: 0 3px 10px -4px rgba(18, 24, 33, 0.18);
+            --shadow: 0 14px 34px -16px rgba(18,24,33,0.28);
+            --shadow-sm: 0 3px 10px -4px rgba(18,24,33,0.18);
             --font-display: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
             --font-mono: 'JetBrains Mono', ui-monospace, monospace;
             --header-height: 60px;
@@ -58,29 +55,19 @@
         .swatch-stripe span:nth-child(3) { background: var(--rust); }
         .swatch-stripe span:nth-child(4) { background: var(--blue); }
 
-        /* ============================================================
-           SIDEBAR OVERLAY
-           ============================================================ */
         .sidebar-overlay {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0,0,0,0.4);
             backdrop-filter: blur(4px);
             z-index: 999;
             opacity: 0;
             transition: opacity 0.3s ease;
             pointer-events: none;
         }
+        .sidebar-overlay.active { opacity: 1; pointer-events: auto; }
 
-        .sidebar-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        /* ============================================================
-           SIDEBAR
-           ============================================================ */
         .sidebar {
             position: fixed;
             top: 0;
@@ -96,10 +83,7 @@
             box-shadow: var(--shadow);
             overflow-y: auto;
         }
-
-        .sidebar.open {
-            right: 0;
-        }
+        .sidebar.open { right: 0; }
 
         .sidebar .brand {
             padding: 20px 18px 16px;
@@ -109,7 +93,6 @@
             border-bottom: 1px solid var(--line);
             flex-shrink: 0;
         }
-
         .sidebar .brand .mark {
             width: 40px;
             height: 40px;
@@ -123,21 +106,18 @@
             color: #fff;
             flex-shrink: 0;
         }
-
         .sidebar .brand .text {
             font-weight: 800;
             font-size: 0.9rem;
             color: var(--ink);
             line-height: 1.2;
         }
-
         .sidebar .brand .text span {
             display: block;
             font-size: 0.55rem;
             font-weight: 600;
             color: var(--ink-mute);
         }
-
         .sidebar .close-btn {
             margin-right: auto;
             background: none;
@@ -149,18 +129,13 @@
             border-radius: var(--radius-sm);
             transition: 0.2s;
         }
-
-        .sidebar .close-btn:hover {
-            background: var(--surface-muted);
-            color: var(--ink);
-        }
+        .sidebar .close-btn:hover { background: var(--surface-muted); color: var(--ink); }
 
         .sidebar .menu {
             flex: 1;
             padding: 12px 14px;
             overflow-y: auto;
         }
-
         .sidebar .menu .label {
             font-size: 0.55rem;
             color: var(--ink-mute);
@@ -169,11 +144,7 @@
             padding: 12px 10px 6px;
             font-weight: 700;
         }
-
-        .sidebar .menu .label:first-child {
-            padding-top: 4px;
-        }
-
+        .sidebar .menu .label:first-child { padding-top: 4px; }
         .sidebar .menu .item {
             display: flex;
             align-items: center;
@@ -188,41 +159,30 @@
             text-decoration: none;
             border-right: 3px solid transparent;
         }
-
-        .sidebar .menu .item:hover {
-            background: var(--surface-muted);
-            color: var(--ink);
-        }
-
+        .sidebar .menu .item:hover { background: var(--surface-muted); color: var(--ink); }
         .sidebar .menu .item.active {
             background: var(--accent-soft);
             color: var(--accent-ink);
             border-right-color: var(--accent);
         }
-
         .sidebar .menu .item i {
             width: 18px;
             text-align: center;
             font-size: 0.85rem;
             color: var(--ink-mute);
         }
-
-        .sidebar .menu .item.active i {
-            color: var(--accent);
-        }
+        .sidebar .menu .item.active i { color: var(--accent); }
 
         .sidebar .footer {
             padding: 12px 16px 16px;
             border-top: 1px solid var(--line);
             flex-shrink: 0;
         }
-
         .sidebar .footer .user {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-
         .sidebar .footer .user .avatar {
             width: 32px;
             height: 32px;
@@ -235,18 +195,15 @@
             font-size: 0.8rem;
             color: var(--ink-mute);
         }
-
         .sidebar .footer .user .info .name {
             font-size: 0.8rem;
             font-weight: 700;
             color: var(--ink);
         }
-
         .sidebar .footer .user .info .role {
             font-size: 0.55rem;
             color: var(--ink-mute);
         }
-
         .sidebar .footer .logout-btn {
             margin-right: auto;
             background: none;
@@ -258,15 +215,8 @@
             border-radius: var(--radius-sm);
             transition: 0.2s;
         }
+        .sidebar .footer .logout-btn:hover { background: var(--surface-muted); color: var(--rust); }
 
-        .sidebar .footer .logout-btn:hover {
-            background: var(--surface-muted);
-            color: var(--rust);
-        }
-
-        /* ============================================================
-           HEADER
-           ============================================================ */
         header {
             position: sticky;
             top: 0;
@@ -292,7 +242,7 @@
         .logo-mark span:nth-child(2) { background: var(--teal); }
         .logo-mark span:nth-child(3) { background: var(--rust); }
         .logo-mark span:nth-child(4) { background: var(--blue); }
-        .logo-text h1 { font-size: 0.95rem; font-weight: 800; color: var(--ink); line-height: 1.25; letter-spacing: -0.2px; }
+        .logo-text h1 { font-size: 0.95rem; font-weight: 800; color: var(--ink); line-height: 1.25; }
         .logo-text span { font-size: 0.62rem; color: var(--ink-mute); display: block; font-weight: 600; }
 
         nav { display: flex; align-items: center; gap: 22px; }
@@ -322,9 +272,6 @@
             padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface);
         }
 
-        /* ============================================================
-           MAIN CONTENT
-           ============================================================ */
         .main-content {
             flex: 1;
             padding: 20px;
@@ -333,7 +280,6 @@
             width: 100%;
         }
 
-        /* ===== PAGE HEADER ===== */
         .page-header {
             display: flex;
             justify-content: space-between;
@@ -368,40 +314,26 @@
             gap: 6px;
             font-family: var(--font-display);
         }
-        .btn-action:hover {
-            background: var(--surface-muted);
-            border-color: var(--line-strong);
-        }
+        .btn-action:hover { background: var(--surface-muted); border-color: var(--line-strong); }
         .btn-action.primary {
             background: var(--accent);
             color: var(--accent-ink);
             border-color: var(--accent);
         }
-        .btn-action.primary:hover {
-            background: var(--accent-ink);
-            color: #fff;
-            border-color: var(--accent-ink);
-        }
+        .btn-action.primary:hover { background: var(--accent-ink); color: #fff; border-color: var(--accent-ink); }
         .btn-action.success {
             background: var(--teal);
             color: #fff;
             border-color: var(--teal);
         }
-        .btn-action.success:hover {
-            background: #156b5d;
-            border-color: #156b5d;
-        }
+        .btn-action.success:hover { background: #156b5d; border-color: #156b5d; }
         .btn-action.danger {
             background: var(--rust-soft);
             color: var(--rust);
             border-color: var(--rust-soft);
         }
-        .btn-action.danger:hover {
-            background: var(--rust);
-            color: #fff;
-        }
+        .btn-action.danger:hover { background: var(--rust); color: #fff; }
 
-        /* ===== FILTERS ===== */
         .filters-section {
             display: flex;
             flex-wrap: wrap;
@@ -462,11 +394,7 @@
             gap: 6px;
             font-family: var(--font-display);
         }
-        .btn-filter:hover {
-            background: var(--accent-ink);
-            color: #fff;
-            transform: translateY(-1px);
-        }
+        .btn-filter:hover { background: var(--accent-ink); color: #fff; transform: translateY(-1px); }
         .btn-reset {
             padding: 8px 16px;
             border-radius: 50px;
@@ -482,12 +410,8 @@
             gap: 6px;
             font-family: var(--font-display);
         }
-        .btn-reset:hover {
-            background: var(--line);
-            color: var(--ink);
-        }
+        .btn-reset:hover { background: var(--line); color: var(--ink); }
 
-        /* ===== SUMMARY ===== */
         .summary-bar {
             display: flex;
             flex-wrap: wrap;
@@ -519,7 +443,6 @@
             font-weight: 700;
         }
 
-        /* ===== TABLE ===== */
         .table-wrapper {
             background: var(--surface);
             border-radius: var(--radius);
@@ -578,7 +501,6 @@
         .loading-state i { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ===== MODAL ===== */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -594,7 +516,7 @@
         .modal-box {
             background: var(--surface);
             border-radius: var(--radius);
-            max-width: 760px;
+            max-width: 520px;
             width: 100%;
             padding: 28px;
             border: 1px solid var(--line);
@@ -632,10 +554,7 @@
             border-radius: var(--radius-sm);
             transition: 0.2s;
         }
-        .modal-box .modal-header .close-modal:hover {
-            background: var(--surface-muted);
-            color: var(--ink);
-        }
+        .modal-box .modal-header .close-modal:hover { background: var(--surface-muted); color: var(--ink); }
 
         .modal-box .form-group { margin-bottom: 14px; }
         .modal-box .form-group label {
@@ -669,28 +588,6 @@
         }
         .modal-box .form-group textarea { min-height: 60px; resize: vertical; }
 
-        /* ===== ITEMS CONTAINER ===== */
-        .items-container { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; margin-bottom: 10px; max-height: 340px; overflow-y: auto; padding-left: 4px; }
-        .item-row { display: flex; gap: 8px; align-items: center; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px; }
-        .item-row .item-material { flex: 2.2; min-width: 0; }
-        .item-row .item-qty { flex: 0.9; min-width: 0; }
-        .item-row .item-unit { flex: 0.7; text-align: center; font-size: 0.68rem; color: var(--muted); }
-        .item-row .item-cost { flex: 1; text-align: center; font-size: 0.68rem; font-weight: 700; color: var(--accent-ink); }
-        .item-row .item-price { flex: 0.9; min-width: 0; }
-        .item-row .item-stock { flex: 0.9; text-align: center; font-size: 0.62rem; }
-        .item-row .item-remove { flex: 0 0 auto; background: none; border: none; color: var(--rust); cursor: pointer; font-size: 0.85rem; padding: 4px; }
-        .item-row .item-remove:hover { color: var(--rust); }
-        .btn-add-item { width: 100%; padding: 8px; border: 1.5px dashed var(--line); border-radius: var(--radius-sm); background: transparent; color: var(--muted); font-family: 'Cairo', sans-serif; font-weight: 600; font-size: 0.72rem; cursor: pointer; transition: 0.2s; }
-        .btn-add-item:hover { border-color: var(--accent); color: var(--accent-ink); }
-
-        .formulation-totals { display: flex; justify-content: space-between; background: var(--accent-soft); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 0.75rem; font-weight: 700; color: var(--accent-ink); margin-bottom: 14px; }
-        .stock-ok { color: var(--teal); font-weight: 700; }
-        .stock-low { color: var(--rust); font-weight: 700; }
-        .mini-table-wrapper { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); margin-top: 6px; margin-bottom: 10px; }
-        .mini-table-wrapper table { min-width: 100%; font-size: 0.68rem; width: 100%; border-collapse: collapse; }
-        .mini-table-wrapper th, .mini-table-wrapper td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--line); }
-        .mini-table-wrapper th { background: var(--surface-2); font-weight: 700; color: var(--muted); font-size: 0.62rem; }
-
         .modal-box .form-actions {
             display: flex;
             gap: 10px;
@@ -709,15 +606,8 @@
             font-family: var(--font-display);
             flex: 1;
         }
-        .modal-box .form-actions .btn-save:hover {
-            background: #156b5d;
-            transform: translateY(-1px);
-        }
-        .modal-box .form-actions .btn-save:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
+        .modal-box .form-actions .btn-save:hover { background: #156b5d; transform: translateY(-1px); }
+        .modal-box .form-actions .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
         .modal-box .form-actions .btn-cancel {
             padding: 10px 24px;
             border-radius: var(--radius-sm);
@@ -730,13 +620,8 @@
             transition: 0.2s;
             font-family: var(--font-display);
         }
-        .modal-box .form-actions .btn-cancel:hover {
-            background: var(--surface-muted);
-        }
+        .modal-box .form-actions .btn-cancel:hover { background: var(--surface-muted); }
 
-        /* ============================================================
-           TOAST
-           ============================================================ */
         .toast-container {
             position: fixed;
             top: 80px;
@@ -773,9 +658,6 @@
         .toast .toast-message { font-size: 0.72rem; color: var(--ink-mute); margin-top: 1px; }
         .toast .toast-close { background: none; border: none; color: var(--ink-mute); cursor: pointer; font-size: 0.85rem; padding: 4px; margin-right: auto; }
 
-        /* ============================================================
-           RESPONSIVE
-           ============================================================ */
         @media (max-width: 768px) {
             .page-header { flex-direction: column; align-items: flex-start; }
             .filters-section { flex-direction: column; align-items: stretch; }
@@ -792,24 +674,16 @@
             .toast-container { top: 70px; right: 10px; max-width: 300px; }
             nav { display: none !important; }
             .hamburger { display: flex !important; }
-            .sidebar {
-                width: 280px;
-                right: calc(-1 * 280px);
-            }
+            .sidebar { width: 280px; right: calc(-1 * 280px); }
             .sidebar.open { right: 0; }
             .sidebar-overlay { display: block; }
         }
-
         @media (max-width: 480px) {
             .toast-container { top: 60px; right: 8px; max-width: 260px; }
-            .toast { padding: 10px 12px; }
-            .toast .toast-title { font-size: 0.75rem; }
-            .toast .toast-message { font-size: 0.65rem; }
             .page-header h1 { font-size: 1.2rem; }
             table { font-size: 0.55rem; min-width: 700px; }
             th, td { padding: 4px 6px; }
         }
-
         @media (min-width: 769px) {
             .hamburger { display: none !important; }
             nav { display: flex !important; }
@@ -821,14 +695,8 @@
 
     <div class="swatch-stripe"><span></span><span></span><span></span><span></span></div>
 
-    <!-- ============================================================
-    SIDEBAR OVERLAY
-    ============================================================ -->
+    <!-- ===== SIDEBAR ===== -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <!-- ============================================================
-    SIDEBAR - القائمة الجانبية
-    ============================================================ -->
     <nav class="sidebar" id="sidebar">
         <div class="brand">
             <div class="mark">🏭</div>
@@ -838,7 +706,6 @@
             </div>
             <button class="close-btn" id="closeSidebar"><i class="fas fa-times"></i></button>
         </div>
-
         <div class="menu">
             <div class="label">القائمة الرئيسية</div>
             <a href="index.html" class="item"><i class="fas fa-house"></i> الرئيسية</a>
@@ -873,7 +740,6 @@
             <a href="settings.html" class="item"><i class="fas fa-gear"></i> الإعدادات</a>
             <a href="help.html" class="item"><i class="fas fa-circle-question"></i> المساعدة</a>
         </div>
-
         <div class="footer">
             <div class="user">
                 <div class="avatar">م</div>
@@ -886,9 +752,7 @@
         </div>
     </nav>
 
-    <!-- ============================================================
-    HEADER
-    ============================================================ -->
+    <!-- ===== HEADER ===== -->
     <header id="header">
         <div class="header-content">
             <div class="logo">
@@ -913,17 +777,12 @@
         </div>
     </header>
 
-    <!-- ============================================================
-    TOAST
-    ============================================================ -->
+    <!-- ===== TOAST ===== -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- ============================================================
-    MAIN CONTENT
-    ============================================================ -->
+    <!-- ===== MAIN CONTENT ===== -->
     <div class="main-content">
 
-        <!-- ===== PAGE HEADER ===== -->
         <div class="page-header">
             <h1><i class="fas fa-shopping-cart"></i> المشتريات</h1>
             <div class="actions">
@@ -933,7 +792,6 @@
             </div>
         </div>
 
-        <!-- ===== FILTERS ===== -->
         <div class="filters-section">
             <div class="filter-group">
                 <label><i class="fas fa-truck"></i> المورد</label>
@@ -947,13 +805,11 @@
             <button class="btn-reset" onclick="resetFilters()"><i class="fas fa-undo"></i> إلغاء</button>
         </div>
 
-        <!-- ===== SUMMARY ===== -->
         <div class="summary-bar">
             <div class="total">عدد فواتير الشراء: <span id="totalCount">0</span></div>
             <div class="count">إجمالي المشتريات: <span id="totalSalesSum">0 ج.م</span></div>
         </div>
 
-        <!-- ===== TABLE ===== -->
         <div class="table-wrapper">
             <table>
                 <thead>
@@ -982,9 +838,7 @@
 
     </div>
 
-    <!-- ============================================================
-    ADD MODAL (فاتورة شراء جديدة)
-    ============================================================ -->
+    <!-- ===== ADD MODAL ===== -->
     <div class="modal-overlay" id="invoiceModal">
         <div class="modal-box">
             <div class="modal-header">
@@ -992,19 +846,23 @@
                 <button class="close-modal" onclick="closeModal()"><i class="fas fa-times"></i></button>
             </div>
             <form id="invoiceForm" onsubmit="saveInvoice(event)">
-
                 <div class="form-group">
                     <label>المورد <span class="required">*</span></label>
                     <select id="invoiceClient" required>
                         <option value="">— اختر المورد —</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>تاريخ الفاتورة</label>
                     <input type="date" id="invoiceDate" />
                 </div>
-
+                <div class="form-group">
+                    <label>المخزن الرئيسي <span class="required">*</span></label>
+                    <select id="mainWarehouse" required>
+                        <option value="">— اختر المخزن الرئيسي —</option>
+                    </select>
+                    <div class="helper-text">سيتم إضافة الخامات إلى هذا المخزن تلقائياً</div>
+                </div>
                 <div class="form-group">
                     <label>أصناف فاتورة الشراء (الخامات) <span class="required">*</span></label>
                     <div class="items-container" id="itemsContainer"></div>
@@ -1012,16 +870,13 @@
                         <i class="fas fa-plus"></i> إضافة خامة
                     </button>
                 </div>
-
                 <div class="formulation-totals">
                     <span>إجمالي الفاتورة: <span id="totalAmountDisplay">0</span> ج.م</span>
                 </div>
-
                 <div class="form-group">
                     <label>ملاحظات</label>
                     <textarea id="invoiceNotes" placeholder="ملاحظات إضافية..."></textarea>
                 </div>
-
                 <div class="form-actions">
                     <button type="submit" class="btn-save" id="submitBtn">
                         <i class="fas fa-save"></i> حفظ وترحيل فاتورة الشراء
@@ -1032,9 +887,7 @@
         </div>
     </div>
 
-    <!-- ============================================================
-    VIEW MODAL (تفاصيل فاتورة)
-    ============================================================ -->
+    <!-- ===== VIEW MODAL ===== -->
     <div class="modal-overlay" id="viewModal">
         <div class="modal-box">
             <div class="modal-header">
@@ -1060,9 +913,7 @@
         </div>
     </div>
 
-    <!-- ============================================================
-    JAVASCRIPT
-    ============================================================ -->
+    <!-- ===== JAVASCRIPT ===== -->
     <script>
         // ============================================================
         // SIDEBAR TOGGLE
@@ -1117,6 +968,7 @@
         var allRawMovements = [];
         var allPurchases = [];
         var allPurchaseItems = [];
+        var allWarehouses = [];
         var itemRowCounter = 0;
 
         // ============================================================
@@ -1141,10 +993,12 @@
             return qty;
         }
 
-        function computeMaterialBalance(materialId) {
+        function computeMaterialBalance(materialId, warehouseId) {
             var balance = 0;
             allRawMovements.forEach(function(mv) {
-                if (mv.material_id == materialId) balance += signedQty(mv);
+                if (mv.material_id == materialId && (!warehouseId || mv.warehouse_id == warehouseId)) {
+                    balance += signedQty(mv);
+                }
             });
             return balance;
         }
@@ -1179,6 +1033,18 @@
                     (m.code ? m.code + ' — ' : '') + m.name + '</option>';
             });
             return html;
+        }
+
+        function populateMainWarehouseSelect() {
+            var select = document.getElementById('mainWarehouse');
+            select.innerHTML = '<option value="">— اختر المخزن الرئيسي —</option>';
+            var mainWarehouses = allWarehouses.filter(function(w) { return w.type === 'main_raw'; });
+            mainWarehouses.forEach(function(w) {
+                var opt = document.createElement('option');
+                opt.value = w.id;
+                opt.textContent = w.name;
+                select.appendChild(opt);
+            });
         }
 
         // ============================================================
@@ -1267,6 +1133,7 @@
             document.getElementById('invoiceForm').reset();
             document.getElementById('invoiceDate').value = new Date().toISOString().split('T')[0];
             populateSupplierSelect();
+            populateMainWarehouseSelect();
             clearItemRows();
             addItemRow();
             recalcTotals();
@@ -1352,7 +1219,7 @@
         }
 
         // ============================================================
-        // SAVE INVOICE
+        // SAVE INVOICE - النسخة المعدلة مع تحديد المخزن الرئيسي
         // ============================================================
         async function saveInvoice(event) {
             event.preventDefault();
@@ -1363,6 +1230,12 @@
 
             if (!clientId) {
                 showToast('⚠️ تنبيه', 'يرجى اختيار المورد', 'error');
+                return;
+            }
+
+            var mainWarehouseId = document.getElementById('mainWarehouse').value;
+            if (!mainWarehouseId) {
+                showToast('⚠️ تنبيه', 'يرجى اختيار المخزن الرئيسي', 'error');
                 return;
             }
 
@@ -1450,6 +1323,7 @@
                         total_value: it.line_total,
                         reference: invoiceNo,
                         notes: 'شراء - فاتورة ' + invoiceNo,
+                        warehouse_id: mainWarehouseId,  // ✅ تحديد المخزن الرئيسي
                         movement_date: invoiceDate
                     });
 
@@ -1547,9 +1421,6 @@
             });
         }
 
-        // ============================================================
-        // APPLY / RESET FILTERS
-        // ============================================================
         function applyFilters() {
             displayInvoices();
         }
@@ -1572,7 +1443,8 @@
                 getTableData('materials', 'code.asc'),
                 getTableData('raw_material_movements'),
                 getTableData('purchase_invoices', 'created_at.desc'),
-                getTableData('purchase_invoice_items')
+                getTableData('purchase_invoice_items'),
+                getTableData('warehouses', 'name.asc')
             ]);
 
             allSuppliers = results[0];
@@ -1580,6 +1452,7 @@
             allRawMovements = results[2];
             allPurchases = results[3];
             allPurchaseItems = results[4];
+            allWarehouses = results[5];
 
             displayInvoices();
         }
@@ -1610,6 +1483,23 @@
         window.viewInvoice = viewInvoice;
         window.closeViewModal = closeViewModal;
         window.deleteInvoiceConfirm = deleteInvoiceConfirm;
+
+        // ============================================================
+        // LOGOUT
+        // ============================================================
+        async function logout() {
+            try {
+                var client = getSupabaseClient();
+                if (client) await client.auth.signOut();
+                localStorage.removeItem('rollex_session');
+                sessionStorage.removeItem('rollex_session');
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('❌ خطأ في تسجيل الخروج:', error);
+                window.location.href = 'login.html';
+            }
+        }
+        window.logout = logout;
 
         // ============================================================
         // INIT
