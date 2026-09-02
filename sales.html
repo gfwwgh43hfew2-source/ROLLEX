@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
-    <title>المبيعات · نظام إدارة المصنع — رولكس للدهانات</title>
+    <title>المشتريات · نظام إدارة المصنع — رولكس للدهانات</title>
 
     <link rel="shortcut icon" href="#">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -499,6 +499,225 @@
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* ========================================================== */
+        /* MODAL */
+        /* ========================================================== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(33,29,26,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal-box {
+            background: var(--surface);
+            border-radius: var(--r-lg);
+            max-width: 560px;
+            width: 100%;
+            padding: 28px;
+            border: 1px solid var(--line);
+            box-shadow: 0 24px 48px -12px rgba(14,28,46,0.35);
+            animation: modalIn 0.3s var(--ease);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        @keyframes modalIn {
+            from { transform: translateY(16px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-box .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-box .modal-header h3 {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-box .modal-header h3 i { color: var(--accent); }
+        .modal-box .modal-header .close-modal {
+            background: none;
+            border: none;
+            color: var(--ink-3);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--r-sm);
+            transition: 0.2s;
+        }
+        .modal-box .modal-header .close-modal:hover { background: var(--surface-2); color: var(--ink); }
+
+        .modal-box .form-group { margin-bottom: 14px; }
+        .modal-box .form-group label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--ink-2);
+            margin-bottom: 4px;
+        }
+        .modal-box .form-group label .required { color: var(--oxide); }
+        .modal-box .form-group input,
+        .modal-box .form-group select,
+        .modal-box .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--line);
+            background: var(--surface-2);
+            color: var(--ink);
+            font-size: 0.85rem;
+            font-family: inherit;
+            outline: none;
+            transition: 0.2s;
+        }
+        .modal-box .form-group input:focus,
+        .modal-box .form-group select:focus,
+        .modal-box .form-group textarea:focus {
+            border-color: var(--accent);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(156,122,60,0.12);
+        }
+        .modal-box .form-group textarea { min-height: 60px; resize: vertical; }
+
+        .modal-box .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal-box .form-actions .btn-save {
+            padding: 10px 28px;
+            background: var(--viridian);
+            color: #fff;
+            border: none;
+            border-radius: var(--r-sm);
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: inherit;
+            flex: 1;
+        }
+        .modal-box .form-actions .btn-save:hover { background: #1f5f4a; transform: translateY(-1px); }
+        .modal-box .form-actions .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+        .modal-box .form-actions .btn-cancel {
+            padding: 10px 24px;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-3);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+        .modal-box .form-actions .btn-cancel:hover { background: var(--surface-2); }
+
+        .modal-box .items-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 8px;
+        }
+        .modal-box .item-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+            gap: 6px;
+            align-items: center;
+            background: var(--surface-2);
+            padding: 6px 8px;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--line-soft);
+        }
+        .modal-box .item-row select,
+        .modal-box .item-row input {
+            padding: 4px 6px;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--line);
+            background: var(--surface);
+            font-size: 0.7rem;
+            font-family: inherit;
+            outline: none;
+            width: 100%;
+        }
+        .modal-box .item-row select:focus,
+        .modal-box .item-row input:focus {
+            border-color: var(--accent);
+        }
+        .modal-box .item-row .item-cost,
+        .modal-box .item-row .item-stock {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--ink-2);
+            text-align: center;
+            white-space: nowrap;
+        }
+        .modal-box .item-row .item-cost { color: var(--viridian); }
+        .modal-box .item-row .item-stock { color: var(--ink-3); }
+        .modal-box .item-row .item-remove {
+            background: none;
+            border: none;
+            color: var(--oxide);
+            cursor: pointer;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            transition: 0.2s;
+        }
+        .modal-box .item-row .item-remove:hover { color: var(--oxide); transform: scale(1.1); }
+
+        .btn-add-item {
+            padding: 6px 14px;
+            border-radius: var(--r-sm);
+            border: 1px dashed var(--accent);
+            background: var(--accent-tint);
+            color: var(--accent-dark);
+            font-weight: 700;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: inherit;
+            width: 100%;
+            justify-content: center;
+        }
+        .btn-add-item:hover { background: var(--accent-soft); }
+
+        .modal-box .formulation-totals {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--ink);
+            padding: 10px 0;
+            border-top: 1px solid var(--line);
+            margin-top: 6px;
+        }
+        .modal-box .formulation-totals span:last-child {
+            color: var(--viridian);
+            font-size: 1rem;
+        }
+        .modal-box .helper-text {
+            font-size: 0.6rem;
+            color: var(--ink-3);
+            margin-top: 2px;
+        }
+
+        /* ========================================================== */
         /* TOAST */
         /* ========================================================== */
         .toast-container {
@@ -630,8 +849,8 @@
             <a href="index.html" class="item" style="--swatch:var(--ink)"><i class="fas fa-house"></i> الرئيسية</a>
 
             <div class="label">المبيعات والمشتريات</div>
-            <a href="sales.html" class="item active" style="--swatch:var(--prussian)"><i class="fas fa-chart-line"></i> المبيعات</a>
-            <a href="purchases.html" class="item" style="--swatch:var(--prussian)"><i class="fas fa-shopping-cart"></i> المشتريات</a>
+            <a href="sales.html" class="item" style="--swatch:var(--prussian)"><i class="fas fa-chart-line"></i> المبيعات</a>
+            <a href="purchases.html" class="item active" style="--swatch:var(--prussian)"><i class="fas fa-shopping-cart"></i> المشتريات</a>
             <a href="returns.html" class="item" style="--swatch:var(--oxide)"><i class="fas fa-undo-alt"></i> مرتجعات المبيعات</a>
             <a href="returns-list.html" class="item" style="--swatch:var(--rust)"><i class="fas fa-list"></i> فواتير المرتجعات</a>
 
@@ -695,11 +914,11 @@
         <header class="header">
             <div class="left">
                 <button class="hamburger" id="hamburger" aria-label="فتح/إغلاق القائمة الجانبية"><i class="fas fa-bars"></i></button>
-                <div class="breadcrumb"><b>المبيعات</b> / كشف الفواتير</div>
+                <div class="breadcrumb"><b>المشتريات</b> / كشف الفواتير</div>
             </div>
             <div class="search">
                 <i class="fas fa-magnifying-glass"></i>
-                <input type="text" placeholder="ابحث عن فاتورة، عميل، أو منتج...">
+                <input type="text" placeholder="ابحث عن فاتورة، مورد، أو خامة...">
             </div>
             <div class="right">
                 <button class="notif" id="notifBtn"><i class="fas fa-bell"></i><span class="dot"></span></button>
@@ -718,16 +937,10 @@
             <!-- PAGE HEADER -->
             <!-- ========================================================== -->
             <div class="page-header">
-                <h1><i class="fas fa-chart-line"></i> المبيعات</h1>
+                <h1><i class="fas fa-shopping-cart"></i> المشتريات</h1>
                 <div class="actions">
-                    <button class="btn-action primary" onclick="window.location.href='add-invoice.html'">
-                        <i class="fas fa-plus"></i> فاتورة بيع جديدة
-                    </button>
-                    <button class="btn-action teal" onclick="window.location.href='sales-sheet.html'">
-                        <i class="fas fa-table"></i> كشف المبيعات
-                    </button>
-                    <button class="btn-action" id="btnExportExcel" style="background:var(--ochre);color:#fff;border-color:var(--ochre);">
-                        <i class="fas fa-file-excel"></i> تصدير إكسيل
+                    <button class="btn-action primary" onclick="openAddModal()">
+                        <i class="fas fa-plus"></i> فاتورة شراء جديدة
                     </button>
                 </div>
             </div>
@@ -737,8 +950,8 @@
             <!-- ========================================================== -->
             <div class="filters-section">
                 <div class="filter-group">
-                    <label><i class="fas fa-user"></i> العميل</label>
-                    <input type="text" id="filterClient" placeholder="اسم العميل..." />
+                    <label><i class="fas fa-truck"></i> المورد</label>
+                    <input type="text" id="filterClient" placeholder="اسم المورد..." />
                 </div>
                 <div class="filter-group">
                     <label><i class="fas fa-hashtag"></i> رقم الفاتورة</label>
@@ -752,8 +965,8 @@
             <!-- SUMMARY BAR -->
             <!-- ========================================================== -->
             <div class="summary-bar">
-                <div class="total">عدد الفواتير: <span id="totalCount">0</span></div>
-                <div class="count">إجمالي المبيعات: <span id="totalSalesSum">0 ج.م</span></div>
+                <div class="total">عدد فواتير الشراء: <span id="totalCount">0</span></div>
+                <div class="count">إجمالي المشتريات: <span id="totalSalesSum">0 ج.م</span></div>
             </div>
 
             <!-- ========================================================== -->
@@ -765,7 +978,7 @@
                         <tr>
                             <th>#</th>
                             <th>رقم الفاتورة</th>
-                            <th>العميل</th>
+                            <th>المورد</th>
                             <th>تاريخ الفاتورة</th>
                             <th style="text-align:center;">عدد الأصناف</th>
                             <th style="text-align:center;">الإجمالي</th>
@@ -785,6 +998,85 @@
                 </table>
             </div>
 
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ADD MODAL -->
+    <!-- ============================================================ -->
+    <div class="modal-overlay" id="invoiceModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-invoice-dollar"></i> فاتورة شراء جديدة</h3>
+                <button class="close-modal" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="invoiceForm" onsubmit="saveInvoice(event)">
+                <div class="form-group">
+                    <label>المورد <span class="required">*</span></label>
+                    <select id="invoiceClient" required>
+                        <option value="">— اختر المورد —</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>تاريخ الفاتورة</label>
+                    <input type="date" id="invoiceDate" />
+                </div>
+                <div class="form-group">
+                    <label>المخزن الرئيسي <span class="required">*</span></label>
+                    <select id="mainWarehouse" required>
+                        <option value="">— اختر المخزن الرئيسي —</option>
+                    </select>
+                    <div class="helper-text">سيتم إضافة الخامات إلى هذا المخزن تلقائياً</div>
+                </div>
+                <div class="form-group">
+                    <label>أصناف فاتورة الشراء (الخامات) <span class="required">*</span></label>
+                    <div class="items-container" id="itemsContainer"></div>
+                    <button type="button" class="btn-add-item" onclick="addItemRow()">
+                        <i class="fas fa-plus"></i> إضافة خامة
+                    </button>
+                </div>
+                <div class="formulation-totals">
+                    <span>إجمالي الفاتورة: <span id="totalAmountDisplay">0</span> ج.م</span>
+                </div>
+                <div class="form-group">
+                    <label>ملاحظات</label>
+                    <textarea id="invoiceNotes" placeholder="ملاحظات إضافية..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-save" id="submitBtn">
+                        <i class="fas fa-save"></i> حفظ وترحيل فاتورة الشراء
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="closeModal()">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- VIEW MODAL -->
+    <!-- ============================================================ -->
+    <div class="modal-overlay" id="viewModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fas fa-eye"></i> <span id="viewTitle">تفاصيل الفاتورة</span></h3>
+                <button class="close-modal" onclick="closeViewModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="mini-table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>المنتج</th>
+                            <th style="text-align:center;">الكمية</th>
+                            <th style="text-align:center;">سعر الوحدة</th>
+                            <th style="text-align:center;">الإجمالي</th>
+                        </tr>
+                    </thead>
+                    <tbody id="viewBody"></tbody>
+                </table>
+            </div>
+            <div class="formulation-totals">
+                <span>إجمالي الفاتورة</span><span id="viewTotalAmount">0 ج.م</span>
+            </div>
         </div>
     </div>
 
@@ -837,7 +1129,7 @@
         /* NOTIFICATIONS */
         /* ============================================================ */
         document.getElementById('notifBtn').addEventListener('click', function () {
-            alert('📬 لديك 3 إشعارات جديدة:\n\n1. فاتورة جديدة للعميل شركة النور\n2. تحصيل مبلغ 15,000 ج.م\n3. عميل جديد تم إضافته');
+            alert('📬 لديك 3 إشعارات جديدة:\n\n1. فاتورة شراء جديدة للمورد شركة الأهرام\n2. تم استلام شحنة خامات\n3. مورد جديد تم إضافته');
         });
 
         /* ============================================================ */
@@ -962,6 +1254,166 @@
         }
 
         /* ============================================================ */
+        /* DELETE ROWS */
+        /* ============================================================ */
+        async function deleteRows(tableName, column, value) {
+            try {
+                const token = await getValidToken();
+                if (!token) return;
+
+                const url = SUPABASE_URL + '/rest/v1/' + tableName + '?' + column + '=eq.' + value;
+                const response = await fetch(url, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!response.ok) {
+                    console.warn('⚠️ فشل حذف من ' + tableName + ':', response.status);
+                }
+            } catch (error) {
+                console.error('❌ خطأ في deleteRows:', error);
+            }
+        }
+
+        /* ============================================================ */
+        /* INSERT ROW */
+        /* ============================================================ */
+        async function insertRow(tableName, data) {
+            try {
+                const token = await getValidToken();
+                if (!token) throw new Error('لا يوجد توكن');
+
+                const url = SUPABASE_URL + '/rest/v1/' + tableName;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error('فشل الإضافة: ' + response.status + ' - ' + errorText);
+                }
+
+                const result = await response.json();
+                return result[0] || result;
+            } catch (error) {
+                console.error('❌ خطأ في insertRow:', error);
+                throw error;
+            }
+        }
+
+        /* ============================================================ */
+        /* PATCH ROW */
+        /* ============================================================ */
+        async function patchRow(tableName, id, data) {
+            try {
+                const token = await getValidToken();
+                if (!token) return;
+
+                const url = SUPABASE_URL + '/rest/v1/' + tableName + '?id=eq.' + id;
+                const response = await fetch(url, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    console.warn('⚠️ فشل تحديث ' + tableName + ':', response.status);
+                }
+            } catch (error) {
+                console.error('❌ خطأ في patchRow:', error);
+            }
+        }
+
+        /* ============================================================ */
+        /* GET COMPANY ID */
+        /* ============================================================ */
+        async function getCompanyId() {
+            try {
+                const user = await getCurrentUserProfile();
+                return user.company_id || null;
+            } catch (error) {
+                console.error('❌ خطأ في getCompanyId:', error);
+                return null;
+            }
+        }
+
+        /* ============================================================ */
+        /* GET CURRENT USER PROFILE */
+        /* ============================================================ */
+        async function getCurrentUserProfile() {
+            try {
+                const token = await getValidToken();
+                if (!token) return null;
+
+                const response = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                if (!response.ok) return null;
+
+                const userData = await response.json();
+
+                const profileResponse = await fetch(
+                    SUPABASE_URL + '/rest/v1/profiles?select=*&id=eq.' + userData.id, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + token
+                        }
+                    }
+                );
+
+                let profile = null;
+                if (profileResponse.ok) {
+                    const profiles = await profileResponse.json();
+                    if (profiles && profiles.length > 0) {
+                        profile = profiles[0];
+                    }
+                }
+
+                return {
+                    id: userData.id,
+                    email: userData.email,
+                    name: profile ? profile.name : userData.email,
+                    role: profile ? profile.role : 'موظف',
+                    company_id: profile ? profile.company_id : null
+                };
+            } catch (error) {
+                console.error('❌ خطأ في getCurrentUserProfile:', error);
+                return null;
+            }
+        }
+
+        /* ============================================================ */
+        /* GET TABLE DATA */
+        /* ============================================================ */
+        async function getTableData(tableName, orderBy) {
+            try {
+                const result = await fetchTable(tableName, '*', orderBy);
+                return result || [];
+            } catch (error) {
+                console.error('❌ خطأ في جلب ' + tableName + ':', error);
+                return [];
+            }
+        }
+
+        /* ============================================================ */
         /* FORMAT FUNCTIONS */
         /* ============================================================ */
         function formatDate(dateStr) {
@@ -1026,93 +1478,403 @@
         const filterClient = document.getElementById('filterClient');
         const filterInvoiceNo = document.getElementById('filterInvoiceNo');
 
-        let allInvoices = [];
-        let allInvoiceItems = [];
-        let lastVisibleInvoices = [];
+        let allSuppliers = [];
+        let allMaterials = [];
+        let allRawMovements = [];
+        let allPurchases = [];
+        let allPurchaseItems = [];
+        let allWarehouses = [];
+        let itemRowCounter = 0;
 
         /* ============================================================ */
-        /* LOAD DATA */
+        /* COMPUTE MATERIAL BALANCE */
         /* ============================================================ */
-        async function loadData() {
-            console.log('🚀 بدء تحميل بيانات المبيعات...');
-            entriesBody.innerHTML =
-                '<tr><td colspan="7"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
+        function signedQty(movement) {
+            var qty = parseFloat(movement.quantity) || 0;
+            if (movement.type === 'وارد') return Math.abs(qty);
+            if (movement.type === 'منصرف') return -Math.abs(qty);
+            return qty;
+        }
 
-            try {
-                const invoicesData = await fetchTable('sales_invoices', '*', 'created_at.desc');
-                allInvoices = invoicesData || [];
-                console.log('📄 عدد الفواتير:', allInvoices.length);
+        function computeMaterialBalance(materialId, warehouseId) {
+            var balance = 0;
+            allRawMovements.forEach(function(mv) {
+                if (mv.material_id == materialId && (!warehouseId || mv.warehouse_id == warehouseId)) {
+                    balance += signedQty(mv);
+                }
+            });
+            return balance;
+        }
 
-                const itemsData = await fetchTable('sales_invoice_items', '*', 'created_at.desc');
-                allInvoiceItems = itemsData || [];
-                console.log('📦 عدد البنود:', allInvoiceItems.length);
+        /* ============================================================ */
+        /* GENERATE INVOICE NUMBER */
+        /* ============================================================ */
+        function generateInvoiceNo() {
+            var next = allPurchases.length + 1;
+            return 'PUR-' + String(next).padStart(5, '0');
+        }
 
-                displayInvoices();
-                console.log('✅ تم تحميل البيانات بنجاح!');
+        /* ============================================================ */
+        /* POPULATE SELECTS */
+        /* ============================================================ */
+        function populateSupplierSelect() {
+            var select = document.getElementById('invoiceClient');
+            select.innerHTML = '<option value="">— اختر المورد —</option>';
+            allSuppliers.forEach(function(c) {
+                var opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = (c.code ? c.code + ' — ' : '') + c.name;
+                select.appendChild(opt);
+            });
+        }
 
-            } catch (error) {
-                console.error('❌ خطأ في تحميل البيانات:', error);
-                entriesBody.innerHTML =
-                    '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p></div></td></tr>';
+        function buildMaterialOptions(selectedId) {
+            var html = '<option value="">— اختر الخامة —</option>';
+            allMaterials.forEach(function(m) {
+                var sel = (selectedId && m.id == selectedId) ? ' selected' : '';
+                html += '<option value="' + m.id + '" data-price="' + (m.cost_price || 0) + '" data-unit="' + (m.unit || '') + '"' + sel + '>' +
+                    (m.code ? m.code + ' — ' : '') + m.name + '</option>';
+            });
+            return html;
+        }
+
+        function populateMainWarehouseSelect() {
+            var select = document.getElementById('mainWarehouse');
+            select.innerHTML = '<option value="">— اختر المخزن الرئيسي —</option>';
+            var mainWarehouses = allWarehouses.filter(function(w) { return w.type === 'main_raw'; });
+            mainWarehouses.forEach(function(w) {
+                var opt = document.createElement('option');
+                opt.value = w.id;
+                opt.textContent = w.name;
+                select.appendChild(opt);
+            });
+        }
+
+        /* ============================================================ */
+        /* ITEM ROWS */
+        /* ============================================================ */
+        function addItemRow(prefill) {
+            itemRowCounter++;
+            var rowId = 'item-row-' + itemRowCounter;
+
+            var container = document.getElementById('itemsContainer');
+            var row = document.createElement('div');
+            row.className = 'item-row';
+            row.id = rowId;
+
+            row.innerHTML =
+                '<select class="item-material" onchange="onItemProductChange(\'' + rowId + '\')">' + buildMaterialOptions(prefill ? prefill.product_id : null) + '</select>' +
+                '<input type="number" class="item-qty" placeholder="الكمية" min="0.01" step="0.01" value="' + (prefill ? prefill.quantity : '') + '" oninput="recalcTotals()" />' +
+                '<input type="number" class="item-price" placeholder="السعر" min="0" step="0.01" value="' + (prefill ? prefill.unit_price : '') + '" oninput="recalcTotals()" />' +
+                '<span class="item-stock" id="' + rowId + '-stock">-</span>' +
+                '<span class="item-cost" id="' + rowId + '-cost">0</span>' +
+                '<button type="button" class="item-remove" onclick="removeItemRow(\'' + rowId + '\')"><i class="fas fa-trash"></i></button>';
+
+            container.appendChild(row);
+
+            if (prefill && prefill.product_id) {
+                onItemProductChange(rowId, true);
             }
+
+            recalcTotals();
         }
-        window.loadData = loadData;
+
+        function removeItemRow(rowId) {
+            var row = document.getElementById(rowId);
+            if (row) row.remove();
+            recalcTotals();
+        }
+
+        function onItemProductChange(rowId, skipPriceFill) {
+            var row = document.getElementById(rowId);
+            var select = row.querySelector('.item-material');
+            var priceInput = row.querySelector('.item-price');
+            var selectedOption = select.options[select.selectedIndex];
+
+            if (selectedOption && selectedOption.value) {
+                var defaultPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+                if (!skipPriceFill && !priceInput.value) {
+                    priceInput.value = defaultPrice;
+                }
+                var balance = computeMaterialBalance(selectedOption.value);
+                var stockSpan = document.getElementById(rowId + '-stock');
+                stockSpan.textContent = 'الرصيد الحالي: ' + formatNumber(balance);
+                stockSpan.className = 'item-stock';
+            }
+
+            recalcTotals();
+        }
+
+        function recalcTotals() {
+            var rows = document.querySelectorAll('#itemsContainer .item-row');
+            var total = 0;
+
+            rows.forEach(function(row) {
+                var qtyInput = row.querySelector('.item-qty');
+                var priceInput = row.querySelector('.item-price');
+                var costSpan = row.querySelector('.item-cost');
+
+                var qty = parseFloat(qtyInput.value) || 0;
+                var price = parseFloat(priceInput.value) || 0;
+                var lineTotal = qty * price;
+
+                costSpan.textContent = formatNumber(lineTotal);
+                total += lineTotal;
+            });
+
+            document.getElementById('totalAmountDisplay').textContent = formatNumber(total);
+        }
+
+        function clearItemRows() {
+            document.getElementById('itemsContainer').innerHTML = '';
+        }
 
         /* ============================================================ */
-        /* EDIT INVOICE */
+        /* OPEN / CLOSE MODAL */
         /* ============================================================ */
-        function editInvoice(id) {
-            window.location.href = 'add-invoice.html?invoice_id=' + id;
+        function openAddModal() {
+            document.getElementById('invoiceForm').reset();
+            document.getElementById('invoiceDate').value = new Date().toISOString().split('T')[0];
+            populateSupplierSelect();
+            populateMainWarehouseSelect();
+            clearItemRows();
+            addItemRow();
+            recalcTotals();
+            document.getElementById('invoiceModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
         }
-        window.editInvoice = editInvoice;
+
+        function closeModal() {
+            document.getElementById('invoiceModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        /* ============================================================ */
+        /* VIEW INVOICE */
+        /* ============================================================ */
+        function viewInvoice(id) {
+            var invoice = allPurchases.find(function(inv) { return inv.id == id; });
+            if (!invoice) return;
+
+            document.getElementById('viewTitle').textContent = 'تفاصيل الفاتورة: ' + invoice.invoice_no;
+
+            var items = allPurchaseItems.filter(function(it) { return it.invoice_id == id; });
+            var html = '';
+            items.forEach(function(it) {
+                html += '<tr>' +
+                    '<td>' + (it.material_name || '-') + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(it.quantity) + ' ' + (it.unit || '') + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(it.unit_price) + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(it.line_total) + '</td>' +
+                    '</tr>';
+            });
+
+            document.getElementById('viewBody').innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:var(--muted);">لا توجد بيانات</td></tr>';
+            document.getElementById('viewTotalAmount').textContent = formatNumber(invoice.total_amount) + ' ج.م';
+
+            document.getElementById('viewModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeViewModal() {
+            document.getElementById('viewModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
 
         /* ============================================================ */
         /* DELETE INVOICE */
         /* ============================================================ */
         function deleteInvoiceConfirm(id) {
-            if (!confirm('⚠️ هل أنت متأكد من حذف الفاتورة؟\nسيتم حذف جميع البنود المرتبطة بها.')) return;
-            showToast('⏳ جاري الحذف', 'جاري حذف الفاتورة...', 'warning');
+            if (!confirm('هل أنت متأكد من حذف الفاتورة؟ سيتم التراجع عن حركات المخزون ورصيد المورد المرتبطة بها.')) return;
 
             deleteInvoice(id)
-                .then(() => {
-                    showToast('✅ تم الحذف', 'تم حذف الفاتورة بنجاح', 'success');
+                .then(function() {
+                    showToast('✅ تم الحذف', 'تم حذف الفاتورة والتراجع عن حركاتها', 'success');
                     loadData();
                 })
-                .catch((error) => {
+                .catch(function(error) {
                     showToast('❌ خطأ', error.message || 'فشل الحذف', 'error');
                 });
         }
-        window.deleteInvoiceConfirm = deleteInvoiceConfirm;
 
         async function deleteInvoice(id) {
-            const token = await getValidToken();
-            if (!token) throw new Error('جلسة منتهية');
+            var invoice = allPurchases.find(function(inv) { return inv.id == id; });
+            var items = allPurchaseItems.filter(function(it) { return it.invoice_id == id; });
 
-            const itemsUrl = SUPABASE_URL + '/rest/v1/sales_invoice_items?invoice_id=eq.' + id;
-            await fetch(itemsUrl, {
-                method: 'DELETE',
-                headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
+            for (var i = 0; i < items.length; i++) {
+                if (items[i].raw_movement_id) {
+                    await deleteRows('raw_material_movements', 'id', items[i].raw_movement_id);
+                }
+            }
+
+            if (invoice) {
+                var supplier = allSuppliers.find(function(c) { return c.id == invoice.supplier_id; });
+                if (supplier) {
+                    await patchRow('suppliers', supplier.id, {
+                        total_purchases: Math.max(0, (parseFloat(supplier.total_purchases) || 0) - (parseFloat(invoice.total_amount) || 0)),
+                        due_balance: Math.max(0, (parseFloat(supplier.due_balance) || 0) - (parseFloat(invoice.total_amount) || 0))
+                    });
+                }
+            }
+
+            await deleteRows('purchase_invoice_items', 'invoice_id', id);
+            await deleteRows('purchase_invoices', 'id', id);
+        }
+
+        /* ============================================================ */
+        /* SAVE INVOICE */
+        /* ============================================================ */
+        async function saveInvoice(event) {
+            event.preventDefault();
+
+            var clientSelect = document.getElementById('invoiceClient');
+            var clientId = clientSelect.value;
+            var clientName = clientId ? clientSelect.options[clientSelect.selectedIndex].textContent : '';
+
+            if (!clientId) {
+                showToast('⚠️ تنبيه', 'يرجى اختيار المورد', 'error');
+                return;
+            }
+
+            var mainWarehouseId = document.getElementById('mainWarehouse').value;
+            if (!mainWarehouseId) {
+                showToast('⚠️ تنبيه', 'يرجى اختيار المخزن الرئيسي', 'error');
+                return;
+            }
+
+            var rows = document.querySelectorAll('#itemsContainer .item-row');
+            var items = [];
+            var hasError = false;
+
+            rows.forEach(function(row) {
+                var select = row.querySelector('.item-material');
+                var qtyInput = row.querySelector('.item-qty');
+                var priceInput = row.querySelector('.item-price');
+
+                var productId = select.value;
+                var qty = parseFloat(qtyInput.value);
+                var price = parseFloat(priceInput.value);
+
+                if (!productId || !qty || qty <= 0) {
+                    hasError = true;
+                    return;
+                }
+
+                var selectedOption = select.options[select.selectedIndex];
+                var unit = selectedOption.getAttribute('data-unit') || '';
+
+                items.push({
+                    product_id: productId,
+                    product_name: selectedOption.textContent,
+                    quantity: qty,
+                    unit_price: price || 0,
+                    unit: unit,
+                    line_total: qty * (price || 0)
+                });
             });
 
-            const invoiceUrl = SUPABASE_URL + '/rest/v1/sales_invoices?id=eq.' + id;
-            const response = await fetch(invoiceUrl, {
-                method: 'DELETE',
-                headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
-            });
+            if (items.length === 0) {
+                showToast('⚠️ تنبيه', 'يجب إضافة خامة واحدة على الأقل بكمية صحيحة', 'error');
+                return;
+            }
+            if (hasError) {
+                showToast('⚠️ تنبيه', 'تحقق من كل الأصناف: كل خامة لازم يكون ليها كمية صحيحة', 'error');
+                return;
+            }
 
-            if (!response.ok) throw new Error('فشل حذف الفاتورة');
+            var totalAmount = items.reduce(function(sum, it) { return sum + it.line_total; }, 0);
+            var invoiceNo = generateInvoiceNo();
+            var invoiceDate = document.getElementById('invoiceDate').value || new Date().toISOString().split('T')[0];
+            var notes = document.getElementById('invoiceNotes').value.trim();
+
+            var btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+
+            try {
+                var user = await getCurrentUserProfile();
+                if (!user) throw new Error('لم يتم العثور على المستخدم');
+
+                var companyId = await getCompanyId();
+
+                // 1) إنشاء رأس الفاتورة
+                var invoice = await insertRow('purchase_invoices', {
+                    company_id: companyId,
+                    user_id: user.id,
+                    invoice_no: invoiceNo,
+                    supplier_id: clientId,
+                    supplier_name: clientName,
+                    invoice_date: invoiceDate,
+                    status: 'مرحلة',
+                    notes: notes,
+                    total_amount: totalAmount
+                });
+
+                // 2) تسجيل حركة "وارد" لكل خامة + حفظ بنود الفاتورة
+                var itemsPayload = [];
+                for (var i = 0; i < items.length; i++) {
+                    var it = items[i];
+                    var mv = await insertRow('raw_material_movements', {
+                        company_id: companyId,
+                        user_id: user.id,
+                        material_id: it.product_id,
+                        material_name: it.product_name,
+                        type: 'وارد',
+                        quantity: it.quantity,
+                        unit_cost: it.unit_price,
+                        total_value: it.line_total,
+                        reference: invoiceNo,
+                        notes: 'شراء - فاتورة ' + invoiceNo,
+                        warehouse_id: mainWarehouseId,
+                        movement_date: invoiceDate
+                    });
+
+                    itemsPayload.push({
+                        company_id: companyId,
+                        invoice_id: invoice.id,
+                        material_id: it.product_id,
+                        material_name: it.product_name,
+                        quantity: it.quantity,
+                        unit_price: it.unit_price,
+                        unit: it.unit,
+                        line_total: it.line_total,
+                        raw_movement_id: mv.id
+                    });
+                }
+
+                for (var j = 0; j < itemsPayload.length; j++) {
+                    await insertRow('purchase_invoice_items', itemsPayload[j]);
+                }
+
+                // 3) تحديث رصيد المورد
+                var supplier = allSuppliers.find(function(c) { return c.id == clientId; });
+                if (supplier) {
+                    await patchRow('suppliers', clientId, {
+                        total_purchases: (parseFloat(supplier.total_purchases) || 0) + totalAmount,
+                        due_balance: (parseFloat(supplier.due_balance) || 0) + totalAmount
+                    });
+                }
+
+                showToast('✅ تم الترحيل', 'تم حفظ وترحيل فاتورة الشراء ' + invoiceNo + ' بنجاح', 'success');
+                closeModal();
+                loadData();
+
+            } catch (error) {
+                showToast('❌ خطأ', error.message || 'فشل حفظ الفاتورة', 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> حفظ وترحيل فاتورة الشراء';
         }
 
         /* ============================================================ */
         /* DISPLAY INVOICES */
         /* ============================================================ */
         function displayInvoices() {
-            const filtered = filterInvoices(allInvoices);
+            var filtered = filterInvoices(allPurchases);
 
             totalCount.textContent = filtered.length;
-            const totalAll = filtered.reduce((sum, inv) => {
-                return sum + (parseFloat(inv.total_amount) || 0) + (parseFloat(inv.delivery_fee) || 0);
-            }, 0);
+            var totalAll = filtered.reduce(function(sum, inv) { return sum + (parseFloat(inv.total_amount) || 0); }, 0);
             totalSalesSum.textContent = formatNumber(totalAll) + ' ج.م';
 
             if (filtered.length === 0) {
@@ -1121,32 +1883,27 @@
                 return;
             }
 
-            const sorted = filtered.slice().sort((a, b) => {
+            var sorted = filtered.slice().sort(function(a, b) {
                 return new Date(b.invoice_date) - new Date(a.invoice_date);
             });
 
-            let html = '';
-            sorted.forEach((inv, index) => {
-                const itemsCount = allInvoiceItems.filter(it => it.invoice_id == inv.id).length;
-                const deliveryFeeVal = parseFloat(inv.delivery_fee) || 0;
-                const grandTotal = (parseFloat(inv.total_amount) || 0) + deliveryFeeVal;
-                const deliveryBadge = deliveryFeeVal > 0 ?
-                    ' <span title="يشمل ناولون ' + formatNumber(deliveryFeeVal) + ' ج.م" style="font-size:0.5rem;background:#e8f4fd;color:var(--prussian);padding:1px 5px;border-radius:10px;font-weight:700;">🚚</span>' : '';
+            var html = '';
+            sorted.forEach(function(inv, index) {
+                var itemsCount = allPurchaseItems.filter(function(it) { return it.invoice_id == inv.id; }).length;
 
-                html += '<tr class="clickable-row" onclick="editInvoice(\'' + inv.id + '\')">' +
+                html += '<tr>' +
                     '<td style="text-align:center;">' + (index + 1) + '</td>' +
                     '<td style="color:var(--accent-dark);font-weight:700;font-size:0.65rem;">' + (inv.invoice_no || '-') + '</td>' +
-                    '<td style="font-weight:700;font-size:0.65rem;">' + (inv.client_name || '-') + '</td>' +
+                    '<td style="font-weight:700;font-size:0.65rem;">' + (inv.supplier_name || '-') + '</td>' +
                     '<td style="font-size:0.6rem;">' + formatDate(inv.invoice_date) + '</td>' +
                     '<td style="text-align:center;font-size:0.6rem;">' + itemsCount + '</td>' +
-                    '<td style="text-align:center;font-weight:700;color:var(--viridian);font-size:0.65rem;">' + formatNumber(grandTotal) + deliveryBadge +
-                    '</td>' +
+                    '<td style="text-align:center;font-weight:700;color:var(--viridian);font-size:0.65rem;">' + formatNumber(inv.total_amount) + '</td>' +
                     '<td style="text-align:center;">' +
                     '<div class="action-btns">' +
-                    '<button class="btn-action edit" onclick="event.stopPropagation();editInvoice(\'' + inv.id + '\')">' +
-                    '<i class="fas fa-edit"></i>' +
+                    '<button class="btn-action edit" onclick="viewInvoice(\'' + inv.id + '\')" style="padding:2px 6px;font-size:0.5rem;">' +
+                    '<i class="fas fa-eye"></i>' +
                     '</button> ' +
-                    '<button class="btn-action danger" onclick="event.stopPropagation();deleteInvoiceConfirm(\'' + inv.id + '\')">' +
+                    '<button class="btn-action danger" onclick="deleteInvoiceConfirm(\'' + inv.id + '\')" style="padding:2px 6px;font-size:0.5rem;">' +
                     '<i class="fas fa-trash"></i>' +
                     '</button>' +
                     '</div>' +
@@ -1155,18 +1912,17 @@
             });
 
             entriesBody.innerHTML = html;
-            lastVisibleInvoices = sorted;
         }
 
         /* ============================================================ */
         /* FILTER INVOICES */
         /* ============================================================ */
         function filterInvoices(invoices) {
-            return invoices.filter(inv => {
-                const clientVal = filterClient.value.trim().toLowerCase();
-                if (clientVal && !(inv.client_name || '').toLowerCase().includes(clientVal)) return false;
+            return invoices.filter(function(inv) {
+                var clientVal = filterClient.value.trim().toLowerCase();
+                if (clientVal && !(inv.supplier_name || '').toLowerCase().includes(clientVal)) return false;
 
-                const invoiceNoVal = filterInvoiceNo.value.trim().toLowerCase();
+                var invoiceNoVal = filterInvoiceNo.value.trim().toLowerCase();
                 if (invoiceNoVal && !(inv.invoice_no || '').toLowerCase().includes(invoiceNoVal)) return false;
 
                 return true;
@@ -1183,52 +1939,64 @@
         window.resetFilters = resetFilters;
 
         /* ============================================================ */
-        /* EXPORT TO EXCEL */
+        /* LOAD DATA */
         /* ============================================================ */
-        function exportToExcel() {
-            const rows = lastVisibleInvoices.length ? lastVisibleInvoices : filterInvoices(allInvoices);
+        async function loadData() {
+            entriesBody.innerHTML =
+                '<tr><td colspan="7"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
 
-            if (!rows.length) {
-                showToast('تصدير إكسيل', 'لا توجد بيانات للتصدير', 'warning');
-                return;
-            }
+            var results = await Promise.all([
+                getTableData('suppliers', 'name.asc'),
+                getTableData('materials', 'code.asc'),
+                getTableData('raw_material_movements'),
+                getTableData('purchase_invoices', 'created_at.desc'),
+                getTableData('purchase_invoice_items'),
+                getTableData('warehouses', 'name.asc')
+            ]);
 
-            const data = rows.map((inv, index) => {
-                const itemsCount = allInvoiceItems.filter(it => it.invoice_id == inv.id).length;
-                const deliveryFeeVal = parseFloat(inv.delivery_fee) || 0;
-                return {
-                    '#': index + 1,
-                    'رقم الفاتورة': inv.invoice_no || '-',
-                    'العميل': inv.client_name || '-',
-                    'تاريخ الفاتورة': formatDate(inv.invoice_date),
-                    'عدد الأصناف': itemsCount,
-                    'إجمالي الأصناف': parseFloat(inv.total_amount) || 0,
-                    'الناولون': deliveryFeeVal,
-                    'الإجمالي الكلي': (parseFloat(inv.total_amount) || 0) + deliveryFeeVal
-                };
-            });
+            allSuppliers = results[0];
+            allMaterials = results[1];
+            allRawMovements = results[2];
+            allPurchases = results[3];
+            allPurchaseItems = results[4];
+            allWarehouses = results[5];
 
-            const ws = XLSX.utils.json_to_sheet(data);
-            ws['!cols'] = [{ wch: 5 }, { wch: 16 }, { wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
-
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'المبيعات');
-
-            const fileName = 'كشف_المبيعات_' + new Date().toISOString().slice(0, 10) + '.xlsx';
-            XLSX.writeFile(wb, fileName);
-
-            showToast('تم التصدير', 'تم تصدير الملف بنجاح', 'success');
+            displayInvoices();
         }
-        window.exportToExcel = exportToExcel;
 
-        document.getElementById('btnExportExcel').addEventListener('click', exportToExcel);
+        /* ============================================================ */
+        /* CLOSE MODAL ON OVERLAY CLICK */
+        /* ============================================================ */
+        document.getElementById('invoiceModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+        document.getElementById('viewModal').addEventListener('click', function(e) {
+            if (e.target === this) closeViewModal();
+        });
+
+        /* ============================================================ */
+        /* EXPOSE FUNCTIONS TO GLOBAL */
+        /* ============================================================ */
+        window.applyFilters = applyFilters;
+        window.resetFilters = resetFilters;
+        window.loadData = loadData;
+        window.openAddModal = openAddModal;
+        window.closeModal = closeModal;
+        window.saveInvoice = saveInvoice;
+        window.addItemRow = addItemRow;
+        window.removeItemRow = removeItemRow;
+        window.onItemProductChange = onItemProductChange;
+        window.recalcTotals = recalcTotals;
+        window.viewInvoice = viewInvoice;
+        window.closeViewModal = closeViewModal;
+        window.deleteInvoiceConfirm = deleteInvoiceConfirm;
 
         /* ============================================================ */
         /* UPDATE USER UI — مطابق للصفحة الرئيسية */
         /* ============================================================ */
         function updateUserUI(userData) {
             if (!userData) return;
-            const displayName = userData.full_name || userData.email || 'مستخدم';
+            const displayName = userData.name || userData.email || 'مستخدم';
             const role = userData.role || 'موظف';
             const firstChar = displayName.charAt(0) || 'م';
 
@@ -1292,7 +2060,7 @@
                 const finalUserData = {
                     id: userData.id,
                     email: userData.email,
-                    full_name: profile ? profile.name : userData.email,
+                    name: profile ? profile.name : userData.email,
                     role: profile ? profile.role : 'موظف',
                     company_id: profile ? profile.company_id : null
                 };
@@ -1313,7 +2081,7 @@
         /* INIT */
         /* ============================================================ */
         (async function init() {
-            console.log('🏭 صفحة المبيعات - رولكس للدهانات');
+            console.log('🏭 صفحة المشتريات - رولكس للدهانات');
 
             const localToken = getToken();
             if (!localToken) {
