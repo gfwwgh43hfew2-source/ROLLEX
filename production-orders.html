@@ -966,7 +966,9 @@
                         <th>#</th>
                         <th>رقم الأمر</th>
                         <th>المنتج</th>
-                        <th>الكمية</th>
+                        <th>العدد</th>
+                        <th>وزن الوحدة</th>
+                        <th>الإجمالي</th>
                         <th>العميل</th>
                         <th>التاريخ</th>
                         <th>الحالة</th>
@@ -975,7 +977,7 @@
                 </thead>
                 <tbody id="entriesBody">
                     <tr>
-                        <td colspan="8">
+                        <td colspan="10">
                             <div class="loading-state">
                                 <i class="fas fa-spinner"></i>
                                 <p>جاري تحميل البيانات...</p>
@@ -1005,6 +1007,10 @@
                 <!-- ===== ORDER HEADER ===== -->
                 <div class="form-row three">
                     <div class="form-group">
+                        <label>رقم الأمر</label>
+                        <input type="text" id="orderNoDisplay" placeholder="سيتم توليده تلقائياً" readonly style="background:var(--surface-muted);font-weight:800;color:var(--accent-ink);" />
+                    </div>
+                    <div class="form-group">
                         <label>رقم الملف</label>
                         <input type="text" id="orderFileNo" placeholder="رقم الملف" />
                     </div>
@@ -1012,17 +1018,24 @@
                         <label>رقم التشغيلة</label>
                         <input type="text" id="orderRunNo" placeholder="رقم التشغيلة" />
                     </div>
-                    <div class="form-group">
-                        <label>التاريخ</label>
-                        <input type="date" id="orderDate" />
-                    </div>
                 </div>
 
                 <div class="form-row three">
                     <div class="form-group">
+                        <label>التاريخ</label>
+                        <input type="date" id="orderDate" />
+                    </div>
+                    <div class="form-group">
                         <label>اليوم</label>
                         <input type="text" id="orderDay" placeholder="مثال: الأحد" />
                     </div>
+                    <div class="form-group">
+                        <label>التوقيت</label>
+                        <input type="text" id="orderTime" placeholder="سيتم توليده تلقائياً" readonly style="background:var(--surface-muted);" />
+                    </div>
+                </div>
+
+                <div class="form-row three">
                     <div class="form-group">
                         <label>اللون</label>
                         <input type="text" id="orderColor" placeholder="لون المنتج" />
@@ -1031,33 +1044,42 @@
                         <label>العميل</label>
                         <input type="text" id="orderClient" placeholder="اسم العميل" />
                     </div>
-                </div>
-
-                <div class="form-row three">
                     <div class="form-group">
                         <label>الموقع</label>
                         <input type="text" id="orderLocation" placeholder="موقع التسليم" />
                     </div>
+                </div>
+
+                <div class="form-row three">
                     <div class="form-group">
                         <label>مستلم الأمر</label>
                         <input type="text" id="orderReceivedBy" placeholder="اسم المستلم" />
                     </div>
                     <div class="form-group">
-                        <label>الوحدة</label>
+                        <label>وحدة الوزن</label>
                         <input type="text" id="orderUnit" placeholder="كجم" />
                     </div>
-                </div>
-
-                <div class="form-row">
                     <div class="form-group">
                         <label>المنتج <span class="required">*</span></label>
                         <select id="orderProduct" required onchange="updatePreview()">
                             <option value="">— اختر منتج —</option>
                         </select>
                     </div>
+                </div>
+
+                <!-- ===== QUANTITY (COUNT × WEIGHT = TOTAL) ===== -->
+                <div class="form-row three">
                     <div class="form-group">
-                        <label>الكمية المطلوبة <span class="required">*</span></label>
-                        <input type="number" id="orderRequestedQty" placeholder="0" min="0.01" step="0.01" required oninput="updatePreview()" />
+                        <label>العدد (عدد الوحدات) <span class="required">*</span></label>
+                        <input type="number" id="orderUnitsCount" placeholder="0" min="0" step="1" required oninput="calcTotalQty()" />
+                    </div>
+                    <div class="form-group">
+                        <label>وزن الوحدة <span class="required">*</span></label>
+                        <input type="number" id="orderWeightPerUnit" placeholder="0" min="0" step="0.01" required oninput="calcTotalQty()" />
+                    </div>
+                    <div class="form-group">
+                        <label>الإجمالي (الكمية الكلية)</label>
+                        <input type="number" id="orderRequestedQty" placeholder="0" readonly style="background:var(--surface-muted);font-weight:800;color:var(--accent-ink);" />
                     </div>
                 </div>
 
@@ -1095,6 +1117,9 @@
         <div class="modal-box">
             <div class="modal-header">
                 <h3><i class="fas fa-eye"></i> <span id="viewTitle">تفاصيل أمر الإنتاج</span></h3>
+                <button type="button" class="btn-print" onclick="printSavedOrder(window._currentViewOrderId)" style="margin-inline-start:auto;">
+                    <i class="fas fa-print"></i> طباعة
+                </button>
                 <button class="close-modal" onclick="closeViewModal()"><i class="fas fa-times"></i></button>
             </div>
             <div id="viewContent"></div>
@@ -1478,6 +1503,11 @@
             document.getElementById('orderDate').value = now.toISOString().split('T')[0];
             var days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
             document.getElementById('orderDay').value = days[now.getDay()];
+            document.getElementById('orderTime').value = now.toLocaleTimeString('ar-EG');
+
+            // نولّد رقم الأمر مرة واحدة عند فتح النموذج، ونستخدم نفس الرقم في المعاينة والطباعة والحفظ
+            window._currentOrderNo = generateOrderNo();
+            document.getElementById('orderNoDisplay').value = window._currentOrderNo;
 
             populateProductSelect();
             document.getElementById('previewContent').innerHTML = '<div class="empty-preview">اختر منتج وأدخل الكمية لمعاينة البنود</div>';
@@ -1485,6 +1515,17 @@
 
             document.getElementById('orderModal').classList.add('active');
             document.body.style.overflow = 'hidden';
+        }
+
+        // ============================================================
+        // CALCULATE TOTAL QTY = COUNT × WEIGHT PER UNIT
+        // ============================================================
+        function calcTotalQty() {
+            var count = parseFloat(document.getElementById('orderUnitsCount').value) || 0;
+            var weight = parseFloat(document.getElementById('orderWeightPerUnit').value) || 0;
+            var total = count * weight;
+            document.getElementById('orderRequestedQty').value = total > 0 ? total : '';
+            updatePreview();
         }
 
         // ============================================================
@@ -1505,6 +1546,8 @@
                 return;
             }
 
+            window._currentViewOrderId = id;
+
             var items = allOrderItems.filter(function(it) { return it.production_order_id == id; });
 
             document.getElementById('viewTitle').textContent = 'تفاصيل أمر الإنتاج: ' + (order.order_no || '');
@@ -1513,7 +1556,9 @@
                 <div class="view-details">
                     <div class="item"><span class="label">رقم الأمر</span><div class="value">${order.order_no || '—'}</div></div>
                     <div class="item"><span class="label">المنتج</span><div class="value">${order.product_name || '—'}</div></div>
-                    <div class="item"><span class="label">الكمية</span><div class="value">${order.quantity_produced || 0} ${order.unit || ''}</div></div>
+                    <div class="item"><span class="label">العدد</span><div class="value">${order.units_count != null ? formatNumber(order.units_count) : '—'}</div></div>
+                    <div class="item"><span class="label">وزن الوحدة</span><div class="value">${order.weight_per_unit != null ? formatNumber(order.weight_per_unit) + ' ' + (order.unit || '') : '—'}</div></div>
+                    <div class="item"><span class="label">الإجمالي</span><div class="value">${formatNumber(order.quantity_produced || 0)} ${order.unit || ''}</div></div>
                     <div class="item"><span class="label">العميل</span><div class="value">${order.client_name || '—'}</div></div>
                     <div class="item"><span class="label">اللون</span><div class="value">${order.color || '—'}</div></div>
                     <div class="item"><span class="label">الحالة</span><div class="value">${getStatusBadge(order.status)}</div></div>
@@ -1521,6 +1566,7 @@
                     ${order.run_no ? `<div class="item"><span class="label">رقم التشغيلة</span><div class="value">${order.run_no}</div></div>` : ''}
                     ${order.location ? `<div class="item"><span class="label">الموقع</span><div class="value">${order.location}</div></div>` : ''}
                     ${order.received_by ? `<div class="item"><span class="label">مستلم الأمر</span><div class="value">${order.received_by}</div></div>` : ''}
+                    ${order.order_time ? `<div class="item"><span class="label">التوقيت</span><div class="value">${order.order_time}</div></div>` : ''}
                     ${order.notes ? `<div class="item" style="grid-column:1/-1;"><span class="label">ملاحظات</span><div class="value">${order.notes}</div></div>` : ''}
                 </div>
             `;
@@ -1740,7 +1786,7 @@
                 if (!user) throw new Error('فشل جلب المستخدم');
 
                 var now = new Date();
-                var orderNo = generateOrderNo();
+                var orderNo = window._currentOrderNo || generateOrderNo();
                 var orderDate = document.getElementById('orderDate').value || now.toISOString().split('T')[0];
                 var orderDay = document.getElementById('orderDay').value || now.toLocaleDateString('ar-EG', { weekday: 'long' });
 
@@ -1752,6 +1798,7 @@
                     company_id: companyId,
                     user_id: user.id,
                     order_no: orderNo,
+                    order_time: document.getElementById('orderTime').value.trim() || null,
                     file_no: document.getElementById('orderFileNo').value.trim() || null,
                     run_no: document.getElementById('orderRunNo').value.trim() || null,
                     order_day: orderDay,
@@ -1760,6 +1807,7 @@
                     location: document.getElementById('orderLocation').value.trim() || null,
                     received_by: document.getElementById('orderReceivedBy').value.trim() || null,
                     product_id: productId,
+                    product_name: product ? product.product_name : '',
                     // حقول التركيبة
                     formulation_id: formulationId,
                     formulation_name: formulation ? formulation.name : '',
@@ -1767,6 +1815,9 @@
                     quantity_produced: qty,
                     // نضيف requested_qty للتوافق مع الكود (إذا كان العمود موجوداً)
                     requested_qty: qty,
+                    // العدد ووزن الوحدة (يتطلب إضافة العمودين units_count و weight_per_unit في جدول production_orders)
+                    units_count: parseFloat(document.getElementById('orderUnitsCount').value) || null,
+                    weight_per_unit: parseFloat(document.getElementById('orderWeightPerUnit').value) || null,
                     unit: document.getElementById('orderUnit').value.trim() || 'كجم',
                     production_date: orderDate,
                     status: 'مؤكد',
@@ -1846,7 +1897,7 @@
         }
 
         // ============================================================
-        // PRINT ORDER
+        // PRINT ORDER (من نموذج الإدخال قبل الحفظ)  —  ورقة واحدة (وش/ظهر)
         // ============================================================
         function printOrder() {
             var productSelect = document.getElementById('orderProduct');
@@ -1854,7 +1905,7 @@
             var qty = parseFloat(document.getElementById('orderRequestedQty').value) || 0;
 
             if (!productId || qty <= 0) {
-                showToast('⚠️ تنبيه', 'اختر منتج وأدخل كمية لطباعة الأمر', 'error');
+                showToast('⚠️ تنبيه', 'اختر منتج وأدخل العدد ووزن الوحدة لطباعة الأمر', 'error');
                 return;
             }
 
@@ -1867,27 +1918,17 @@
             var selectedOption = productSelect.options[productSelect.selectedIndex];
             var productName = selectedOption ? selectedOption.textContent : '';
             var unit = document.getElementById('orderUnit').value || 'كجم';
-            var fileNo = document.getElementById('orderFileNo').value || '';
-            var runNo = document.getElementById('orderRunNo').value || '';
-            var orderDate = document.getElementById('orderDate').value || new Date().toISOString().split('T')[0];
-            var orderDay = document.getElementById('orderDay').value || new Date().toLocaleDateString('ar-EG', { weekday: 'long' });
-            var color = document.getElementById('orderColor').value || '';
-            var client = document.getElementById('orderClient').value || '';
-            var location = document.getElementById('orderLocation').value || '';
-            var receivedBy = document.getElementById('orderReceivedBy').value || '';
-            var notes = document.getElementById('orderNotes').value || '';
-            var orderNo = generateOrderNo();
 
             // Group by section
             var sections = {
-                raw: { label: 'المواد الخام', items: [] },
-                packaging: { label: 'مواد التعبئة', items: [] },
-                additive: { label: 'الأكاسيد والألوان المضافة', items: [] },
-                rawakid: { label: 'الكميات المسحوبة من مخزن الرواكد', items: [] },
-                outputs: { label: 'المخرجات النهائية', items: [] }
+                raw: { items: [] },
+                packaging: { items: [] },
+                additive: { items: [] },
+                rawakid: { items: [] },
+                outputs: { items: [] }
             };
 
-            // Add output
+            // Add output (final product)
             var product = allProducts.find(function(p) { return p.id == productId; });
             sections.outputs.items.push({
                 material_code: product ? product.product_code || '' : '',
@@ -1905,10 +1946,205 @@
                 }
             });
 
+            var now = new Date();
+
+            renderPrintDocument({
+                orderNo: window._currentOrderNo || generateOrderNo(),
+                productName: productName,
+                unit: unit,
+                fileNo: document.getElementById('orderFileNo').value || '',
+                runNo: document.getElementById('orderRunNo').value || '',
+                orderDate: document.getElementById('orderDate').value || now.toISOString().split('T')[0],
+                orderDay: document.getElementById('orderDay').value || now.toLocaleDateString('ar-EG', { weekday: 'long' }),
+                color: document.getElementById('orderColor').value || '',
+                client: document.getElementById('orderClient').value || '',
+                location: document.getElementById('orderLocation').value || '',
+                receivedBy: document.getElementById('orderReceivedBy').value || '',
+                notes: document.getElementById('orderNotes').value || '',
+                unitsCount: parseFloat(document.getElementById('orderUnitsCount').value) || 0,
+                weightPerUnit: parseFloat(document.getElementById('orderWeightPerUnit').value) || 0,
+                qty: qty,
+                timeStr: document.getElementById('orderTime').value || now.toLocaleTimeString('ar-EG'),
+                sections: sections
+            });
+        }
+
+        // ============================================================
+        // PRINT SAVED ORDER (من قائمة الأوامر المحفوظة، زر "عرض")
+        // ============================================================
+        function printSavedOrder(id) {
+            var order = allOrders.find(function(o) { return o.id == id; });
+            if (!order) {
+                showToast('❌ خطأ', 'الأمر غير موجود', 'error');
+                return;
+            }
+
+            var items = allOrderItems.filter(function(it) { return it.production_order_id == id; });
+            if (!items.length) {
+                showToast('⚠️ تنبيه', 'لا توجد بنود لهذا الأمر للطباعة', 'error');
+                return;
+            }
+
+            var unit = order.unit || 'كجم';
+            var qty = parseFloat(order.quantity_produced || order.requested_qty || 0) || 0;
+
+            var sections = {
+                raw: { items: [] },
+                packaging: { items: [] },
+                additive: { items: [] },
+                rawakid: { items: [] },
+                outputs: { items: [] }
+            };
+
+            var product = allProducts.find(function(p) { return p.id == order.product_id; });
+            sections.outputs.items.push({
+                material_code: product ? product.product_code || '' : '',
+                material_name: order.product_name || (product ? product.product_name : 'منتج'),
+                quantity: qty,
+                unit: unit
+            });
+
+            items.forEach(function(item) {
+                var sec = item.section || 'raw';
+                if (sections[sec]) {
+                    sections[sec].items.push(item);
+                } else {
+                    sections.raw.items.push(item);
+                }
+            });
+
+            renderPrintDocument({
+                orderNo: order.order_no || '',
+                productName: order.product_name || (product ? product.product_name : ''),
+                unit: unit,
+                fileNo: order.file_no || '',
+                runNo: order.run_no || '',
+                orderDate: order.production_date || order.order_date || '',
+                orderDay: order.order_day || '',
+                color: order.color || '',
+                client: order.client_name || '',
+                location: order.location || '',
+                receivedBy: order.received_by || '',
+                notes: order.notes || '',
+                unitsCount: parseFloat(order.units_count) || 0,
+                weightPerUnit: parseFloat(order.weight_per_unit) || 0,
+                qty: qty,
+                timeStr: order.order_time || '',
+                sections: sections
+            });
+        }
+
+        // ============================================================
+        // RENDER PRINT DOCUMENT  —  ورقة واحدة (وش/ظهر): صفحة 1 الخامات، صفحة 2 التعبئة/الأكاسيد/الرواكد/المخرجات
+        // ============================================================
+        function renderPrintDocument(data) {
+            var orderNo = data.orderNo;
+            var productName = data.productName;
+            var unit = data.unit;
+            var fileNo = data.fileNo;
+            var runNo = data.runNo;
+            var orderDate = data.orderDate;
+            var orderDay = data.orderDay;
+            var color = data.color;
+            var client = data.client;
+            var location = data.location;
+            var receivedBy = data.receivedBy;
+            var notes = data.notes;
+            var unitsCount = data.unitsCount;
+            var weightPerUnit = data.weightPerUnit;
+            var qty = data.qty;
+            var timeStr = data.timeStr;
+            var sections = data.sections;
+
             var printWindow = window.open('', '_blank');
 
-            var now = new Date();
-            var timeStr = now.toLocaleString('ar-EG');
+            // ---- helper: builds a 5-col table (م/الكود/الصنف/الكمية/الوحدة) padded to minRows ----
+            function buildFullTable(items, minRows) {
+                var html = `
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th style="width:26px;">م</th>
+                                <th style="width:70px;">الكود</th>
+                                <th>الصنف</th>
+                                <th style="width:70px;">الكمية</th>
+                                <th style="width:55px;">الوحدة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                var total = 0;
+                items.forEach(function(item, idx) {
+                    var qtyVal = parseFloat(item.quantity) || 0;
+                    total += qtyVal;
+                    html += `
+                        <tr>
+                            <td>${idx + 1}</td>
+                            <td>${item.material_code || '—'}</td>
+                            <td style="text-align:right;">${item.material_name || ''}</td>
+                            <td>${formatNumber(qtyVal)}</td>
+                            <td>${item.unit || '—'}</td>
+                        </tr>
+                    `;
+                });
+                var rows = items.length;
+                for (var r = rows; r < minRows; r++) {
+                    html += `<tr><td>${r + 1}</td><td></td><td></td><td></td><td></td></tr>`;
+                }
+                html += `
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3">الإجمالي</td>
+                                <td colspan="2">${formatNumber(total)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                `;
+                return html;
+            }
+
+            // ---- helper: builds a compact 3-col table (الكود/الصنف/الكمية) padded to minRows ----
+            function buildCompactTable(items, minRows) {
+                var html = `
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th style="width:70px;">الكود</th>
+                                <th>الصنف</th>
+                                <th style="width:80px;">الكمية</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                var total = 0;
+                items.forEach(function(item) {
+                    var qtyVal = parseFloat(item.quantity) || 0;
+                    total += qtyVal;
+                    html += `
+                        <tr>
+                            <td>${item.material_code || '—'}</td>
+                            <td style="text-align:right;">${item.material_name || ''}</td>
+                            <td>${formatNumber(qtyVal)} ${item.unit ? item.unit : ''}</td>
+                        </tr>
+                    `;
+                });
+                var rows = items.length;
+                for (var r = rows; r < minRows; r++) {
+                    html += `<tr><td></td><td></td><td></td></tr>`;
+                }
+                html += `
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="2">الإجمالي</td>
+                                <td>${formatNumber(total)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                `;
+                return html;
+            }
 
             var printHtml = `
             <!DOCTYPE html>
@@ -1919,216 +2155,199 @@
                 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
                 <style>
                     * { margin: 0; padding: 0; box-sizing: border-box; direction: rtl; font-family: 'Cairo', sans-serif; }
-                    body { padding: 10mm 12mm; background: #fff; font-size: 12px; }
-                    .print-wrapper { max-width: 210mm; margin: 0 auto; }
+                    html, body { background: #f0f0f0; }
+                    body { font-size: 12px; }
 
-                    .print-header {
+                    .sheet {
+                        position: relative;
+                        width: 210mm;
+                        min-height: 297mm;
+                        margin: 6mm auto;
+                        background: #fff;
+                        padding: 10mm 12mm;
+                        box-shadow: 0 0 6px rgba(0,0,0,0.15);
+                        page-break-after: always;
+                    }
+                    .sheet:last-child { page-break-after: auto; }
+
+                    /* ---- page number stamp (١ / ٢) ---- */
+                    .page-stamp {
+                        position: absolute;
+                        top: 10mm;
+                        left: 12mm;
+                        width: 26mm;
+                        height: 20mm;
+                        background: #c0392b;
+                        color: #fff;
                         display: flex;
-                        justify-content: space-between;
-                        align-items: flex-start;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 30px;
+                        font-weight: 900;
+                        border-radius: 3px;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+
+                    /* ---- header ---- */
+                    .doc-title {
+                        text-align: center;
+                        font-size: 16px;
+                        font-weight: 800;
+                        color: #1a1a2e;
                         border-bottom: 3px double #1a1a2e;
-                        padding-bottom: 10px;
-                        margin-bottom: 14px;
+                        padding-bottom: 8px;
+                        margin-bottom: 10px;
                     }
-                    .print-header-left { text-align: right; }
-                    .print-header-left h2 { font-size: 20px; margin-bottom: 2px; color: #1a1a2e; }
-                    .print-header-left .order-no { font-size: 14px; color: #2c3644; }
-                    .print-header-right { text-align: left; font-size: 11px; color: #2c3644; }
-                    .print-header-right div { margin-bottom: 2px; }
+                    .doc-title small { display:block; font-size: 11px; font-weight:600; color:#6d7883; margin-top:2px; }
 
-                    .print-details {
+                    .info-grid {
                         display: grid;
-                        grid-template-columns: 1fr 1fr 1fr;
-                        gap: 8px 16px;
-                        margin-bottom: 14px;
-                        padding: 8px 0;
-                        border-bottom: 1px solid #ddd;
+                        grid-template-columns: repeat(3, 1fr);
+                        gap: 4px 14px;
+                        margin-bottom: 12px;
+                        padding-bottom: 8px;
+                        border-bottom: 1px solid #ccc;
+                        font-size: 11px;
                     }
-                    .print-details .detail-item { font-size: 11px; }
-                    .print-details .detail-item strong { display: inline-block; width: 70px; color: #6d7883; }
+                    .info-grid .cell strong { color:#6d7883; display:inline-block; min-width: 76px; }
+                    .info-grid .cell.wide { grid-column: 1 / -1; }
 
-                    .print-section {
-                        margin-bottom: 14px;
-                        page-break-inside: avoid;
+                    /* ---- product header banner (front page) ---- */
+                    .product-banner {
+                        display:flex; justify-content:space-between; align-items:center;
+                        background:#f4f6f5; border:1px solid #ddd; border-radius:4px;
+                        padding:8px 12px; margin-bottom:12px;
                     }
-                    .print-section h4 {
-                        font-size: 13px;
-                        font-weight: 700;
-                        color: #1d7b6c;
-                        border-bottom: 1px solid #ddd;
-                        padding-bottom: 4px;
-                        margin-bottom: 6px;
+                    .product-banner h2 { font-size:16px; color:#1a1a2e; }
+                    .product-banner .order-no { font-size:13px; font-weight:700; color:#c0392b; }
+
+                    .section-block { margin-bottom: 14px; }
+                    .section-block h4 {
+                        font-size: 12px; font-weight: 800; color: #fff; background:#1d7b6c;
+                        padding: 5px 10px; border-radius: 3px 3px 0 0; margin-bottom: 0;
+                        -webkit-print-color-adjust: exact; print-color-adjust: exact;
                     }
-                    .print-section table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        font-size: 10px;
+
+                    table.items-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+                    table.items-table th {
+                        background: #eef1ef; padding: 4px 6px; border: 1px solid #ccc;
+                        text-align: center; font-weight: 700; font-size: 9px;
+                        -webkit-print-color-adjust: exact; print-color-adjust: exact;
                     }
-                    .print-section table th {
-                        background: #f4f6f5;
-                        padding: 4px 8px;
-                        border: 1px solid #ddd;
-                        text-align: center;
-                        font-weight: 700;
-                        font-size: 9px;
-                        text-transform: uppercase;
+                    table.items-table td { padding: 3px 6px; border: 1px solid #ccc; text-align: center; height: 16px; }
+                    table.items-table tfoot td {
+                        font-weight: 800; background: #faead0; text-align: center;
+                        -webkit-print-color-adjust: exact; print-color-adjust: exact;
                     }
-                    .print-section table td {
-                        padding: 4px 8px;
-                        border: 1px solid #ddd;
-                        text-align: center;
-                    }
-                    .print-section table tfoot td {
-                        font-weight: 700;
-                        background: #faead0;
+
+                    .back-title {
+                        text-align:center; font-size: 13px; font-weight: 800; color:#1a1a2e;
+                        border-bottom: 2px solid #1a1a2e; padding-bottom: 6px; margin-bottom: 14px;
                     }
 
                     .print-signatures {
                         display: flex;
-                        justify-content: space-between;
-                        margin-top: 24px;
-                        padding-top: 16px;
+                        justify-content: space-around;
+                        margin-top: 26px;
+                        padding-top: 14px;
                         border-top: 2px solid #1a1a2e;
                     }
-                    .print-signatures .sig-item {
-                        text-align: center;
-                        min-width: 120px;
-                    }
+                    .print-signatures .sig-item { text-align: center; min-width: 140px; }
                     .print-signatures .sig-item .line {
                         border-bottom: 1px solid #1a1a2e;
-                        padding-bottom: 4px;
-                        margin-top: 28px;
-                        min-width: 100px;
+                        margin-top: 26px;
                     }
-                    .print-signatures .sig-item .label {
-                        font-size: 10px;
-                        color: #6d7883;
-                        font-weight: 700;
-                    }
+                    .print-signatures .sig-item .label { font-size: 11px; color: #2c3644; font-weight: 700; margin-top:6px; }
 
                     @media print {
-                        body { padding: 6mm 8mm; }
-                        .no-print { display: none !important; }
+                        html, body { background: #fff; }
+                        .sheet { box-shadow: none; margin: 0 auto; }
                     }
                 </style>
             </head>
             <body>
-                <div class="print-wrapper">
 
-                    <div class="print-header">
-                        <div class="print-header-left">
-                            <h2>${productName}</h2>
-                            <div class="order-no">رقم الأمر: ${orderNo}</div>
-                            ${fileNo ? '<div style="font-size:11px;color:#6d7883;">ملف: ' + fileNo + '</div>' : ''}
-                        </div>
-                        <div class="print-header-right">
-                            <div>التاريخ: ${orderDate}</div>
-                            <div>اليوم: ${orderDay}</div>
-                            ${runNo ? '<div>رقم التشغيلة: ' + runNo + '</div>' : ''}
-                            <div>الكمية المطلوبة: ${qty} ${unit}</div>
-                            <div>الإجمالي: ${qty} ${unit}</div>
-                        </div>
+                <!-- ============ PAGE 1 (وش) — أمر الإنتاج + المواد الخام ============ -->
+                <div class="sheet">
+                    <div class="page-stamp">١</div>
+
+                    <div class="doc-title">
+                        أمر إنتاج
+                        <small>QuickData ProSoft</small>
                     </div>
 
-                    <div class="print-details">
-                        <div class="detail-item"><strong>مستلم الأمر:</strong> ${receivedBy || '...............'}</div>
-                        <div class="detail-item"><strong>المنتج:</strong> ${productName}</div>
-                        <div class="detail-item"><strong>اللون:</strong> ${color || '—'}</div>
-                        <div class="detail-item"><strong>العميل:</strong> ${client || '—'}</div>
-                        <div class="detail-item"><strong>الموقع:</strong> ${location || '—'}</div>
-                        <div class="detail-item"><strong>التوقيت:</strong> ${timeStr}</div>
-                        ${notes ? '<div class="detail-item" style="grid-column:1/-1;"><strong>ملاحظات:</strong> ' + notes + '</div>' : ''}
+                    <div class="product-banner">
+                        <h2>${productName}</h2>
+                        <div class="order-no">رقم الأمر: ${orderNo}</div>
                     </div>
 
-            `;
+                    <div class="info-grid">
+                        <div class="cell"><strong>التاريخ:</strong> ${orderDate}</div>
+                        <div class="cell"><strong>اليوم:</strong> ${orderDay}</div>
+                        <div class="cell"><strong>التوقيت:</strong> ${timeStr}</div>
 
-            // Sections
-            var sectionOrder = ['raw', 'packaging', 'additive', 'rawakid', 'outputs'];
-            var sectionLabels = {
-                raw: 'المواد الخام',
-                packaging: 'مواد التعبئة',
-                additive: 'الأكاسيد والألوان المضافة',
-                rawakid: 'الكميات المسحوبة من مخزن الرواكد',
-                outputs: 'المخرجات النهائية'
-            };
+                        ${fileNo ? '<div class="cell"><strong>رقم الملف:</strong> ' + fileNo + '</div>' : '<div class="cell"></div>'}
+                        ${runNo ? '<div class="cell"><strong>رقم التشغيلة:</strong> ' + runNo + '</div>' : '<div class="cell"></div>'}
+                        <div class="cell"><strong>مستلم الأمر:</strong> ${receivedBy || '...............'}</div>
 
-            sectionOrder.forEach(function(key) {
-                var sec = sections[key];
-                if (!sec.items.length) return;
+                        <div class="cell"><strong>اللون:</strong> ${color || '—'}</div>
+                        <div class="cell"><strong>العميل:</strong> ${client || '—'}</div>
+                        <div class="cell"><strong>الموقع:</strong> ${location || '—'}</div>
 
-                printHtml += `
-                    <div class="print-section">
-                        <h4>${sectionLabels[key] || key}</h4>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th style="width:35px;">م</th>
-                                    <th style="text-align:right;">الكود</th>
-                                    <th style="text-align:right;">الصنف</th>
-                                    <th style="width:80px;">الكمية</th>
-                                    <th style="width:60px;">الوحدة</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
+                        <div class="cell"><strong>العدد:</strong> ${formatNumber(unitsCount)}</div>
+                        <div class="cell"><strong>الوزن:</strong> ${formatNumber(weightPerUnit)} ${unit}</div>
+                        <div class="cell"><strong>الإجمالي:</strong> ${formatNumber(qty)} ${unit}</div>
 
-                var total = 0;
-                sec.items.forEach(function(item, idx) {
-                    var qtyVal = parseFloat(item.quantity) || 0;
-                    total += qtyVal;
-                    printHtml += `
-                        <tr>
-                            <td>${idx + 1}</td>
-                            <td style="text-align:right;">${item.material_code || '—'}</td>
-                            <td style="text-align:right;">${item.material_name || ''}</td>
-                            <td>${formatNumber(qtyVal)}</td>
-                            <td>${item.unit || '—'}</td>
-                        </tr>
-                    `;
-                });
-
-                if (key === 'raw') {
-                    var currentRows = sec.items.length;
-                    for (var r = currentRows; r < 29; r++) {
-                        printHtml += `
-                            <tr>
-                                <td>${r + 1}</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                        `;
-                    }
-                }
-
-                printHtml += `
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td colspan="3" style="text-align:left;">الإجمالي</td>
-                                    <td>${formatNumber(total)}</td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
+                        ${notes ? '<div class="cell wide"><strong>ملاحظات:</strong> ' + notes + '</div>' : ''}
                     </div>
-                `;
-            });
 
-            printHtml += `
+                    <div class="section-block">
+                        <h4>🧪 المواد الخام</h4>
+                        ${buildFullTable(sections.raw.items, 29)}
+                    </div>
+                </div>
+
+                <!-- ============ PAGE 2 (ظهر) — تابع الأمر: تعبئة / أكاسيد / رواكد / مخرجات ============ -->
+                <div class="sheet">
+                    <div class="page-stamp">٢</div>
+
+                    <div class="back-title">
+                        تابع / أمر إنتاج رقم ${orderNo}
+                    </div>
+
+                    <div class="section-block">
+                        <h4>📦 المسحوب من مواد التعبئة</h4>
+                        ${buildCompactTable(sections.packaging.items, 10)}
+                    </div>
+
+                    <div class="section-block">
+                        <h4>🎨 الأكاسيد والألوان المضافة للخلطة</h4>
+                        ${buildCompactTable(sections.additive.items, 8)}
+                    </div>
+
+                    <div class="section-block">
+                        <h4>♻️ الكميات المسحوبة من مخزن الرواكد</h4>
+                        ${buildCompactTable(sections.rawakid.items, 6)}
+                    </div>
+
+                    <div class="section-block">
+                        <h4>🏁 المخرجات النهائية</h4>
+                        ${buildCompactTable(sections.outputs.items, 4)}
+                    </div>
+
                     <div class="print-signatures">
                         <div class="sig-item">
-                            <div class="label">توقيع مسئول الإنتاج</div>
                             <div class="line"></div>
+                            <div class="label">توقيع مسئول الإنتاج</div>
                         </div>
                         <div class="sig-item">
-                            <div class="label">توقيع مهندس الإنتاج</div>
                             <div class="line"></div>
+                            <div class="label">توقيع مهندس الإنتاج</div>
                         </div>
                     </div>
-
                 </div>
+
             </body>
             </html>
             `;
@@ -2155,7 +2374,7 @@
 
             if (filtered.length === 0) {
                 entriesBody.innerHTML =
-                    '<tr><td colspan="8"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد أوامر إنتاج</p></div></td></tr>';
+                    '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد أوامر إنتاج</p></div></td></tr>';
                 return;
             }
 
@@ -2175,7 +2394,9 @@
                     '<td>' + (index + 1) + '</td>' +
                     '<td style="color:var(--accent-ink);font-weight:700;">' + (o.order_no || '-') + '</td>' +
                     '<td style="font-weight:700;">' + (o.product_name || '-') + '</td>' +
-                    '<td>' + formatNumber(o.quantity_produced || o.requested_qty || 0) + ' ' + (o.unit || '') + '</td>' +
+                    '<td>' + (o.units_count != null ? formatNumber(o.units_count) : '—') + '</td>' +
+                    '<td>' + (o.weight_per_unit != null ? formatNumber(o.weight_per_unit) + ' ' + (o.unit || '') : '—') + '</td>' +
+                    '<td style="font-weight:700;">' + formatNumber(o.quantity_produced || o.requested_qty || 0) + ' ' + (o.unit || '') + '</td>' +
                     '<td>' + (o.client_name || '-') + '</td>' +
                     '<td>' + formatDate(o.production_date || o.order_date) + '</td>' +
                     '<td>' + getStatusBadge(o.status) + '</td>' +
@@ -2219,7 +2440,7 @@
         // ============================================================
         async function loadData() {
             entriesBody.innerHTML =
-                '<tr><td colspan="8"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
+                '<tr><td colspan="10"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
 
             var results = await Promise.all([
                 getProducts(),
@@ -2289,6 +2510,7 @@
         window.deleteOrder = deleteOrder;
         window.updatePreview = updatePreview;
         window.printOrder = printOrder;
+        window.printSavedOrder = printSavedOrder;
         window.saveOrder = saveOrder;
         window.logout = logout;
 
@@ -2302,7 +2524,7 @@
             var token = getToken();
             if (!token) {
                 entriesBody.innerHTML =
-                    '<tr><td colspan="8"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول للوصول إلى هذه الصفحة</p></div></td></tr>';
+                    '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول للوصول إلى هذه الصفحة</p></div></td></tr>';
                 setTimeout(function() {
                     window.location.href = 'login.html';
                 }, 2000);
