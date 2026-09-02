@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
     <title>مخزن المواد الخام - QuickData ProSoft</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- ===== إضافة الملف المركزي ===== -->
     <script src="supabase-client.js"></script>
     <style>
         :root {
@@ -31,8 +28,8 @@
             --blue: #2f5b8a;
             --radius: 14px;
             --radius-sm: 9px;
-            --shadow: 0 14px 34px -16px rgba(18, 24, 33, 0.28);
-            --shadow-sm: 0 3px 10px -4px rgba(18, 24, 33, 0.18);
+            --shadow: 0 14px 34px -16px rgba(18,24,33,0.28);
+            --shadow-sm: 0 3px 10px -4px rgba(18,24,33,0.18);
             --font-display: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
             --font-mono: 'JetBrains Mono', ui-monospace, monospace;
             --header-height: 60px;
@@ -58,29 +55,19 @@
         .swatch-stripe span:nth-child(3) { background: var(--rust); }
         .swatch-stripe span:nth-child(4) { background: var(--blue); }
 
-        /* ============================================================
-           SIDEBAR OVERLAY
-           ============================================================ */
         .sidebar-overlay {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0,0,0,0.4);
             backdrop-filter: blur(4px);
             z-index: 999;
             opacity: 0;
             transition: opacity 0.3s ease;
             pointer-events: none;
         }
+        .sidebar-overlay.active { opacity: 1; pointer-events: auto; }
 
-        .sidebar-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        /* ============================================================
-           SIDEBAR
-           ============================================================ */
         .sidebar {
             position: fixed;
             top: 0;
@@ -96,10 +83,7 @@
             box-shadow: var(--shadow);
             overflow-y: auto;
         }
-
-        .sidebar.open {
-            right: 0;
-        }
+        .sidebar.open { right: 0; }
 
         .sidebar .brand {
             padding: 20px 18px 16px;
@@ -109,7 +93,6 @@
             border-bottom: 1px solid var(--line);
             flex-shrink: 0;
         }
-
         .sidebar .brand .mark {
             width: 40px;
             height: 40px;
@@ -123,21 +106,18 @@
             color: #fff;
             flex-shrink: 0;
         }
-
         .sidebar .brand .text {
             font-weight: 800;
             font-size: 0.9rem;
             color: var(--ink);
             line-height: 1.2;
         }
-
         .sidebar .brand .text span {
             display: block;
             font-size: 0.55rem;
             font-weight: 600;
             color: var(--ink-mute);
         }
-
         .sidebar .close-btn {
             margin-right: auto;
             background: none;
@@ -149,18 +129,13 @@
             border-radius: var(--radius-sm);
             transition: 0.2s;
         }
-
-        .sidebar .close-btn:hover {
-            background: var(--surface-muted);
-            color: var(--ink);
-        }
+        .sidebar .close-btn:hover { background: var(--surface-muted); color: var(--ink); }
 
         .sidebar .menu {
             flex: 1;
             padding: 12px 14px;
             overflow-y: auto;
         }
-
         .sidebar .menu .label {
             font-size: 0.55rem;
             color: var(--ink-mute);
@@ -169,11 +144,7 @@
             padding: 12px 10px 6px;
             font-weight: 700;
         }
-
-        .sidebar .menu .label:first-child {
-            padding-top: 4px;
-        }
-
+        .sidebar .menu .label:first-child { padding-top: 4px; }
         .sidebar .menu .item {
             display: flex;
             align-items: center;
@@ -188,41 +159,30 @@
             text-decoration: none;
             border-right: 3px solid transparent;
         }
-
-        .sidebar .menu .item:hover {
-            background: var(--surface-muted);
-            color: var(--ink);
-        }
-
+        .sidebar .menu .item:hover { background: var(--surface-muted); color: var(--ink); }
         .sidebar .menu .item.active {
             background: var(--accent-soft);
             color: var(--accent-ink);
             border-right-color: var(--accent);
         }
-
         .sidebar .menu .item i {
             width: 18px;
             text-align: center;
             font-size: 0.85rem;
             color: var(--ink-mute);
         }
-
-        .sidebar .menu .item.active i {
-            color: var(--accent);
-        }
+        .sidebar .menu .item.active i { color: var(--accent); }
 
         .sidebar .footer {
             padding: 12px 16px 16px;
             border-top: 1px solid var(--line);
             flex-shrink: 0;
         }
-
         .sidebar .footer .user {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-
         .sidebar .footer .user .avatar {
             width: 32px;
             height: 32px;
@@ -235,18 +195,15 @@
             font-size: 0.8rem;
             color: var(--ink-mute);
         }
-
         .sidebar .footer .user .info .name {
             font-size: 0.8rem;
             font-weight: 700;
             color: var(--ink);
         }
-
         .sidebar .footer .user .info .role {
             font-size: 0.55rem;
             color: var(--ink-mute);
         }
-
         .sidebar .footer .logout-btn {
             margin-right: auto;
             background: none;
@@ -258,15 +215,8 @@
             border-radius: var(--radius-sm);
             transition: 0.2s;
         }
+        .sidebar .footer .logout-btn:hover { background: var(--surface-muted); color: var(--rust); }
 
-        .sidebar .footer .logout-btn:hover {
-            background: var(--surface-muted);
-            color: var(--rust);
-        }
-
-        /* ============================================================
-           HEADER
-           ============================================================ */
         header {
             position: sticky;
             top: 0;
@@ -292,7 +242,7 @@
         .logo-mark span:nth-child(2) { background: var(--teal); }
         .logo-mark span:nth-child(3) { background: var(--rust); }
         .logo-mark span:nth-child(4) { background: var(--blue); }
-        .logo-text h1 { font-size: 0.95rem; font-weight: 800; color: var(--ink); line-height: 1.25; letter-spacing: -0.2px; }
+        .logo-text h1 { font-size: 0.95rem; font-weight: 800; color: var(--ink); line-height: 1.25; }
         .logo-text span { font-size: 0.62rem; color: var(--ink-mute); display: block; font-weight: 600; }
 
         nav { display: flex; align-items: center; gap: 22px; }
@@ -322,9 +272,6 @@
             padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface);
         }
 
-        /* ============================================================
-           MAIN CONTENT
-           ============================================================ */
         .main-content {
             flex: 1;
             padding: 20px;
@@ -333,7 +280,6 @@
             width: 100%;
         }
 
-        /* ===== PAGE HEADER ===== */
         .page-header {
             display: flex;
             justify-content: space-between;
@@ -368,40 +314,26 @@
             gap: 6px;
             font-family: var(--font-display);
         }
-        .btn-action:hover {
-            background: var(--surface-muted);
-            border-color: var(--line-strong);
-        }
+        .btn-action:hover { background: var(--surface-muted); border-color: var(--line-strong); }
         .btn-action.primary {
             background: var(--accent);
             color: var(--accent-ink);
             border-color: var(--accent);
         }
-        .btn-action.primary:hover {
-            background: var(--accent-ink);
-            color: #fff;
-            border-color: var(--accent-ink);
-        }
+        .btn-action.primary:hover { background: var(--accent-ink); color: #fff; }
         .btn-action.success {
             background: var(--teal);
             color: #fff;
             border-color: var(--teal);
         }
-        .btn-action.success:hover {
-            background: #156b5d;
-            border-color: #156b5d;
-        }
+        .btn-action.success:hover { background: #156b5d; border-color: #156b5d; }
         .btn-action.danger {
             background: var(--rust-soft);
             color: var(--rust);
             border-color: var(--rust-soft);
         }
-        .btn-action.danger:hover {
-            background: var(--rust);
-            color: #fff;
-        }
+        .btn-action.danger:hover { background: var(--rust); color: #fff; }
 
-        /* ===== FILTERS ===== */
         .filters-section {
             display: flex;
             flex-wrap: wrap;
@@ -462,11 +394,7 @@
             gap: 6px;
             font-family: var(--font-display);
         }
-        .btn-filter:hover {
-            background: var(--accent-ink);
-            color: #fff;
-            transform: translateY(-1px);
-        }
+        .btn-filter:hover { background: var(--accent-ink); color: #fff; transform: translateY(-1px); }
         .btn-reset {
             padding: 8px 16px;
             border-radius: 50px;
@@ -482,12 +410,8 @@
             gap: 6px;
             font-family: var(--font-display);
         }
-        .btn-reset:hover {
-            background: var(--line);
-            color: var(--ink);
-        }
+        .btn-reset:hover { background: var(--line); color: var(--ink); }
 
-        /* ===== SUMMARY ===== */
         .summary-bar {
             display: flex;
             flex-wrap: wrap;
@@ -519,7 +443,6 @@
             font-weight: 700;
         }
 
-        /* ===== TABLE ===== */
         .table-wrapper {
             background: var(--surface);
             border-radius: var(--radius);
@@ -531,7 +454,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.7rem;
-            min-width: 1000px;
+            min-width: 1200px;
         }
         th {
             background: var(--surface-muted);
@@ -578,7 +501,6 @@
         .loading-state i { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ===== MODAL ===== */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -632,10 +554,7 @@
             border-radius: var(--radius-sm);
             transition: 0.2s;
         }
-        .modal-box .modal-header .close-modal:hover {
-            background: var(--surface-muted);
-            color: var(--ink);
-        }
+        .modal-box .modal-header .close-modal:hover { background: var(--surface-muted); color: var(--ink); }
 
         .modal-box .form-group { margin-bottom: 14px; }
         .modal-box .form-group label {
@@ -687,15 +606,8 @@
             font-family: var(--font-display);
             flex: 1;
         }
-        .modal-box .form-actions .btn-save:hover {
-            background: #156b5d;
-            transform: translateY(-1px);
-        }
-        .modal-box .form-actions .btn-save:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
+        .modal-box .form-actions .btn-save:hover { background: #156b5d; transform: translateY(-1px); }
+        .modal-box .form-actions .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
         .modal-box .form-actions .btn-cancel {
             padding: 10px 24px;
             border-radius: var(--radius-sm);
@@ -708,13 +620,8 @@
             transition: 0.2s;
             font-family: var(--font-display);
         }
-        .modal-box .form-actions .btn-cancel:hover {
-            background: var(--surface-muted);
-        }
+        .modal-box .form-actions .btn-cancel:hover { background: var(--surface-muted); }
 
-        /* ============================================================
-           TOAST
-           ============================================================ */
         .toast-container {
             position: fixed;
             top: 80px;
@@ -751,9 +658,6 @@
         .toast .toast-message { font-size: 0.72rem; color: var(--ink-mute); margin-top: 1px; }
         .toast .toast-close { background: none; border: none; color: var(--ink-mute); cursor: pointer; font-size: 0.85rem; padding: 4px; margin-right: auto; }
 
-        /* ============================================================
-           RESPONSIVE
-           ============================================================ */
         @media (max-width: 768px) {
             .page-header { flex-direction: column; align-items: flex-start; }
             .filters-section { flex-direction: column; align-items: stretch; }
@@ -761,7 +665,7 @@
             .btn-filter, .btn-reset { width: 100%; justify-content: center; }
             .summary-bar { flex-direction: column; align-items: center; text-align: center; }
             .main-content { padding: 12px; }
-            table { font-size: 0.6rem; min-width: 800px; }
+            table { font-size: 0.6rem; min-width: 900px; }
             th, td { padding: 6px 8px; }
             .modal-box { padding: 20px; margin: 10px; }
             .modal-box .form-actions { flex-direction: column; }
@@ -770,49 +674,29 @@
             .toast-container { top: 70px; right: 10px; max-width: 300px; }
             nav { display: none !important; }
             .hamburger { display: flex !important; }
-            .sidebar {
-                width: 280px;
-                right: calc(-1 * 280px);
-            }
+            .sidebar { width: 280px; right: calc(-1 * 280px); }
             .sidebar.open { right: 0; }
             .sidebar-overlay { display: block; }
         }
-
         @media (max-width: 480px) {
             .toast-container { top: 60px; right: 8px; max-width: 260px; }
-            .toast { padding: 10px 12px; }
-            .toast .toast-title { font-size: 0.75rem; }
-            .toast .toast-message { font-size: 0.65rem; }
             .page-header h1 { font-size: 1.2rem; }
             table { font-size: 0.55rem; min-width: 700px; }
             th, td { padding: 4px 6px; }
         }
-
         @media (min-width: 769px) {
             .hamburger { display: none !important; }
             nav { display: flex !important; }
             .sidebar-overlay { display: none !important; }
         }
-
-        .modal-box.wide { max-width: 920px; }
-        .modal-box .mini-table-wrapper { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); margin-top: 6px; }
-        .modal-box .mini-table-wrapper table { min-width: 640px; font-size: 0.7rem; }
-        .badge-low { background: var(--rust-soft); color: var(--rust); }
-        .badge-ok { background: var(--teal-soft); color: var(--teal); }
     </style>
 </head>
 <body>
 
     <div class="swatch-stripe"><span></span><span></span><span></span><span></span></div>
 
-    <!-- ============================================================
-    SIDEBAR OVERLAY
-    ============================================================ -->
+    <!-- ===== SIDEBAR ===== -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <!-- ============================================================
-    SIDEBAR - القائمة الجانبية
-    ============================================================ -->
     <nav class="sidebar" id="sidebar">
         <div class="brand">
             <div class="mark">🏭</div>
@@ -822,42 +706,30 @@
             </div>
             <button class="close-btn" id="closeSidebar"><i class="fas fa-times"></i></button>
         </div>
-
         <div class="menu">
             <div class="label">القائمة الرئيسية</div>
             <a href="index.html" class="item"><i class="fas fa-house"></i> الرئيسية</a>
             <a href="treasury.html" class="item"><i class="fas fa-coins"></i> الخزينة</a>
             <a href="entry.html" class="item"><i class="fas fa-pen"></i> إدخال حركة</a>
 
+            <div class="label">المخازن</div>
+            <a href="warehouses.html" class="item"><i class="fas fa-warehouse"></i> إدارة المخازن</a>
+            <a href="warehouse-transfer.html" class="item"><i class="fas fa-exchange-alt"></i> إذن صرف</a>
+            <a href="raw-material-stock.html" class="item active"><i class="fas fa-boxes"></i> مخزن المواد الخام</a>
+            <a href="finished-goods-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المنتج التام</a>
+
+            <div class="label">الإنتاج</div>
+            <a href="production-orders.html" class="item"><i class="fas fa-industry"></i> أوامر الإنتاج</a>
+            <a href="formulations.html" class="item"><i class="fas fa-flask"></i> التركيبات</a>
+            <a href="semi-finished-products.html" class="item"><i class="fas fa-cube"></i> المنتجات شبه التامة</a>
+
             <div class="label">المبيعات والمشتريات</div>
             <a href="sales.html" class="item"><i class="fas fa-chart-line"></i> المبيعات</a>
             <a href="purchases.html" class="item"><i class="fas fa-shopping-cart"></i> المشتريات</a>
 
-            <div class="label">العملاء والموردين</div>
-            <a href="clients.html" class="item"><i class="fas fa-users"></i> العملاء</a>
-            <a href="suppliers.html" class="item"><i class="fas fa-truck"></i> الموردين</a>
-
-            <div class="label">المخزون</div>
-            <a href="materials.html" class="item"><i class="fas fa-boxes"></i> الخامات</a>
-            <a href="products.html" class="item"><i class="fas fa-cubes"></i> المنتجات</a>
-            <a href="raw-material-stock.html" class="item active"><i class="fas fa-warehouse"></i> مخزن المواد الخام</a>
-            <a href="finished-goods-stock.html" class="item"><i class="fas fa-warehouse"></i> مخزن المنتج التام</a>
-
-            <div class="label">الإنتاج</div>
-            <a href="formulations.html" class="item"><i class="fas fa-flask"></i> التركيبات</a>
-            <a href="production-orders.html" class="item"><i class="fas fa-industry"></i> أوامر الإنتاج</a>
-            <a href="costs.html" class="item"><i class="fas fa-calculator"></i> التكاليف</a>
-
             <div class="label">التقارير</div>
             <a href="reports.html" class="item"><i class="fas fa-file-lines"></i> التقارير</a>
-            <a href="invoices-summary.html" class="item"><i class="fas fa-file-invoice"></i> ملخص الفواتير</a>
-
-            <div class="label">الإعدادات</div>
-            <a href="tabs-settings.html" class="item"><i class="fas fa-tags"></i> التبويبات العامة</a>
-            <a href="settings.html" class="item"><i class="fas fa-gear"></i> الإعدادات</a>
-            <a href="help.html" class="item"><i class="fas fa-circle-question"></i> المساعدة</a>
         </div>
-
         <div class="footer">
             <div class="user">
                 <div class="avatar">م</div>
@@ -870,9 +742,7 @@
         </div>
     </nav>
 
-    <!-- ============================================================
-    HEADER
-    ============================================================ -->
+    <!-- ===== HEADER ===== -->
     <header id="header">
         <div class="header-content">
             <div class="logo">
@@ -883,11 +753,10 @@
                 </div>
             </div>
             <nav>
-                <a href="materials.html">الخامات</a>
-                <a href="suppliers.html">الموردين</a>
-                <a href="#" class="active">مخزن المواد الخام</a>
-                <a href="finished-goods-stock.html">مخزن المنتج التام</a>
-                <a href="reports.html">التقارير</a>
+                <a href="warehouses.html">المخازن</a>
+                <a href="warehouse-transfer.html">إذن صرف</a>
+                <a href="#" class="active">المواد الخام</a>
+                <a href="finished-goods-stock.html">المنتج التام</a>
             </nav>
             <div class="header-actions">
                 <button onclick="loadData()" title="تحديث"><i class="fas fa-sync-alt"></i></button>
@@ -897,19 +766,14 @@
         </div>
     </header>
 
-    <!-- ============================================================
-    TOAST
-    ============================================================ -->
+    <!-- ===== TOAST ===== -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- ============================================================
-    MAIN CONTENT
-    ============================================================ -->
+    <!-- ===== MAIN CONTENT ===== -->
     <div class="main-content">
 
-        <!-- ===== PAGE HEADER ===== -->
         <div class="page-header">
-            <h1><i class="fas fa-warehouse"></i> مخزن المواد الخام</h1>
+            <h1><i class="fas fa-boxes"></i> مخزن المواد الخام</h1>
             <div class="actions">
                 <button class="btn-action primary" onclick="openMovementModal()">
                     <i class="fas fa-right-left"></i> حركة جديدة
@@ -925,6 +789,12 @@
             <div class="filter-group">
                 <label><i class="fas fa-tag"></i> اسم / كود الخامة</label>
                 <input type="text" id="filterMaterial" placeholder="ابحث بالاسم أو الكود..." />
+            </div>
+            <div class="filter-group">
+                <label><i class="fas fa-warehouse"></i> المخزن</label>
+                <select id="filterWarehouse">
+                    <option value="all">جميع المخازن</option>
+                </select>
             </div>
             <div class="filter-group" style="flex:0.6;min-width:150px;">
                 <label><i class="fas fa-circle"></i> حالة المخزون</label>
@@ -954,7 +824,9 @@
                         <th>كود الخامة</th>
                         <th>اسم الخامة</th>
                         <th>الوحدة</th>
-                        <th style="text-align:center;">الرصيد الحالي</th>
+                        <th style="text-align:center;">الرصيد الرئيسي</th>
+                        <th style="text-align:center;">الرصيد الفرعي</th>
+                        <th style="text-align:center;">إجمالي الرصيد</th>
                         <th style="text-align:center;">الحد الأدنى</th>
                         <th style="text-align:center;">قيمة الرصيد</th>
                         <th>الحالة</th>
@@ -963,7 +835,7 @@
                 </thead>
                 <tbody id="entriesBody">
                     <tr>
-                        <td colspan="9">
+                        <td colspan="11">
                             <div class="loading-state">
                                 <i class="fas fa-spinner"></i>
                                 <p>جاري تحميل البيانات...</p>
@@ -976,9 +848,7 @@
 
     </div>
 
-    <!-- ============================================================
-    MOVEMENT MODAL (إضافة حركة وارد/منصرف/تسوية)
-    ============================================================ -->
+    <!-- ===== MOVEMENT MODAL ===== -->
     <div class="modal-overlay" id="movementModal">
         <div class="modal-box">
             <div class="modal-header">
@@ -998,6 +868,12 @@
                         <option value="وارد">وارد (شراء / إضافة للمخزن)</option>
                         <option value="منصرف">منصرف (سحب للإنتاج)</option>
                         <option value="تسوية">تسوية جرد (زيادة أو نقص)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>المخزن <span class="required">*</span></label>
+                    <select id="movementWarehouse" required>
+                        <option value="">— اختر المخزن —</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -1031,39 +907,34 @@
         </div>
     </div>
 
-    <!-- ============================================================
-    HISTORY MODAL (سجل حركات الخامة)
-    ============================================================ -->
+    <!-- ===== HISTORY MODAL ===== -->
     <div class="modal-overlay" id="historyModal">
-        <div class="modal-box wide">
+        <div class="modal-box" style="max-width: 920px;">
             <div class="modal-header">
                 <h3><i class="fas fa-clock-rotate-left"></i> <span id="historyTitle">سجل حركات الخامة</span></h3>
                 <button class="close-modal" onclick="closeHistoryModal()"><i class="fas fa-times"></i></button>
             </div>
             <div class="mini-table-wrapper">
-                <table>
+                <table style="width:100%; border-collapse:collapse; font-size:0.7rem;">
                     <thead>
                         <tr>
-                            <th>التاريخ</th>
-                            <th>النوع</th>
-                            <th style="text-align:center;">الكمية</th>
-                            <th style="text-align:center;">سعر الوحدة</th>
-                            <th style="text-align:center;">الرصيد بعد الحركة</th>
-                            <th>المرجع</th>
-                            <th style="text-align:center;">حذف</th>
+                            <th style="padding:8px 10px;background:var(--surface-muted);">التاريخ</th>
+                            <th style="padding:8px 10px;background:var(--surface-muted);">النوع</th>
+                            <th style="padding:8px 10px;background:var(--surface-muted);">المخزن</th>
+                            <th style="padding:8px 10px;background:var(--surface-muted);text-align:center;">الكمية</th>
+                            <th style="padding:8px 10px;background:var(--surface-muted);text-align:center;">الرصيد بعد الحركة</th>
+                            <th style="padding:8px 10px;background:var(--surface-muted);">المرجع</th>
+                            <th style="padding:8px 10px;background:var(--surface-muted);text-align:center;">حذف</th>
                         </tr>
                     </thead>
                     <tbody id="historyBody">
-                        <tr><td colspan="7"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد حركات</p></div></td></tr>
+                        <tr><td colspan="7" style="padding:20px;text-align:center;color:var(--ink-mute);">لا توجد حركات</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- ============================================================
-    JAVASCRIPT
-    ============================================================ -->
     <script>
         // ============================================================
         // SIDEBAR TOGGLE
@@ -1112,40 +983,40 @@
         var totalValue = document.getElementById('totalValue');
 
         var filterMaterial = document.getElementById('filterMaterial');
+        var filterWarehouse = document.getElementById('filterWarehouse');
         var filterStockStatus = document.getElementById('filterStockStatus');
 
         var allMaterials = [];
         var allMovements = [];
+        var allWarehouses = [];
         var currentHistoryMaterialId = null;
 
         // ============================================================
-        // GET MATERIALS - باستخدام getTable من الملف المركزي
+        // GET DATA
         // ============================================================
         async function getMaterials() {
             try {
                 var data = await getTable('materials', 'code.asc');
                 return data || [];
-            } catch (error) {
-                console.error('❌ خطأ في جلب الخامات:', error);
-                return [];
-            }
+            } catch (error) { return []; }
         }
 
-        // ============================================================
-        // GET MOVEMENTS - باستخدام getTable من الملف المركزي
-        // ============================================================
         async function getMovements() {
             try {
                 var data = await getTable('raw_material_movements');
                 return data || [];
-            } catch (error) {
-                console.error('❌ خطأ في جلب الحركات:', error);
-                return [];
-            }
+            } catch (error) { return []; }
+        }
+
+        async function getWarehouses() {
+            try {
+                var data = await getTable('warehouses', 'name.asc');
+                return data || [];
+            } catch (error) { return []; }
         }
 
         // ============================================================
-        // SIGNED QUANTITY
+        // COMPUTE BALANCE BY WAREHOUSE
         // ============================================================
         function signedQty(movement) {
             var qty = parseFloat(movement.quantity) || 0;
@@ -1154,19 +1025,28 @@
             return qty;
         }
 
-        // ============================================================
-        // COMPUTE BALANCE
-        // ============================================================
-        function computeBalance(materialId) {
+        function computeBalanceInWarehouse(materialId, warehouseId) {
             var balance = 0;
             allMovements.forEach(function(mv) {
-                if (mv.material_id == materialId) balance += signedQty(mv);
+                if (mv.material_id == materialId && mv.warehouse_id == warehouseId) {
+                    balance += signedQty(mv);
+                }
+            });
+            return balance;
+        }
+
+        function computeTotalBalance(materialId) {
+            var balance = 0;
+            allMovements.forEach(function(mv) {
+                if (mv.material_id == materialId) {
+                    balance += signedQty(mv);
+                }
             });
             return balance;
         }
 
         // ============================================================
-        // INSERT MOVEMENT - باستخدام insertRow من الملف المركزي
+        // INSERT MOVEMENT
         // ============================================================
         async function insertMovement(data) {
             var isValid = await checkSessionAndRedirect();
@@ -1192,6 +1072,7 @@
                 total_value: Math.abs(qty) * unitCost,
                 reference: data.reference || '',
                 notes: data.notes || '',
+                warehouse_id: data.warehouse_id,
                 movement_date: data.movement_date || new Date().toISOString().split('T')[0]
             };
 
@@ -1199,7 +1080,7 @@
         }
 
         // ============================================================
-        // DELETE MOVEMENT - باستخدام deleteRows من الملف المركزي
+        // DELETE MOVEMENT
         // ============================================================
         async function deleteMovement(id) {
             await deleteRows('raw_material_movements', 'id', id);
@@ -1207,7 +1088,7 @@
         }
 
         // ============================================================
-        // POPULATE MATERIAL SELECT
+        // POPULATE SELECTS
         // ============================================================
         function populateMaterialSelect() {
             var select = document.getElementById('movementMaterial');
@@ -1218,6 +1099,159 @@
                 opt.textContent = (m.code ? m.code + ' — ' : '') + m.name;
                 select.appendChild(opt);
             });
+        }
+
+        function populateWarehouseSelects() {
+            var movementWarehouse = document.getElementById('movementWarehouse');
+            var filterSelect = document.getElementById('filterWarehouse');
+
+            movementWarehouse.innerHTML = '<option value="">— اختر المخزن —</option>';
+            filterSelect.innerHTML = '<option value="all">جميع المخازن</option>';
+
+            allWarehouses.forEach(function(w) {
+                var opt = document.createElement('option');
+                opt.value = w.id;
+                opt.textContent = w.name;
+                movementWarehouse.appendChild(opt);
+
+                var opt2 = document.createElement('option');
+                opt2.value = w.id;
+                opt2.textContent = w.name;
+                filterSelect.appendChild(opt2);
+            });
+        }
+
+        // ============================================================
+        // DISPLAY STOCK
+        // ============================================================
+        function displayStock() {
+            var filtered = filterStock(allMaterials);
+            var total = filtered.length;
+            var low = 0;
+            var value = 0;
+
+            filtered.forEach(function(m) {
+                var bal = computeTotalBalance(m.id);
+                var minStock = parseFloat(m.min_stock) || 0;
+                if (minStock > 0 && bal < minStock) low++;
+                value += bal * (parseFloat(m.cost_price) || 0);
+            });
+
+            totalCount.textContent = total;
+            lowStockCount.textContent = low;
+            totalValue.textContent = formatNumber(value) + ' ج.م';
+
+            if (filtered.length === 0) {
+                entriesBody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد خامات</p></div></td></tr>';
+                return;
+            }
+
+            var html = '';
+            filtered.forEach(function(m, index) {
+                var mainBalance = computeBalanceInWarehouse(m.id, getMainWarehouseId());
+                var subBalance = computeBalanceInWarehouse(m.id, getSubWarehouseId());
+                var totalBal = mainBalance + subBalance;
+                var minStock = parseFloat(m.min_stock) || 0;
+                var isLow = minStock > 0 && totalBal < minStock;
+                var stockBadge = isLow ?
+                    '<span class="badge-status" style="background:var(--rust-soft);color:var(--rust);">تحت الحد الأدنى</span>' :
+                    '<span class="badge-status" style="background:var(--teal-soft);color:var(--teal);">طبيعي</span>';
+                var rowValue = totalBal * (parseFloat(m.cost_price) || 0);
+
+                html += '<tr>' +
+                    '<td>' + (index + 1) + '</td>' +
+                    '<td style="color:var(--accent-ink);font-weight:700;">' + (m.code || '-') + '</td>' +
+                    '<td style="font-weight:700;">' + (m.name || '-') + '</td>' +
+                    '<td>' + (m.unit || '-') + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(mainBalance) + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(subBalance) + '</td>' +
+                    '<td style="text-align:center;font-weight:700;' + (isLow ? 'color:var(--rust);' : 'color:var(--ink);') + '">' + formatNumber(totalBal) + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(minStock) + '</td>' +
+                    '<td style="text-align:center;">' + formatNumber(rowValue) + '</td>' +
+                    '<td>' + stockBadge + '</td>' +
+                    '<td style="text-align:center;">' +
+                    '<button class="btn-action" onclick="openMovementModal(\'' + m.id + '\')" style="padding:4px 8px;font-size:0.6rem;background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent-soft);"><i class="fas fa-plus"></i></button> ' +
+                    '<button class="btn-action" onclick="openHistoryModal(\'' + m.id + '\')" style="padding:4px 8px;font-size:0.6rem;"><i class="fas fa-clock-rotate-left"></i></button>' +
+                    '</td>' +
+                    '</tr>';
+            });
+
+            entriesBody.innerHTML = html;
+        }
+
+        function getMainWarehouseId() {
+            var main = allWarehouses.find(function(w) { return w.type === 'main_raw'; });
+            return main ? main.id : null;
+        }
+
+        function getSubWarehouseId() {
+            var sub = allWarehouses.find(function(w) { return w.type === 'sub_raw'; });
+            return sub ? sub.id : null;
+        }
+
+        // ============================================================
+        // FILTER STOCK
+        // ============================================================
+        function filterStock(materials) {
+            var search = filterMaterial.value.trim().toLowerCase();
+            var warehouseFilter = filterWarehouse.value;
+            var stockStatus = filterStockStatus.value;
+
+            return materials.filter(function(m) {
+                if (search) {
+                    var name = (m.name || '').toLowerCase();
+                    var code = (m.code || '').toLowerCase();
+                    if (!name.includes(search) && !code.includes(search)) return false;
+                }
+
+                if (warehouseFilter !== 'all') {
+                    var bal = computeBalanceInWarehouse(m.id, warehouseFilter);
+                    if (bal <= 0) return false;
+                }
+
+                if (stockStatus !== 'all') {
+                    var totalBal = computeTotalBalance(m.id);
+                    var minStock = parseFloat(m.min_stock) || 0;
+                    var isLow = minStock > 0 && totalBal < minStock;
+                    if (stockStatus === 'low' && !isLow) return false;
+                    if (stockStatus === 'ok' && isLow) return false;
+                }
+
+                return true;
+            });
+        }
+
+        // ============================================================
+        // APPLY / RESET FILTERS
+        // ============================================================
+        function applyFilters() { displayStock(); }
+        function resetFilters() {
+            filterMaterial.value = '';
+            filterWarehouse.value = 'all';
+            filterStockStatus.value = 'all';
+            displayStock();
+        }
+
+        // ============================================================
+        // MOVEMENT MODAL
+        // ============================================================
+        function openMovementModal(materialId) {
+            document.getElementById('movementForm').reset();
+            document.getElementById('movementUnitCost').value = '0';
+            document.getElementById('movementDate').value = new Date().toISOString().split('T')[0];
+            populateMaterialSelect();
+            populateWarehouseSelects();
+            if (materialId) {
+                document.getElementById('movementMaterial').value = materialId;
+            }
+            onMovementTypeChange();
+            document.getElementById('movementModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMovementModal() {
+            document.getElementById('movementModal').classList.remove('active');
+            document.body.style.overflow = '';
         }
 
         function onMovementTypeChange() {
@@ -1233,122 +1267,6 @@
             }
         }
 
-        // ============================================================
-        // DISPLAY STOCK
-        // ============================================================
-        function displayStock() {
-            var filtered = filterStock(allMaterials);
-
-            var total = filtered.length;
-            var low = 0;
-            var value = 0;
-
-            filtered.forEach(function(m) {
-                var bal = computeBalance(m.id);
-                var minStock = parseFloat(m.min_stock) || 0;
-                if (minStock > 0 && bal < minStock) low++;
-                value += bal * (parseFloat(m.cost_price) || 0);
-            });
-
-            totalCount.textContent = total;
-            lowStockCount.textContent = low;
-            totalValue.textContent = formatNumber(value) + ' ج.م';
-
-            if (filtered.length === 0) {
-                entriesBody.innerHTML =
-                    '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد خامات</p></div></td></tr>';
-                return;
-            }
-
-            var html = '';
-            filtered.forEach(function(m, index) {
-                var bal = computeBalance(m.id);
-                var minStock = parseFloat(m.min_stock) || 0;
-                var isLow = minStock > 0 && bal < minStock;
-                var stockBadge = isLow ?
-                    '<span class="badge-status badge-low">تحت الحد الأدنى</span>' :
-                    '<span class="badge-status badge-ok">طبيعي</span>';
-                var rowValue = bal * (parseFloat(m.cost_price) || 0);
-
-                html += '<tr>' +
-                    '<td>' + (index + 1) + '</td>' +
-                    '<td style="color:var(--accent-ink);font-weight:700;">' + (m.code || '-') + '</td>' +
-                    '<td style="font-weight:700;">' + (m.name || '-') + '</td>' +
-                    '<td>' + (m.unit || '-') + '</td>' +
-                    '<td style="text-align:center;font-weight:700;' + (isLow ? 'color:var(--rust);' : '') + '">' + formatNumber(bal) + '</td>' +
-                    '<td style="text-align:center;">' + formatNumber(minStock) + '</td>' +
-                    '<td style="text-align:center;">' + formatNumber(rowValue) + '</td>' +
-                    '<td>' + stockBadge + '</td>' +
-                    '<td style="text-align:center;">' +
-                    '<button class="btn-action" onclick="openMovementModal(\'' + m.id + '\')" style="padding:4px 8px;font-size:0.6rem;background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent-soft);"><i class="fas fa-plus"></i></button> ' +
-                    '<button class="btn-action" onclick="openHistoryModal(\'' + m.id + '\')" style="padding:4px 8px;font-size:0.6rem;"><i class="fas fa-clock-rotate-left"></i></button>' +
-                    '</td>' +
-                    '</tr>';
-            });
-
-            entriesBody.innerHTML = html;
-        }
-
-        // ============================================================
-        // FILTER STOCK
-        // ============================================================
-        function filterStock(materials) {
-            var search = filterMaterial.value.trim().toLowerCase();
-            var stockStatus = filterStockStatus.value;
-
-            return materials.filter(function(m) {
-                if (search) {
-                    var name = (m.name || '').toLowerCase();
-                    var code = (m.code || '').toLowerCase();
-                    if (!name.includes(search) && !code.includes(search)) return false;
-                }
-
-                if (stockStatus !== 'all') {
-                    var bal = computeBalance(m.id);
-                    var minStock = parseFloat(m.min_stock) || 0;
-                    var isLow = minStock > 0 && bal < minStock;
-                    if (stockStatus === 'low' && !isLow) return false;
-                    if (stockStatus === 'ok' && isLow) return false;
-                }
-
-                return true;
-            });
-        }
-
-        // ============================================================
-        // APPLY / RESET FILTERS
-        // ============================================================
-        function applyFilters() {
-            displayStock();
-        }
-
-        function resetFilters() {
-            filterMaterial.value = '';
-            filterStockStatus.value = 'all';
-            displayStock();
-        }
-
-        // ============================================================
-        // MOVEMENT MODAL
-        // ============================================================
-        function openMovementModal(materialId) {
-            document.getElementById('movementForm').reset();
-            document.getElementById('movementUnitCost').value = '0';
-            document.getElementById('movementDate').value = new Date().toISOString().split('T')[0];
-            populateMaterialSelect();
-            if (materialId) {
-                document.getElementById('movementMaterial').value = materialId;
-            }
-            onMovementTypeChange();
-            document.getElementById('movementModal').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeMovementModal() {
-            document.getElementById('movementModal').classList.remove('active');
-            document.body.style.overflow = '';
-        }
-
         async function saveMovement(event) {
             event.preventDefault();
 
@@ -1357,17 +1275,18 @@
             var materialName = materialId ? materialSelect.options[materialSelect.selectedIndex].textContent : '';
             var type = document.getElementById('movementType').value;
             var qty = parseFloat(document.getElementById('movementQty').value);
+            var warehouseId = document.getElementById('movementWarehouse').value;
 
             if (!materialId) {
                 showToast('⚠️ تنبيه', 'يرجى اختيار الخامة', 'error');
                 return;
             }
-            if (isNaN(qty) || qty === 0) {
-                showToast('⚠️ تنبيه', 'يرجى إدخال كمية صحيحة', 'error');
+            if (!warehouseId) {
+                showToast('⚠️ تنبيه', 'يرجى اختيار المخزن', 'error');
                 return;
             }
-            if (type !== 'تسوية' && qty < 0) {
-                showToast('⚠️ تنبيه', 'الكمية يجب أن تكون موجبة لحركات الوارد والمنصرف', 'error');
+            if (isNaN(qty) || qty === 0) {
+                showToast('⚠️ تنبيه', 'يرجى إدخال كمية صحيحة', 'error');
                 return;
             }
 
@@ -1376,6 +1295,7 @@
                 material_name: materialName,
                 type: type,
                 quantity: qty,
+                warehouse_id: warehouseId,
                 unit_cost: parseFloat(document.getElementById('movementUnitCost').value) || 0,
                 reference: document.getElementById('movementReference').value.trim(),
                 notes: document.getElementById('movementNotes').value.trim(),
@@ -1405,11 +1325,8 @@
         function openHistoryModal(materialId) {
             currentHistoryMaterialId = materialId;
             var material = allMaterials.find(function(m) { return m.id == materialId; });
-            document.getElementById('historyTitle').textContent =
-                'سجل حركات: ' + (material ? material.name : '');
-
+            document.getElementById('historyTitle').textContent = 'سجل حركات: ' + (material ? material.name : '');
             renderHistory(materialId);
-
             document.getElementById('historyModal').classList.add('active');
             document.body.style.overflow = 'hidden';
         }
@@ -1425,8 +1342,7 @@
             var historyBody = document.getElementById('historyBody');
 
             if (movements.length === 0) {
-                historyBody.innerHTML =
-                    '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-inbox"></i><p>لا توجد حركات</p></div></td></tr>';
+                historyBody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--ink-mute);">لا توجد حركات</td></tr>';
                 return;
             }
 
@@ -1438,15 +1354,16 @@
             var html = '';
             sorted.forEach(function(mv) {
                 running += signedQty(mv);
+                var warehouse = allWarehouses.find(function(w) { return w.id == mv.warehouse_id; });
                 var typeColor = mv.type === 'وارد' ? 'var(--teal)' : (mv.type === 'منصرف' ? 'var(--rust)' : 'var(--blue)');
                 html += '<tr>' +
-                    '<td>' + formatDate(mv.movement_date) + '</td>' +
-                    '<td style="color:' + typeColor + ';font-weight:700;">' + mv.type + '</td>' +
-                    '<td style="text-align:center;">' + formatNumber(signedQty(mv)) + '</td>' +
-                    '<td style="text-align:center;">' + formatNumber(mv.unit_cost) + '</td>' +
-                    '<td style="text-align:center;font-weight:700;">' + formatNumber(running) + '</td>' +
-                    '<td>' + (mv.reference || '-') + '</td>' +
-                    '<td style="text-align:center;">' +
+                    '<td style="padding:8px 10px;">' + formatDate(mv.movement_date) + '</td>' +
+                    '<td style="padding:8px 10px;color:' + typeColor + ';font-weight:700;">' + mv.type + '</td>' +
+                    '<td style="padding:8px 10px;">' + (warehouse ? warehouse.name : '-') + '</td>' +
+                    '<td style="padding:8px 10px;text-align:center;">' + formatNumber(signedQty(mv)) + '</td>' +
+                    '<td style="padding:8px 10px;text-align:center;font-weight:700;">' + formatNumber(running) + '</td>' +
+                    '<td style="padding:8px 10px;">' + (mv.reference || '-') + '</td>' +
+                    '<td style="padding:8px 10px;text-align:center;">' +
                     '<button class="btn-action danger" onclick="deleteMovementConfirm(\'' + mv.id + '\')" style="padding:3px 7px;font-size:0.6rem;"><i class="fas fa-trash"></i></button>' +
                     '</td>' +
                     '</tr>';
@@ -1456,7 +1373,7 @@
         }
 
         function deleteMovementConfirm(id) {
-            if (!confirm('هل أنت متأكد من حذف هذه الحركة؟ سيتم إعادة حساب الرصيد تلقائيًا.')) return;
+            if (!confirm('هل أنت متأكد من حذف هذه الحركة؟ سيتم إعادة حساب الرصيد تلقائياً.')) return;
 
             deleteMovement(id)
                 .then(async function() {
@@ -1480,15 +1397,19 @@
 
             try {
                 var excelData = allMaterials.map(function(m) {
-                    var bal = computeBalance(m.id);
+                    var mainBalance = computeBalanceInWarehouse(m.id, getMainWarehouseId());
+                    var subBalance = computeBalanceInWarehouse(m.id, getSubWarehouseId());
+                    var totalBal = mainBalance + subBalance;
                     return {
                         'كود الخامة': m.code || '',
                         'اسم الخامة': m.name || '',
                         'الوحدة': m.unit || '',
-                        'الرصيد الحالي': bal,
+                        'الرصيد الرئيسي': mainBalance,
+                        'الرصيد الفرعي': subBalance,
+                        'إجمالي الرصيد': totalBal,
                         'الحد الأدنى': m.min_stock || 0,
-                        'قيمة الرصيد': bal * (parseFloat(m.cost_price) || 0),
-                        'الحالة': (m.min_stock > 0 && bal < m.min_stock) ? 'تحت الحد الأدنى' : 'طبيعي'
+                        'قيمة الرصيد': totalBal * (parseFloat(m.cost_price) || 0),
+                        'الحالة': (m.min_stock > 0 && totalBal < m.min_stock) ? 'تحت الحد الأدنى' : 'طبيعي'
                     };
                 });
 
@@ -1498,7 +1419,7 @@
 
                 ws['!cols'] = [
                     { wch: 15 }, { wch: 25 }, { wch: 10 }, { wch: 14 },
-                    { wch: 12 }, { wch: 16 }, { wch: 16 }
+                    { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 16 }
                 ];
 
                 var filename = 'مخزن_المواد_الخام_' + new Date().toISOString().split('T')[0] + '.xlsx';
@@ -1516,12 +1437,12 @@
         // LOAD DATA
         // ============================================================
         async function loadData() {
-            entriesBody.innerHTML =
-                '<tr><td colspan="9"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
+            entriesBody.innerHTML = '<tr><td colspan="11"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>';
 
-            var results = await Promise.all([getMaterials(), getMovements()]);
+            var results = await Promise.all([getMaterials(), getMovements(), getWarehouses()]);
             allMaterials = results[0];
             allMovements = results[1];
+            allWarehouses = results[2];
             displayStock();
         }
 
@@ -1531,13 +1452,12 @@
         document.getElementById('movementModal').addEventListener('click', function(e) {
             if (e.target === this) closeMovementModal();
         });
-
         document.getElementById('historyModal').addEventListener('click', function(e) {
             if (e.target === this) closeHistoryModal();
         });
 
         // ============================================================
-        // EXPOSE FUNCTIONS TO GLOBAL
+        // EXPOSE FUNCTIONS
         // ============================================================
         window.applyFilters = applyFilters;
         window.resetFilters = resetFilters;
@@ -1552,16 +1472,31 @@
         window.exportToExcel = exportToExcel;
 
         // ============================================================
+        // LOGOUT
+        // ============================================================
+        async function logout() {
+            try {
+                var client = getSupabaseClient();
+                if (client) await client.auth.signOut();
+                localStorage.removeItem('rollex_session');
+                sessionStorage.removeItem('rollex_session');
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('❌ خطأ في تسجيل الخروج:', error);
+                window.location.href = 'login.html';
+            }
+        }
+        window.logout = logout;
+
+        // ============================================================
         // INIT
         // ============================================================
         (async function init() {
             console.log('🏭 صفحة مخزن المواد الخام - QuickData ProSoft');
-            console.log('🔗 Supabase URL:', SUPABASE_URL);
 
             var token = getToken();
             if (!token) {
-                entriesBody.innerHTML =
-                    '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول للوصول إلى هذه الصفحة</p></div></td></tr>';
+                entriesBody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>يرجى تسجيل الدخول للوصول إلى هذه الصفحة</p></div></td></tr>';
                 setTimeout(function() {
                     window.location.href = 'login.html';
                 }, 2000);
