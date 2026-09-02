@@ -953,74 +953,58 @@
     ============================================================ -->
     <script>
         // ============================================================
-        // SUPABASE CONFIGURATION
+        // استخدام المتغيرات المعرفة من supabase-client.js
         // ============================================================
-        // ⚠️ قم بتغيير هذه القيم إلى بيانات مشروعك الفعلية
-        var SUPABASE_URL = 'https://your-project-id.supabase.co';
-        var SUPABASE_KEY = 'your-anon-public-key';
+        // المتغيرات SUPABASE_URL و SUPABASE_ANON_KEY معرفة بالفعل في supabase-client.js
+        // نستخدمها مباشرة دون إعادة تعريفها
 
         // ============================================================
-        // INITIALIZE SUPABASE CLIENT (تجنب إعادة التعريف)
+        // GET SUPABASE CLIENT
         // ============================================================
-        var supabaseClient = null;
-
-        // محاولة استخدام العميل الموجود من supabase-client.js
-        if (typeof window.supabase !== 'undefined' && window.supabase) {
-            try {
-                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                console.log('✅ Supabase client initialized from window.supabase');
-            } catch (e) {
-                console.warn('⚠️ Failed to create client from window.supabase:', e);
-                supabaseClient = null;
+        function getSupabaseClientLocal() {
+            // محاولة استخدام الدالة من supabase-client.js أولاً
+            if (typeof window.getSupabaseClient === 'function') {
+                var client = window.getSupabaseClient();
+                if (client) return client;
             }
-        }
 
-        // إذا لم يتم تهيئة العميل، استخدم العميل المدمج
-        if (!supabaseClient) {
+            // إذا لم تنجح، نحاول إنشاء عميل جديد باستخدام المتغيرات العامة
             try {
-                if (typeof supabaseJs !== 'undefined' && supabaseJs) {
-                    supabaseClient = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
-                    console.log('✅ Supabase client initialized from supabaseJs');
-                } else if (typeof supabase !== 'undefined' && supabase) {
-                    // إذا كان supabase معرفاً بالفعل ككائن
-                    supabaseClient = supabase;
-                    console.log('✅ Using existing supabase client');
-                } else {
-                    throw new Error('No Supabase client available');
+                if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined') {
+                    if (typeof supabase !== 'undefined') {
+                        return supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                            auth: {
+                                autoRefreshToken: true,
+                                persistSession: true,
+                                detectSessionInUrl: true,
+                                storageKey: 'rollex_session'
+                            }
+                        });
+                    }
                 }
             } catch (e) {
-                console.error('❌ Failed to initialize Supabase client:', e);
-                // إنشاء عميل وهمي لتجنب الأعطال
-                supabaseClient = {
-                    from: function() {
-                        return {
-                            select: function() {
-                                return {
-                                    order: function() {
-                                        return {
-                                            then: function(callback) {
-                                                callback({
-                                                    data: [],
-                                                    error: new Error(
-                                                        'Supabase client not properly configured. Please check your SUPABASE_URL and SUPABASE_KEY.'
-                                                    )
-                                                });
-                                                return {
-                                                    catch: function() {}
-                                                };
-                                            }
-                                        };
-                                    }
-                                };
-                            }
-                        };
-                    }
-                };
+                console.warn('⚠️ Failed to create Supabase client:', e);
             }
-        }
 
-        // تصدير العميل للاستخدام العالمي
-        window.supabaseClient = supabaseClient;
+            // محاولة استخدام supabase من النطاق العام
+            try {
+                if (typeof supabase !== 'undefined') {
+                    if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined') {
+                        return supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    }
+                    // محاولة استخدام القيم الثابتة من supabase-client.js
+                    return supabase.createClient(
+                        'https://ykkhkgajzyxsgoamtmnn.supabase.co',
+                        'sb_publishable_NOH7uJlEoPf6wcT87DNBug_izzR-4VF'
+                    );
+                }
+            } catch (e) {
+                console.error('❌ Failed to create Supabase client:', e);
+            }
+
+            console.error('❌ No Supabase client available');
+            return null;
+        }
 
         // ============================================================
         // TOAST SYSTEM
@@ -1075,6 +1059,9 @@
                 }
             });
         }
+
+        // جعل showToast متاحة عالمياً
+        window.showToast = showToast;
 
         // ============================================================
         // HEADER SCROLL EFFECT
@@ -1193,9 +1180,10 @@
             `;
 
             try {
-                // التحقق من اتصال Supabase
-                if (!supabaseClient || typeof supabaseClient.from !== 'function') {
-                    throw new Error('Supabase client not properly initialized. Please check configuration.');
+                // الحصول على عميل Supabase
+                var supabaseClient = getSupabaseClientLocal();
+                if (!supabaseClient) {
+                    throw new Error('تعذر تهيئة اتصال قاعدة البيانات');
                 }
 
                 // جلب جميع حركات المنتج التام من قاعدة البيانات
