@@ -2121,7 +2121,7 @@
         // ============================================================
         // INIT
         // ============================================================
-        (function init() {
+        (async function init() {
             var token = getToken();
             if (!token) {
                 entriesBody.innerHTML =
@@ -2129,6 +2129,13 @@
                 setTimeout(function() {
                     window.location.href = 'login.html';
                 }, 2000);
+                return;
+            }
+
+            // ✅ خطوة 3: فحص صلاحية الوصول لموديول "sales"
+            var allowed = await checkPageAccess('sales', 'view');
+            if (!allowed) {
+                console.warn('⛔ لا يوجد صلاحية وصول لموديول المبيعات، تم إيقاف تحميل الصفحة');
                 return;
             }
 

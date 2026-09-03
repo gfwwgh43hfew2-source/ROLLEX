@@ -1552,13 +1552,20 @@
         // ============================================================
         // INITIALIZATION
         // ============================================================
-        (function init() {
+        (async function init() {
             console.log('='.repeat(60));
             console.log('🏭 نظام إدارة مخزن الإنتاج التام');
             console.log('📌 متصل بـ Supabase - جدول: finished_goods_movements');
             console.log('📌 تحديث تلقائي كل 5 دقائق');
             console.log('📌 Ctrl+P للطباعة | Ctrl+R للتحديث');
             console.log('='.repeat(60));
+
+            // ✅ خطوة 4: فحص صلاحية الوصول لموديول "products"
+            var allowed = await checkPageAccess('products', 'view');
+            if (!allowed) {
+                console.warn('⛔ لا يوجد صلاحية وصول لموديول المنتجات، تم إيقاف تحميل الصفحة');
+                return;
+            }
 
             // تحميل البيانات
             loadInventory();

@@ -3398,7 +3398,16 @@
          * INIT
          * ============================================================
          */
-        loadData();
+        // ✅ خطوة 3: فحص صلاحية الوصول لموديول "sales" قبل تحميل بيانات
+         // الفاتورة (عملاء/منتجات/فواتير سابقة).
+        (async function() {
+            var allowed = await checkPageAccess('sales', 'view');
+            if (!allowed) {
+                console.warn('⛔ لا يوجد صلاحية وصول لموديول المبيعات، تم إيقاف تحميل الصفحة');
+                return;
+            }
+            loadData();
+        })();
 
         console.log('🧾 فاتورة المبيعات - الإصدار مع Supabase');
         console.log('📌 Supabase URL:', SUPABASE_URL);

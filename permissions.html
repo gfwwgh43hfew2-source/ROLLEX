@@ -802,6 +802,29 @@
             }
 
             console.log('✅ جلسة موجودة، جاري تحميل المستخدمين...');
+
+            // ✅ خطوة 5: هذه الصفحة كانت بدون أي تحقق من أن المستخدم أدمن!
+            // أي موظف عنده جلسة صالحة كان يقدر يفتحها. لأنها صفحة التحكم
+            // في صلاحيات كل المستخدمين، لازم تكون مقصورة على admin/super_admin
+            // فقط (نفس نمط الحماية المستخدم في users.html).
+            try {
+                var profile = await getCurrentUserProfile();
+                var isPageAdmin = !!(profile && (profile.role === 'admin' || profile.is_super_admin));
+                if (!isPageAdmin) {
+                    console.warn('⛔ [init] المستخدم ليس أدمن، لا يمكنه الوصول لصفحة الصلاحيات');
+                    showToast('⚠️ غير مسموح', 'ليس لديك صلاحية للوصول إلى إدارة الصلاحيات', 'error');
+                    document.getElementById('userSelect').innerHTML = '<option value="">⚠️ غير مصرح لك بالوصول</option>';
+                    setTimeout(function() {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                    return;
+                }
+            } catch (e) {
+                console.error('❌ فشل التحقق من صلاحية الأدمن:', e);
+                window.location.href = 'index.html';
+                return;
+            }
+
             await loadUsers();
         })();
 

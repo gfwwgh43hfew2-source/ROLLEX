@@ -778,7 +778,14 @@
         // إعدادات إضافية
         // ============================================================
         // عند تحميل الصفحة، نركز على حقل الباسوورد
-        document.addEventListener('DOMContentLoaded', function() {
+        // ✅ خطوة 4: فحص صلاحية الوصول لموديول "settings" قبل حتى إظهار
+        // شاشة كلمة مرور الشركات (طبقة حماية إضافية على مستوى الواجهة).
+        document.addEventListener('DOMContentLoaded', async function() {
+            var allowed = await checkPageAccess('settings', 'view');
+            if (!allowed) {
+                console.warn('⛔ لا يوجد صلاحية وصول لموديول الإعدادات، تم إيقاف تحميل الصفحة');
+                return;
+            }
             document.getElementById('passwordInput').focus();
         });
 
