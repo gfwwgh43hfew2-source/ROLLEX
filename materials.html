@@ -1089,6 +1089,38 @@
     ============================================================ -->
     <script>
         // ============================================================
+        // TOAST
+        // ============================================================
+        function showToast(title, message, type) {
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast';
+            var iconMap = { success: 'fa-check-circle', error: 'fa-times-circle', warning: 'fa-exclamation-triangle' };
+            var iconClass = type || 'warning';
+            if (iconClass === 'success') iconClass = 'success';
+            else if (iconClass === 'error') iconClass = 'error';
+            else iconClass = 'warning';
+            toast.innerHTML = `
+                <div class="toast-icon ${iconClass}"><i class="fas ${iconMap[iconClass] || 'fa-info-circle'}"></i></div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(toast);
+            requestAnimationFrame(function() { toast.classList.add('show'); });
+            setTimeout(function() {
+                toast.classList.remove('show');
+                setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
+            }, 5000);
+            toast.querySelector('.toast-close').addEventListener('click', function() {
+                toast.classList.remove('show');
+                setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
+            });
+        }
+
+        // ============================================================
         // SIDEBAR TOGGLE
         // ============================================================
         var sidebar = document.getElementById('sidebar');
