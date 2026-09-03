@@ -5,6 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>الرئيسية · نظام إدارة المصنع — رولكس للدهانات</title>
 
+    <!-- ==========================================================
+         ✅ حارس دخول فوري (Auth Guard) — أول سطر في <head>
+         ==========================================================
+         بيفحص وجود جلسة محليًا (بدون أي طلب شبكة) قبل ما المتصفح
+         يبدأ حتى في رسم جسم الصفحة. لو مفيش توكن، تحويل فوري
+         لصفحة الدخول من غير ما يظهر أي جزء من الداشبورد أبدًا
+         (كان بيحصل قبل كده "ومضة" من محتوى الصفحة الرئيسية قبل
+         الطرد، وده تسريب بصري لمحتوى محمي). -->
+    <script>
+        (function () {
+            try {
+                var raw = localStorage.getItem('rollex_session') || sessionStorage.getItem('rollex_session');
+                var hasToken = false;
+                if (raw) {
+                    var parsed = JSON.parse(raw);
+                    hasToken = !!(parsed && parsed.access_token);
+                }
+                if (!hasToken) {
+                    window.location.replace('login.html');
+                }
+            } catch (e) {
+                window.location.replace('login.html');
+            }
+        })();
+    </script>
+
     <link rel="shortcut icon" href="#">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
