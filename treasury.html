@@ -1535,7 +1535,7 @@
                 company_id: companyId,
                 user_id: user ? user.id : null,
                 is_imported: false,
-                import_order: null
+                import_order: getNextOrderValue()
             };
 
             return await insertRow('treasury_transactions', payload);
@@ -1553,6 +1553,39 @@
 
             await patchRow('treasuries', treasuryId, { balance: totalBalance });
             return totalBalance;
+        }
+
+        // ============================================================
+        // GET NEXT ORDER VALUE
+        // ترتيب متسلسل ومستمر لكل حركة (مستوردة أو يدوية) بحيث لا يعاد
+        // تصفيره أبداً. أي حركة جديدة تاخد رقم أكبر من كل الأرقام
+        // الموجودة حالياً في الخزينة، فتظهر آخر القائمة عند تفعيل
+        // "ترتيب الاستيراد"، ولا تتصادم أرقام استيراد جديد مع استيراد قديم.
+        // ============================================================
+        function getNextOrderValue() {
+            var maxOrder = 0;
+            allTransactions.forEach(function(t) {
+                if (t.import_order && t.import_order > maxOrder) {
+                    maxOrder = t.import_order;
+                }
+            });
+            return maxOrder + 1;
+        }
+
+        // نفس الفكرة لكن لخزينة تانية غير اللي فاتحينها حالياً (بتستخدم في
+        // التحويل بين الخزائن، لأن الحركة التانية بتتسجل في خزينة مختلفة)
+        async function getNextOrderValueForTreasury(treasuryId) {
+            if (treasuryId === currentTreasuryId) {
+                return getNextOrderValue();
+            }
+            var transactions = await getTransactionsWithPagination(treasuryId);
+            var maxOrder = 0;
+            transactions.forEach(function(t) {
+                if (t.import_order && t.import_order > maxOrder) {
+                    maxOrder = t.import_order;
+                }
+            });
+            return maxOrder + 1;
         }
 
         // ============================================================
@@ -1615,6 +1648,9 @@
                 var user = await getCurrentUserProfile();
                 var fromName = document.getElementById('treasuryName').textContent || 'الخزينة الحالية';
 
+                var fromOrder = getNextOrderValue();
+                var toOrder = await getNextOrderValueForTreasury(toId);
+
                 await insertRow('treasury_transactions', {
                     treasury_id: fromId,
                     amount: -amount,
@@ -1626,7 +1662,7 @@
                     company_id: companyId,
                     user_id: user ? user.id : null,
                     is_imported: false,
-                    import_order: null
+                    import_order: fromOrder
                 });
 
                 await insertRow('treasury_transactions', {
@@ -1640,7 +1676,7 @@
                     company_id: companyId,
                     user_id: user ? user.id : null,
                     is_imported: false,
-                    import_order: null
+                    import_order: toOrder
                 });
 
                 await updateTreasuryBalance(fromId);
@@ -2160,7 +2196,7 @@
                     company_id: companyId,
                     user_id: user ? user.id : null,
                     is_imported: false,
-                    import_order: null
+                    import_order: getNextOrderValue()
                 };
 
                 var transaction = await insertRow('treasury_transactions', transactionData);
@@ -2393,6 +2429,11 @@
                 var errors = [];
                 var totalRows = jsonData.length;
 
+                // ✅ نبدأ العد من آخر ترتيب موجود فعلاً في الخزينة، مش من 1
+                // كده لو ده تاني استيراد، حركاته هتيجي بعد كل حركات الاستيراد
+                // اللي قبله بدل ما تتصادم معاها وتتلخبط.
+                var importBaseOrder = getNextOrderValue();
+
                 for (var i = 0; i < totalRows; i++) {
                     var row = jsonData[i];
                     var rowNum = i + 2;
@@ -2504,7 +2545,7 @@
                         var companyId = await getCompanyId();
                         var user = await getCurrentUserProfile();
 
-                        var importOrderIndex = i + 1;
+                        var importOrderIndex = importBaseOrder + i;
 
                         var inserted = await insertRow('treasury_transactions', {
                             treasury_id: currentTreasuryId,
@@ -2926,8 +2967,11 @@
                 var transactions = await getTransactionsWithPagination(currentTreasuryId);
                 allTransactions = transactions;
 
+                // ✅ نتتبع ترتيب كل حركة عندها import_order، مش بس المستوردة،
+                // عشان الحركات اليدوية كمان تاخد مكانها الصح في القائمة
+                // بدل ما تتثبت دايماً آخر الترتيب.
                 transactions.forEach(function(t) {
-                    if (t.is_imported && t.import_order) {
+                    if (t.import_order) {
                         importedRowIds[t.id] = t.import_order;
                         if (!importOrder.includes(t.id)) {
                             importOrder.push(t.id);
