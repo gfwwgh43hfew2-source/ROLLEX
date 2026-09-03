@@ -1632,7 +1632,8 @@
             if (!userData) return;
 
             var displayName = userData.full_name || userData.email || 'مستخدم';
-            var role = userData.role || 'موظف';
+            var role = userData.is_super_admin ? 'مدير عام النظام' :
+                (userData.role === 'admin' ? 'مدير' : (userData.role || 'موظف'));
             var firstChar = displayName.charAt(0) || 'م';
 
             document.getElementById('sidebarAvatar').textContent = firstChar;
@@ -1706,7 +1707,8 @@
                     email: userData.email,
                     full_name: profile ? profile.name : userData.email,
                     role: profile ? profile.role : 'موظف',
-                    company_id: profile ? profile.company_id : null
+                    company_id: profile ? profile.company_id : null,
+                    is_super_admin: profile ? !!profile.is_super_admin : false
                 };
 
                 parsed.user = finalUserData;

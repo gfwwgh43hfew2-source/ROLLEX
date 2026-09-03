@@ -167,32 +167,59 @@ async function getCurrentUserProfile() {
         return null;
     }
 
+    // ✅ ملاحظة إصلاح: كنا بنستخدم supabaseClient.auth.getUser() هنا، لكنه
+    // بيعتمد على أن مكتبة الـ SDK نفسها عندها جلسة داخلية مُهيّأة بشكلها
+    // الصحيح. بما أن login.html بيبني الجلسة يدويًا (fetch مباشر) وبيحفظها
+    // في localStorage بشكل مخصص، الـ SDK كان بيفشل يقرأها ("Auth session
+    // missing")، فالدالة كانت بترجع null دايمًا حتى لو المستخدم مسجل دخول
+    // فعليًا وصلاحياته سليمة. الحل: نستخدم fetch مباشر بالتوكن (بنفس الطريقة
+    // الشغالة أصلاً في index.html) بدل الاعتماد على حالة الـ SDK الداخلية.
+    var session = getSession();
+    var userId = session && session.user && session.user.id;
+
     try {
-        var supabaseClient = getSupabaseClient();
-        if (!supabaseClient) {
-            console.error('❌ Supabase Client not available');
-            return null;
+        if (!userId) {
+            var userResp = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+            if (!userResp.ok) {
+                console.warn('⚠️ فشل جلب المستخدم من Auth:', userResp.status);
+                return null;
+            }
+            var userData = await userResp.json();
+            userId = userData && userData.id;
         }
-        
-        var { data: userData, error: userError } = await supabaseClient.auth.getUser();
-        if (userError || !userData?.user) {
-            console.warn('⚠️ فشل جلب المستخدم:', userError?.message);
+
+        if (!userId) {
+            console.warn('⚠️ لا يوجد معرف مستخدم');
             return null;
         }
 
-        var { data: profileData, error: profileError } = await supabaseClient
-            .from('profiles')
-            .select('*')
-            .eq('id', userData.user.id)
-            .single();
+        var profileResp = await fetch(
+            SUPABASE_URL + '/rest/v1/profiles?select=*&id=eq.' + userId, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + token
+                }
+            }
+        );
 
-        if (profileError) {
-            console.warn('⚠️ فشل جلب البروفايل:', profileError.message);
+        if (!profileResp.ok) {
+            console.warn('⚠️ فشل جلب البروفايل:', profileResp.status);
+            return null;
+        }
+
+        var profiles = await profileResp.json();
+        if (!profiles || profiles.length === 0) {
+            console.warn('⚠️ لا يوجد بروفايل لهذا المستخدم');
             return null;
         }
 
         console.log('✅ تم جلب البروفايل بنجاح');
-        return profileData;
+        return profiles[0];
 
     } catch (error) {
         console.error('❌ خطأ في جلب البروفايل:', error);
@@ -210,32 +237,17 @@ async function getCompanyId() {
         return null;
     }
 
+    // ✅ نفس إصلاح getCurrentUserProfile(): بنعتمد على البروفايل اللي جبناه
+    // بالـ fetch المباشر بدل auth.getUser() من الـ SDK.
     try {
-        var supabaseClient = getSupabaseClient();
-        if (!supabaseClient) {
-            console.error('❌ Supabase Client not available');
+        var profile = await getCurrentUserProfile();
+        if (!profile) {
+            console.warn('⚠️ لا يوجد بروفايل لجلب company_id منه');
             return null;
         }
 
-        var { data: userData, error: userError } = await supabaseClient.auth.getUser();
-        if (userError || !userData?.user) {
-            console.warn('⚠️ فشل جلب المستخدم:', userError?.message);
-            return null;
-        }
-
-        var { data: profileData, error: profileError } = await supabaseClient
-            .from('profiles')
-            .select('company_id')
-            .eq('id', userData.user.id)
-            .single();
-
-        if (profileError) {
-            console.warn('⚠️ فشل جلب company_id:', profileError.message);
-            return null;
-        }
-
-        console.log('✅ company_id:', profileData?.company_id);
-        return profileData?.company_id || null;
+        console.log('✅ company_id:', profile.company_id);
+        return profile.company_id || null;
 
     } catch (error) {
         console.error('❌ خطأ في جلب company_id:', error);
