@@ -822,11 +822,17 @@ window.hasPermissionSimple = hasPermissionSimple;
 // AUTO SESSION GUARD
 // ============================================================
 (function() {
-    var currentPage = (window.location.pathname.split('/').pop() || '').toLowerCase();
-    var publicPages = ['login.html', 'register.html', '', 'index.html'];
+    // ✅ إصلاح: بعض الاستضافات بتشيل امتداد .html من الرابط (register بدل
+    // register.html)، فالمقارنة بالاسم الكامل القديمة كانت بتفشل وتعتبر
+    // register.html/login.html صفحات "محمية" غلط، فتطرد أي حد يفتحها فورًا
+    // لصفحة تسجيل الدخول حتى لو مسجّلش دخول ولا فتح الفورم أصلاً.
+    // الحل: نتحقق بمرونة (مع/من غير .html، مع/من غير / في الآخر).
+    var pathname = window.location.pathname.toLowerCase();
+    var currentPage = (pathname.split('/').pop() || '').replace(/\.html$/, '');
+    var publicPages = ['login', 'register', '', 'index'];
 
     if (publicPages.indexOf(currentPage) !== -1) {
-        console.log('ℹ️ [AutoGuard] صفحة عامة، تخطي فحص الجلسة:', currentPage);
+        console.log('ℹ️ [AutoGuard] صفحة عامة، تخطي فحص الجلسة:', currentPage || '(root)');
         return;
     }
 
