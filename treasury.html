@@ -2203,6 +2203,13 @@
 
             var finalAmount = direction === 'incoming' ? amount : -amount;
 
+            // ✅ نفس إصلاح الاستيراد: "الاتجاه" و"النوع" قايمتين منفصلتين
+            // في الفورم، فلو المستخدم اختار مثلاً اتجاه "صادر" لكن سابق
+            // النوع على "إيداع" بالغلط، بنصحح النوع الأساسي عشان يتوافق
+            // مع الاتجاه الفعلي المُختار.
+            if (type === 'incoming' && finalAmount < 0) type = 'outgoing';
+            else if (type === 'outgoing' && finalAmount > 0) type = 'incoming';
+
             var btn = document.getElementById('addSubmitBtn');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
@@ -2596,11 +2603,20 @@
                             }
                         }
 
+                        // ✅ إصلاح خلل: عمود "النوع" في الإكسيل ممكن يكون غلط
+                        // (مثلاً كل الصفوف فيها "incoming" لأنها اتنسخت من
+                        // صف واحد من غير تعديل)، بينما عمودي "وارد"/"صادر"
+                        // هما المصدر الحقيقي والمؤكد للاتجاه الفعلي للمبلغ.
+                        // لذلك لازم نصحح النوع الأساسي (إيداع/سحب) ليتوافق
+                        // دايماً مع قيمة amount المحسوبة فعلياً، حتى لو نص
+                        // عمود "النوع" بيقول عكس كده.
                         var validTypes = ['incoming', 'outgoing', 'transfer_in', 'transfer_out', 'opening', 'salary', 'expense', 'revenue'];
                         if (!validTypes.includes(type)) {
-                            if (amount > 0) type = 'incoming';
-                            else if (amount < 0) type = 'outgoing';
-                            else type = 'incoming';
+                            type = (amount >= 0) ? 'incoming' : 'outgoing';
+                        } else if (type === 'incoming' && amount < 0) {
+                            type = 'outgoing';
+                        } else if (type === 'outgoing' && amount > 0) {
+                            type = 'incoming';
                         }
 
                         var companyId = await getCompanyId();
@@ -2928,6 +2944,11 @@
             }
 
             var finalAmount = direction === 'incoming' ? amount : -amount;
+
+            // ✅ نفس الإصلاح: نتأكد إن "النوع" الأساسي يتوافق مع الاتجاه
+            // الفعلي المُختار قبل الحفظ.
+            if (type === 'incoming' && finalAmount < 0) type = 'outgoing';
+            else if (type === 'outgoing' && finalAmount > 0) type = 'incoming';
 
             var btn = document.getElementById('editSubmitBtn');
             btn.disabled = true;
