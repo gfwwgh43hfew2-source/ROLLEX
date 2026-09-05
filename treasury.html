@@ -932,14 +932,14 @@
         <div class="sort-options">
             <label>
                 <input type="checkbox" id="sortByImportOrder" checked onchange="toggleSortOrder()" />
-                <i class="fas fa-sort"></i> عرض حسب ترتيب الاستيراد
+                <i class="fas fa-sort"></i> عرض حسب رقم الحركة
             </label>
             <label>
                 <input type="checkbox" id="showImportedOnly" onchange="toggleSortOrder()" />
                 <i class="fas fa-file-import"></i> إظهار المستورد فقط
             </label>
             <span class="sort-hint">
-                <i class="fas fa-info-circle"></i> عند التفعيل، تظهر البيانات بنفس ترتيب ملف Excel
+                <i class="fas fa-info-circle"></i> عند التفعيل، تُرتب الحركات حسب عمود "رقم الحركة" من الأكبر إلى الأصغر
             </span>
         </div>
 
@@ -995,7 +995,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>#</th>
+                            <th><i class="fas fa-hashtag"></i> رقم الحركة</th>
                             <th><i class="fas fa-calendar"></i> التاريخ</th>
                             <th><i class="fas fa-align-right"></i> البيان</th>
                             <th><i class="fas fa-tag"></i> النوع</th>
@@ -2243,8 +2243,15 @@
                     return;
                 }
 
+                // ✅ نفس ترتيب العرض في الويب: حسب "رقم الحركة" من الأكبر إلى الأصغر
+                var sortedForExport = transactions.slice().sort(function(a, b) {
+                    var orderA = a.import_order || 0;
+                    var orderB = b.import_order || 0;
+                    return orderB - orderA;
+                });
+
                 var runningBalance = 0;
-                var excelData = transactions.map(function(item) {
+                var excelData = sortedForExport.map(function(item) {
                     var amount = item.amount || 0;
                     runningBalance += amount;
 
@@ -2264,7 +2271,7 @@
                     var date = formatDate(item.date || item.created_at);
 
                     return {
-                        '#': '',
+                        'رقم الحركة': item.import_order || '',
                         'التاريخ': date,
                         'البيان': item.description || '-',
                         'النوع': typeLabels[item.type] || item.type || '-',
@@ -2276,16 +2283,12 @@
                     };
                 });
 
-                excelData.forEach(function(row, index) {
-                    row['#'] = index + 1;
-                });
-
                 var ws = XLSX.utils.json_to_sheet(excelData);
                 var wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, 'الحركات');
 
                 ws['!cols'] = [
-                    { wch: 5 }, { wch: 15 }, { wch: 35 }, { wch: 15 },
+                    { wch: 12 }, { wch: 15 }, { wch: 35 }, { wch: 15 },
                     { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 15 }
                 ];
 
@@ -2306,6 +2309,7 @@
         // ============================================================
         function downloadTemplate() {
             var templateData = [{
+                'رقم الحركة': 2,
                 'التاريخ': '2026-08-09',
                 'البيان': 'فاتورة مبيعات - مثال',
                 'النوع': 'incoming',
@@ -2316,6 +2320,7 @@
                 'التبويب الخاص': 'عميل 1',
                 'ملاحظات': 'ملاحظات اختيارية'
             }, {
+                'رقم الحركة': 1,
                 'التاريخ': '2026-08-09',
                 'البيان': 'مصروفات - مثال',
                 'النوع': 'outgoing',
@@ -2332,8 +2337,8 @@
             XLSX.utils.book_append_sheet(wb, ws, 'قالب الحركات');
 
             ws['!cols'] = [
-                { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 15 },
-                { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 25 }
+                { wch: 12 }, { wch: 15 }, { wch: 30 }, { wch: 15 },
+                { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 25 }
             ];
 
             XLSX.writeFile(wb, 'قالب_استيراد_الخزينة.xlsx');
@@ -2414,6 +2419,17 @@
                     try {
                         var description = row['البيان'] || row['description'] || row['الوصف'] || row['ملاحظات'] || 'حركة مستوردة';
                         var type = row['النوع'] || row['type'] || 'incoming';
+
+                        // ✅ رقم الحركة: بياخده من عمود "رقم الحركة" في ملف الإكسيل نفسه
+                        // (المستخدم هو اللي بيحدده)، وده اللي هيتحكم في ترتيب
+                        // ظهور الحركة على الويب (من الأكبر للأصغر). لو العمود مش
+                        // موجود أو فاضي في صف معين، بنرجع للترقيم التسلسلي القديم
+                        // كحل احتياطي بس عشان الصف ميضيعش من غير ترتيب.
+                        var transactionNumberRaw = row['رقم الحركة'] || row['رقم الحركه'] || row['transaction_number'] || row['رقم'] || '';
+                        var transactionNumber = parseInt(transactionNumberRaw);
+                        if (isNaN(transactionNumber)) {
+                            transactionNumber = null;
+                        }
                         var generalTab = row['التبويب العام'] || row['general_tab'] || row['تبويب عام'] || '';
                         var privateTab = row['التبويب الخاص'] || row['private_tab'] || row['تبويب خاص'] || '';
 
@@ -2514,7 +2530,7 @@
                         var companyId = await getCompanyId();
                         var user = await getCurrentUserProfile();
 
-                        var importOrderIndex = importBaseOrder + i;
+                        var importOrderIndex = (transactionNumber !== null) ? transactionNumber : (importBaseOrder + i);
 
                         var inserted = await insertRow('treasury_transactions', {
                             treasury_id: currentTreasuryId,
@@ -2551,7 +2567,7 @@
                     if (errorCount > 0) {
                         message += '، وفشل ' + errorCount + ' حركة';
                     }
-                    showToast('✅ تم الاستيراد', message + ' (تم حفظ ترتيب الصفوف)', 'success');
+                    showToast('✅ تم الاستيراد', message + ' (تم حفظ رقم الحركة لكل حركة)', 'success');
                     closeImportModal();
                     loadData();
                 } else {
@@ -2608,10 +2624,11 @@
 
             var sortedTransactions = filteredTransactions.slice();
             if (sortByImportOrder) {
+                // ✅ الترتيب بناءً على "رقم الحركة" من الأكبر إلى الأصغر
                 sortedTransactions.sort(function(a, b) {
-                    var orderA = importedRowIds[a.id] || 999999;
-                    var orderB = importedRowIds[b.id] || 999999;
-                    return orderA - orderB;
+                    var orderA = importedRowIds[a.id] || 0;
+                    var orderB = importedRowIds[b.id] || 0;
+                    return orderB - orderA;
                 });
             } else {
                 sortedTransactions.sort(function(a, b) {
@@ -2658,14 +2675,14 @@
                 var importedClass = isImported ? 'imported-row' : '';
                 var importBadge = isImported ? ' 📥' : '';
 
-                var orderDisplay = '';
-                if (isImported && importedRowIds[item.id]) {
-                    orderDisplay = ' (صف ' + importedRowIds[item.id] + ')';
-                }
+                // ✅ رقم الحركة: نعرض القيمة المخزّنة فعلياً (سواء جاية من
+                // عمود "رقم الحركة" في ملف الإكسيل أو ترقيم تلقائي للحركات
+                // اليدوية)، من غير أي نص إضافي زي "(صف N)".
+                var transactionNumberDisplay = (importedRowIds[item.id] !== undefined) ? importedRowIds[item.id] : (displayIndex + 1);
 
                 rowsHtml += `
                     <tr class="${importedClass}">
-                        <td>${displayIndex + 1}${importBadge}${orderDisplay}</td>
+                        <td>${transactionNumberDisplay}${importBadge}</td>
                         <td>${date}</td>
                         <td style="text-align:right;">${item.description || '-'}</td>
                         <td><span class="${badgeClass}">${displayType}</span></td>
