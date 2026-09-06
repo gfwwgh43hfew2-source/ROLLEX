@@ -601,7 +601,7 @@
                 console.log('📡 جاري التحقق من حالة المستخدم في جدول profiles...');
 
                 var profileResponse = await fetch(
-                    SUPABASE_URL + '/rest/v1/profiles?select=id,name,role,is_active,deleted_at,company_id,is_super_admin&id=eq.' + authData.user.id,
+                    SUPABASE_URL + '/rest/v1/profiles?select=id,name,role,is_active,deleted_at,company_id,is_super_admin,home_page&id=eq.' + authData.user.id,
                     {
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
@@ -658,7 +658,8 @@
                         full_name: profile ? profile.name : authData.user.email,
                         role: profile ? profile.role : 'موظف',
                         company_id: profile ? profile.company_id : null,
-                        is_super_admin: profile ? profile.is_super_admin : false
+                        is_super_admin: profile ? profile.is_super_admin : false,
+                        home_page: (profile && profile.home_page && String(profile.home_page).trim()) ? String(profile.home_page).trim() : 'index.html'
                     }
                 };
 
@@ -667,9 +668,15 @@
 
                 showMessage('✅ تم تسجيل الدخول بنجاح! مرحباً ' + (profile ? profile.name : authData.user.email), 'success');
 
+                // ✅ كل مستخدم يروح لصفحته الرئيسية المحددة له (home_page)
+                // بدل ما الكل يروح لـ index.html دايماً بشكل موحّد.
+                var targetPage = (profile && profile.home_page && String(profile.home_page).trim())
+                    ? String(profile.home_page).trim()
+                    : 'index.html';
+
                 setTimeout(function() {
-                    console.log('🔄 جاري التوجيه إلى الصفحة الرئيسية...');
-                    window.location.href = 'index.html';
+                    console.log('🔄 جاري التوجيه إلى الصفحة الرئيسية:', targetPage);
+                    window.location.href = targetPage;
                 }, 900);
 
             } catch (error) {
@@ -733,7 +740,10 @@
                         });
                         if (response.ok) {
                             console.log('✅ جلسة موجودة وصالحة، جاري التوجيه إلى الصفحة الرئيسية...');
-                            window.location.href = 'index.html';
+                            var homeTarget = (parsed.user && parsed.user.home_page && String(parsed.user.home_page).trim())
+                                ? String(parsed.user.home_page).trim()
+                                : 'index.html';
+                            window.location.href = homeTarget;
                             return;
                         } else {
                             console.warn('⚠️ الجلسة غير صالحة، سيتم حذفها');

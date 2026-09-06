@@ -1037,9 +1037,19 @@
                     </div>
                     <div class="form-group">
                         <label>المنتج <span class="required">*</span></label>
-                        <select id="orderProduct" required onchange="updatePreview()">
+                        <select id="orderProduct" required onchange="onProductChange()">
                             <option value="">— اختر منتج —</option>
                         </select>
+                    </div>
+                </div>
+
+                <div class="form-row" id="formulationRow" style="display:none;">
+                    <div class="form-group">
+                        <label>التركيبة <span class="required">*</span></label>
+                        <select id="orderFormulation" required onchange="updatePreview()">
+                            <option value="">— اختر تركيبة —</option>
+                        </select>
+                        <small id="formulationHint" style="color:var(--ink-soft,#888);display:block;margin-top:4px;"></small>
                     </div>
                 </div>
 
@@ -1294,12 +1304,50 @@
                 opt.value = p.id;
                 opt.textContent = (p.product_code ? p.product_code + ' — ' : '') + p.product_name;
                 opt.dataset.unit = p.product_unit || 'كجم';
-                var formulation = allFormulations.find(function(f) { return f.product_id == p.id; });
-                if (formulation) {
-                    opt.dataset.formulationId = formulation.id;
-                }
                 select.appendChild(opt);
             });
+        }
+
+        // ============================================================
+        // POPULATE FORMULATION SELECT (بناءً على المنتج المختار)
+        // منتج واحد ممكن يكون تحته أكتر من تركيبة (مثال: جرافيت 500، جرافيت 502، جرافيت 2261)
+        // فلازم المستخدم يختار التركيبة المطلوبة صراحة، مش نفترض تركيبة واحدة بس
+        // ============================================================
+        function populateFormulationsForProduct(productId) {
+            var row = document.getElementById('formulationRow');
+            var select = document.getElementById('orderFormulation');
+            var hint = document.getElementById('formulationHint');
+            select.innerHTML = '<option value="">— اختر تركيبة —</option>';
+
+            var matches = allFormulations.filter(function(f) { return f.product_id == productId; });
+
+            if (!productId || matches.length === 0) {
+                row.style.display = 'none';
+                hint.textContent = '';
+                return;
+            }
+
+            matches.forEach(function(f) {
+                var opt = document.createElement('option');
+                opt.value = f.id;
+                opt.textContent = (f.code ? f.code + ' — ' : '') + (f.name || 'تركيبة');
+                select.appendChild(opt);
+            });
+
+            row.style.display = '';
+
+            if (matches.length === 1) {
+                select.value = matches[0].id;
+                hint.textContent = 'هذا المنتج له تركيبة واحدة فقط، تم اختيارها تلقائياً.';
+            } else {
+                hint.textContent = 'هذا المنتج له ' + matches.length + ' تركيبات مختلفة — اختر التركيبة المطلوبة لهذا الأمر.';
+            }
+        }
+
+        function onProductChange() {
+            var select = document.getElementById('orderProduct');
+            populateFormulationsForProduct(select.value);
+            updatePreview();
         }
 
         // ============================================================
@@ -1313,20 +1361,20 @@
 
             var selectedOption = select.options[select.selectedIndex];
             var productId = select.value;
-            var formulationId = selectedOption ? selectedOption.dataset.formulationId : null;
+            var formulationId = document.getElementById('orderFormulation').value;
             var unit = selectedOption ? selectedOption.dataset.unit || 'كجم' : 'كجم';
 
             document.getElementById('orderUnit').value = unit;
 
             if (!productId || !formulationId || qty <= 0) {
-                previewContent.innerHTML = '<div class="empty-preview">اختر منتج وأدخل الكمية لمعاينة البنود</div>';
+                previewContent.innerHTML = '<div class="empty-preview">اختر منتج وتركيبة وأدخل الكمية لمعاينة البنود</div>';
                 previewCount.textContent = '0 بند';
                 return;
             }
 
             var formulation = allFormulations.find(function(f) { return f.id == formulationId; });
             if (!formulation) {
-                previewContent.innerHTML = '<div class="empty-preview">لا توجد تركيبة لهذا المنتج</div>';
+                previewContent.innerHTML = '<div class="empty-preview">اختر التركيبة المطلوبة لهذا المنتج</div>';
                 previewCount.textContent = '0 بند';
                 return;
             }
@@ -1486,6 +1534,8 @@
             document.getElementById('orderNoDisplay').value = window._currentOrderNo;
 
             populateProductSelect();
+            document.getElementById('formulationRow').style.display = 'none';
+            document.getElementById('orderFormulation').innerHTML = '<option value="">— اختر تركيبة —</option>';
             document.getElementById('previewContent').innerHTML = '<div class="empty-preview">اختر منتج وأدخل الكمية لمعاينة البنود</div>';
             document.getElementById('previewCount').textContent = '0 بند';
 
@@ -1704,11 +1754,11 @@
                 return;
             }
 
-            var selectedOption = productSelect.options[productSelect.selectedIndex];
-            var formulationId = selectedOption ? selectedOption.dataset.formulationId : null;
+            var formulationId = document.getElementById('orderFormulation').value;
 
             if (!formulationId) {
-                showToast('⚠️ تنبيه', 'لا توجد تركيبة مرتبطة بهذا المنتج', 'error');
+                var hasAnyFormulation = allFormulations.some(function(f) { return f.product_id == productId; });
+                showToast('⚠️ تنبيه', hasAnyFormulation ? 'يرجى اختيار التركيبة المطلوبة لهذا المنتج' : 'لا توجد أي تركيبة مرتبطة بهذا المنتج', 'error');
                 return;
             }
 

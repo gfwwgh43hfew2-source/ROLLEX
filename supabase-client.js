@@ -704,8 +704,30 @@ async function checkPageAccess(module, permission) {
         } catch (e) {
             alert('⚠️ غير مسموح: ليس لديك صلاحية للوصول إلى هذه الصفحة');
         }
+
+        // ✅ بدل ما نرجّع الجميع لـ index.html دايماً، نرجّع كل مستخدم
+        // للصفحة الرئيسية المحددة له تحديداً (home_page)، ولو مش محددة
+        // أو غير موجودة نرجع لـ index.html كافتراضي آمن.
+        var target = 'index.html';
+        try {
+            var profile = await getCurrentUserProfile();
+            if (profile && profile.home_page && typeof profile.home_page === 'string') {
+                target = profile.home_page.trim() || 'index.html';
+            }
+        } catch (e) {
+            console.warn('⚠️ فشل جلب home_page، سيتم التوجيه لـ index.html:', e);
+        }
+
+        // حماية من الحلقة اللانهائية: لو المستخدم أصلاً واقف على صفحته
+        // الرئيسية ومحظور عليه فتحها (مثلاً لو صلاحياته اتغيرت لاحقاً)،
+        // نوجهه لـ index.html بدل ما يعيد تحميل نفس الصفحة تاني وتاني.
+        var currentPage = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
+        if (currentPage === target.toLowerCase()) {
+            target = 'index.html';
+        }
+
         setTimeout(function() {
-            window.location.href = 'index.html';
+            window.location.href = target;
         }, 2000);
         return false;
     }

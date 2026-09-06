@@ -1425,14 +1425,15 @@
                 <strong>ترتيب الأعمدة في ملف Excel:</strong><br />
                 1. <strong>رقم التركيبة</strong> (اختياري - يُولد تلقائياً إذا ترك فارغاً)<br />
                 2. <strong>المنتج</strong> (كود أو اسم) - <span class="highlight-rust">مطلوب</span><br />
-                3. <strong>اسم التركيبة</strong> (اختياري)<br />
+                3. <strong>اسم التركيبة</strong> (اختياري، لكن <span class="highlight-rust">مهم لو المنتج له أكتر من تركيبة</span> — مثال: منتج "جرافيت" له تركيبة "جرافيت 500" وتركيبة "جرافيت 502" وتركيبة "جرافيت 2261"، فلازم تكتب اسم مختلف لكل تركيبة عشان متتدمجش مع بعض)<br />
                 4. <strong>الكمية الناتجة</strong> (تُحسب تلقائياً من مجموع كميات الخامات)<br />
                 5. <strong>وحدة الناتج</strong> (اختياري - افتراضي: كجم)<br />
                 6. <strong>الخامة</strong> (كود أو اسم) - <span class="highlight-rust">مطلوب</span><br />
                 7. <strong>كمية الخامة</strong> (يمكن أن تكون صفر) - <span class="highlight-rust">مطلوب</span><br />
                 8. <strong>وحدة الخامة</strong> (اختياري - تُستخدم وحدة الخامة من قاعدة البيانات)<br />
                 <span class="highlight-gold">📌 ملاحظة: الكمية الناتجة تُحسب تلقائياً من مجموع كميات الخامات لكل منتج.</span><br />
-                <span class="highlight-teal">✅ يمكن استيراد عدة صفوف لنفس المنتج لتكوين تركيبته.</span>
+                <span class="highlight-teal">✅ يمكن استيراد عدة صفوف لنفس المنتج لتكوين تركيبته.</span><br />
+                <span class="highlight-teal">✅ يمكن أيضاً استيراد أكتر من تركيبة لنفس المنتج في ملف واحد (بشرط اسم تركيبة مختلف لكل واحدة).</span>
                 <span class="highlight-rust">⚠️ الخامات والمنتجات يجب أن تكون موجودة مسبقاً.</span>
                 <span class="highlight-gold">📌 الكمية صفر مسموحة للخامات التي تضاف عند الحاجة.</span>
             </p>
@@ -2594,7 +2595,13 @@
                     return;
                 }
 
-                var productKey = foundProduct.id;
+                // المنتج ممكن يكون له أكتر من تركيبة (مثال: منتج جرافيت له تركيبة
+                // جرافيت 500 وجرافيت 502 وجرافيت 2261). فمفتاح التجميع لازم يميّز
+                // بين التركيبات المختلفة لنفس المنتج، مش بس بمعرّف المنتج، وإلا
+                // هتتدمج كل التركيبات بتاعت نفس المنتج في تركيبة واحدة غلط.
+                var formulationName = (row['اسم التركيبة'] || '').toString().trim();
+                var formulationDistinguisher = formulationName || code || 'default';
+                var productKey = foundProduct.id + '||' + formulationDistinguisher;
                 if (!productGroups[productKey]) {
                     productGroups[productKey] = {
                         product: foundProduct,
@@ -2606,7 +2613,6 @@
                     };
                 }
 
-                var formulationName = (row['اسم التركيبة'] || '').toString().trim();
                 if (formulationName && !productGroups[productKey].formulationName) {
                     productGroups[productKey].formulationName = formulationName;
                 }
@@ -2633,7 +2639,7 @@
                 <div class="stat"><b>${importStats.total}</b><span>إجمالي الصفوف</span></div>
                 <div class="stat ok"><b>${importStats.ok}</b><span>صالحة للاستيراد</span></div>
                 <div class="stat warn"><b>${importStats.fail}</b><span>غير صالحة</span></div>
-                <div class="stat"><b>${importStats.groups}</b><span>مجموعات منتجات</span></div>
+                <div class="stat"><b>${importStats.groups}</b><span>تركيبات مكتشفة</span></div>
             `;
 
             document.getElementById('importProgressBar').style.width = '100%';
@@ -2647,7 +2653,7 @@
                 document.getElementById('btnClearLog').style.display = 'inline-block';
             } else {
                 addImportLog('✅ جميع الصفوف صالحة للاستيراد!', 'success');
-                addImportLog(`📊 تم العثور على ${importStats.groups} منتج/منتجات للاستيراد`, 'success');
+                addImportLog(`📊 تم العثور على ${importStats.groups} تركيبة/تركيبات للاستيراد`, 'success');
             }
 
             if (importStats.ok > 0) {
@@ -2696,7 +2702,12 @@
                     });
                     if (!foundProduct) return;
 
-                    var key = foundProduct.id;
+                    // نفس المنطق المستخدم في التحليل: المنتج ممكن يكون له أكتر من
+                    // تركيبة، فمفتاح التجميع لازم يميّز بين التركيبات المختلفة
+                    // لنفس المنتج (بالاسم أو رقم التركيبة)، مش بمعرّف المنتج بس.
+                    var formulationNameForKey = (row['اسم التركيبة'] || '').toString().trim();
+                    var codeForKey = row['رقم التركيبة'] || '';
+                    var key = foundProduct.id + '||' + (formulationNameForKey || codeForKey || 'default');
                     if (!productGroups[key]) {
                         productGroups[key] = {
                             product: foundProduct,
@@ -2704,11 +2715,11 @@
                             formulationName: '',
                             outputUnit: row['وحدة الناتج'] || foundProduct.product_unit || 'كجم',
                             firstRowIndex: index,
-                            code: row['رقم التركيبة'] || ''
+                            code: codeForKey
                         };
                     }
 
-                    var formulationName = (row['اسم التركيبة'] || '').toString().trim();
+                    var formulationName = formulationNameForKey;
                     if (formulationName && !productGroups[key].formulationName) {
                         productGroups[key].formulationName = formulationName;
                     }
@@ -2797,12 +2808,17 @@
                         addImportLog(`⚠️ مجموع كميات الخامات للمنتج ${product.product_name} يساوي صفر، سيتم الاستيراد بكمية صفر`, 'warning');
                     }
 
+                    // نطابق بالمنتج + اسم التركيبة معاً، عشان منتج زي "جرافيت" ممكن
+                    // يكون له أكتر من تركيبة (جرافيت 500، جرافيت 502، جرافيت 2261...).
+                    // لو طابقنا بالمنتج بس، كنا هنمسح تركيبة موجودة مختلفة بالغلط.
+                    var groupFormulationName = (group.formulationName || '').toString().trim().toLowerCase();
                     var existingFormulation = allFormulations.find(function(f) {
-                        return f.product_id == product.id;
+                        return f.product_id == product.id &&
+                            (f.name || '').toString().trim().toLowerCase() === groupFormulationName;
                     });
 
                     if (existingFormulation) {
-                        addImportLog(`⚠️ المنتج "${product.product_name}" لديه تركيبة موجودة بالفعل، سيتم تحديثها`, 'warning');
+                        addImportLog(`⚠️ التركيبة "${group.formulationName}" للمنتج "${product.product_name}" موجودة بالفعل، سيتم تحديثها`, 'warning');
                         try {
                             await deleteRows('formulation_items', 'formulation_id', existingFormulation.id);
                             await deleteRows('formulations', 'id', existingFormulation.id);
@@ -2833,11 +2849,11 @@
                         await insertItems(formulationId, itemsArray);
 
                         imported++;
-                        addImportLog(`✅ تم استيراد: ${product.product_name} (${Object.keys(itemsMap).length} خامات) - الكمية الناتجة: ${outputQty} ${outputUnit}`, 'success');
+                        addImportLog(`✅ تم استيراد: ${product.product_name} — تركيبة "${formulationData.name}" (${Object.keys(itemsMap).length} خامات) - الكمية الناتجة: ${outputQty} ${outputUnit}`, 'success');
 
                     } catch (err) {
                         failed++;
-                        addImportLog(`❌ فشل استيراد: ${product.product_name} - ${err.message}`, 'error');
+                        addImportLog(`❌ فشل استيراد تركيبة "${formulationData.name}" للمنتج: ${product.product_name} - ${err.message}`, 'error');
                     }
 
                     done++;
@@ -2849,7 +2865,7 @@
                     <div class="stat"><b>${importStats.total}</b><span>إجمالي الصفوف</span></div>
                     <div class="stat ok"><b>${importStats.ok}</b><span>صفوف صالحة</span></div>
                     <div class="stat warn"><b>${importStats.fail}</b><span>صفوف غير صالحة</span></div>
-                    <div class="stat"><b>${importStats.groups}</b><span>مجموعات منتجات</span></div>
+                    <div class="stat"><b>${importStats.groups}</b><span>تركيبات مكتشفة</span></div>
                     <div class="stat ok"><b>${imported}</b><span>تم استيرادها</span></div>
                     <div class="stat warn"><b>${failed}</b><span>فشل الاستيراد</span></div>
                 `;

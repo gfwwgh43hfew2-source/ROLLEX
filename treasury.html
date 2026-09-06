@@ -1023,11 +1023,19 @@
             <button class="btn-action refresh" onclick="loadData()">
                 <i class="fas fa-sync-alt"></i> تحديث
             </button>
+            <button class="btn-action secondary" id="btnToggleTransfer" onclick="toggleTransferSection()">
+                <i class="fas fa-exchange-alt"></i> تحويل بين الخزائن
+            </button>
         </div>
 
-        <!-- ===== TRANSFER FORM ===== -->
-        <div class="transfer-section" id="transferSection">
-            <h3><i class="fas fa-exchange-alt"></i> تحويل إلى خزينة أخرى</h3>
+        <!-- ===== TRANSFER FORM (مخفي افتراضياً، يظهر عند الضغط على زر "تحويل بين الخزائن") ===== -->
+        <div class="transfer-section" id="transferSection" style="display:none;">
+            <h3 style="display:flex;align-items:center;justify-content:space-between;">
+                <span><i class="fas fa-exchange-alt"></i> تحويل إلى خزينة أخرى</span>
+                <button type="button" onclick="toggleTransferSection(false)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:0.9rem;" title="إغلاق">
+                    <i class="fas fa-times"></i>
+                </button>
+            </h3>
             <div class="transfer-row">
                 <div class="form-group">
                     <label>إلى خزينة <span class="required">*</span></label>
@@ -1639,6 +1647,25 @@
         // ============================================================
         // TRANSFER MONEY
         // ============================================================
+        // ============================================================
+        // TOGGLE TRANSFER SECTION (تظهر بضغطة زر بدل ما تكون ظاهرة دايماً)
+        // ============================================================
+        function toggleTransferSection(forceState) {
+            var section = document.getElementById('transferSection');
+            var btn = document.getElementById('btnToggleTransfer');
+            var isHidden = section.style.display === 'none';
+            var show = (typeof forceState === 'boolean') ? forceState : isHidden;
+
+            section.style.display = show ? '' : 'none';
+            if (btn) btn.classList.toggle('active', show);
+
+            if (show) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                var toSelect = document.getElementById('toTreasury');
+                if (toSelect) setTimeout(function() { toSelect.focus(); }, 150);
+            }
+        }
+
         async function transferMoney() {
             var fromId = currentTreasuryId;
             var toId = document.getElementById('toTreasury').value;
@@ -1719,6 +1746,7 @@
                 document.getElementById('transferAmount').value = '';
                 document.getElementById('transferDesc').value = '';
                 document.getElementById('toTreasury').value = '';
+                toggleTransferSection(false);
 
                 loadData();
 

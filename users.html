@@ -778,13 +778,14 @@
                             <th>الاسم</th>
                             <th>البريد الإلكتروني</th>
                             <th>الدور</th>
+                            <th>الصفحة الرئيسية</th>
                             <th>الحالة</th>
                             <th style="text-align:center;">الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody id="entriesBody">
                         <tr>
-                            <td colspan="6">
+                            <td colspan="7">
                                 <div class="loading-state">
                                     <i class="fas fa-spinner"></i>
                                     <p>جاري تحميل البيانات...</p>
@@ -842,6 +843,16 @@
                         <option value="true">نشط</option>
                         <option value="false">غير نشط</option>
                     </select>
+                </div>
+
+                <div class="form-group">
+                    <label>الصفحة الرئيسية <span class="required">*</span></label>
+                    <select id="userHomePage" required>
+                        <!-- سيتم تعبئتها بواسطة JavaScript من قائمة PAGES -->
+                    </select>
+                    <div style="font-size:0.6rem;color:var(--ink-3);margin-top:4px;">
+                        الصفحة اللي هتظهر للمستخدم مباشرة بعد تسجيل الدخول، وهي نفسها الصفحة اللي هيترجع لها لو حاول يفتح صفحة مش مسموح له بيها.
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -1241,6 +1252,54 @@
         ];
 
         // ============================================================
+        // PAGES LIST — تُستخدم لاختيار "الصفحة الرئيسية" لكل مستخدم:
+        // الصفحة اللي بتظهر له مباشرة بعد الدخول، ونفس الصفحة اللي
+        // بيترجع لها لو حاول يفتح صفحة مش مسموح له بيها.
+        // ============================================================
+        var PAGES = [
+            { file: 'index.html', label: 'لوحة التحكم (الرئيسية)' },
+            { file: 'sales.html', label: 'المبيعات' },
+            { file: 'invoice.html', label: 'إنشاء فاتورة' },
+            { file: 'invoices-summary.html', label: 'ملخص الفواتير' },
+            { file: 'returns.html', label: 'مرتجعات المبيعات' },
+            { file: 'returns-list.html', label: 'فواتير المرتجعات' },
+            { file: 'purchases.html', label: 'المشتريات' },
+            { file: 'clients.html', label: 'العملاء' },
+            { file: 'suppliers.html', label: 'الموردين' },
+            { file: 'warehouses.html', label: 'إدارة المخازن' },
+            { file: 'warehouse-transfer.html', label: 'إذن صرف' },
+            { file: 'materials.html', label: 'الخامات' },
+            { file: 'packaging-materials.html', label: 'مواد التعبئة' },
+            { file: 'products.html', label: 'المنتجات' },
+            { file: 'raw-material-stock.html', label: 'مخزن المواد الخام' },
+            { file: 'finished-goods-stock.html', label: 'مخزن المنتج التام' },
+            { file: 'semi-finished-products.html', label: 'المنتجات شبه التامة' },
+            { file: 'production-orders.html', label: 'أوامر الإنتاج' },
+            { file: 'filling-orders.html', label: 'أوامر التعبئة' },
+            { file: 'formulations.html', label: 'التركيبات' },
+            { file: 'treasuries.html', label: 'الخزينة' },
+            { file: 'entry.html', label: 'إدخال حركة' },
+            { file: 'collections.html', label: 'تحصيلات العملاء' },
+            { file: 'tabs-settings.html', label: 'التبويبات العامة' },
+            { file: 'settings.html', label: 'الإعدادات' },
+            { file: 'users.html', label: 'المستخدمين' }
+        ];
+
+        function populateHomePageSelect(selectedFile) {
+            var select = document.getElementById('userHomePage');
+            select.innerHTML = '';
+            PAGES.forEach(function(p) {
+                var opt = document.createElement('option');
+                opt.value = p.file;
+                opt.textContent = p.label;
+                select.appendChild(opt);
+            });
+            select.value = selectedFile && PAGES.some(function(p) { return p.file === selectedFile; })
+                ? selectedFile
+                : 'index.html';
+        }
+
+        // ============================================================
         // GET USERS - باستخدام fetch المباشر
         // ============================================================
         async function getUsers() {
@@ -1396,7 +1455,7 @@
 
             if (!users || users.length === 0) {
                 tbody.innerHTML = `
-                    <tr><td colspan="6"><div class="empty-state"><i class="fas fa-users-slash"></i><p>لا يوجد مستخدمين</p></div></td></tr>
+                    <tr><td colspan="7"><div class="empty-state"><i class="fas fa-users-slash"></i><p>لا يوجد مستخدمين</p></div></td></tr>
                 `;
                 return;
             }
@@ -1426,6 +1485,7 @@
                         <td style="font-weight:700;">${u.name || '-'}</td>
                         <td style="color:var(--ink-3);font-size:0.68rem;">${u.email || '-'}</td>
                         <td><span class="badge-status ${roleClass}">${roleDisplay}</span></td>
+                        <td style="color:var(--ink-3);font-size:0.68rem;">${(PAGES.find(function(p){ return p.file === u.home_page; }) || {}).label || 'لوحة التحكم (الرئيسية)'}</td>
                         <td><span class="badge-status ${statusClass}">${statusText}</span></td>
                         <td style="text-align:center;display:flex;gap:4px;flex-wrap:wrap;justify-content:center;">
                             ${!isDeleted ? `
@@ -1452,7 +1512,7 @@
             console.log('🔄 [loadData] بدء تحميل البيانات...');
             var tbody = document.getElementById('entriesBody');
             tbody.innerHTML = `
-                <tr><td colspan="6"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>
+                <tr><td colspan="7"><div class="loading-state"><i class="fas fa-spinner"></i><p>جاري تحميل البيانات...</p></div></td></tr>
             `;
 
             try {
@@ -1463,7 +1523,7 @@
             } catch (error) {
                 console.error('❌ [loadData] خطأ:', error);
                 tbody.innerHTML = `
-                    <tr><td colspan="6"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p></div></td></tr>
+                    <tr><td colspan="7"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>حدث خطأ في تحميل البيانات</p></div></td></tr>
                 `;
             }
         }
@@ -1492,6 +1552,7 @@
             document.getElementById('userPassword').value = '';
             document.getElementById('userRole').value = 'employee';
             document.getElementById('userStatus').value = 'true';
+            populateHomePageSelect('index.html');
             
             document.getElementById('passwordGroup').style.display = 'block';
             document.getElementById('userPassword').required = true;
@@ -1522,6 +1583,7 @@
             document.getElementById('userEmail').value = user.email || '';
             document.getElementById('userRole').value = user.role || 'employee';
             document.getElementById('userStatus').value = user.is_active ? 'true' : 'false';
+            populateHomePageSelect(user.home_page);
             document.getElementById('passwordGroup').style.display = 'block';
             document.getElementById('userPassword').required = false;
             document.getElementById('userPassword').placeholder = '•••••••• (اتركها فارغة لتغيير لا)';
@@ -1737,6 +1799,8 @@
             var password = userPasswordEl ? userPasswordEl.value : '';
             var role = userRoleEl.value;
             var status = userStatusEl.value === 'true';
+            var homePageEl = document.getElementById('userHomePage');
+            var homePage = homePageEl && homePageEl.value ? homePageEl.value : 'index.html';
 
             console.log('📝 [saveUser] البيانات المجمعة:', { id, userId, name, email, role, status, passwordLength: password ? password.length : 0 });
 
@@ -1799,7 +1863,8 @@
                     email: email,
                     role: role,
                     is_active: status,
-                    company_id: companyId
+                    company_id: companyId,
+                    home_page: homePage
                 };
                 console.log('📝 [saveUser] بيانات البروفايل:', profileData);
 
@@ -1900,6 +1965,7 @@
                         role: role,
                         is_active: status,
                         company_id: companyId,  // ✅ تم إضافة company_id هنا
+                        home_page: homePage,
                         permissions: permissions
                     });
 
