@@ -1523,6 +1523,27 @@
         }
 
         // ============================================================
+        // ✅ تسريع التحميل: loadClientsForAdd و loadClientsForEdit كانوا
+        // بيبعتوا نفس الطلب بالظبط (getTable('clients')) مرتين منفصلين
+        // بدل مرة واحدة، فبيضيعوا رحلة شبكة كاملة من غير داعي. الدالة دي
+        // بتجيب العملاء مرة واحدة بس وتحطهم في المتغيرين الاتنين مع بعض.
+        // ============================================================
+        async function loadClientsForAddAndEdit() {
+            try {
+                var data = await getTable('clients');
+                allClientsForAdd = data || [];
+                allClientsForEdit = data || [];
+                console.log('👤 تم جلب ' + allClientsForAdd.length + ' عميل (تحصيلات + تعديل معًا)');
+                return data;
+            } catch (error) {
+                console.error('❌ خطأ في جلب العملاء:', error);
+                allClientsForAdd = [];
+                allClientsForEdit = [];
+                return [];
+            }
+        }
+
+        // ============================================================
         // ADD CLIENT PAYMENT - إضافة دفعة عميل إلى جدول client_payments
         // ============================================================
         async function addClientPayment(clientId, clientName, amount, paymentDate, method, reference, notes) {
@@ -3096,6 +3117,12 @@
                     return;
                 }
 
+                // ✅ إصلاح: اسم الخزينة كان بيتجاب صح من الخادم، لكن مفيش
+                // سطر بيحطه فعليًا في عنصر treasuryName هنا (دالة displayData
+                // اللي معمولة لكده مكنتش بتتنادى)، فكان النص فاضل واقف على
+                // "جاري التحميل..." الافتراضي للأبد حتى بعد ما البيانات تظهر.
+                document.getElementById('treasuryName').textContent = treasury.name;
+
                 var transactions = await getTransactionsWithPagination(currentTreasuryId);
                 allTransactions = transactions;
 
@@ -3308,9 +3335,16 @@
             }
 
             try {
-                await loadClientsForAdd();
-                await loadClientsForEdit();
-                await loadData();
+                // ✅ تسريع: الاستدعاءات الثلاثة دي مستقلة عن بعضها تمامًا
+                // (كل واحدة بتقرأ جدول مختلف ومفيش واحدة محتاجة نتيجة التانية)،
+                // فكانت بتتنفذ واحدة ورا التانية (await) وتستنى كل رحلة شبكة
+                // تخلص قبل ما تبدأ اللي بعدها، وده كان بياخد وقت طويل جدًا.
+                // Promise.all بيبعتهم الثلاثة مع بعض في نفس الوقت فالوقت
+                // الكلي بقى بطول أبطأ واحدة بس مش مجموع التلاتة.
+                await Promise.all([
+                    loadClientsForAddAndEdit(),
+                    loadData()
+                ]);
                 console.log('✅ تم تحميل البيانات بنجاح');
             } catch (e) {
                 console.error('❌ خطأ في تحميل البيانات:', e);
