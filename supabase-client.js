@@ -675,7 +675,21 @@ async function hasPermission(module, permission, userId) {
         var companyId = await getCompanyId();
         if (!companyId) return false;
 
-        var url = SUPABASE_URL + '/rest/v1/user_permissions?select=' + encodeURIComponent(permission) +
+        // ✅ إصلاح: أعمدة الجدول اسمها can_view / can_add / can_edit /
+        // can_delete / can_export (شوف users.html وقت الحفظ)، مش
+        // view / add / edit... زي ما كانت الدالة بتفترض قبل كده. الفرق ده
+        // كان بيخلي select= بيطلب عمود مش موجود، فالطلب كان بيفشل ويرجع
+        // false دايمًا حتى لو الصلاحية متحددة صح فعلاً في قاعدة البيانات.
+        var columnMap = {
+            view: 'can_view',
+            add: 'can_add',
+            edit: 'can_edit',
+            delete: 'can_delete',
+            export: 'can_export'
+        };
+        var column = columnMap[permission] || permission;
+
+        var url = SUPABASE_URL + '/rest/v1/user_permissions?select=' + encodeURIComponent(column) +
             '&user_id=eq.' + encodeURIComponent(targetUserId) +
             '&company_id=eq.' + encodeURIComponent(companyId) +
             '&module=eq.' + encodeURIComponent(module);
@@ -694,7 +708,7 @@ async function hasPermission(module, permission, userId) {
 
         var data = await response.json();
 
-        return data && data.length > 0 && data[0][permission] === true;
+        return data && data.length > 0 && data[0][column] === true;
 
     } catch (error) {
         console.error('❌ خطأ في التحقق من الصلاحية:', error);
