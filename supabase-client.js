@@ -256,7 +256,20 @@ async function getCompanyId() {
 }
 
 // ============================================================
-// GENERIC GET
+// GENERIC GET / INSERT / UPSERT / PATCH / DELETE
+// ============================================================
+// ✅ نفس إصلاح hasPermission/getUserPermissions فوق بالظبط: الدوال دي
+// كانت بتستخدم supabaseClient.from(tableName)... (الـ SDK)، والـ SDK
+// معندوش جلسة مستخدم حقيقية مُهيّأة (مفيش auth.setSession() في أي مكان
+// في المشروع)، فأي طلب كان بيتبعت بمفتاح anon بس بدون Authorization:
+// Bearer <توكن المستخدم>. النتيجة: أي صفحة بتستخدم getTable/insertRow/
+// upsertRow/patchRow/deleteRows (زي treasuries.html والخزينة، المواد،
+// المشتريات، إلخ) كانت بترجع دايمًا بيانات فاضية أو تفشل في الحفظ لأي
+// مستخدم غير أدمن، لأن قاعدة البيانات (RLS) بتشوف auth.uid() = NULL
+// وترفض الطلب — حتى لو صلاحيات المستخدم مضبوطة صح فعليًا.
+// الحل: استخدام fetch() مباشر مع إرفاق Authorization: Bearer <توكن
+// المستخدم الحالي> يدويًا لكل طلب (بنفس أسلوب getCurrentUserProfile
+// وباقي الدوال الشغالة فوق) بدل الاعتماد على جلسة الـ SDK غير المُهيّأة.
 // ============================================================
 async function getTable(tableName, orderBy) {
     var token = getToken();
@@ -273,33 +286,30 @@ async function getTable(tableName, orderBy) {
     }
 
     try {
-        var supabaseClient = getSupabaseClient();
-        if (!supabaseClient) {
-            console.error('❌ Supabase Client not available');
-            return [];
-        }
-        
-        var query = supabaseClient
-            .from(tableName)
-            .select('*')
-            .eq('company_id', companyId);
+        var url = SUPABASE_URL + '/rest/v1/' + tableName +
+            '?select=*&company_id=eq.' + encodeURIComponent(companyId) + '&limit=100000';
 
         if (orderBy) {
             var parts = orderBy.split('.');
             var orderField = parts[0] || 'created_at';
             var orderDirection = parts[1] === 'desc' ? 'desc' : 'asc';
-            query = query.order(orderField, { ascending: orderDirection === 'asc' });
+            url += '&order=' + encodeURIComponent(orderField) + '.' + orderDirection;
         }
 
-        query = query.limit(100000);
+        var response = await fetch(url, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + token
+            }
+        });
 
-        var { data, error } = await query;
-
-        if (error) {
-            console.error('❌ فشل جلب ' + tableName + ':', error.message);
+        if (!response.ok) {
+            var errBody = await response.json().catch(function() { return {}; });
+            console.error('❌ فشل جلب ' + tableName + ':', errBody.message || response.status);
             return [];
         }
 
+        var data = await response.json();
         console.log('✅ تم جلب ' + (data?.length || 0) + ' سجل من ' + tableName);
         return data || [];
 
@@ -317,17 +327,24 @@ async function insertRow(tableName, payload) {
     if (!token) throw new Error('يرجى تسجيل الدخول أولاً');
 
     try {
-        var supabaseClient = getSupabaseClient();
-        if (!supabaseClient) throw new Error('Supabase Client not available');
-        
-        var { data, error } = await supabaseClient
-            .from(tableName)
-            .insert(payload)
-            .select()
-            .single();
+        var response = await fetch(SUPABASE_URL + '/rest/v1/' + tableName, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(payload)
+        });
 
-        if (error) throw new Error(error.message);
-        return data;
+        var result = await response.json().catch(function() { return null; });
+
+        if (!response.ok) {
+            throw new Error((result && result.message) || 'فشل الإدراج');
+        }
+
+        return Array.isArray(result) ? result[0] : result;
 
     } catch (error) {
         console.error('❌ فشل الإدراج:', error);
@@ -343,17 +360,24 @@ async function upsertRow(tableName, payload) {
     if (!token) throw new Error('يرجى تسجيل الدخول أولاً');
 
     try {
-        var supabaseClient = getSupabaseClient();
-        if (!supabaseClient) throw new Error('Supabase Client not available');
-        
-        var { data, error } = await supabaseClient
-            .from(tableName)
-            .upsert(payload, { onConflict: 'id' })
-            .select()
-            .single();
+        var response = await fetch(SUPABASE_URL + '/rest/v1/' + tableName + '?on_conflict=id', {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json',
+                'Prefer': 'resolution=merge-duplicates,return=representation'
+            },
+            body: JSON.stringify(payload)
+        });
 
-        if (error) throw new Error(error.message);
-        return data;
+        var result = await response.json().catch(function() { return null; });
+
+        if (!response.ok) {
+            throw new Error((result && result.message) || 'فشل التحديث');
+        }
+
+        return Array.isArray(result) ? result[0] : result;
 
     } catch (error) {
         console.error('❌ فشل التحديث:', error);
@@ -369,15 +393,22 @@ async function patchRow(tableName, id, payload) {
     if (!token) return;
 
     try {
-        var supabaseClient = getSupabaseClient();
-        if (!supabaseClient) throw new Error('Supabase Client not available');
-        
-        var { error } = await supabaseClient
-            .from(tableName)
-            .update(payload)
-            .eq('id', id);
+        var response = await fetch(SUPABASE_URL + '/rest/v1/' + tableName + '?id=eq.' + encodeURIComponent(id), {
+            method: 'PATCH',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify(payload)
+        });
 
-        if (error) throw new Error(error.message);
+        if (!response.ok) {
+            var errBody = await response.json().catch(function() { return {}; });
+            throw new Error(errBody.message || 'فشل التحديث');
+        }
+
         return true;
 
     } catch (error) {
@@ -394,15 +425,23 @@ async function deleteRows(tableName, column, value) {
     if (!token) return;
 
     try {
-        var supabaseClient = getSupabaseClient();
-        if (!supabaseClient) throw new Error('Supabase Client not available');
-        
-        var { error } = await supabaseClient
-            .from(tableName)
-            .delete()
-            .eq(column, value);
+        var response = await fetch(
+            SUPABASE_URL + '/rest/v1/' + tableName + '?' + encodeURIComponent(column) + '=eq.' + encodeURIComponent(value),
+            {
+                method: 'DELETE',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + token,
+                    'Prefer': 'return=minimal'
+                }
+            }
+        );
 
-        if (error) throw new Error(error.message);
+        if (!response.ok) {
+            var errBody = await response.json().catch(function() { return {}; });
+            throw new Error(errBody.message || 'فشل الحذف');
+        }
+
         return true;
 
     } catch (error) {
@@ -604,6 +643,24 @@ function getStatusBadge(status) {
 // ============================================================
 // PERMISSION FUNCTIONS
 // ============================================================
+// ✅ ملاحظة إصلاح مهمة:
+// كانت الدالتين دول بيستخدموا supabaseClient.from('user_permissions')...
+// (يعني الـ SDK)، لكن الـ SDK هنا معندوش أي فكرة عن جلسة المستخدم
+// الفعلية، لأن تسجيل الدخول (login.html) بيحفظ الجلسة يدويًا في
+// localStorage عن طريق fetch مباشر، ومفيش أي مكان بيستدعي
+// supabaseClient.auth.setSession(...) عشان "يعرّف" الـ SDK بيها.
+// النتيجة: أي طلب عن طريق supabaseClient.from(...) كان بيتبعت بمفتاح
+// anon بس (من غير Authorization: Bearer <توكن المستخدم الحقيقي>)،
+// فقاعدة البيانات (RLS) كانت بتشوف auth.uid() = NULL، فترفض الطلب
+// وترجّع نتيجة فاضية دايمًا - حتى لو الأدمن فعلاً حدد للمستخدم صلاحية
+// "عرض" على موديول معيّن. وده اللي كان بيخلي أي موظف (غير أدمن) ياخد
+// رسالة "ليس لديك صلاحية" على كل صفحة حتى بعد ضبط صلاحياته صح، ويترجع
+// دايمًا لصفحته الرئيسية الافتراضية.
+// الحل: استخدام fetch() مباشر مع إرفاق Authorization: Bearer <توكن
+// المستخدم الحالي> يدويًا (بنفس الطريقة الشغالة أصلاً في
+// getCurrentUserProfile/getCompanyId فوق) بدل الاعتماد على جلسة الـ SDK
+// الداخلية غير المُهيّأة.
+// ============================================================
 async function hasPermission(module, permission, userId) {
     var token = getToken();
     if (!token) return false;
@@ -615,23 +672,27 @@ async function hasPermission(module, permission, userId) {
     if (profile && profile.is_super_admin) return true;
 
     try {
-        var supabaseClient = getSupabaseClient();
-        if (!supabaseClient) return false;
-        
         var companyId = await getCompanyId();
         if (!companyId) return false;
 
-        var { data, error } = await supabaseClient
-            .from('user_permissions')
-            .select(permission)
-            .eq('user_id', targetUserId)
-            .eq('company_id', companyId)
-            .eq('module', module);
+        var url = SUPABASE_URL + '/rest/v1/user_permissions?select=' + encodeURIComponent(permission) +
+            '&user_id=eq.' + encodeURIComponent(targetUserId) +
+            '&company_id=eq.' + encodeURIComponent(companyId) +
+            '&module=eq.' + encodeURIComponent(module);
 
-        if (error) {
-            console.error('❌ فشل التحقق من الصلاحية:', error.message);
+        var response = await fetch(url, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + token
+            }
+        });
+
+        if (!response.ok) {
+            console.error('❌ فشل التحقق من الصلاحية:', response.status);
             return false;
         }
+
+        var data = await response.json();
 
         return data && data.length > 0 && data[0][permission] === true;
 
@@ -654,23 +715,27 @@ async function getUserPermissions(module, userId) {
     }
 
     try {
-        var supabaseClient = getSupabaseClient();
-        if (!supabaseClient) return {};
-        
         var companyId = await getCompanyId();
         if (!companyId) return {};
 
-        var { data, error } = await supabaseClient
-            .from('user_permissions')
-            .select('*')
-            .eq('user_id', targetUserId)
-            .eq('company_id', companyId)
-            .eq('module', module);
+        var url = SUPABASE_URL + '/rest/v1/user_permissions?select=*' +
+            '&user_id=eq.' + encodeURIComponent(targetUserId) +
+            '&company_id=eq.' + encodeURIComponent(companyId) +
+            '&module=eq.' + encodeURIComponent(module);
 
-        if (error) {
-            console.error('❌ فشل جلب الصلاحيات:', error.message);
+        var response = await fetch(url, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + token
+            }
+        });
+
+        if (!response.ok) {
+            console.error('❌ فشل جلب الصلاحيات:', response.status);
             return {};
         }
+
+        var data = await response.json();
 
         if (!data || data.length === 0) return {};
 
