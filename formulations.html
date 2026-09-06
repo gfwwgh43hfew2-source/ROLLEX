@@ -1478,7 +1478,21 @@
             try {
                 var token = getToken();
                 if (!token) return null;
-                var res = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=company_id&limit=1', {
+                // ✅ نفس إصلاح users.html: نفلتر بمعرف المستخدم الحالي صراحة
+                // بدل الاعتماد على "أول صف" ترجعه Postgres (غير مضمون الترتيب).
+                var currentUserId = null;
+                try {
+                    var session = localStorage.getItem('rollex_session') || sessionStorage.getItem('rollex_session');
+                    if (session) {
+                        var parsed = JSON.parse(session);
+                        currentUserId = parsed && parsed.user && parsed.user.id;
+                    }
+                } catch (e) {}
+
+                var url = SUPABASE_URL + '/rest/v1/profiles?select=company_id';
+                url += currentUserId ? ('&id=eq.' + encodeURIComponent(currentUserId)) : '&limit=1';
+
+                var res = await fetch(url, {
                     headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
                 });
                 if (!res.ok) return null;
@@ -1486,6 +1500,7 @@
                 return data[0]?.company_id || null;
             } catch (e) { return null; }
         }
+
 
         function showToast(title, message, type) {
             var container = document.getElementById('toastContainer');

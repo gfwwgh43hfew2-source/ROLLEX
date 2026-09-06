@@ -1013,29 +1013,17 @@
 
         async function getCompanyId() {
             try {
-                var token = await getValidToken();
-                if (!token) {
-                    console.warn('⚠️ لا يوجد توكن صالح');
+                // ✅ نفس إصلاح getCurrentUserProfile تحت: كانت الدالة دي بتجيب
+                // '/rest/v1/profiles?select=company_id&limit=1' من غير فلترة
+                // بمعرف المستخدم الحالي، فكانت ممكن ترجّع company_id بتاع
+                // صف عشوائي (مستخدم تاني) بدل صف الأدمن نفسه. الحل: نستخدم
+                // البروفايل الصحيح (المفلتر بمعرف المستخدم الحالي فعليًا).
+                var profile = await getCurrentUserProfile();
+                if (!profile) {
+                    console.warn('⚠️ لا يوجد بروفايل لجلب company_id منه');
                     return null;
                 }
-
-                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?select=company_id&limit=1', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (!response.ok) {
-                    console.warn('⚠️ فشل جلب company_id:', response.status);
-                    return null;
-                }
-
-                var data = await response.json();
-                if (data && data.length > 0 && data[0].company_id) {
-                    return data[0].company_id;
-                }
-                return null;
+                return profile.company_id || null;
 
             } catch (error) {
                 console.error('❌ خطأ في getCompanyId:', error);
@@ -1051,7 +1039,44 @@
                     return null;
                 }
 
-                var response = await fetch(SUPABASE_URL + '/rest/v1/profiles?limit=1', {
+                // ✅ إصلاح خطير: كانت الدالة دي بتجيب '/rest/v1/profiles?limit=1'
+                // من غير أي فلترة بمعرف المستخدم الحالي. بما إن سياسة RLS
+                // بتسمح للأدمن بمشاهدة كل بروفايلات موظفي شركته (مش بروفايله
+                // هو بس)، كان أول صف يرجعه Postgres (بترتيب غير مضمون) ممكن
+                // يبقى بروفايل موظف تاني تمامًا (مش الأدمن نفسه)! ده كان بيخلي
+                // صفحة المستخدمين أحيانًا "تفتكر" إن الأدمن هو موظف تاني بصلاحيات
+                // أقل (مثلاً مشاهد)، فترفض دخوله على صفحته هو نفسه وترجّعه
+                // للرئيسية، رغم إنه فعلاً الأدمن الحقيقي.
+                // الحل: نجيب الـ id بتاع المستخدم الحالي من الجلسة المحفوظة،
+                // ونفلتر بيه صراحة بدل ما نسيب Postgres يختار صف عشوائي.
+                var currentUserId = null;
+                try {
+                    var storedSession = localStorage.getItem('rollex_session') || sessionStorage.getItem('rollex_session');
+                    if (storedSession) {
+                        var parsedSession = JSON.parse(storedSession);
+                        currentUserId = parsedSession && parsedSession.user && parsedSession.user.id;
+                    }
+                } catch (e) {}
+
+                var url = SUPABASE_URL + '/rest/v1/profiles?select=*';
+                if (currentUserId) {
+                    url += '&id=eq.' + encodeURIComponent(currentUserId);
+                } else {
+                    // fallback نادر: لو معرفناش الـ id من الجلسة لأي سبب،
+                    // نجيب هوية المستخدم من Auth مباشرة بدل تخمين صف عشوائي
+                    var authResp = await fetch(SUPABASE_URL + '/auth/v1/user', {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + token
+                        }
+                    });
+                    if (!authResp.ok) return null;
+                    var authUser = await authResp.json();
+                    if (!authUser || !authUser.id) return null;
+                    url += '&id=eq.' + encodeURIComponent(authUser.id);
+                }
+
+                var response = await fetch(url, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': 'Bearer ' + token
